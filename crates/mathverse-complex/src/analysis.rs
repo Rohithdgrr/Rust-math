@@ -246,8 +246,8 @@ impl ComplexAnalysis {
         radius: f64,
         n: usize,
     ) -> bool {
-        let mut max_f = 0.0;
-        let mut max_g = 0.0;
+        let mut max_f: f64 = 0.0;
+        let mut max_g: f64 = 0.0;
         
         for k in 0..n {
             let theta = 2.0 * std::f64::consts::PI * k as f64 / n as f64;

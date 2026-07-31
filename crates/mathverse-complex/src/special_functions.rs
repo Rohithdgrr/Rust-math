@@ -42,7 +42,7 @@ impl ComplexSpecialFunctions {
         let sqrt_2pi = (2.0 * std::f64::consts::PI).sqrt();
         let t = z_minus_1 + Complex::real((P.len() - 2) as f64) + Complex::real(0.5);
         
-        let sqrt_2pi_t = Complex::real(sqrt_2pi) * t.powf(z - Complex::real(0.5));
+        let sqrt_2pi_t = Complex::real(sqrt_2pi) * t.pow(z - Complex::real(0.5));
         let exp_t = (-t).exp();
         
         sqrt_2pi_t * exp_t * x
@@ -91,7 +91,7 @@ impl ComplexSpecialFunctions {
             let mut sum = Complex::zero();
             for n in 1..=iterations {
                 let n_complex = Complex::real(n as f64);
-                sum = sum + Complex::one() / n_complex.powf(z);
+                sum = sum + Complex::one() / n_complex.pow(z);
             }
             return sum;
         }
@@ -102,7 +102,7 @@ impl ComplexSpecialFunctions {
         let pi = Complex::new(std::f64::consts::PI, 0.0);
         
         let gamma_term = Self::gamma(one_minus_s / Complex::real(2.0));
-        let pi_term = pi.powf(s / Complex::real(2.0));
+        let pi_term = pi.pow(s / Complex::real(2.0));
         let sin_term = (pi * s / Complex::real(2.0)).sin();
         
         let zeta_reflected = Self::zeta(Complex::one() - s, iterations);
@@ -118,7 +118,7 @@ impl ComplexSpecialFunctions {
             let mut sum = Complex::zero();
             for n in 1..=iterations {
                 let n_complex = Complex::real(n as f64);
-                let term = z.powf(n_complex) / n_complex.powf(s);
+                let term = z.pow(n_complex) / n_complex.pow(s);
                 sum = sum + term;
             }
             sum
@@ -130,7 +130,7 @@ impl ComplexSpecialFunctions {
             for k in 0..=iterations {
                 let k_complex = Complex::real(k as f64);
                 let binomial = Self::binomial_coefficient_complex(s + k_complex - Complex::one(), k_complex);
-                let term = binomial * (log_minus_z).powf(k_complex) * Self::zeta(s + k_complex, 50);
+                let term = binomial * (log_minus_z).pow(k_complex) * Self::zeta(s + k_complex, 50);
                 
                 if k % 2 == 0 {
                     sum = sum + term;
@@ -166,7 +166,7 @@ impl ComplexSpecialFunctions {
             let factorial: f64 = (1..=n).product::<usize>() as f64;
             let denominator = Complex::real((2 * n + 1) as f64 * factorial);
             
-            let term = sign * z.powf(Complex::real((2 * n + 1) as f64)) / denominator;
+            let term = sign * z.pow(Complex::real((2 * n + 1) as f64)) / denominator;
             sum = sum + term;
         }
         
@@ -188,7 +188,7 @@ impl ComplexSpecialFunctions {
             for n in 1..=iterations {
                 let n_complex = Complex::real(n as f64);
                 let factorial: f64 = (1..=n).product::<usize>() as f64;
-                sum = sum + z.powf(n_complex) / (n_complex * Complex::real(factorial));
+                sum = sum + z.pow(n_complex) / (n_complex * Complex::real(factorial));
             }
             
             sum
@@ -200,7 +200,7 @@ impl ComplexSpecialFunctions {
             for n in 1..=iterations {
                 let n_complex = Complex::real(n as f64);
                 let factorial: f64 = (1..=n).product::<usize>() as f64;
-                let term = Complex::real(factorial) * inv_z.powf(n_complex + Complex::one());
+                let term = Complex::real(factorial) * inv_z.pow(n_complex + Complex::one());
                 
                 if n % 2 == 0 {
                     sum = sum + term;
@@ -226,7 +226,7 @@ impl ComplexSpecialFunctions {
             let sign_s = if (n + 3) % 4 == 0 { Complex::one() } else if (n + 1) % 4 == 0 { -Complex::one() } else { Complex::zero() };
             
             let power = Complex::real(4.0 * n as f64 + 1.0);
-            let denominator = Complex::real(factorial) * power * z.powf(Complex::real(4.0 * n as f64 + 1.0));
+            let denominator = Complex::real(factorial) * power * z.pow(Complex::real(4.0 * n as f64 + 1.0));
             
             c = c + sign_c / denominator;
             s = s + sign_s / denominator;
@@ -249,8 +249,8 @@ impl ComplexSpecialFunctions {
                 let gamma_1 = Self::gamma(n_complex / Complex::real(3.0) + Complex::real(2.0 / 3.0));
                 let gamma_2 = Self::gamma(n_complex / Complex::real(3.0) + Complex::real(1.0 / 3.0));
                 
-                let term1 = z.powf(three_n) / (Complex::real(3.0_f64.powi(2 * n as i32)) * gamma_1);
-                let term2 = z.powf(three_n + Complex::real(2.0)) / (Complex::real(3.0_f64.powi(2 * n as i32 + 1)) * gamma_2);
+                let term1 = z.pow(three_n) / (Complex::real(3.0_f64.powi(2 * n as i32)) * gamma_1);
+                let term2 = z.pow(three_n + Complex::real(2.0)) / (Complex::real(3.0_f64.powi(2 * n as i32 + 1)) * gamma_2);
                 
                 let sign = if n % 2 == 0 { Complex::one() } else { -Complex::one() };
                 
@@ -258,15 +258,15 @@ impl ComplexSpecialFunctions {
                 bi = bi + sign * (term1 + Complex::real(3.0_f64.sqrt()) * term2);
             }
             
-            let factor = Complex::one() / (Complex::real(3.0_f64.powf(2.0 / 3.0)) * std::f64::consts::PI);
+            let factor = Complex::one() / (Complex::real(3.0_f64.pow(2.0 / 3.0)) * std::f64::consts::PI);
             (ai * factor, bi * factor)
         } else {
             // Asymptotic expansion for large |z|
-            let t = (2.0 / 3.0) * z.powf(Complex::real(1.5));
+            let t = (2.0 / 3.0) * z.pow(Complex::real(1.5));
             let exp_t = (-t).exp();
             let exp_neg_t = t.exp();
             
-            let prefactor = Complex::one() / (Complex::real(2.0) * std::f64::consts::PI.sqrt() * z.powf(Complex::real(0.25)));
+            let prefactor = Complex::one() / (Complex::real(2.0) * std::f64::consts::PI.sqrt() * z.pow(Complex::real(0.25)));
             
             let ai = prefactor * exp_t;
             let bi = prefactor * exp_neg_t;
@@ -286,7 +286,7 @@ impl ComplexSpecialFunctions {
                 let factorial_n: f64 = if n == 0 { 1.0 } else { (1..=n).product::<usize>() as f64 };
                 let gamma_v_n = Self::gamma(v + n_complex + Complex::one());
                 
-                let term = (Complex::real((-1.0_f64).powi(n as i32)) * (z / Complex::real(2.0)).powf(v + Complex::real(2.0) * n_complex))
+                let term = (Complex::real((-1.0_f64).powi(n as i32)) * (z / Complex::real(2.0)).pow(v + Complex::real(2.0) * n_complex))
                     / (Complex::real(factorial_n) * gamma_v_n);
                 
                 sum = sum + term;

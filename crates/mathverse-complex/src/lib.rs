@@ -230,6 +230,62 @@ impl From<(f64, f64)> for Complex {
     }
 }
 
+impl<'a, 'b> Add<&'b Complex> for &'a Complex {
+    type Output = Complex;
+    fn add(self, o: &'b Complex) -> Complex {
+        Complex::new(self.re + o.re, self.im + o.im)
+    }
+}
+impl<'a, 'b> Sub<&'b Complex> for &'a Complex {
+    type Output = Complex;
+    fn sub(self, o: &'b Complex) -> Complex {
+        Complex::new(self.re - o.re, self.im - o.im)
+    }
+}
+impl<'a, 'b> Mul<&'b Complex> for &'a Complex {
+    type Output = Complex;
+    fn mul(self, o: &'b Complex) -> Complex {
+        Complex::new(self.re * o.re - self.im * o.im, self.re * o.im + self.im * o.re)
+    }
+}
+impl<'a, 'b> Div<&'b Complex> for &'a Complex {
+    type Output = Complex;
+    fn div(self, o: &'b Complex) -> Complex {
+        let d = o.norm_sq();
+        Complex::new((self.re * o.re + self.im * o.im) / d, (self.im * o.re - self.re * o.im) / d)
+    }
+}
+impl<'a> Neg for &'a Complex {
+    type Output = Complex;
+    fn neg(self) -> Complex {
+        Complex::new(-self.re, -self.im)
+    }
+}
+impl<'a> Add<f64> for &'a Complex {
+    type Output = Complex;
+    fn add(self, o: f64) -> Complex {
+        Complex::new(self.re + o, self.im)
+    }
+}
+impl<'a> Sub<f64> for &'a Complex {
+    type Output = Complex;
+    fn sub(self, o: f64) -> Complex {
+        Complex::new(self.re - o, self.im)
+    }
+}
+impl<'a> Mul<f64> for &'a Complex {
+    type Output = Complex;
+    fn mul(self, o: f64) -> Complex {
+        Complex::new(self.re * o, self.im * o)
+    }
+}
+impl<'a> Div<f64> for &'a Complex {
+    type Output = Complex;
+    fn div(self, o: f64) -> Complex {
+        Complex::new(self.re / o, self.im / o)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -375,7 +375,7 @@ impl UndirectedGraph {
 
     /// Number of edges.
     pub fn edge_count(&self) -> usize {
-        self.adjacency.values().map(|v| v.len()).sum() / 2
+        self.adjacency.values().map(|v| v.len()).sum::<usize>() / 2
     }
 
     /// Minimum spanning tree using Prim's algorithm.

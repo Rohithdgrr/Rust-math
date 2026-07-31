@@ -116,7 +116,7 @@ impl NumberTheory {
         
         // Witness loop
         for _ in 0..k {
-            let a = 2 + (rand::random::<i64>() % (n - 4));
+            let a = 2 + (((n as u64).wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407)) as i64).abs() % (n - 4);
             let mut x = Self::mod_pow(a, d, n);
             
             if x == 1 || x == n - 1 {
