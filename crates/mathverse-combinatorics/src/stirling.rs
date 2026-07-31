@@ -63,7 +63,7 @@ pub fn eulerian_number(n: u64, k: u64) -> u128 {
     }
     let (n, k) = (n as usize, k as usize);
     let mut dp = vec![0u128; n + 1];
-    dp[1] = 1;
+    dp[0] = 1;
     for i in 2..=n {
         let mut next = vec![0u128; n + 1];
         for j in 1..i {

@@ -138,21 +138,27 @@ pub fn hinge_loss(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
     Ok(sum / n)
 }
 
-/// Cosine embedding loss: mean((1 - cos(a, b)) * target).
-/// target = 1.0 means similar, -1.0 means dissimilar.
+/// Cosine embedding loss: per-sample cosine similarity.
+/// `a`, `b`: [batch, dim], `target`: [batch] with 1.0 (similar) or -1.0 (dissimilar).
 pub fn cosine_embedding_loss(a: &Tensor, b: &Tensor, target: &Tensor, margin: f64) -> MathResult<f64> {
-    if a.numel() != b.numel() { return Err(MathError::DimensionMismatch); }
-    let dot: f64 = a.data.iter().zip(&b.data).map(|(x, y)| x * y).sum();
-    let norm_a: f64 = a.data.iter().map(|x| x * x).sum::<f64>().sqrt();
-    let norm_b: f64 = b.data.iter().map(|x| x * x).sum::<f64>().sqrt();
-    if norm_a < 1e-10 || norm_b < 1e-10 { return Ok(0.0); }
-    let cos_sim = dot / (norm_a * norm_b);
-    let n = target.numel() as f64;
-    let loss: f64 = target.data.iter().map(|&t| {
+    if a.shape != b.shape { return Err(MathError::DimensionMismatch); }
+    if a.shape.len() != 2 { return Err(MathError::InvalidArgument("cosine_embedding_loss requires 2-D tensors")); }
+    let batch = a.shape[0];
+    let dim = a.shape[1] as f64;
+    let mut loss = 0.0;
+    for i in 0..batch {
+        let a_slice = &a.data[i * dim as usize..(i + 1) * dim as usize];
+        let b_slice = &b.data[i * dim as usize..(i + 1) * dim as usize];
+        let dot: f64 = a_slice.iter().zip(b_slice).map(|(x, y)| x * y).sum();
+        let norm_a: f64 = a_slice.iter().map(|x| x * x).sum::<f64>().sqrt();
+        let norm_b: f64 = b_slice.iter().map(|x| x * x).sum::<f64>().sqrt();
+        if norm_a < 1e-10 || norm_b < 1e-10 { continue; }
+        let cos_sim = dot / (norm_a * norm_b);
+        let t = target.data[i];
         let base = 1.0 - cos_sim;
-        if t > 0.0 { base.max(0.0) } else { (base - margin).max(0.0) }
-    }).sum();
-    Ok(loss / n)
+        loss += if t > 0.0 { base.max(0.0) } else { (base - margin).max(0.0) };
+    }
+    Ok(loss / batch as f64)
 }
 
 #[cfg(test)]

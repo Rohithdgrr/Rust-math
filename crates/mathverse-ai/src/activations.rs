@@ -168,11 +168,36 @@ pub fn softmax(t: &Tensor, axis: usize) -> MathResult<Tensor> {
     Ok(Tensor { shape: t.shape.clone(), data: out })
 }
 
-/// Log-softmax: log(softmax(x)), computed stably as x - max - log(sum(exp(x - max))).
+/// Log-softmax: computed directly as x - max - log(sum(exp(x - max))) for numerical stability.
 pub fn log_softmax(t: &Tensor, axis: usize) -> MathResult<Tensor> {
-    let s = softmax(t, axis)?;
-    let data: Vec<f64> = s.data.iter().map(|x| x.ln()).collect();
-    Ok(Tensor { shape: t.shape.clone(), data })
+    if axis >= t.shape.len() {
+        return Err(mathverse_core::error::MathError::InvalidArgument("axis out of range"));
+    }
+    let axis_size = t.shape[axis];
+    let outer: usize = t.shape[..axis].iter().product();
+    let inner: usize = t.shape[axis + 1..].iter().product();
+    let mut out = vec![0.0; t.numel()];
+
+    for i in 0..outer {
+        for j in 0..inner {
+            let mut max_val = f64::NEG_INFINITY;
+            for k in 0..axis_size {
+                let idx = i * axis_size * inner + k * inner + j;
+                if t.data[idx] > max_val { max_val = t.data[idx]; }
+            }
+            let mut sum_exp = 0.0;
+            for k in 0..axis_size {
+                let idx = i * axis_size * inner + k * inner + j;
+                sum_exp += (t.data[idx] - max_val).exp();
+            }
+            let log_sum = sum_exp.ln();
+            for k in 0..axis_size {
+                let idx = i * axis_size * inner + k * inner + j;
+                out[idx] = t.data[idx] - max_val - log_sum;
+            }
+        }
+    }
+    Ok(Tensor { shape: t.shape.clone(), data: out })
 }
 
 #[cfg(test)]

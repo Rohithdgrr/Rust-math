@@ -1,5 +1,6 @@
 //! N-dimensional tensor with row-major layout, broadcasting, and math ops.
 
+use std::fmt;
 use mathverse_core::error::{MathError, MathResult};
 
 /// N-dimensional tensor with row-major (C-contiguous) data.
@@ -7,6 +8,21 @@ use mathverse_core::error::{MathError, MathResult};
 pub struct Tensor {
     pub shape: Vec<usize>,
     pub data: Vec<f64>,
+}
+
+impl fmt::Display for Tensor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Tensor(shape={:?}, numel={}, ", self.shape, self.data.len())?;
+        if self.data.len() <= 8 {
+            write!(f, "data={:?})", self.data)?;
+        } else {
+            let min = self.data.iter().cloned().fold(f64::INFINITY, f64::min);
+            let max = self.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            let mean = self.data.iter().sum::<f64>() / self.data.len() as f64;
+            write!(f, "min={:.4}, max={:.4}, mean={:.4}, first5={:?})", min, max, mean, &self.data[..5])?;
+        }
+        Ok(())
+    }
 }
 
 impl Tensor {
@@ -80,10 +96,14 @@ impl Tensor {
         Self { shape: vec![n], data }
     }
 
-    /// Pseudo-random normal via xorshift64 (no external dep).
-    pub fn randn(shape: &[usize]) -> Self {
+    /// Pseudo-random normal via xorshift64. Optional seed for reproducibility.
+    pub fn randn(shape: &[usize]) -> Self { Self::randn_seeded(shape, 0xDEAD_BEEF_CAFE_1234) }
+
+    /// Pseudo-random normal with explicit seed.
+    pub fn randn_seeded(shape: &[usize], seed: u64) -> Self {
         use std::cell::Cell;
-        thread_local! { static S: Cell<u64> = Cell::new(0xDEAD_BEEF_CAFE_1234); }
+        thread_local! { static S: Cell<u64> = Cell::new(0); }
+        S.with(|s| s.set(seed));
         let numel: usize = shape.iter().product();
         let data: Vec<f64> = (0..numel).map(|_| {
             S.with(|s| {
@@ -92,7 +112,6 @@ impl Tensor {
                 x ^= x >> 7;
                 x ^= x << 17;
                 s.set(x);
-                // Box-Muller: uniform → normal
                 let u1 = (x as f64) / (u64::MAX as f64).max(1e-30);
                 let u2 = ((x >> 32) as f64) / (u64::MAX as f64).max(1e-30);
                 (-2.0 * u1.max(1e-30).ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
@@ -329,56 +348,69 @@ impl Tensor {
         Ok(Tensor { shape: target, data })
     }
 
-    /// Element-wise div.
+    /// Element-wise div (safe: replaces zero with epsilon).
+    #[must_use]
     pub fn div(&self, other: &Tensor) -> MathResult<Tensor> {
         let target = broadcast_shapes(&self.shape, &other.shape)?;
         let a = self.broadcast_to(&target)?;
         let b = other.broadcast_to(&target)?;
-        let data: Vec<f64> = a.data.iter().zip(&b.data).map(|(x, y)| x / y).collect();
+        let data: Vec<f64> = a.data.iter().zip(&b.data).map(|(x, y)| x / y.max(f64::EPSILON)).collect();
         Ok(Tensor { shape: target, data })
     }
 
+    #[must_use]
     pub fn add_scalar(&self, s: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x + s).collect() }
     }
 
+    #[must_use]
     pub fn sub_scalar(&self, s: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x - s).collect() }
     }
 
+    #[must_use]
     pub fn mul_scalar(&self, s: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x * s).collect() }
     }
 
+    #[must_use]
     pub fn div_scalar(&self, s: f64) -> Tensor {
-        Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x / s).collect() }
+        let denom = s.max(f64::EPSILON);
+        Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x / denom).collect() }
     }
 
+    #[must_use]
     pub fn neg(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| -x).collect() }
     }
 
+    #[must_use]
     pub fn abs(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.abs()).collect() }
     }
 
+    #[must_use]
     pub fn sqrt(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.sqrt()).collect() }
     }
 
+    #[must_use]
     pub fn exp(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.exp()).collect() }
     }
 
+    #[must_use]
     pub fn ln(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.ln()).collect() }
     }
 
+    #[must_use]
     pub fn powf(&self, e: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.powf(e)).collect() }
     }
 
     /// Clip values to [lo, hi].
+    #[must_use]
     pub fn clip(&self, lo: f64, hi: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.clamp(lo, hi)).collect() }
     }
@@ -516,6 +548,255 @@ impl Tensor {
         }
         Tensor { shape: self.shape.clone(), data: out }
     }
+
+    // -----------------------------------------------------------------------
+    // Advanced ops
+    // -----------------------------------------------------------------------
+
+    /// Element-wise where: condition ? a : b.
+    #[must_use]
+    pub fn where_tensor(condition: &Tensor, a: &Tensor, b: &Tensor) -> MathResult<Tensor> {
+        let target = broadcast_shapes(&broadcast_shapes(&condition.shape, &a.shape)?, &b.shape)?;
+        let c = condition.broadcast_to(&target)?;
+        let av = a.broadcast_to(&target)?;
+        let bv = b.broadcast_to(&target)?;
+        let data: Vec<f64> = c.data.iter().zip(&av.data).zip(&bv.data)
+            .map(|((&cond, &av), &bv)| if cond > 0.0 { av } else { bv })
+            .collect();
+        Ok(Tensor { shape: target, data })
+    }
+
+    /// Gather along axis: selects from `self` using indices.
+    /// `indices` has same shape as output, values are indices along `axis`.
+    #[must_use]
+    pub fn gather(&self, axis: usize, indices: &Tensor) -> MathResult<Tensor> {
+        let mut out_data = Vec::with_capacity(indices.numel());
+        let axis_size = self.shape[axis];
+        let outer: usize = self.shape[..axis].iter().product();
+        let inner: usize = self.shape[axis + 1..].iter().product();
+        let iouter: usize = indices.shape[..axis].iter().product();
+        let iinner: usize = indices.shape[axis + 1..].iter().product();
+        for io in 0..iouter {
+            for k in 0..indices.shape[axis] {
+                for ii in 0..iinner {
+                    let idx = io * indices.shape[axis] * iinner + k * iinner + ii;
+                    let gather_idx = indices.data[idx] as usize;
+                    let src_flat = io * axis_size * inner + gather_idx * inner + ii;
+                    out_data.push(self.data[src_flat]);
+                }
+            }
+        }
+        let out_shape = indices.shape.clone();
+        Ok(Tensor { shape: out_shape, data: out_data })
+    }
+
+    /// Scatter add: adds `src` into a zero tensor at positions given by `indices`.
+    #[must_use]
+    pub fn scatter_add(&self, axis: usize, indices: &Tensor, src: &Tensor) -> MathResult<Tensor> {
+        let mut out = self.clone();
+        let axis_size = self.shape[axis];
+        let outer: usize = self.shape[..axis].iter().product();
+        let inner: usize = self.shape[axis + 1..].iter().product();
+        let iouter: usize = indices.shape[..axis].iter().product();
+        let iinner: usize = indices.shape[axis + 1..].iter().product();
+        for io in 0..iouter {
+            for k in 0..indices.shape[axis] {
+                for ii in 0..iinner {
+                    let idx = io * indices.shape[axis] * iinner + k * iinner + ii;
+                    let scatter_idx = indices.data[idx] as usize;
+                    let src_flat = io * src.shape[axis] * inner + k * inner + ii;
+                    let dst_flat = io * axis_size * inner + scatter_idx * inner + ii;
+                    out.data[dst_flat] += src.data[src_flat];
+                }
+            }
+        }
+        Ok(out)
+    }
+
+    /// Top-k along axis: returns (values, indices) tensors.
+    pub fn topk(&self, k: usize, axis: usize) -> MathResult<(Tensor, Tensor)> {
+        if axis >= self.shape.len() || k > self.shape[axis] {
+            return Err(MathError::InvalidArgument("topk: invalid axis or k"));
+        }
+        let outer: usize = self.shape[..axis].iter().product();
+        let axis_size = self.shape[axis];
+        let inner: usize = self.shape[axis + 1..].iter().product();
+        let mut val_data = Vec::with_capacity(outer * k * inner);
+        let mut idx_data = Vec::with_capacity(outer * k * inner);
+        for io in 0..outer {
+            for ii in 0..inner {
+                let mut pairs: Vec<(f64, usize)> = (0..axis_size).map(|a| {
+                    let flat = io * axis_size * inner + a * inner + ii;
+                    (self.data[flat], a)
+                }).collect();
+                pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+                for ki in 0..k {
+                    val_data.push(pairs[ki].0);
+                    idx_data.push(pairs[ki].1 as f64);
+                }
+            }
+        }
+        let mut out_shape = self.shape.clone();
+        out_shape[axis] = k;
+        let idx_shape = out_shape.clone();
+        Ok((Tensor { shape: out_shape, data: val_data }, Tensor { shape: idx_shape, data: idx_data }))
+    }
+
+    /// Concatenate tensors along an axis.
+    #[must_use]
+    pub fn concat(tensors: &[Tensor], axis: usize) -> MathResult<Tensor> {
+        if tensors.is_empty() { return Err(MathError::InvalidArgument("concat: empty input")); }
+        let ndim = tensors[0].shape.len();
+        if axis >= ndim { return Err(MathError::InvalidArgument("concat: axis out of range")); }
+        let mut out_shape = tensors[0].shape.clone();
+        let mut total_axis = 0;
+        for t in tensors {
+            if t.shape.len() != ndim { return Err(MathError::DimensionMismatch); }
+            for (i, (a, b)) in out_shape.iter().zip(&t.shape).enumerate() {
+                if i != axis && a != b { return Err(MathError::DimensionMismatch); }
+            }
+            total_axis += t.shape[axis];
+        }
+        out_shape[axis] = total_axis;
+        let outer: usize = tensors[0].shape[..axis].iter().product();
+        let inner: usize = tensors[0].shape[axis + 1..].iter().product();
+        let mut out_data = Vec::with_capacity(outer * total_axis * inner);
+        for io in 0..outer {
+            for t in tensors {
+                let asize = t.shape[axis];
+                for a in 0..asize {
+                    for ii in 0..inner {
+                        let flat = io * asize * inner + a * inner + ii;
+                        out_data.push(t.data[flat]);
+                    }
+                }
+            }
+        }
+        Ok(Tensor { shape: out_shape, data: out_data })
+    }
+
+    /// Split into chunks along axis.
+    #[must_use]
+    pub fn split(&self, num_chunks: usize, axis: usize) -> MathResult<Vec<Tensor>> {
+        if axis >= self.shape.len() { return Err(MathError::InvalidArgument("split: axis out of range")); }
+        let chunk_size = self.shape[axis] / num_chunks;
+        let outer: usize = self.shape[..axis].iter().product();
+        let inner: usize = self.shape[axis + 1..].iter().product();
+        let mut result = Vec::with_capacity(num_chunks);
+        for c in 0..num_chunks {
+            let mut chunk_data = Vec::with_capacity(outer * chunk_size * inner);
+            for io in 0..outer {
+                for a in 0..chunk_size {
+                    let src_a = c * chunk_size + a;
+                    for ii in 0..inner {
+                        let flat = io * self.shape[axis] * inner + src_a * inner + ii;
+                        chunk_data.push(self.data[flat]);
+                    }
+                }
+            }
+            let mut shape = self.shape.clone();
+            shape[axis] = chunk_size;
+            result.push(Tensor { shape, data: chunk_data });
+        }
+        Ok(result)
+    }
+
+    /// Dot product (flattened).
+    #[must_use]
+    pub fn dot(&self, other: &Tensor) -> f64 {
+        self.data.iter().zip(&other.data).map(|(a, b)| a * b).sum()
+    }
+
+    /// Cross product (3-vectors only).
+    #[must_use]
+    pub fn cross(&self, other: &Tensor) -> MathResult<Tensor> {
+        if self.numel() != 3 || other.numel() != 3 {
+            return Err(MathError::InvalidArgument("cross: requires 3-element vectors"));
+        }
+        Ok(Tensor {
+            shape: vec![3],
+            data: vec![
+                self.data[1] * other.data[2] - self.data[2] * other.data[1],
+                self.data[2] * other.data[0] - self.data[0] * other.data[2],
+                self.data[0] * other.data[1] - self.data[1] * other.data[0],
+            ],
+        })
+    }
+
+    /// Clamp (alias for clip).
+    #[must_use]
+    pub fn clamp(&self, lo: f64, hi: f64) -> Tensor { self.clip(lo, hi) }
+
+    /// Variance of all elements.
+    #[must_use]
+    pub fn var(&self) -> f64 {
+        let m = self.mean();
+        self.data.iter().map(|x| (x - m).powi(2)).sum::<f64>() / self.numel() as f64
+    }
+
+    /// Variance along axis.
+    pub fn var_axis(&self, axis: usize) -> MathResult<Tensor> {
+        let n = self.shape[axis] as f64;
+        let mean = self.mean_axis(axis)?;
+        // broadcast mean back to self shape for subtraction
+        let mean_expanded = mean.broadcast_to(&self.shape)?;
+        let diff = self.sub(&mean_expanded)?;
+        let sq = diff.mul(&diff)?;
+        axis_reduce(&sq, axis, |vals| vals.iter().sum::<f64>() / n)
+    }
+
+    /// Standard deviation along axis.
+    pub fn std_axis(&self, axis: usize) -> MathResult<Tensor> {
+        let v = self.var_axis(axis)?;
+        Ok(v.sqrt())
+    }
+
+    /// Sort along axis (ascending), returns (sorted_values, original_indices).
+    pub fn sort(&self, axis: usize) -> MathResult<(Tensor, Tensor)> {
+        if axis >= self.shape.len() { return Err(MathError::InvalidArgument("sort: axis out of range")); }
+        let outer: usize = self.shape[..axis].iter().product();
+        let axis_size = self.shape[axis];
+        let inner: usize = self.shape[axis + 1..].iter().product();
+        let mut val_data = Vec::with_capacity(self.numel());
+        let mut idx_data = Vec::with_capacity(self.numel());
+        for io in 0..outer {
+            for ii in 0..inner {
+                let mut pairs: Vec<(f64, usize)> = (0..axis_size).map(|a| {
+                    let flat = io * axis_size * inner + a * inner + ii;
+                    (self.data[flat], a)
+                }).collect();
+                pairs.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+                for &(v, idx) in &pairs {
+                    val_data.push(v);
+                    idx_data.push(idx as f64);
+                }
+            }
+        }
+        Ok((Tensor { shape: self.shape.clone(), data: val_data }, Tensor { shape: self.shape.clone(), data: idx_data }))
+    }
+
+    /// Unique elements (sorted, deduplicated).
+    #[must_use]
+    pub fn unique(&self) -> Vec<f64> {
+        let mut v: Vec<f64> = self.data.clone();
+        v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        v.dedup_by(|a, b| (*a - *b).abs() < 1e-12);
+        v
+    }
+
+    /// Count non-zero elements.
+    #[must_use]
+    pub fn count_nonzero(&self) -> usize {
+        self.data.iter().filter(|&&x| x.abs() > 1e-15).count()
+    }
+
+    /// Any (true if any element > 0).
+    #[must_use]
+    pub fn any(&self) -> bool { self.data.iter().any(|&x| x > 0.0) }
+
+    /// All (true if all elements > 0).
+    #[must_use]
+    pub fn all(&self) -> bool { self.data.iter().all(|&x| x > 0.0) }
 }
 
 // ---------------------------------------------------------------------------

@@ -38,7 +38,8 @@ pub fn tetranacci(n: u64) -> u128 {
 
 pub fn fibonacci_binet(n: u64) -> f64 {
     let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
-    phi.powi(n as i32) / 5.0_f64.sqrt()
+    let psi = (1.0 - 5.0_f64.sqrt()) / 2.0;
+    (phi.powi(n as i32) - psi.powi(n as i32)) / 5.0_f64.sqrt()
 }
 
 pub fn nth_fibonacci_mod(n: u64, m: u64) -> u64 {

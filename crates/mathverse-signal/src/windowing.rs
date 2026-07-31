@@ -1,12 +1,15 @@
 pub fn window_hamming(len: usize) -> Vec<f64> {
+    if len <= 1 { return vec![1.0; len]; }
     (0..len).map(|i| { let n = i as f64 / (len - 1) as f64; 0.54 - 0.46 * (2.0 * core::f64::consts::PI * n).cos() }).collect()
 }
 
 pub fn window_hanning(len: usize) -> Vec<f64> {
+    if len <= 1 { return vec![1.0; len]; }
     (0..len).map(|i| { let n = i as f64 / (len - 1) as f64; 0.5 * (1.0 - (2.0 * core::f64::consts::PI * n).cos()) }).collect()
 }
 
 pub fn window_blackman(len: usize) -> Vec<f64> {
+    if len <= 1 { return vec![1.0; len]; }
     (0..len).map(|i| { let n = i as f64 / (len - 1) as f64; 0.42 - 0.5 * (2.0 * core::f64::consts::PI * n).cos() + 0.08 * (4.0 * core::f64::consts::PI * n).cos() }).collect()
 }
 
@@ -18,6 +21,7 @@ pub fn window_bartlett(len: usize) -> Vec<f64> {
 pub fn window_rectangular(len: usize) -> Vec<f64> { vec![1.0; len] }
 
 pub fn window_flat_top(len: usize) -> Vec<f64> {
+    if len <= 1 { return vec![1.0; len]; }
     (0..len).map(|i| { let n = i as f64 / (len - 1) as f64;
         0.21557895 - 0.41663158 * (2.0 * core::f64::consts::PI * n).cos() + 0.277263158 * (4.0 * core::f64::consts::PI * n).cos()
         - 0.083578947 * (6.0 * core::f64::consts::PI * n).cos() + 0.006947368 * (8.0 * core::f64::consts::PI * n).cos()

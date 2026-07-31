@@ -51,9 +51,10 @@ pub fn spectral_rolloff(magnitudes: &[f64], threshold: f64) -> usize {
 }
 
 pub fn dynamic_range(x: &[f64]) -> f64 {
+    if x.is_empty() { return 0.0; }
     let max = x.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
     let min = x.iter().cloned().filter(|v| *v > 0.0).fold(f64::INFINITY, f64::min);
-    if min <= 0.0 { f64::INFINITY } else { 20.0 * (max / min).log10() }
+    if !min.is_finite() || min <= 0.0 { f64::INFINITY } else { 20.0 * (max / min).log10() }
 }
 
 #[cfg(test)]

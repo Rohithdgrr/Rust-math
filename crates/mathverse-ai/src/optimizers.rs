@@ -74,7 +74,7 @@ impl Adam {
         }
     }
 
-    pub fn zero_grad(&mut self) { self.t = 0; }
+    pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
 }
 
 /// AdamW optimizer (decoupled weight decay).
@@ -118,7 +118,7 @@ impl AdamW {
         }
     }
 
-    pub fn zero_grad(&mut self) { self.t = 0; }
+    pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
 }
 
 // ---------------------------------------------------------------------------
@@ -166,6 +166,189 @@ impl LrScheduler {
 
     /// Advance the schedule by one step.
     pub fn step(&mut self) { self.step_count += 1; }
+}
+
+// ---------------------------------------------------------------------------
+// Additional optimizers
+// ---------------------------------------------------------------------------
+
+/// RMSprop optimizer.
+pub struct RMSprop {
+    pub lr: f64,
+    pub alpha: f64,
+    pub eps: f64,
+    pub weight_decay: f64,
+    pub momentum: f64,
+    avg_sq: Vec<f64>,
+    velocity: Vec<f64>,
+    initialized: bool,
+}
+
+impl RMSprop {
+    pub fn new(lr: f64, alpha: f64, eps: f64, weight_decay: f64, momentum: f64) -> Self {
+        Self { lr, alpha, eps, weight_decay, momentum, avg_sq: Vec::new(), velocity: Vec::new(), initialized: false }
+    }
+
+    pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
+        assert_eq!(params.len(), grads.len());
+        if !self.initialized {
+            self.avg_sq = vec![0.0; params.len()];
+            self.velocity = vec![0.0; params.len()];
+            self.initialized = true;
+        }
+        for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
+            let mut grad = *g;
+            if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
+            self.avg_sq[i] = self.alpha * self.avg_sq[i] + (1.0 - self.alpha) * grad * grad;
+            self.velocity[i] = self.momentum * self.velocity[i] + grad / (self.avg_sq[i].sqrt() + self.eps);
+            *p -= self.lr * self.velocity[i];
+        }
+    }
+
+    pub fn zero_grad(&mut self) { self.avg_sq.clear(); self.velocity.clear(); self.initialized = false; }
+}
+
+/// Lion optimizer (EvoLved Sign Momentum).
+pub struct Lion {
+    pub lr: f64,
+    pub beta1: f64,
+    pub beta2: f64,
+    pub weight_decay: f64,
+    m: Vec<f64>,
+    initialized: bool,
+}
+
+impl Lion {
+    pub fn new(lr: f64, beta1: f64, beta2: f64, weight_decay: f64) -> Self {
+        Self { lr, beta1, beta2, weight_decay, m: Vec::new(), initialized: false }
+    }
+
+    pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
+        assert_eq!(params.len(), grads.len());
+        if !self.initialized {
+            self.m = vec![0.0; params.len()];
+            self.initialized = true;
+        }
+        for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
+            let update = self.m[i] * self.beta1 + *g * (1.0 - self.beta1);
+            let sign = update.signum();
+            *p -= self.lr * (*p * self.weight_decay + sign);
+            self.m[i] = self.m[i] * self.beta2 + *g * (1.0 - self.beta2);
+        }
+    }
+
+    pub fn zero_grad(&mut self) { self.m.clear(); self.initialized = false; }
+}
+
+/// AdaGrad optimizer.
+pub struct AdaGrad {
+    pub lr: f64,
+    pub eps: f64,
+    pub weight_decay: f64,
+    sum_sq: Vec<f64>,
+    initialized: bool,
+}
+
+impl AdaGrad {
+    pub fn new(lr: f64, eps: f64, weight_decay: f64) -> Self {
+        Self { lr, eps, weight_decay, sum_sq: Vec::new(), initialized: false }
+    }
+
+    pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
+        assert_eq!(params.len(), grads.len());
+        if !self.initialized {
+            self.sum_sq = vec![0.0; params.len()];
+            self.initialized = true;
+        }
+        for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
+            let mut grad = *g;
+            if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
+            self.sum_sq[i] += grad * grad;
+            *p -= self.lr * grad / (self.sum_sq[i].sqrt() + self.eps);
+        }
+    }
+
+    pub fn zero_grad(&mut self) { self.sum_sq.clear(); self.initialized = false; }
+}
+
+/// AdaDelta optimizer.
+pub struct AdaDelta {
+    pub lr: f64,
+    pub rho: f64,
+    pub eps: f64,
+    pub weight_decay: f64,
+    avg_sq: Vec<f64>,
+    avg_dx: Vec<f64>,
+    initialized: bool,
+}
+
+impl AdaDelta {
+    pub fn new(lr: f64, rho: f64, eps: f64, weight_decay: f64) -> Self {
+        Self { lr, rho, eps, weight_decay, avg_sq: Vec::new(), avg_dx: Vec::new(), initialized: false }
+    }
+
+    pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
+        assert_eq!(params.len(), grads.len());
+        if !self.initialized {
+            self.avg_sq = vec![0.0; params.len()];
+            self.avg_dx = vec![0.0; params.len()];
+            self.initialized = true;
+        }
+        for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
+            let mut grad = *g;
+            if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
+            self.avg_sq[i] = self.rho * self.avg_sq[i] + (1.0 - self.rho) * grad * grad;
+            let dx = (self.avg_dx[i] + self.eps).sqrt() / (self.avg_sq[i] + self.eps).sqrt() * grad;
+            self.avg_dx[i] = self.rho * self.avg_dx[i] + (1.0 - self.rho) * dx * dx;
+            *p -= self.lr * dx;
+        }
+    }
+
+    pub fn zero_grad(&mut self) { self.avg_sq.clear(); self.avg_dx.clear(); self.initialized = false; }
+}
+
+/// Nadam optimizer (Nesterov-accelerated Adam).
+pub struct Nadam {
+    pub lr: f64,
+    pub beta1: f64,
+    pub beta2: f64,
+    pub eps: f64,
+    pub weight_decay: f64,
+    m: Vec<f64>,
+    v: Vec<f64>,
+    t: usize,
+    initialized: bool,
+}
+
+impl Nadam {
+    pub fn new(lr: f64, beta1: f64, beta2: f64, eps: f64, weight_decay: f64) -> Self {
+        Self { lr, beta1, beta2, eps, weight_decay, m: Vec::new(), v: Vec::new(), t: 0, initialized: false }
+    }
+
+    pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
+        assert_eq!(params.len(), grads.len());
+        if !self.initialized {
+            self.m = vec![0.0; params.len()];
+            self.v = vec![0.0; params.len()];
+            self.initialized = true;
+        }
+        self.t += 1;
+        let bc1 = 1.0 - self.beta1.powi(self.t as i32);
+        let bc2 = 1.0 - self.beta2.powi(self.t as i32);
+        let bc1_next = 1.0 - self.beta1.powi((self.t + 1) as i32);
+        for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
+            let mut grad = *g;
+            if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
+            self.m[i] = self.beta1 * self.m[i] + (1.0 - self.beta1) * grad;
+            self.v[i] = self.beta2 * self.v[i] + (1.0 - self.beta2) * grad * grad;
+            let m_hat = self.m[i] / bc1;
+            let v_hat = self.v[i] / bc2;
+            let m_nesterov = self.beta1 * m_hat + (1.0 - self.beta1) * grad / bc1_next;
+            *p -= self.lr * m_nesterov / (v_hat.sqrt() + self.eps);
+        }
+    }
+
+    pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
 }
 
 #[cfg(test)]

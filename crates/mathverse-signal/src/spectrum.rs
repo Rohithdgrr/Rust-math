@@ -14,6 +14,9 @@ pub fn periodogram(x: &[f64]) -> Vec<f64> {
 }
 
 pub fn welch_psd(x: &[f64], segment_size: usize, overlap: usize) -> Vec<f64> {
+    if x.is_empty() || segment_size == 0 || overlap >= segment_size || segment_size > x.len() {
+        return periodogram(x);
+    }
     let hop = segment_size - overlap;
     let n_segments = (x.len() - segment_size) / hop + 1;
     if n_segments == 0 { return periodogram(x); }
