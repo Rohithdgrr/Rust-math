@@ -1,0 +1,28 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/mathverse-core",
+    "crates/mathverse-arithmetic",
+    "crates/mathverse-algebra",
+    "crates/mathverse-trigonometry",
+    "crates/mathverse-geometry",
+    "crates/mathverse-vector",
+    "crates/mathverse-matrix",
+    "crates/mathverse-linear-algebra",
+    "crates/mathverse-calculus",
+    "crates/mathverse-complex",
+    "crates/mathverse-probability",
+    "crates/mathverse-statistics",
+    "crates/mathverse-numerical",
+    "crates/mathverse-equations",
+    "crates/mathverse-discrete",
+    "crates/mathverse-number-theory",
+    "crates/mathverse-combinatorics",
+    "crates/mathverse-graph",
+    "crates/mathverse-transforms",
+    "crates/mathverse-signal",
+    "crates/mathverse-optimization",
+    "crates/mathverse-ai",
+    "crates/mathverse-machine-learning",
+    "crates/mathverse-vision",
+]

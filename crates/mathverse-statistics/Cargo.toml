@@ -1,0 +1,8 @@
+[package]
+name = "mathverse-statistics"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse statistics: descriptive stats, regression, tests"
+license = "MIT OR Apache-2.0"
+
+[dependencies]

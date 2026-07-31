@@ -1,0 +1,8 @@
+[package]
+name = "mathverse-discrete"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse discrete mathematics: logic, sets, functions"
+license = "MIT OR Apache-2.0"
+
+[dependencies]

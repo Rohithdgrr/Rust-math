@@ -1,0 +1,17 @@
+[package]
+name = "mathverse-symbolic"
+version = "0.1.0"
+edition = "2021"
+authors = ["MathVerse Contributors"]
+description = "Symbolic computation with expression trees, derivatives, and LaTeX"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mathverse/mathverse"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+mathverse-calculus = { path = "../mathverse-calculus" }
+mathverse-algebra = { path = "../mathverse-algebra" }
+thiserror = "1.0"
+
+[dev-dependencies]
+approx = "0.5"

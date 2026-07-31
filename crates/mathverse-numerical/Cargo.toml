@@ -1,0 +1,11 @@
+[package]
+name = "mathverse-numerical"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse numerical methods: root finding, ODE integrators, interpolation, least squares"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+mathverse-matrix = { path = "../mathverse-matrix" }
+mathverse-vector = { path = "../mathverse-vector" }

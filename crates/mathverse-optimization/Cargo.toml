@@ -1,0 +1,9 @@
+[package]
+name = "mathverse-optimization"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse optimization: gradient descent, SGD, Adam, RMSProp, annealing, genetic"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+mathverse-probability = { path = "../mathverse-probability" }

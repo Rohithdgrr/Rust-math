@@ -1,0 +1,9 @@
+[package]
+name = "mathverse-probability"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse probability: distributions, Bayes, Monte Carlo, Markov chains"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }

@@ -1,0 +1,9 @@
+[package]
+name = "mathverse-vision"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse computer vision: camera model, homography, epipolar geometry, features, optical flow"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }

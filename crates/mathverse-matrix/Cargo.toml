@@ -1,0 +1,15 @@
+[package]
+name = "mathverse-matrix"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse dense and sparse matrices: ops, LU/QR/SVD/Cholesky, eigen, solve"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = []
+simd = []
+parallel = []
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+mathverse-vector = { path = "../mathverse-vector" }

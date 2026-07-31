@@ -1,0 +1,17 @@
+[package]
+name = "mathverse-finance"
+version = "0.1.0"
+edition = "2021"
+authors = ["MathVerse Contributors"]
+description = "Finance domain applications for MathVerse"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mathverse/mathverse"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+mathverse-statistics = { path = "../mathverse-statistics" }
+mathverse-probability = { path = "../mathverse-probability" }
+mathverse-algebra = { path = "../mathverse-algebra" }
+
+[dev-dependencies]
+approx = "0.5"

@@ -1,0 +1,9 @@
+[package]
+name = "mathverse-calculus"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse calculus: numerical derivatives, integration, vector calculus"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }

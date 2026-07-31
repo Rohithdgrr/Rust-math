@@ -1,0 +1,12 @@
+[package]
+name = "mathverse-machine-learning"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Classical machine learning: linear/logistic regression, kNN, decision trees, ensembles, clustering"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+
+[features]
+default = []

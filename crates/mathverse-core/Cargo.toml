@@ -1,0 +1,12 @@
+[package]
+name = "mathverse-core"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse core: numeric traits, errors, constants, precision utilities, generic operations, common algorithms"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = ["std"]
+std = []
+
+[dev-dependencies]

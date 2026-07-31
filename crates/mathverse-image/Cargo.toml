@@ -1,0 +1,21 @@
+[package]
+name = "mathverse-image"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse image processing: kernels, blur, Sobel, Canny, histogram, morphology"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mathverse/mathverse-image"
+keywords = ["image", "processing", "computer-vision", "grayscale"]
+categories = ["computer-vision", "science"]
+
+[dependencies]
+image = "0.25"
+thiserror = "1.0"
+rand = "0.8"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "benchmarks"
+harness = false

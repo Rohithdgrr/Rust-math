@@ -1,0 +1,11 @@
+[package]
+name = "mathverse-algebra"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse algebra: polynomials, linear/quadratic/cubic equation solving"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+
+[dev-dependencies]

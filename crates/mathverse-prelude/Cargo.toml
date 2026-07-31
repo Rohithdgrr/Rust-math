@@ -1,0 +1,26 @@
+[package]
+name = "mathverse-prelude"
+version = "0.1.0"
+edition = "2021"
+authors = ["MathVerse Contributors"]
+description = "Comprehensive prelude for MathVerse - re-exports common items"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mathverse/mathverse"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+mathverse-arithmetic = { path = "../mathverse-arithmetic" }
+mathverse-algebra = { path = "../mathverse-algebra" }
+mathverse-calculus = { path = "../mathverse-calculus" }
+mathverse-trigonometry = { path = "../mathverse-trigonometry" }
+mathverse-statistics = { path = "../mathverse-statistics" }
+mathverse-probability = { path = "../mathverse-probability" }
+mathverse-linear-algebra = { path = "../mathverse-linear-algebra" }
+mathverse-matrix = { path = "../mathverse-matrix" }
+mathverse-vector = { path = "../mathverse-vector" }
+mathverse-complex = { path = "../mathverse-complex" }
+mathverse-physics = { path = "../mathverse-physics" }
+mathverse-finance = { path = "../mathverse-finance" }
+mathverse-symbolic = { path = "../mathverse-symbolic" }
+mathverse-units = { path = "../mathverse-units" }
+mathverse-plot = { path = "../mathverse-plot" }

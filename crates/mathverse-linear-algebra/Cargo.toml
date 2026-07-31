@@ -1,0 +1,11 @@
+[package]
+name = "mathverse-linear-algebra"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse linear algebra: unified entry point for matrices, vectors, decompositions"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+mathverse-vector = { path = "../mathverse-vector" }
+mathverse-matrix = { path = "../mathverse-matrix" }

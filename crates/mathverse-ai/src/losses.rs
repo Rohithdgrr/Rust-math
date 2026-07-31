@@ -1,0 +1,225 @@
+//! Loss functions: regression (MSE, MAE, Huber) and classification (cross-entropy, etc.).
+
+use crate::tensor::Tensor;
+use mathverse_core::error::{MathError, MathResult};
+
+// ---------------------------------------------------------------------------
+// Regression losses
+// ---------------------------------------------------------------------------
+
+/// Mean squared error: mean((pred - target)²).
+pub fn mse(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
+    let n = pred.numel() as f64;
+    Ok(pred.data.iter().zip(&target.data)
+        .map(|(p, t)| (p - t).powi(2))
+        .sum::<f64>() / n)
+}
+
+/// MSE gradient w.r.t. pred: 2 * (pred - target) / n.
+pub fn mse_grad(pred: &Tensor, target: &Tensor) -> MathResult<Tensor> {
+    let n = pred.numel() as f64;
+    let data: Vec<f64> = pred.data.iter().zip(&target.data)
+        .map(|(p, t)| 2.0 * (p - t) / n)
+        .collect();
+    Ok(Tensor { shape: pred.shape.clone(), data })
+}
+
+/// Mean absolute error: mean(|pred - target|).
+pub fn mae(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
+    let n = pred.numel() as f64;
+    Ok(pred.data.iter().zip(&target.data)
+        .map(|(p, t)| (p - t).abs())
+        .sum::<f64>() / n)
+}
+
+/// Huber loss (smooth L1): 0.5 * (p-t)² if |p-t| <= delta, else delta * (|p-t| - 0.5*delta).
+pub fn huber(pred: &Tensor, target: &Tensor, delta: f64) -> MathResult<f64> {
+    let n = pred.numel() as f64;
+    let sum: f64 = pred.data.iter().zip(&target.data).map(|(p, t)| {
+        let e = (p - t).abs();
+        if e <= delta { 0.5 * e * e } else { delta * (e - 0.5 * delta) }
+    }).sum();
+    Ok(sum / n)
+}
+
+/// Smooth L1 (Huber with delta=1).
+pub fn smooth_l1(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
+    huber(pred, target, 1.0)
+}
+
+// ---------------------------------------------------------------------------
+// Classification losses
+// ---------------------------------------------------------------------------
+
+/// Cross-entropy loss for multiclass.
+/// `logits`: [batch, classes], `targets`: [batch] with class indices.
+pub fn cross_entropy(logits: &Tensor, targets: &Tensor) -> MathResult<f64> {
+    if logits.shape.len() != 2 {
+        return Err(MathError::InvalidArgument("cross_entropy requires 2-D logits"));
+    }
+    let (batch, classes) = (logits.shape[0], logits.shape[1]);
+    let n = batch as f64;
+    let mut loss = 0.0;
+    for i in 0..batch {
+        let t = targets.data[i] as usize;
+        if t >= classes { return Err(MathError::OutOfRange); }
+        // Log-sum-exp for stability
+        let row = &logits.data[i * classes..(i + 1) * classes];
+        let max_val = row.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let lse: f64 = row.iter().map(|&x| (x - max_val).exp()).sum::<f64>().ln() + max_val;
+        loss += row[t] - lse;
+    }
+    Ok(-loss / n)
+}
+
+/// Cross-entropy gradient w.r.t. logits: (softmax(logits) - one_hot(targets)) / batch.
+pub fn cross_entropy_grad(logits: &Tensor, targets: &Tensor) -> MathResult<Tensor> {
+    if logits.shape.len() != 2 {
+        return Err(MathError::InvalidArgument("cross_entropy requires 2-D logits"));
+    }
+    let (batch, classes) = (logits.shape[0], logits.shape[1]);
+    let n = batch as f64;
+    let mut grad = vec![0.0; logits.numel()];
+    for i in 0..batch {
+        let t = targets.data[i] as usize;
+        if t >= classes { return Err(MathError::OutOfRange); }
+        // Softmax
+        let row = &logits.data[i * classes..(i + 1) * classes];
+        let max_val = row.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let exps: Vec<f64> = row.iter().map(|&x| (x - max_val).exp()).collect();
+        let sum: f64 = exps.iter().sum();
+        for j in 0..classes {
+            let sm = exps[j] / sum;
+            grad[i * classes + j] = if j == t { (sm - 1.0) / n } else { sm / n };
+        }
+    }
+    Ok(Tensor { shape: logits.shape.clone(), data: grad })
+}
+
+/// Binary cross-entropy: -mean(t * log(p) + (1-t) * log(1-p)).
+pub fn binary_cross_entropy(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
+    let n = pred.numel() as f64;
+    let eps = 1e-7;
+    let sum: f64 = pred.data.iter().zip(&target.data).map(|(p, t)| {
+        let p = p.clamp(eps, 1.0 - eps);
+        -(t * p.ln() + (1.0 - t) * (1.0 - p).ln())
+    }).sum();
+    Ok(sum / n)
+}
+
+/// Binary cross-entropy with logits (numerically stable).
+/// loss = mean(max(logit, 0) - logit * target + log(1 + exp(-|logit|))).
+pub fn binary_cross_entropy_with_logits(logits: &Tensor, target: &Tensor) -> MathResult<f64> {
+    let n = logits.numel() as f64;
+    let sum: f64 = logits.data.iter().zip(&target.data).map(|(&l, &t)| {
+        // numerically stable: max(l,0) - l*t + log(1 + exp(-|l|))
+        l.max(0.0) - l * t + (1.0 + (-l.abs()).exp()).ln()
+    }).sum();
+    Ok(sum / n)
+}
+
+/// KL divergence: sum(p * (log(p) - log(q))).
+pub fn kl_divergence(p: &Tensor, q: &Tensor) -> MathResult<f64> {
+    let eps = 1e-10;
+    let sum: f64 = p.data.iter().zip(&q.data).map(|(p, q)| {
+        let p = p.max(eps);
+        let q = q.max(eps);
+        p * (p / q).ln()
+    }).sum();
+    Ok(sum)
+}
+
+/// Hinge loss: mean(max(0, 1 - pred * target)). target should be ±1.
+pub fn hinge_loss(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
+    let n = pred.numel() as f64;
+    let sum: f64 = pred.data.iter().zip(&target.data)
+        .map(|(p, t)| (1.0 - p * t).max(0.0))
+        .sum();
+    Ok(sum / n)
+}
+
+/// Cosine embedding loss: mean((1 - cos(a, b)) * target).
+/// target = 1.0 means similar, -1.0 means dissimilar.
+pub fn cosine_embedding_loss(a: &Tensor, b: &Tensor, target: &Tensor, margin: f64) -> MathResult<f64> {
+    if a.numel() != b.numel() { return Err(MathError::DimensionMismatch); }
+    let dot: f64 = a.data.iter().zip(&b.data).map(|(x, y)| x * y).sum();
+    let norm_a: f64 = a.data.iter().map(|x| x * x).sum::<f64>().sqrt();
+    let norm_b: f64 = b.data.iter().map(|x| x * x).sum::<f64>().sqrt();
+    if norm_a < 1e-10 || norm_b < 1e-10 { return Ok(0.0); }
+    let cos_sim = dot / (norm_a * norm_b);
+    let n = target.numel() as f64;
+    let loss: f64 = target.data.iter().map(|&t| {
+        let base = 1.0 - cos_sim;
+        if t > 0.0 { base.max(0.0) } else { (base - margin).max(0.0) }
+    }).sum();
+    Ok(loss / n)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const E: f64 = 1e-6;
+
+    #[test]
+    fn mse_test() {
+        let pred = Tensor::new(&[3], &[1.0, 2.0, 3.0]).unwrap();
+        let target = Tensor::new(&[3], &[1.0, 2.0, 5.0]).unwrap();
+        assert!((mse(&pred, &target).unwrap() - 4.0 / 3.0).abs() < E);
+    }
+
+    #[test]
+    fn mse_grad_test() {
+        let pred = Tensor::new(&[3], &[1.0, 2.0, 3.0]).unwrap();
+        let target = Tensor::new(&[3], &[1.0, 2.0, 5.0]).unwrap();
+        let g = mse_grad(&pred, &target).unwrap();
+        assert!((g.data[2] + 4.0 / 3.0).abs() < E); // 2*(3-5)/3 = -4/3
+    }
+
+    #[test]
+    fn mae_test() {
+        let pred = Tensor::new(&[3], &[1.0, 2.0, 3.0]).unwrap();
+        let target = Tensor::new(&[3], &[1.0, 2.0, 5.0]).unwrap();
+        assert!((mae(&pred, &target).unwrap() - 2.0 / 3.0).abs() < E);
+    }
+
+    #[test]
+    fn huber_test() {
+        let pred = Tensor::new(&[2], &[2.0, 0.0]).unwrap();
+        let target = Tensor::new(&[2], &[0.0, 0.0]).unwrap();
+        // |2-0|=2 > delta=1 → 1*(2-0.5) = 1.5, |0-0|=0 → 0.5*0=0
+        let h = huber(&pred, &target, 1.0).unwrap();
+        assert!((h - 0.75).abs() < E); // (1.5 + 0) / 2
+    }
+
+    #[test]
+    fn cross_entropy_perfect() {
+        let logits = Tensor::new(&[2, 3], &[10.0, 1.0, 1.0, 1.0, 10.0, 1.0]).unwrap();
+        let targets = Tensor::new(&[2], &[0.0, 1.0]).unwrap();
+        let loss = cross_entropy(&logits, &targets).unwrap();
+        assert!(loss < 0.01); // near 0 for perfect predictions
+    }
+
+    #[test]
+    fn binary_cross_entropy_stable() {
+        let logits = Tensor::new(&[3], &[10.0, -10.0, 0.0]).unwrap();
+        let target = Tensor::new(&[3], &[1.0, 0.0, 0.5]).unwrap();
+        let loss = binary_cross_entropy_with_logits(&logits, &target).unwrap();
+        assert!(loss >= 0.0);
+    }
+
+    #[test]
+    fn kl_div_test() {
+        let p = Tensor::new(&[3], &[0.5, 0.3, 0.2]).unwrap();
+        let q = Tensor::new(&[3], &[0.5, 0.3, 0.2]).unwrap();
+        assert!(kl_divergence(&p, &q).unwrap().abs() < E);
+    }
+
+    #[test]
+    fn hinge_test() {
+        let pred = Tensor::new(&[3], &[0.8, -0.8, 0.0]).unwrap();
+        let target = Tensor::new(&[3], &[1.0, -1.0, 1.0]).unwrap();
+        let h = hinge_loss(&pred, &target).unwrap();
+        // 1-0.8=0.2, 1-0.8=0.2, 1-0=1.0 → mean = 1.4/3
+        assert!((h - 1.4 / 3.0).abs() < E);
+    }
+}

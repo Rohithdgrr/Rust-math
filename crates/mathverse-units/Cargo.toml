@@ -1,0 +1,23 @@
+[package]
+name = "mathverse-units"
+version = "0.1.0"
+edition = "2021"
+authors = ["MathVerse Contributors"]
+description = "Compile-time dimensional analysis and units"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mathverse/mathverse"
+keywords = ["units", "dimensional-analysis", "physics", "si-units"]
+categories = ["science", "mathematics", "no-std"]
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+typenum = "1.17"
+frunk = "0.4"
+
+[dev-dependencies]
+approx = "0.5"
+criterion = "0.5"
+
+[[bench]]
+name = "benchmarks"
+harness = false

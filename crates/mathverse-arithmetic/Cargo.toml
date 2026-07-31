@@ -1,0 +1,9 @@
+[package]
+name = "mathverse-arithmetic"
+version = "0.1.0"
+edition = "2021"
+description = "MathVerse arithmetic: percentages, powers, roots, modulus, re-exports of core scalar ops"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }

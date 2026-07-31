@@ -1,0 +1,19 @@
+[package]
+name = "mathverse-physics"
+version = "0.1.0"
+edition = "2021"
+authors = ["MathVerse Contributors"]
+description = "Physics domain applications for MathVerse"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mathverse/mathverse"
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core" }
+mathverse-calculus = { path = "../mathverse-calculus" }
+mathverse-algebra = { path = "../mathverse-algebra" }
+mathverse-trigonometry = { path = "../mathverse-trigonometry" }
+mathverse-vector = { path = "../mathverse-vector" }
+mathverse-units = { path = "../mathverse-units" }
+
+[dev-dependencies]
+approx = "0.5"
