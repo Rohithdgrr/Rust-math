@@ -9,5 +9,5 @@ keywords = ["math", "fft", "dct", "wavelet", "signal-processing"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
-mathverse-complex = { path = "../mathverse-complex" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-complex = { path = "../mathverse-complex", version = "0.1.0" }

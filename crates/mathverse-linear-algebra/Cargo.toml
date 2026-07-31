@@ -9,6 +9,6 @@ keywords = ["math", "linear-algebra", "matrices", "vectors", "decomposition"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
-mathverse-vector = { path = "../mathverse-vector" }
-mathverse-matrix = { path = "../mathverse-matrix" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }

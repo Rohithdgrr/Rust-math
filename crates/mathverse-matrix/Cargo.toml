@@ -14,5 +14,5 @@ simd = []
 parallel = []
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
-mathverse-vector = { path = "../mathverse-vector" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }

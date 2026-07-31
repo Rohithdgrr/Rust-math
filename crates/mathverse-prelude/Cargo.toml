@@ -8,19 +8,19 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/mathverse/mathverse"
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
-mathverse-arithmetic = { path = "../mathverse-arithmetic" }
-mathverse-algebra = { path = "../mathverse-algebra" }
-mathverse-calculus = { path = "../mathverse-calculus" }
-mathverse-trigonometry = { path = "../mathverse-trigonometry" }
-mathverse-statistics = { path = "../mathverse-statistics" }
-mathverse-probability = { path = "../mathverse-probability" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-arithmetic = { path = "../mathverse-arithmetic", version = "0.1.0" }
+mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
+mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
+mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.1.0" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
 mathverse-linear-algebra = { path = "../mathverse-linear-algebra" }
-mathverse-matrix = { path = "../mathverse-matrix" }
-mathverse-vector = { path = "../mathverse-vector" }
-mathverse-complex = { path = "../mathverse-complex" }
-mathverse-physics = { path = "../mathverse-physics" }
-mathverse-finance = { path = "../mathverse-finance" }
-mathverse-symbolic = { path = "../mathverse-symbolic" }
-mathverse-units = { path = "../mathverse-units" }
-mathverse-plot = { path = "../mathverse-plot" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+mathverse-complex = { path = "../mathverse-complex", version = "0.1.0" }
+mathverse-physics = { path = "../mathverse-physics", version = "0.1.0" }
+mathverse-finance = { path = "../mathverse-finance", version = "0.1.0" }
+mathverse-symbolic = { path = "../mathverse-symbolic", version = "0.1.0" }
+mathverse-units = { path = "../mathverse-units", version = "0.1.0" }
+mathverse-plot = { path = "../mathverse-plot", version = "0.1.0" }

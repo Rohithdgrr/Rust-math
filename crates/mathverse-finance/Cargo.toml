@@ -8,10 +8,10 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/mathverse/mathverse"
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
-mathverse-statistics = { path = "../mathverse-statistics" }
-mathverse-probability = { path = "../mathverse-probability" }
-mathverse-algebra = { path = "../mathverse-algebra" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
+mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
 
 [dev-dependencies]
 approx = "0.5"

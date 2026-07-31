@@ -8,12 +8,12 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/mathverse/mathverse"
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
-mathverse-calculus = { path = "../mathverse-calculus" }
-mathverse-algebra = { path = "../mathverse-algebra" }
-mathverse-trigonometry = { path = "../mathverse-trigonometry" }
-mathverse-vector = { path = "../mathverse-vector" }
-mathverse-units = { path = "../mathverse-units" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
+mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
+mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+mathverse-units = { path = "../mathverse-units", version = "0.1.0" }
 
 [dev-dependencies]
 approx = "0.5"

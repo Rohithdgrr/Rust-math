@@ -9,4 +9,4 @@ keywords = ["math", "computer-vision", "homography", "camera", "optical-flow"]
 categories = ["science", "mathematics", "computer-vision"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }

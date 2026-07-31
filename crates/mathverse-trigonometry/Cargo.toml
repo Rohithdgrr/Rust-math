@@ -9,4 +9,4 @@ keywords = ["math", "trigonometry", "sin", "cos", "angles"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }

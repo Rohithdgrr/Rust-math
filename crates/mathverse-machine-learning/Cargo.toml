@@ -9,7 +9,7 @@ keywords = ["machine-learning", "classification", "clustering", "regression", "e
 categories = ["science", "mathematics", "algorithms"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 
 [features]
 default = []

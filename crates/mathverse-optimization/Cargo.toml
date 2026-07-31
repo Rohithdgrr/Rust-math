@@ -9,5 +9,5 @@ keywords = ["math", "optimization", "gradient-descent", "adam", "genetic"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
-mathverse-probability = { path = "../mathverse-probability" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
