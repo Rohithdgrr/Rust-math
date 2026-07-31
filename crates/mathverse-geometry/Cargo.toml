@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "MathVerse geometry: 2D/3D shapes, area, volume, transforms, distances, intersections"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "geometry", "shapes", "area", "volume"]
+categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core" }

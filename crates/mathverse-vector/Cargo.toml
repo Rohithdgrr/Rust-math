@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "MathVerse dense vectors: dot, norms, angles, cross product"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "vector", "linear-algebra", "norms", "dot-product"]
+categories = ["science", "mathematics"]
 
 [features]
 default = []

@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "MathVerse algebra: polynomials, linear/quadratic/cubic equation solving"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "algebra", "polynomial", "equations", "roots"]
+categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core" }

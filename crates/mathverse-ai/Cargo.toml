@@ -3,7 +3,10 @@ name = "mathverse-ai"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "AI/ML mathematical primitives: tensors, activations, losses, optimizers, attention"
+description = "AI/ML mathematical primitives: tensors, activations, losses, optimizers, attention, autograd, layers, models"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["ai", "machine-learning", "tensor", "neural-network", "deep-learning"]
+categories = ["science", "mathematics", "algorithms"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core" }

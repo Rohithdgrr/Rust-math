@@ -3,6 +3,10 @@ name = "mathverse-optimization"
 version = "0.1.0"
 edition = "2021"
 description = "MathVerse optimization: gradient descent, SGD, Adam, RMSProp, annealing, genetic"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "optimization", "gradient-descent", "adam", "genetic"]
+categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core" }

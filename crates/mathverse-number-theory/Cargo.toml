@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "MathVerse number theory: primes, factorization, modular arithmetic, totient"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "number-theory", "primes", "factorization", "modular"]
+categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core" }
