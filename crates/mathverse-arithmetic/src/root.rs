@@ -165,7 +165,7 @@ impl RootProperties {
         let mut radicand = x;
         
         for i in 2..=100 {
-            while (radicand / (i as f64).powi(2)).round() - radicand / (i as f64).powi(2)).abs() < 1e-10 {
+            while ((radicand / (i as f64).powi(2)).round() - radicand / (i as f64).powi(2)).abs() < 1e-10 {
                 radicand /= (i as f64).powi(2);
                 coefficient *= i as f64;
             }
