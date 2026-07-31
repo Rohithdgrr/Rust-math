@@ -119,28 +119,34 @@ impl Complex {
     }
     /// Inverse hyperbolic sine.
     pub fn asinh(&self) -> Complex {
-        (self + (self * self + Complex::real(1.0)).sqrt()).ln()
+        let s = *self;
+        (s + (s * s + Complex::real(1.0)).sqrt()).ln()
     }
     /// Inverse hyperbolic cosine.
     pub fn acosh(&self) -> Complex {
-        (self + (self + Complex::real(1.0)).sqrt() * (self - Complex::real(1.0)).sqrt()).ln()
+        let s = *self;
+        (s + (s + Complex::real(1.0)).sqrt() * (s - Complex::real(1.0)).sqrt()).ln()
     }
     /// Inverse hyperbolic tangent.
     pub fn atanh(&self) -> Complex {
-        ((Complex::real(1.0) + self) / (Complex::real(1.0) - self)).ln() / Complex::real(2.0)
+        let s = *self;
+        ((Complex::real(1.0) + s) / (Complex::real(1.0) - s)).ln() / Complex::real(2.0)
     }
     /// Inverse sine.
     pub fn asin(&self) -> Complex {
-        -Complex::i() * (Complex::i() * self + (Complex::real(1.0) - self * self).sqrt()).ln()
+        let s = *self;
+        -Complex::i() * (Complex::i() * s + (Complex::real(1.0) - s * s).sqrt()).ln()
     }
     /// Inverse cosine.
     pub fn acos(&self) -> Complex {
-        Complex::i() * (self + Complex::i() * (Complex::real(1.0) - self * self).sqrt()).ln()
+        let s = *self;
+        Complex::i() * (s + Complex::i() * (Complex::real(1.0) - s * s).sqrt()).ln()
     }
     /// Inverse tangent.
     pub fn atan(&self) -> Complex {
+        let s = *self;
         let i = Complex::i();
-        (i * (Complex::real(1.0) - i * self) / (Complex::real(1.0) + i * self)).ln() / (Complex::real(2.0) * i)
+        (i * (Complex::real(1.0) - i * s) / (Complex::real(1.0) + i * s)).ln() / (Complex::real(2.0) * i)
     }
     /// Base-10 logarithm.
     pub fn log10(&self) -> Complex {
@@ -173,7 +179,8 @@ impl Complex {
         if self.is_zero() {
             Complex::new(0.0, 0.0)
         } else {
-            self / self.norm()
+            let s = *self;
+            s / s.norm()
         }
     }
     /// Cube root.
