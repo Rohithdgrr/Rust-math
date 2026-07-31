@@ -180,7 +180,7 @@ impl Complex {
             Complex::new(0.0, 0.0)
         } else {
             let s = *self;
-            s / s.norm()
+            s / Complex::real(s.norm())
         }
     }
     /// Cube root.

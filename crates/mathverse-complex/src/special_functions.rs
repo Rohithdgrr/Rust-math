@@ -258,15 +258,15 @@ impl ComplexSpecialFunctions {
                 bi = bi + sign * (term1 + Complex::real(3.0_f64.sqrt()) * term2);
             }
             
-            let factor = Complex::one() / (Complex::real(3.0_f64.powf(2.0 / 3.0)) * std::f64::consts::PI);
+            let factor = Complex::one() / (Complex::real(3.0_f64.powf(2.0 / 3.0)) * Complex::real(std::f64::consts::PI));
             (ai * factor, bi * factor)
         } else {
             // Asymptotic expansion for large |z|
-            let t = (2.0 / 3.0) * z.pow(Complex::real(1.5));
+            let t = Complex::real(2.0 / 3.0) * z.pow(Complex::real(1.5));
             let exp_t = (-t).exp();
             let exp_neg_t = t.exp();
             
-            let prefactor = Complex::one() / (Complex::real(2.0) * std::f64::consts::PI.sqrt() * z.pow(Complex::real(0.25)));
+            let prefactor = Complex::one() / (Complex::real(2.0) * Complex::real(std::f64::consts::PI.sqrt()) * z.pow(Complex::real(0.25)));
             
             let ai = prefactor * exp_t;
             let bi = prefactor * exp_neg_t;
