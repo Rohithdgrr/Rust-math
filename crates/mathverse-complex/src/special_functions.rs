@@ -258,7 +258,7 @@ impl ComplexSpecialFunctions {
                 bi = bi + sign * (term1 + Complex::real(3.0_f64.sqrt()) * term2);
             }
             
-            let factor = Complex::one() / (Complex::real(3.0_f64.pow(2.0 / 3.0)) * std::f64::consts::PI);
+            let factor = Complex::one() / (Complex::real(3.0_f64.powf(2.0 / 3.0)) * std::f64::consts::PI);
             (ai * factor, bi * factor)
         } else {
             // Asymptotic expansion for large |z|
