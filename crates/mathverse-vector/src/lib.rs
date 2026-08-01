@@ -1,3 +1,4 @@
+pub mod vector;
 pub mod operations;
 pub mod norms;
 pub mod geometry;
@@ -6,6 +7,7 @@ pub mod statistics;
 pub mod distance;
 pub mod utils;
 
+pub use vector::Vector;
 pub use operations::*;
 pub use norms::*;
 pub use geometry::*;

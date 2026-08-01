@@ -1,6 +1,10 @@
 //! Principal Component Analysis (PCA) for dimensionality reduction.
+//!
+//! Re-exports the function-based API from `mathverse_statistics::matrix` for
+//! convenience.  The struct-based [`PCA`] and [`KernelPCA`] types below provide
+//! a fit / transform workflow with `n_components` limiting.
 
-use mathverse_core::error::MathResult;
+pub use mathverse_statistics::matrix::{covariance_matrix, pca, pca_transform, PCA as StatisticsPCA};
 
 /// PCA model with fitted components.
 pub struct PCA {
@@ -37,17 +41,9 @@ impl PCA {
             .map(|xi| xi.iter().zip(&self.mean).map(|(v, m)| v - m).collect())
             .collect();
 
-        // Compute covariance matrix
-        let mut cov = vec![vec![0.0; p]; p];
-        for xi in &centered {
-            for i in 0..p {
-                for j in i..p {
-                    let val = xi[i] * xi[j] / (n - 1) as f64;
-                    cov[i][j] += val;
-                    if i != j { cov[j][i] += val; }
-                }
-            }
-        }
+        // Compute covariance matrix (delegates to mathverse-statistics)
+        let centered_refs: Vec<&[f64]> = centered.iter().map(|r| r.as_slice()).collect();
+        let cov = mathverse_statistics::covariance_matrix(&centered_refs);
 
         // Power iteration to find top eigenvectors
         self.components = Vec::new();

@@ -112,7 +112,7 @@ impl MatrixRank {
     }
 
     /// Numerical rank with adaptive tolerance.
-    pub adaptive(m: &Matrix) -> MathResult<usize> {
+    pub fn adaptive(m: &Matrix) -> MathResult<usize> {
         let svd = m.svd()?;
         let sigma_max = svd.s[0];
         

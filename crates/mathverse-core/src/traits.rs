@@ -164,80 +164,12 @@ pub trait Real: Num + Signed + Div<Output = Self> + Rem<Output = Self> + Partial
     fn signum(self) -> Self;
 }
 
-/// Marker trait combining [`Real`] + [`Field`] for cleaner bounds.
-///
-/// Use `T: RealField` instead of `T: Real + Field` everywhere.
-pub trait RealField: Real + Field {}
-
 /// Normed type: has an absolute value satisfying the triangle inequality.
 ///
 /// `norm(x) >= 0`, `norm(x) == 0` iff `x == 0`, `norm(x + y) <= norm(x) + norm(y)`.
 pub trait Normed: Signed {
     /// The norm (absolute value) of this value.
     fn norm(self) -> Self;
-}
-
-/// Metric space: types with a distance function.
-///
-/// `d(a, b) >= 0`, `d(a, b) == 0` iff `a == b`, `d(a, b) == d(b, a)`,
-/// `d(a, c) <= d(a, b) + d(b, c)`.
-pub trait Metric: Sized + PartialEq {
-    /// The distance between two points.
-    fn distance(self, other: Self) -> Self;
-}
-
-/// Inner product space: types with a dot product.
-///
-/// `⟨a, b⟩ = ⟨b, a⟩`, `⟨a + b, c⟩ = ⟨a, c⟩ + ⟨b, c⟩`,
-/// `⟨λa, b⟩ = λ⟨a, b⟩`, `⟨a, a⟩ >= 0`.
-pub trait InnerProduct: Sized + Copy {
-    /// The inner (dot) product of two values.
-    fn dot(self, other: Self) -> Self;
-
-    /// The squared norm: `langle a, a rangle`.
-    fn norm_squared(self) -> Self {
-        self.dot(self)
-    }
-}
-
-/// Foundation trait for complex number types.
-///
-/// Provides the minimal interface for complex arithmetic: real/imaginary parts,
-/// conjugate, norm, argument, and basic operations. Concrete implementations
-/// live in `mathverse-complex`.
-pub trait ComplexCore: Copy + core::fmt::Debug {
-    /// The underlying real scalar type.
-    type Scalar: Real;
-
-    /// Real part.
-    fn re(self) -> Self::Scalar;
-
-    /// Imaginary part.
-    fn im(self) -> Self::Scalar;
-
-    /// Construct from real and imaginary parts.
-    fn new(re: Self::Scalar, im: Self::Scalar) -> Self;
-
-    /// Complex conjugate: `re - i*im`.
-    fn conj(self) -> Self;
-
-    /// Squared magnitude: `re^2 + im^2`.
-    fn norm_squared(self) -> Self::Scalar;
-
-    /// Magnitude: `sqrt(re^2 + im^2)`.
-    fn abs(self) -> Self::Scalar;
-
-    /// Argument (angle in radians): `atan2(im, re)`.
-    fn arg(self) -> Self::Scalar;
-
-    /// Zero: `0 + 0i`.
-    fn zero() -> Self;
-
-    /// One: `1 + 0i`.
-    fn one() -> Self;
-
-    /// Imaginary unit: `0 + 1i`.
-    fn i() -> Self;
 }
 
 macro_rules! impl_num_int {
@@ -347,9 +279,6 @@ macro_rules! impl_real {
     )*};
 }
 impl_real!(f32, f64);
-
-impl RealField for f32 {}
-impl RealField for f64 {}
 
 impl Normed for f32 {
     fn norm(self) -> Self {

@@ -10,6 +10,7 @@ categories = ["science", "mathematics", "algorithms"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
 
 [features]
 default = []

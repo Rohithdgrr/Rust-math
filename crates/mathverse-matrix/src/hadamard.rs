@@ -81,50 +81,6 @@ impl HadamardProduct {
         Ok(result)
     }
 
-    /// Hadamard absolute value: |A| (element-wise).
-    pub fn abs(m: &Matrix) -> Matrix {
-        Matrix {
-            rows: m.rows,
-            cols: m.cols,
-            data: m.data.iter().map(|&x| x.abs()).collect(),
-        }
-    }
-
-    /// Hadamard sign function: sign(A) (element-wise).
-    pub fn sign(m: &Matrix) -> Matrix {
-        Matrix {
-            rows: m.rows,
-            cols: m.cols,
-            data: m.data.iter().map(|&x| x.signum()).collect(),
-        }
-    }
-
-    /// Hadamard exponential: exp(A) (element-wise).
-    pub fn exp(m: &Matrix) -> Matrix {
-        Matrix {
-            rows: m.rows,
-            cols: m.cols,
-            data: m.data.iter().map(|&x| x.exp()).collect(),
-        }
-    }
-
-    /// Hadamard logarithm: log(A) (element-wise).
-    pub fn log(m: &Matrix) -> MathResult<Matrix> {
-        let mut result = Matrix::zeros(m.rows, m.cols);
-        
-        for i in 0..m.rows {
-            for j in 0..m.cols {
-                let val = m.get(i, j);
-                if val <= 0.0 {
-                    return Err(MathError::InvalidArgument("non-positive value in Hadamard log"));
-                }
-                result.set(i, j, val.ln());
-            }
-        }
-        
-        Ok(result)
-    }
-
     /// Hadamard comparison: A > B (element-wise, returns boolean matrix).
     pub fn greater_than(a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
         if a.rows != b.rows || a.cols != b.cols {

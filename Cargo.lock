@@ -24,6 +24,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000"
 
 [[package]]
+name = "approx"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -216,6 +225,68 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
+name = "frunk"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28aef0f9aa070bce60767c12ba9cb41efeaf1a2bc6427f87b7d83f11239a16d7"
+dependencies = [
+ "frunk_core 0.4.4",
+ "frunk_derives",
+ "frunk_proc_macros",
+ "serde",
+]
+
+[[package]]
+name = "frunk_core"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "476eeaa382e3462b84da5d6ba3da97b5786823c2d0d3a0d04ef088d073da225c"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "frunk_core"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bd3c9ba2e323e8b19e77f15873f60974a7d82f89b80e50c53be44b8b92927c1"
+
+[[package]]
+name = "frunk_derives"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0b4095fc99e1d858e5b8c7125d2638372ec85aa0fe6c807105cf10b0265ca6c"
+dependencies = [
+ "frunk_proc_macro_helpers",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "frunk_proc_macro_helpers"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b70229a1347a20d4af9c06116cc452acef34f798668c6b69e97dd5c8a88052bd"
+dependencies = [
+ "frunk_core 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "frunk_proc_macros"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c63fe4306e13ece9d1ac23ce02f121ffefd42ae876ad03ec2caf07232bde3023"
+dependencies = [
+ "frunk_core 0.5.0",
+ "frunk_proc_macro_helpers",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -376,10 +447,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mathverse-discrete"
-version = "0.1.0"
-
-[[package]]
 name = "mathverse-equations"
 version = "0.1.0"
 dependencies = [
@@ -387,6 +454,17 @@ dependencies = [
  "mathverse-core",
  "mathverse-matrix",
  "mathverse-vector",
+]
+
+[[package]]
+name = "mathverse-finance"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "mathverse-algebra",
+ "mathverse-core",
+ "mathverse-probability",
+ "mathverse-statistics",
 ]
 
 [[package]]
@@ -414,6 +492,7 @@ name = "mathverse-machine-learning"
 version = "0.1.0"
 dependencies = [
  "mathverse-core",
+ "mathverse-statistics",
 ]
 
 [[package]]
@@ -449,6 +528,51 @@ dependencies = [
 ]
 
 [[package]]
+name = "mathverse-physics"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "mathverse-algebra",
+ "mathverse-calculus",
+ "mathverse-core",
+ "mathverse-trigonometry",
+ "mathverse-units",
+ "mathverse-vector",
+]
+
+[[package]]
+name = "mathverse-plot"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "mathverse-algebra",
+ "mathverse-calculus",
+ "mathverse-core",
+ "thiserror",
+]
+
+[[package]]
+name = "mathverse-prelude"
+version = "0.1.0"
+dependencies = [
+ "mathverse-algebra",
+ "mathverse-calculus",
+ "mathverse-complex",
+ "mathverse-core",
+ "mathverse-finance",
+ "mathverse-linear-algebra",
+ "mathverse-matrix",
+ "mathverse-physics",
+ "mathverse-plot",
+ "mathverse-probability",
+ "mathverse-statistics",
+ "mathverse-symbolic",
+ "mathverse-trigonometry",
+ "mathverse-units",
+ "mathverse-vector",
+]
+
+[[package]]
 name = "mathverse-probability"
 version = "0.1.0"
 dependencies = [
@@ -464,6 +588,17 @@ name = "mathverse-statistics"
 version = "0.1.0"
 
 [[package]]
+name = "mathverse-symbolic"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "mathverse-algebra",
+ "mathverse-calculus",
+ "mathverse-core",
+ "thiserror",
+]
+
+[[package]]
 name = "mathverse-transforms"
 version = "0.1.0"
 dependencies = [
@@ -476,6 +611,16 @@ name = "mathverse-trigonometry"
 version = "0.1.0"
 dependencies = [
  "mathverse-core",
+]
+
+[[package]]
+name = "mathverse-units"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "frunk",
+ "mathverse-core",
+ "typenum",
 ]
 
 [[package]]
@@ -829,6 +974,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "thiserror"
+version = "1.0.69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "tinytemplate"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -837,6 +1002,12 @@ dependencies = [
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "typenum"
+version = "1.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
 name = "unarray"

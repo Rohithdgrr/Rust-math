@@ -5,43 +5,40 @@
 //! assert_eq!(gcd(48, 18), 6);
 //! ```
 
-pub use crate::algorithms::{
-    bell_number, catalan_number, chinese_remainder, digit_count, digit_sum,
-    double_factorial, euler_phi, fermat_number, fibonacci, from_base, from_digits,
-    is_abundant, is_armstrong, is_coprime, is_deficient, is_harshad,
-    is_perfect_number, is_perfect_power, is_power_of, is_power_of_two,
-    is_semiprime, is_smooth, is_squarefree, is_triangular, liouville,
-    lucas_number, mersenne_number, mobius, next_prime, next_power_of_two,
-    nth_prime, partition_number, pascal_triangle, permutation_count,
-    prev_prime, primorial, prime_count, prime_factorization, prime_factors,
-    radical, reverse_digits, segmented_sieve, sieve_of_eratosthenes,
-    stirling_first, stirling_second, subfactorial, to_base, to_digits,
-    tribonacci,
-};
 pub use crate::integer::{
-    bezout_coefficients, binomial, checked_binomial, checked_factorial, digit_count_base,
-    extended_gcd, factorial, gcd, gcd_n, is_cube, is_even, is_odd, is_palindrome_base,
-    is_square, isqrt, isqrt_rem, lcm, lcm_n, log2_floor, log_base, log2_ceil,
-    modular_inverse, mod_pow, nearest_power_of_two, popcount, reverse_digits_base,
-    sum_of_squares,
+    bell_number, bezout_coefficients, binomial, catalan_number, checked_binomial,
+    checked_factorial, chinese_remainder, digit_count, digit_count_base, digit_sum,
+    double_factorial, euler_phi, extended_gcd, factorial, fermat_number, fibonacci,
+    from_base, from_digits, gcd, gcd_n, is_abundant, is_armstrong, is_coprime,
+    is_cube, is_deficient, is_even, is_harshad, is_odd, is_palindrome,
+    is_palindrome_base, is_perfect_number, is_perfect_power, is_power_of,
+    is_power_of_two, is_semiprime, is_smooth, is_square, is_squarefree,
+    is_triangular, isqrt, isqrt_rem, lcm, lcm_n, liouville, log2_ceil,
+    log2_floor, log_base, lucas_number, mersenne_number, modular_inverse,
+    mod_pow, mobius, nearest_power_of_two, next_power_of_two, next_prime,
+    nth_prime, partition_number, pascal_triangle, permutation_count, popcount,
+    prev_prime, primorial, prime_count, prime_factorization, prime_factors,
+    radical, reverse_digits, reverse_digits_base, segmented_sieve,
+    sieve_of_eratosthenes, stirling_first, stirling_second, subfactorial,
+    sum_of_squares, to_base, to_digits, tribonacci,
 };
 pub use crate::error::{MathError, MathResult};
 pub use crate::ops::{
-    abs, abs_sub, bilinear, cbrt, clamp, clamp01, clamp11, copysign, cumprod, cumsum,
+    abs_sub, bilinear, cbrt, clamp, clamp01, clamp11, copysign, cumprod, cumsum,
     deg_to_grad, deg_to_rad, distance, dot_product, fract, grad_to_deg, grad_to_rad,
-    hypot, hypot2, hypot3, integer_part, inv_lerp, is_between, is_sorted, lerp,
+    hypot2, hypot3, integer_part, inv_lerp, is_between, is_sorted, lerp,
     lerp_angle, lerp_clamped, lerp_inv, map_range, max_value, mean, midpoint,
-    min_value, normalize, nth_root, ping_pong, rad_to_deg, rad_to_grad, recip,
-    remap, remap_clamped, repeat, sign, signum, smoothstep, smoothstep_between,
+    min_value, normalize, nth_root, ping_pong, rad_to_deg, rad_to_grad,
+    remap, remap_clamped, repeat, sign, smoothstep, smoothstep_between,
     smootherstep, snap, step, trunc, wrap, wrap_angle, wrap_angle_positive,
 };
 pub use crate::precision::{
     abs_diff, almost_eq, almost_eq_rel, almost_eq_ulp, ceil_to_multiple,
     epsilon, floor_to_multiple, is_close, is_subnormal, is_nan, is_infinite,
     next_float, prev_float, relative_diff, round_to, round_to_multiple,
-    safe_div, significant_figures, ulp, EPS, F32_EPS,
+    significant_figures, ulp, EPS, F32_EPS,
 };
-pub use crate::traits::{ComplexCore, Field, InnerProduct, Metric, Normed, Num, Real, RealField, Signed};
+pub use crate::traits::{Field, Normed, Num, Real, Signed};
 pub use crate::constants::{
     APERY, CATALAN, CUBE_ROOT_2, CUBE_ROOT_3, DEG_TO_GRAD, DEG_TO_RAD, E,
     EULER_GAMMA, E_INV, E_SQ, E_SQRT, FEIGENBAUM, FEIGENBAUM2, GRAD_TO_DEG, GRAD_TO_RAD,

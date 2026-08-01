@@ -333,45 +333,6 @@ pub fn rad_to_grad<T: Real>(r: T) -> T {
     r * T::from_f64(200.0 / core::f64::consts::PI)
 }
 
-/// Absolute value.
-///
-/// # Examples
-///
-/// ```
-/// use mathverse_core::ops::abs;
-///
-/// assert_eq!(abs(-5.0), 5.0);
-/// assert_eq!(abs(3.0), 3.0);
-/// ```
-#[must_use]
-#[inline]
-pub fn abs<T: Real>(x: T) -> T {
-    x.abs()
-}
-
-/// Sign function: returns -1, 0, or 1.
-///
-/// # Examples
-///
-/// ```
-/// use mathverse_core::ops::signum;
-///
-/// assert_eq!(signum(5.0), 1.0);
-/// assert_eq!(signum(-5.0), -1.0);
-/// assert_eq!(signum(0.0), 0.0);
-/// ```
-#[must_use]
-#[inline]
-pub fn signum<T: Real>(x: T) -> T {
-    if x > T::zero() {
-        T::one()
-    } else if x < T::zero() {
-        T::zero() - T::one()
-    } else {
-        T::zero()
-    }
-}
-
 /// Copy the sign of `b` to the magnitude of `a`.
 ///
 /// # Examples
@@ -406,41 +367,6 @@ pub fn copysign<T: Real>(a: T, b: T) -> T {
 #[inline]
 pub fn abs_sub<T: Real>(a: T, b: T) -> T {
     (a - b).max(T::zero())
-}
-
-/// Reciprocal: `1 / x`. Returns 0 for `x == 0`.
-///
-/// # Examples
-///
-/// ```
-/// use mathverse_core::ops::recip;
-///
-/// assert_eq!(recip(4.0), 0.25);
-/// assert_eq!(recip(0.0), 0.0);
-/// ```
-#[must_use]
-#[inline]
-pub fn recip<T: Real>(x: T) -> T {
-    if x == T::zero() {
-        T::zero()
-    } else {
-        T::one() / x
-    }
-}
-
-/// Cube root (alias for [`cbrt`]).
-///
-/// # Examples
-///
-/// ```
-/// use mathverse_core::ops::cube_root;
-///
-/// assert!((cube_root(8.0_f64) - 2.0).abs() < 1e-12);
-/// ```
-#[must_use]
-#[inline]
-pub fn cube_root<T: Real>(x: T) -> T {
-    cbrt(x)
 }
 
 /// Map a value from one range to another.
@@ -599,23 +525,6 @@ pub fn normalize<T: Real>(xs: &[T]) -> Vec<T> {
         return vec![T::zero(); xs.len()];
     }
     xs.iter().map(|&x| x / norm).collect()
-}
-
-/// Hypotenuse of two values: `sqrt(a^2 + b^2)`.
-///
-/// Alias for [`hypot2`].
-///
-/// # Examples
-///
-/// ```
-/// use mathverse_core::ops::hypot;
-///
-/// assert_eq!(hypot(3.0, 4.0), 5.0);
-/// ```
-#[must_use]
-#[inline]
-pub fn hypot<T: Real>(a: T, b: T) -> T {
-    hypot2(a, b)
 }
 
 /// Sign as integer: -1, 0, or 1.
@@ -1099,15 +1008,9 @@ mod tests {
     #[test]
     fn new_ops() {
         assert_eq!(cbrt(27.0), 3.0);
-        assert_eq!(cube_root(8.0), 2.0);
-        assert_eq!(abs(-5.0), 5.0);
-        assert_eq!(signum(-5.0), -1.0);
-        assert_eq!(signum(0.0), 0.0);
         assert_eq!(copysign(3.0, -1.0), -3.0);
         assert_eq!(abs_sub(5.0, 3.0), 2.0);
         assert_eq!(abs_sub(3.0, 5.0), 0.0);
-        assert_eq!(recip(4.0), 0.25);
-        assert_eq!(recip(0.0), 0.0);
         assert_eq!(map_range(5.0, 0.0, 10.0, 0.0, 100.0), 50.0);
         assert_eq!(lerp_inv(5.0, 0.0, 10.0), 0.5);
         assert_eq!(smootherstep(0.5), 0.5);

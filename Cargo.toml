@@ -15,7 +15,6 @@ members = [
     "crates/mathverse-statistics",
     "crates/mathverse-numerical",
     "crates/mathverse-equations",
-    "crates/mathverse-discrete",
     "crates/mathverse-number-theory",
     "crates/mathverse-combinatorics",
     "crates/mathverse-graph",
@@ -25,4 +24,5 @@ members = [
     "crates/mathverse-ai",
     "crates/mathverse-machine-learning",
     "crates/mathverse-vision",
+    "crates/mathverse-prelude",
 ]

@@ -16,8 +16,3 @@ frunk = "0.4"
 
 [dev-dependencies]
 approx = "0.5"
-criterion = "0.5"
-
-[[bench]]
-name = "benchmarks"
-harness = false

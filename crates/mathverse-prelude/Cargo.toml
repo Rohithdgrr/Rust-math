@@ -9,7 +9,6 @@ repository = "https://github.com/mathverse/mathverse"
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-arithmetic = { path = "../mathverse-arithmetic", version = "0.1.0" }
 mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
 mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
 mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.1.0" }

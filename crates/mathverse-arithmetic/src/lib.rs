@@ -13,38 +13,8 @@ pub use mathverse_core::ops::{
 pub use mathverse_core::precision::{almost_eq, almost_eq_rel, round_to, significant_figures};
 
 pub mod percentage;
-pub mod power;
-pub mod root;
-pub mod modulus;
-pub mod number_theory;
-pub mod scientific;
-pub mod rounding;
-pub mod comparison;
-pub mod complex;
-pub mod rational;
-pub mod continued_fraction;
-pub mod approximation;
-pub mod interpolation;
-pub mod special_functions;
-pub mod numerical;
-pub mod sequence;
 
 pub use percentage::{Percentage, ProfitLoss};
-pub use power::{Power, LogarithmicIdentities, ExponentialIdentities};
-pub use root::{Root, RootProperties, RootSolving};
-pub use modulus::{Modulus, ModularArithmetic, Division};
-pub use number_theory::{Gcd, Lcm, Primes, Factorial, Fibonacci};
-pub use scientific::{ScientificNotation, EngineeringNotation, ScientificUtils, UnitPrefix};
-pub use rounding::{Rounding, RoundingMode, Precision, FixedPoint, DecimalFormat};
-pub use comparison::{FuzzyCompare, RangeCheck, Ordering, Interval, Sign, BoundedCompare};
-pub use complex::{Complex, ComplexOps, ComplexAnalysis};
-pub use rational::{Rational, RationalOps, FractionUtils};
-pub use continued_fraction::{SimpleContinuedFraction, GeneralizedContinuedFraction, ContinuedFractionOps, ConvergentProperties};
-pub use approximation::{TaylorSeries, PadeApproximation, ChebyshevApproximation, FourierSeries, PolynomialApproximation, RationalApproximation};
-pub use interpolation::{LinearInterpolation, PolynomialInterpolation, SplineInterpolation, BarycentricInterpolation, MultidimensionalInterpolation, InterpolationUtils};
-pub use special_functions::{Gamma, Beta, Erf, Bessel, Airy};
-pub use numerical::{Integration, Differentiation, RootFinding, Optimization};
-pub use sequence::{ArithmeticSequence, GeometricSequence, HarmonicSequence, FibonacciSequence, LucasSequence, TriangularNumbers, SquareNumbers, PentagonalNumbers, HexagonalNumbers, CatalanNumbers, PrimeSequence, SequenceOps, RecurrenceRelations};
 
 /// `x` scaled by a percentage: `percentage(200, 10)` = 20.
 pub fn percentage<T: Real>(x: T, percent: T) -> T {

@@ -83,7 +83,7 @@ proptest! {
 
     #[test]
     fn abs_always_nonneg(x in -1000.0f64..1000.0) {
-        let a = mathverse_core::ops::abs(x);
+        let a = x.abs();
         prop_assert!(a >= 0.0, "abs should be non-negative");
     }
 

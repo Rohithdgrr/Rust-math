@@ -281,26 +281,6 @@ pub fn relative_diff<T: Real>(a: T, b: T) -> T {
     }
 }
 
-/// Safe division: returns `0` when `b == 0` instead of producing NaN/inf.
-///
-/// # Examples
-///
-/// ```
-/// use mathverse_core::precision::safe_div;
-///
-/// assert_eq!(safe_div(1.0, 0.0), 0.0);
-/// assert_eq!(safe_div(10.0, 2.0), 5.0);
-/// ```
-#[must_use]
-#[inline]
-pub fn safe_div<T: Real>(a: T, b: T) -> T {
-    if b == T::zero() {
-        T::zero()
-    } else {
-        a / b
-    }
-}
-
 /// Round `x` to `decimals` decimal places.
 ///
 /// # Examples
@@ -491,8 +471,6 @@ mod tests {
         assert_eq!(abs_diff(5.0, 3.0), 2.0);
         assert_eq!(relative_diff(10.0, 9.0), 0.1);
         assert_eq!(relative_diff(0.0, 0.0), 0.0);
-        assert_eq!(safe_div(1.0, 0.0), 0.0);
-        assert_eq!(safe_div(10.0, 2.0), 5.0);
     }
 
     #[test]
