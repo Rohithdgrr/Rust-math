@@ -174,7 +174,7 @@ impl WeibullEVD {
         }
 
         let z = (self.location - x) / self.scale;
-        (-(-z.powf(self.shape)).exp()).exp()
+        (-z.powf(self.shape)).exp()
     }
 
     /// Quantile function.
@@ -600,6 +600,7 @@ mod tests {
         let gev = WeibullEVD::new(1.0, 1.0, 2.0).unwrap();
         let mean = gev.mean();
         assert!(mean < 1.0);
+        assert!((gev.cdf(0.0) - (-1.0f64).exp()).abs() < 1e-12);
     }
 
     #[test]

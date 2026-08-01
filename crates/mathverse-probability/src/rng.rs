@@ -35,6 +35,9 @@ impl Rng {
 
     /// Uniform integer in `0..n` (rejection sampling, no modulo bias).
     pub fn below(&mut self, n: u64) -> u64 {
+        if n <= 1 {
+            return 0;
+        }
         let limit = u64::MAX - (u64::MAX % n);
         loop {
             let r = self.next_u64();

@@ -1,6 +1,12 @@
 //! Queueing theory: M/M/1, M/M/c, arrival processes, service time distributions, waiting times.
 
-use crate::F64Ext;
+fn factorial_f64(n: usize) -> f64 {
+    if n == 0 {
+        1.0
+    } else {
+        (1..=n).fold(1.0, |acc, k| acc * k as f64)
+    }
+}
 
 /// M/M/1 queue (Poisson arrivals, exponential service, single server).
 #[must_use]
@@ -116,11 +122,11 @@ impl MMCQueue {
         // Compute P0
         let mut sum = 0.0;
         for n in 0..self.n_servers {
-            sum += rho.powi(n as i32) / (n as f64).gamma();
+            sum += rho.powi(n as i32) / factorial_f64(n);
         }
 
         let last_term =
-            rho.powi(self.n_servers as i32) / (self.n_servers as f64).gamma() / (1.0 - rho / c);
+            rho.powi(self.n_servers as i32) / factorial_f64(self.n_servers) / (1.0 - rho / c);
 
         1.0 / (sum + last_term)
     }
@@ -132,8 +138,8 @@ impl MMCQueue {
         let c = self.n_servers as f64;
         let p0 = self.probability_empty();
 
-        let numerator = rho.powi(self.n_servers as i32) / (self.n_servers as f64).gamma();
-        let denominator = (1.0 - rho / c) * (c * c);
+        let numerator = rho.powi(self.n_servers as i32) / factorial_f64(self.n_servers);
+        let denominator = 1.0 - rho / c;
 
         p0 * numerator / denominator
     }

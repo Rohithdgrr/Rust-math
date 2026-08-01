@@ -1,6 +1,6 @@
 //! Distributions: moments, pmf/pdf, cdf. Sampling lives in the parent module.
 
-use crate::{rng::Rng, F64Ext};
+use crate::{rng::Rng, special::ln_gamma, F64Ext};
 
 /// Common moment API for every distribution.
 pub trait Distribution {
@@ -80,8 +80,21 @@ impl DiscreteDist for Binomial {
         if k < 0 || k as u64 > self.n {
             return 0.0;
         }
-        let c = mathverse_core::algorithms::binomial(self.n, k as u64) as f64;
-        c * self.p.powi(k as i32) * (1.0 - self.p).powi((self.n - k as u64) as i32)
+        let k_u = k as u64;
+        if self.p == 0.0 {
+            return if k_u == 0 { 1.0 } else { 0.0 };
+        }
+        if self.p == 1.0 {
+            return if k_u == self.n { 1.0 } else { 0.0 };
+        }
+
+        let k_eff = k_u.min(self.n - k_u);
+        let ln_coeff = ln_gamma(self.n as f64 + 1.0)
+            - ln_gamma(k_eff as f64 + 1.0)
+            - ln_gamma((self.n - k_eff) as f64 + 1.0);
+        let ln_pmf =
+            ln_coeff + k_u as f64 * self.p.ln() + (self.n - k_u) as f64 * (1.0 - self.p).ln();
+        ln_pmf.exp()
     }
     fn cdf(&self, k: i64) -> f64 {
         (0..=k).map(|i| self.pmf(i)).sum()
@@ -107,11 +120,14 @@ impl DiscreteDist for Poisson {
         if k < 0 {
             return 0.0;
         }
-        let mut term = 1.0;
-        for i in 1..=k {
-            term *= self.lambda / i as f64;
+        if self.lambda < 0.0 || !self.lambda.is_finite() {
+            return f64::NAN;
         }
-        term * (-self.lambda).exp()
+        if self.lambda == 0.0 {
+            return if k == 0 { 1.0 } else { 0.0 };
+        }
+        let kf = k as f64;
+        (kf * self.lambda.ln() - self.lambda - ln_gamma(kf + 1.0)).exp()
     }
     fn cdf(&self, k: i64) -> f64 {
         (0..=k).map(|i| self.pmf(i)).sum()
@@ -334,16 +350,11 @@ impl ContinuousDist for ChiSquared {
 }
 impl ChiSquared {
     pub fn sample(&self, rng: &mut Rng) -> f64 {
-        let mut sum = 0.0;
-        for _ in 0..self.k as usize {
-            let n = Normal {
-                mu: 0.0,
-                sigma: 1.0,
-            };
-            let z = n.sample(rng);
-            sum += z * z;
+        Gamma {
+            shape: self.k / 2.0,
+            rate: 0.5,
         }
-        sum
+        .sample(rng)
     }
 }
 
@@ -371,18 +382,18 @@ impl Distribution for StudentsT {
 impl ContinuousDist for StudentsT {
     fn pdf(&self, x: f64) -> f64 {
         let nu = self.nu;
-        let coeff = (1.0 + nu).gamma()
-            / (nu.sqrt() * nu.sqrt() * core::f64::consts::PI * (nu / 2.0).gamma());
+        let coeff = ((nu + 1.0) / 2.0).gamma()
+            / (nu.sqrt() * core::f64::consts::PI.sqrt() * (nu / 2.0).gamma());
         coeff * (1.0 + x * x / nu).powf(-(nu + 1.0) / 2.0)
     }
     fn cdf(&self, x: f64) -> f64 {
-        if x < 0.0 {
-            1.0 - self.cdf(-x)
+        let nu = self.nu;
+        let u = nu / (nu + x * x);
+        let ib = (nu / 2.0, 0.5).beta_inc(u);
+        if x >= 0.0 {
+            1.0 - 0.5 * ib
         } else {
-            let nu = self.nu;
-            let x_sq = x * x;
-            let a = x / (nu + x_sq).sqrt();
-            0.5 + 0.5 * a * (nu / 2.0, 0.5).beta_inc(a * a)
+            0.5 * ib
         }
     }
 }
@@ -880,8 +891,10 @@ mod tests {
         let b = Binomial { n: 10, p: 0.5 };
         assert!((b.pmf(5) - 252.0 / 1024.0).abs() < 1e-12);
         assert!((b.cdf(5) - 638.0 / 1024.0).abs() < 1e-12);
+        assert!(Binomial { n: 70, p: 0.5 }.pmf(35).is_finite());
         let p = Poisson { lambda: 2.0 };
         assert!((p.pmf(0) - (-2.0f64).exp()).abs() < 1e-12);
+        assert!(Poisson { lambda: 1000.0 }.pmf(1000).is_finite());
         let n = Normal {
             mu: 0.0,
             sigma: 1.0,
@@ -890,6 +903,9 @@ mod tests {
         assert!((n.cdf(1.0) - 0.841344746).abs() < 1e-6);
         assert!((n.cdf(-1.0) - 0.158655254).abs() < 1e-6);
         assert!((n.pdf(0.0) - 1.0 / (2.0 * core::f64::consts::PI).sqrt()).abs() < 1e-12);
+        let t = StudentsT { nu: 1.0 };
+        assert!((t.pdf(0.0) - 1.0 / core::f64::consts::PI).abs() < 1e-12);
+        assert!((t.cdf(0.0) - 0.5).abs() < 1e-12);
     }
 
     #[test]

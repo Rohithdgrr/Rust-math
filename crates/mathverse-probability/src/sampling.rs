@@ -112,22 +112,44 @@ impl ImportanceSampling {
     where
         F: Fn(f64) -> f64,
     {
+        if n_samples == 0 {
+            return (0.0, 0.0);
+        }
+
         let mut weighted_sum = 0.0;
         let mut weight_sum = 0.0;
-        let mut weighted_sum_sq = 0.0;
+        let mut weighted_values = Vec::with_capacity(n_samples);
+        let mut norm_weight_sq_sum = 0.0;
 
         for _ in 0..n_samples {
             let x = proposal_sample(rng);
             let log_weight = target_log_pdf(x) - proposal_log_pdf(x);
             let weight = log_weight.exp();
+            let value = integrand(x);
 
-            weighted_sum += integrand(x) * weight;
+            weighted_sum += value * weight;
             weight_sum += weight;
-            weighted_sum_sq += (integrand(x) * weight).powi(2);
+            weighted_values.push((value, weight));
+        }
+
+        if weight_sum <= 0.0 || !weight_sum.is_finite() {
+            return (f64::NAN, f64::NAN);
         }
 
         let mean = weighted_sum / weight_sum;
-        let variance = (weighted_sum_sq / weight_sum - mean * mean) / n_samples as f64;
+        let mut weighted_var = 0.0;
+        for (value, weight) in weighted_values {
+            let w_norm = weight / weight_sum;
+            norm_weight_sq_sum += w_norm * w_norm;
+            weighted_var += w_norm * (value - mean).powi(2);
+        }
+
+        let ess = if norm_weight_sq_sum > 0.0 {
+            1.0 / norm_weight_sq_sum
+        } else {
+            0.0
+        };
+        let variance = if ess > 0.0 { weighted_var / ess } else { 0.0 };
 
         (mean, variance.sqrt())
     }
@@ -371,21 +393,36 @@ impl<T: Clone> ParticleFilter<T> {
     /// Resample particles based on weights.
     pub fn resample(&mut self, rng: &mut Rng) {
         let n = self.particles.len();
-        let mut new_particles = Vec::with_capacity(n);
-        let mut cumulative = Vec::with_capacity(n);
-
-        let mut acc = 0.0;
-        for &w in &self.weights {
-            acc += w;
-            cumulative.push(acc);
+        if n == 0 {
+            return;
         }
 
-        for _ in 0..n {
-            let u = rng.uniform();
-            let idx = cumulative
-                .binary_search_by(|&x| x.partial_cmp(&u).unwrap_or(std::cmp::Ordering::Equal))
-                .unwrap_or_else(|i| i);
-            new_particles.push(self.particles[idx.min(n - 1)].clone());
+        let mut weight_sum = 0.0;
+        for &w in &self.weights {
+            if !w.is_finite() || w < 0.0 {
+                return;
+            }
+            weight_sum += w;
+        }
+        if weight_sum <= 0.0 {
+            return;
+        }
+
+        for w in &mut self.weights {
+            *w /= weight_sum;
+        }
+
+        let mut new_particles = Vec::with_capacity(n);
+        let mut i = 0usize;
+        let mut cumulative = self.weights[0];
+        let u0 = rng.uniform() / n as f64;
+        for m in 0..n {
+            let u = u0 + m as f64 / n as f64;
+            while u > cumulative && i < n - 1 {
+                i += 1;
+                cumulative += self.weights[i];
+            }
+            new_particles.push(self.particles[i].clone());
         }
 
         self.particles = new_particles;
