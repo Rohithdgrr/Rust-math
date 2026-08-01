@@ -1060,6 +1060,7 @@ pub fn catalan_number(n: u64) -> u128 {
 /// Number of integer partitions of `n` (partition function p(n)).
 ///
 /// Uses Euler's pentagonal number theorem recurrence.
+/// Time complexity: O(n^2). For large `n` (>200), consider memoization.
 ///
 /// # Examples
 ///
@@ -1101,6 +1102,7 @@ pub fn partition_number(n: u64) -> u128 {
 /// Unsigned Stirling numbers of the first kind: `s(n, k)`.
 ///
 /// Counts permutations of `n` elements with `k` disjoint cycles.
+/// Time complexity: O(n*k). Results grow fast — may overflow `u128` for `n > 34`.
 ///
 /// # Examples
 ///
@@ -1124,6 +1126,7 @@ pub fn stirling_first(n: u64, k: u64) -> u128 {
 /// Stirling numbers of the second kind: `S(n, k)`.
 ///
 /// Counts ways to partition `n` elements into `k` non-empty subsets.
+/// Time complexity: O(n*k). Results grow fast — may overflow `u128` for `n > 34`.
 ///
 /// # Examples
 ///
@@ -1423,6 +1426,9 @@ pub fn double_factorial(n: u64) -> u128 {
 /// Miller-Rabin probabilistic primality test.
 ///
 /// Accuracy: `2^(-rounds)` probability of false positive.
+/// Uses a simple PRNG seeded from `n` — not cryptographically secure.
+/// For full `u64` deterministic primality, use [`is_prime`] (trial division)
+/// or a known set of deterministic bases.
 ///
 /// # Examples
 ///

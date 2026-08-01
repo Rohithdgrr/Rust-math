@@ -830,6 +830,207 @@ pub fn remap<T: Real>(x: T, in_lo: T, in_hi: T, out_lo: T, out_hi: T) -> T {
     map_range(x, in_lo, in_hi, out_lo, out_hi)
 }
 
+/// Returns `true` if `x` is within `[lo, hi]` (inclusive).
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::is_between;
+///
+/// assert!(is_between(5.0, 0.0, 10.0));
+/// assert!(!is_between(15.0, 0.0, 10.0));
+/// assert!(is_between(0.0, 0.0, 10.0));
+/// assert!(is_between(10.0, 0.0, 10.0));
+/// ```
+#[must_use]
+#[inline]
+pub fn is_between<T: Copy + PartialOrd>(x: T, lo: T, hi: T) -> bool {
+    x >= lo && x <= hi
+}
+
+/// Linear interpolation with `t` clamped to `[0, 1]`.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::lerp_clamped;
+///
+/// assert_eq!(lerp_clamped(0.0, 10.0, 0.25), 2.5);
+/// assert_eq!(lerp_clamped(0.0, 10.0, -1.0), 0.0);
+/// assert_eq!(lerp_clamped(0.0, 10.0, 2.0), 10.0);
+/// ```
+#[must_use]
+#[inline]
+pub fn lerp_clamped<T: Real>(a: T, b: T, t: T) -> T {
+    lerp(a, b, clamp01(t))
+}
+
+/// Remap `x` from `[in_lo, in_hi]` to `[out_lo, out_hi]` with output clamped.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::remap_clamped;
+///
+/// assert_eq!(remap_clamped(5.0, 0.0, 10.0, 0.0, 100.0), 50.0);
+/// assert_eq!(remap_clamped(-5.0, 0.0, 10.0, 0.0, 100.0), 0.0);
+/// assert_eq!(remap_clamped(15.0, 0.0, 10.0, 0.0, 100.0), 100.0);
+/// ```
+#[must_use]
+#[inline]
+pub fn remap_clamped<T: Real>(x: T, in_lo: T, in_hi: T, out_lo: T, out_hi: T) -> T {
+    lerp_clamped(out_lo, out_hi, lerp_inv(x, in_lo, in_hi))
+}
+
+/// Bilinear interpolation between four corner values.
+///
+/// `v00` at `(0,0)`, `v01` at `(0,1)`, `v10` at `(1,0)`, `v11` at `(1,1)`.
+/// `x` and `y` are assumed within `[0, 1]`.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::bilinear;
+///
+/// assert_eq!(bilinear(0.0, 0.0, 0.0, 0.0, 0.0, 10.0), 0.0);
+/// assert_eq!(bilinear(1.0, 1.0, 0.0, 0.0, 0.0, 10.0), 10.0);
+/// assert_eq!(bilinear(0.5, 0.5, 0.0, 10.0, 10.0, 0.0), 5.0);
+/// ```
+#[must_use]
+pub fn bilinear<T: Real>(x: T, y: T, v00: T, v01: T, v10: T, v11: T) -> T {
+    let top = lerp(v00, v10, x);
+    let bottom = lerp(v01, v11, x);
+    lerp(top, bottom, y)
+}
+
+/// Check if a slice is sorted in non-decreasing order.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::is_sorted;
+///
+/// assert!(is_sorted(&[1, 2, 3, 4]));
+/// assert!(is_sorted(&[1, 1, 2, 3]));
+/// assert!(!is_sorted(&[1, 3, 2, 4]));
+/// assert!(is_sorted::<i32>(&[]));
+/// assert!(is_sorted(&[42]));
+/// ```
+#[must_use]
+pub fn is_sorted<T: PartialOrd>(xs: &[T]) -> bool {
+    xs.windows(2).all(|w| w[0] <= w[1])
+}
+
+/// Minimum value in a slice. Returns `None` for an empty slice.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::min_value;
+///
+/// assert_eq!(min_value(&[3, 1, 4, 1, 5]), Some(&1));
+/// assert_eq!(min_value::<i32>(&[]), None);
+/// ```
+#[must_use]
+pub fn min_value<T: PartialOrd>(xs: &[T]) -> Option<&T> {
+    xs.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
+}
+
+/// Maximum value in a slice. Returns `None` for an empty slice.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::max_value;
+///
+/// assert_eq!(max_value(&[3, 1, 4, 1, 5]), Some(&5));
+/// assert_eq!(max_value::<i32>(&[]), None);
+/// ```
+#[must_use]
+pub fn max_value<T: PartialOrd>(xs: &[T]) -> Option<&T> {
+    xs.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
+}
+
+/// Mean (average) of a slice. Returns `T::zero()` for an empty slice.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::mean;
+///
+/// assert_eq!(mean(&[1.0, 2.0, 3.0, 4.0]), 2.5);
+/// assert_eq!(mean::<f64>(&[]), 0.0);
+/// ```
+#[must_use]
+pub fn mean<T: Real>(xs: &[T]) -> T {
+    if xs.is_empty() {
+        return T::zero();
+    }
+    let sum: T = xs.iter().copied().fold(T::zero(), |acc, x| acc + x);
+    sum / T::from_f64(f64::from(xs.len() as u32))
+}
+
+/// Cumulative sum of a slice. Returns an empty vector for an empty input.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::cumsum;
+///
+/// assert_eq!(cumsum(&[1, 2, 3, 4]), vec![1, 3, 6, 10]);
+/// assert_eq!(cumsum::<i32>(&[]), vec![]);
+/// ```
+#[must_use]
+pub fn cumsum<T: Num + Copy + core::ops::Add<Output = T>>(xs: &[T]) -> Vec<T> {
+    let mut result = Vec::with_capacity(xs.len());
+    let mut acc = T::zero();
+    for &x in xs {
+        acc = acc + x;
+        result.push(acc);
+    }
+    result
+}
+
+/// Cumulative product of a slice. Returns an empty vector for an empty input.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::cumprod;
+///
+/// assert_eq!(cumprod(&[1, 2, 3, 4]), vec![1, 2, 6, 24]);
+/// assert_eq!(cumprod::<i32>(&[]), vec![]);
+/// ```
+#[must_use]
+pub fn cumprod<T: Num + Copy + core::ops::Mul<Output = T>>(xs: &[T]) -> Vec<T> {
+    let mut result = Vec::with_capacity(xs.len());
+    let mut acc = T::one();
+    for &x in xs {
+        acc = acc * x;
+        result.push(acc);
+    }
+    result
+}
+
+/// Dot product of two slices. Returns `T::zero()` if either is empty.
+/// Panics if lengths differ.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_core::ops::dot_product;
+///
+/// assert_eq!(dot_product(&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0]), 32.0);
+/// assert_eq!(dot_product(&[2, 3], &[4, 5]), 23);
+/// ```
+#[must_use]
+pub fn dot_product<T: Num + Copy + core::ops::Add<Output = T> + core::ops::Mul<Output = T>>(
+    a: &[T],
+    b: &[T],
+) -> T {
+    a.iter().zip(b.iter()).map(|(&x, &y)| x * y).fold(T::zero(), |acc, x| acc + x)
+}
+
 /// Parameterized smoothstep: C1 interpolation between `edge0` and `edge1`.
 ///
 /// Returns `0` when `x <= edge0`, `1` when `x >= edge1`, and a smooth
@@ -971,5 +1172,81 @@ mod tests {
         assert_eq!(smoothstep_between(2.0, 5.0, 3.5), 0.5);
         assert_eq!(smoothstep_between(0.0, 1.0, -1.0), 0.0);
         assert_eq!(smoothstep_between(0.0, 1.0, 2.0), 1.0);
+    }
+
+    #[test]
+    fn is_between_tests() {
+        assert!(is_between(5.0, 0.0, 10.0));
+        assert!(!is_between(15.0, 0.0, 10.0));
+        assert!(!is_between(-1.0, 0.0, 10.0));
+        assert!(is_between(0.0, 0.0, 10.0));
+        assert!(is_between(10.0, 0.0, 10.0));
+    }
+
+    #[test]
+    fn lerp_clamped_tests() {
+        assert_eq!(lerp_clamped(0.0, 10.0, 0.25), 2.5);
+        assert_eq!(lerp_clamped(0.0, 10.0, -1.0), 0.0);
+        assert_eq!(lerp_clamped(0.0, 10.0, 2.0), 10.0);
+    }
+
+    #[test]
+    fn remap_clamped_tests() {
+        assert_eq!(remap_clamped(5.0, 0.0, 10.0, 0.0, 100.0), 50.0);
+        assert_eq!(remap_clamped(-5.0, 0.0, 10.0, 0.0, 100.0), 0.0);
+        assert_eq!(remap_clamped(15.0, 0.0, 10.0, 0.0, 100.0), 100.0);
+    }
+
+    #[test]
+    fn bilinear_tests() {
+        assert_eq!(bilinear(0.0, 0.0, 0.0, 0.0, 0.0, 10.0), 0.0);
+        assert_eq!(bilinear(1.0, 1.0, 0.0, 0.0, 0.0, 10.0), 10.0);
+        assert_eq!(bilinear(0.5, 0.5, 0.0, 10.0, 10.0, 0.0), 5.0);
+        assert_eq!(bilinear(0.5, 0.0, 0.0, 10.0, 20.0, 30.0), 10.0);
+    }
+
+    #[test]
+    fn is_sorted_tests() {
+        assert!(is_sorted(&[1, 2, 3, 4]));
+        assert!(is_sorted(&[1, 1, 2, 3]));
+        assert!(!is_sorted(&[1, 3, 2, 4]));
+        assert!(is_sorted::<i32>(&[]));
+        assert!(is_sorted(&[42]));
+    }
+
+    #[test]
+    fn min_max_value_tests() {
+        assert_eq!(min_value(&[3, 1, 4, 1, 5]), Some(&1));
+        assert_eq!(min_value::<i32>(&[]), None);
+        assert_eq!(max_value(&[3, 1, 4, 1, 5]), Some(&5));
+        assert_eq!(max_value::<i32>(&[]), None);
+    }
+
+    #[test]
+    fn mean_tests() {
+        assert_eq!(mean(&[1.0, 2.0, 3.0, 4.0]), 2.5);
+        assert_eq!(mean::<f64>(&[]), 0.0);
+        assert_eq!(mean(&[5.0]), 5.0);
+    }
+
+    #[test]
+    fn cumsum_tests() {
+        assert_eq!(cumsum(&[1, 2, 3, 4]), vec![1, 3, 6, 10]);
+        assert_eq!(cumsum::<i32>(&[]), vec![]);
+        assert_eq!(cumsum(&[5]), vec![5]);
+    }
+
+    #[test]
+    fn cumprod_tests() {
+        assert_eq!(cumprod(&[1, 2, 3, 4]), vec![1, 2, 6, 24]);
+        assert_eq!(cumprod::<i32>(&[]), vec![]);
+        assert_eq!(cumprod(&[5]), vec![5]);
+    }
+
+    #[test]
+    fn dot_product_tests() {
+        assert_eq!(dot_product(&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0]), 32.0);
+        assert_eq!(dot_product(&[2, 3], &[4, 5]), 23);
+        assert_eq!(dot_product::<f64>(&[], &[]), 0.0);
     }
 }

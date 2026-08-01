@@ -19,17 +19,21 @@ pub use crate::algorithms::{
     tribonacci,
 };
 pub use crate::integer::{
-    bezout_coefficients, binomial, extended_gcd, factorial, gcd, gcd_n, is_square,
-    isqrt, isqrt_rem, lcm, lcm_n, log2_ceil, modular_inverse, mod_pow,
+    bezout_coefficients, binomial, checked_binomial, checked_factorial, digit_count_base,
+    extended_gcd, factorial, gcd, gcd_n, is_cube, is_even, is_odd, is_palindrome_base,
+    is_square, isqrt, isqrt_rem, lcm, lcm_n, log2_floor, log_base, log2_ceil,
+    modular_inverse, mod_pow, nearest_power_of_two, popcount, reverse_digits_base,
+    sum_of_squares,
 };
 pub use crate::error::{MathError, MathResult};
 pub use crate::ops::{
-    abs, abs_sub, cbrt, clamp, clamp01, clamp11, copysign, deg_to_grad, deg_to_rad,
-    distance, fract, grad_to_deg, grad_to_rad, hypot, hypot2, hypot3,
-    integer_part, inv_lerp, lerp, lerp_angle, lerp_inv, map_range, midpoint,
-    normalize, nth_root, ping_pong, rad_to_deg, rad_to_grad, recip, remap,
-    repeat, sign, signum, smoothstep, smoothstep_between, smootherstep, snap,
-    step, trunc, wrap, wrap_angle, wrap_angle_positive,
+    abs, abs_sub, bilinear, cbrt, clamp, clamp01, clamp11, copysign, cumprod, cumsum,
+    deg_to_grad, deg_to_rad, distance, dot_product, fract, grad_to_deg, grad_to_rad,
+    hypot, hypot2, hypot3, integer_part, inv_lerp, is_between, is_sorted, lerp,
+    lerp_angle, lerp_clamped, lerp_inv, map_range, max_value, mean, midpoint,
+    min_value, normalize, nth_root, ping_pong, rad_to_deg, rad_to_grad, recip,
+    remap, remap_clamped, repeat, sign, signum, smoothstep, smoothstep_between,
+    smootherstep, snap, step, trunc, wrap, wrap_angle, wrap_angle_positive,
 };
 pub use crate::precision::{
     abs_diff, almost_eq, almost_eq_rel, almost_eq_ulp, ceil_to_multiple,
