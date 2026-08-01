@@ -29,9 +29,15 @@ impl Rng {
         (self.next_u64() >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
     }
 
-    /// Uniform integer in `0..n`.
+    /// Uniform integer in `0..n` (rejection sampling, no modulo bias).
     pub fn below(&mut self, n: u64) -> u64 {
-        self.next_u64() % n
+        let limit = u64::MAX - (u64::MAX % n);
+        loop {
+            let r = self.next_u64();
+            if r < limit {
+                return r % n;
+            }
+        }
     }
 }
 
