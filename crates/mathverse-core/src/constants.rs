@@ -1,13 +1,21 @@
 //! High-precision mathematical constants, in `f64` and `f32` widths.
+//!
+//! All constants are defined as `pub const f64` with `f32` variants available
+//! under the `f32` submodule (e.g., `constants::f32::PI`).
 
 macro_rules! constants {
     ($($name:ident: $val:expr),* $(,)?) => {
         $(
+            #[allow(missing_docs)]
             pub const $name: f64 = $val;
         )*
+        /// `f32` variants of all constants.
         pub mod f32 {
             use super::*;
-            $(pub const $name: f32 = super::$name as f32;)*
+            $(
+                #[allow(missing_docs)]
+                pub const $name: f32 = super::$name as f32;
+            )*
         }
     };
 }
@@ -54,6 +62,13 @@ constants! {
     HALF_PI: 1.57079632679489661923132169163975144,
     THIRD_PI: 1.04719755119659774615421446109713842,
     QUARTER_PI: 0.78539816339744830961566084581987572,
+    LN_2PI: 1.83787706640934548356065947281122532,
+    INV_PI: 0.31830988618379067153776752674502872,
+    INV_SQRT_PI: 0.56418958354775628694807945156077259,
+    TWO_SQRT_PI: 1.12837916709551257389615890312154518,
+    E_INV: 0.36787944117144232159552377016146086,
+    LOG10_2: 0.30102999566398119521373889472449303,
+    SILVER_RATIO: 2.41421356237309504880168872420969808,
     INF: f64::INFINITY,
     NAN: f64::NAN,
 }
@@ -63,6 +78,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::suboptimal_flops)]
     fn values() {
         assert!((PI - 3.141592653589793).abs() < 1e-15);
         assert!((TAU - 2.0 * PI).abs() < 1e-15);
@@ -76,5 +92,12 @@ mod tests {
         assert!((SQRT_2_INV - 1.0 / SQRT_2).abs() < 1e-15);
         assert!(INF.is_infinite());
         assert!(NAN.is_nan());
+        assert!((LN_2PI - (2.0 * PI).ln()).abs() < 1e-15);
+        assert!((INV_PI - 1.0 / PI).abs() < 1e-15);
+        assert!((INV_SQRT_PI - 1.0 / SQRT_PI).abs() < 1e-15);
+        assert!((TWO_SQRT_PI - 2.0 / SQRT_PI).abs() < 1e-15);
+        assert!((E_INV - 1.0 / E).abs() < 1e-15);
+        assert!((LOG10_2 - 2.0_f64.log10()).abs() < 1e-15);
+        assert!((SILVER_RATIO - (1.0 + SQRT_2)).abs() < 1e-15);
     }
 }
