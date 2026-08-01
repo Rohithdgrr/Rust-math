@@ -451,7 +451,7 @@ impl NelderMead {
             
             // Sort by function value
             let mut indices: Vec<usize> = (0..values.len()).collect();
-            indices.sort_by_key(|&i| values[i]);
+            indices.sort_by(|&a, &b| values[a].partial_cmp(&values[b]).unwrap_or(std::cmp::Ordering::Equal));
             
             let worst = indices[n];
             let second_worst = indices[n - 1];

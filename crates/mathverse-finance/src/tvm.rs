@@ -183,7 +183,7 @@ pub fn internal_rate_of_return(
         let npv_derivative: f64 = cash_flows
             .iter()
             .enumerate()
-            .map(|(i, &cf)| -i as f64 * cf / (1.0 + rate).powi(i as i32 + 1))
+            .map(|(i, &cf)| -(i as f64) * cf / (1.0 + rate).powi(i as i32 + 1))
             .sum();
 
         if npv_derivative.abs() < 1e-10 {

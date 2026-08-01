@@ -57,9 +57,9 @@ pub fn to_latex(expr: &Expr) -> String {
             let inner = to_latex(a);
             let inner_paren = needs_parentheses(a, false);
             if inner_paren {
-                format!(-({})", inner)
+                format!("({})", inner)
             } else {
-                format!(-{}", inner)
+                inner
             }
         }
         Expr::Ln(a) => {
@@ -113,9 +113,9 @@ pub fn to_latex(expr: &Expr) -> String {
 fn needs_parentheses(expr: &Expr, is_power_base: bool) -> bool {
     match expr {
         Expr::Constant(_) | Expr::Variable(_) => false,
-        Expr::Add(_) | Expr::Sub(_) => true,
-        Expr::Mul(_) | Expr::Div(_) => is_power_base,
-        Expr::Pow(_) => true,
+        Expr::Add(_, _) | Expr::Sub(_, _) => true,
+        Expr::Mul(_, _) | Expr::Div(_, _) => is_power_base,
+        Expr::Pow(_, _) => true,
         Expr::Neg(_) => true,
         Expr::Ln(_) | Expr::Exp(_) | Expr::Sin(_) | Expr::Cos(_) | Expr::Tan(_) | Expr::Sqrt(_) => false,
     }

@@ -83,7 +83,7 @@ impl InversePowerMethod {
     }
 
     /// Find eigenvalue closest to shift.
-    pub fn compute(&self, a: &[Vec<f64>], x0: Option<&[f64]>) -> MathResult<(f64, Vec<f64>) {
+    pub fn compute(&self, a: &[Vec<f64>], x0: Option<&[f64]>) -> MathResult<(f64, Vec<f64>)> {
         let n = a.len();
         if a.iter().any(|row| row.len() != n) {
             return Err(MathError::InvalidArgument("matrix must be square"));
@@ -583,7 +583,7 @@ impl JacobiEigenvalue {
         for _iteration in 0..self.max_iterations {
             // Find largest off-diagonal element
             let mut max_val = 0.0;
-            let mut (p, q) = (0, 0);
+            let (mut p, mut q) = (0, 0);
             
             for i in 0..n {
                 for j in (i + 1)..n {

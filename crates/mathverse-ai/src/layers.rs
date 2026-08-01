@@ -5,13 +5,18 @@ use mathverse_core::error::MathResult;
 
 /// Linear (fully connected) layer: y = x @ W^T + b.
 pub struct Linear {
+    /// Weight matrix of shape `[out_features, in_features]`.
     pub weight: Tensor,
+    /// Bias vector of shape `[out_features]`.
     pub bias: Tensor,
+    /// Input feature dimension.
     pub in_features: usize,
+    /// Output feature dimension.
     pub out_features: usize,
 }
 
 impl Linear {
+    /// Create a linear layer with Kaiming-style random initialization.
     pub fn new(in_features: usize, out_features: usize) -> Self {
         let std = (2.0 / in_features as f64).sqrt();
         let weight = Tensor::randn(&[out_features, in_features]).mul_scalar(std);
@@ -47,13 +52,18 @@ impl Linear {
 
 /// Layer normalization with learnable gamma (scale) and beta (shift).
 pub struct LayerNorm {
+    /// Per-feature scale parameter.
     pub gamma: Tensor,
+    /// Per-feature bias parameter.
     pub beta: Tensor,
+    /// Numerical stability constant.
     pub eps: f64,
+    /// Size of the normalized (last) dimension.
     pub normalized_shape: usize,
 }
 
 impl LayerNorm {
+    /// Create a layer norm module with learnable `gamma` and `beta`.
     pub fn new(normalized_shape: usize, eps: f64) -> Self {
         Self {
             gamma: Tensor::ones(&[normalized_shape]),
@@ -86,16 +96,24 @@ impl LayerNorm {
 
 /// Batch normalization with learnable gamma, beta, running mean/var.
 pub struct BatchNorm {
+    /// Per-feature scale parameter.
     pub gamma: Tensor,
+    /// Per-feature bias parameter.
     pub beta: Tensor,
+    /// Running mean used during inference.
     pub running_mean: Tensor,
+    /// Running variance used during inference.
     pub running_var: Tensor,
+    /// Numerical stability constant.
     pub eps: f64,
+    /// Momentum for running statistics updates.
     pub momentum: f64,
+    /// Number of features (channels) being normalized.
     pub num_features: usize,
 }
 
 impl BatchNorm {
+    /// Create a batch norm module.
     pub fn new(num_features: usize, eps: f64, momentum: f64) -> Self {
         Self {
             gamma: Tensor::ones(&[num_features]),
@@ -143,10 +161,12 @@ impl BatchNorm {
 
 /// Dropout layer (inverted dropout).
 pub struct Dropout {
+    /// Drop probability.
     pub p: f64,
 }
 
 impl Dropout {
+    /// Create a dropout layer.
     pub fn new(p: f64) -> Self { Self { p } }
 
     /// Forward: randomly zero out elements with probability p, scale by 1/(1-p).

@@ -6,6 +6,7 @@ authors = ["MathVerse Contributors"]
 description = "Comprehensive prelude for MathVerse - re-exports common items"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mathverse/mathverse"
+rust-version = "1.87"
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
@@ -14,7 +15,7 @@ mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
 mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.1.0" }
 mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
 mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
-mathverse-linear-algebra = { path = "../mathverse-linear-algebra" }
+mathverse-linear-algebra = { path = "../mathverse-linear-algebra", version = "0.1.0" }
 mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
 mathverse-complex = { path = "../mathverse-complex", version = "0.1.0" }
@@ -23,3 +24,14 @@ mathverse-finance = { path = "../mathverse-finance", version = "0.1.0" }
 mathverse-symbolic = { path = "../mathverse-symbolic", version = "0.1.0" }
 mathverse-units = { path = "../mathverse-units", version = "0.1.0" }
 mathverse-plot = { path = "../mathverse-plot", version = "0.1.0" }
+mathverse-number-theory = { path = "../mathverse-number-theory", version = "0.1.0" }
+mathverse-combinatorics = { path = "../mathverse-combinatorics", version = "0.1.0" }
+mathverse-graph = { path = "../mathverse-graph", version = "0.1.0" }
+mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.0" }
+mathverse-signal = { path = "../mathverse-signal", version = "0.1.0" }
+mathverse-optimization = { path = "../mathverse-optimization", version = "0.1.0" }
+mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.0" }
+mathverse-equations = { path = "../mathverse-equations", version = "0.1.0" }
+mathverse-ai = { path = "../mathverse-ai", version = "0.1.0" }
+mathverse-machine-learning = { path = "../mathverse-machine-learning", version = "0.1.0" }
+mathverse-vision = { path = "../mathverse-vision", version = "0.1.0" }

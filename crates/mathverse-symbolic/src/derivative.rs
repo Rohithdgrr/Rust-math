@@ -1,6 +1,6 @@
 //! Symbolic differentiation
 
-use crate::expr::{Expr, Rc};
+use crate::expr::Expr;
 use std::rc::Rc;
 
 /// Compute the symbolic derivative of an expression with respect to a variable
@@ -46,7 +46,7 @@ pub fn differentiate(expr: &Expr, var: &str) -> Expr {
 
             let ln_base = base.clone().ln();
             let term1 = db.mul(ln_base);
-            let term2 = exp.mul(da.div(base.clone()));
+            let term2 = exp.clone().mul(da.div(base.clone()));
             let inner = term1.add(term2);
             base.pow(exp).mul(inner)
         }

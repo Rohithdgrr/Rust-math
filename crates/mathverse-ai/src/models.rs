@@ -7,25 +7,40 @@ use mathverse_core::error::MathResult;
 /// Activation type enum.
 #[derive(Clone, Copy)]
 pub enum Activation {
+    /// Rectified Linear Unit.
     ReLU,
+    /// Logistic sigmoid.
     Sigmoid,
+    /// Hyperbolic tangent.
     Tanh,
+    /// Gaussian Error Linear Unit (tanh approximation).
     GELU,
+    /// Swish / SiLU.
     Swish,
-    Softmax { axis: usize },
+    /// Softmax along a given `axis`.
+    Softmax {
+        /// Axis along which softmax is applied.
+        axis: usize,
+    },
+    /// No activation (identity).
     None,
 }
 
 /// Layer enum for sequential models.
 pub enum Layer {
+    /// Fully connected linear layer.
     Linear(Linear),
+    /// Layer normalization.
     LayerNorm(LayerNorm),
+    /// Dropout layer.
     Dropout(Dropout),
+    /// Activation function.
     Activation(Activation),
 }
 
 /// Sequential model: chains layers in order.
 pub struct Sequential {
+    /// Layers executed in order.
     pub layers: Vec<Layer>,
 }
 
@@ -36,23 +51,28 @@ impl Default for Sequential {
 }
 
 impl Sequential {
+    /// Create an empty sequential model.
     pub fn new() -> Self { Self { layers: Vec::new() } }
 
+    /// Append a [`Linear`] layer.
     pub fn add_linear(mut self, in_f: usize, out_f: usize) -> Self {
         self.layers.push(Layer::Linear(Linear::new(in_f, out_f)));
         self
     }
 
+    /// Append a [`LayerNorm`] layer.
     pub fn add_layer_norm(mut self, normalized_shape: usize) -> Self {
         self.layers.push(Layer::LayerNorm(LayerNorm::new(normalized_shape, 1e-5)));
         self
     }
 
+    /// Append a [`Dropout`] layer.
     pub fn add_dropout(mut self, p: f64) -> Self {
         self.layers.push(Layer::Dropout(Dropout::new(p)));
         self
     }
 
+    /// Append an activation.
     pub fn add_activation(mut self, act: Activation) -> Self {
         self.layers.push(Layer::Activation(act));
         self
@@ -94,12 +114,16 @@ impl Sequential {
 
 /// Multi-layer perceptron (MLP) for classification.
 pub struct MLP {
+    /// Hidden linear layers.
     pub hidden_layers: Vec<Linear>,
+    /// Output linear layer.
     pub output_layer: Linear,
+    /// Activation used between hidden layers.
     pub activation: Activation,
 }
 
 impl MLP {
+    /// Create a new MLP.
     pub fn new(input_size: usize, hidden_sizes: &[usize], output_size: usize) -> Self {
         let mut hidden_layers = Vec::new();
         let mut prev = input_size;
@@ -110,6 +134,7 @@ impl MLP {
         Self { hidden_layers, output_layer: Linear::new(prev, output_size), activation: Activation::ReLU }
     }
 
+    /// Forward pass through all layers.
     pub fn forward(&self, x: &Tensor) -> MathResult<Tensor> {
         let mut out = x.clone();
         for layer in &self.hidden_layers {
@@ -127,19 +152,30 @@ impl MLP {
 
 /// Transformer encoder block.
 pub struct TransformerBlock {
+    /// Query projection weight.
     pub attn_wq: Tensor,
+    /// Key projection weight.
     pub attn_wk: Tensor,
+    /// Value projection weight.
     pub attn_wv: Tensor,
+    /// Output projection weight.
     pub attn_wo: Tensor,
+    /// First feed-forward layer.
     pub ff_w1: Linear,
+    /// Second feed-forward layer.
     pub ff_w2: Linear,
+    /// First layer norm (pre-attention).
     pub ln1: LayerNorm,
+    /// Second layer norm (pre-FFN).
     pub ln2: LayerNorm,
+    /// Model width.
     pub d_model: usize,
+    /// Number of attention heads.
     pub num_heads: usize,
 }
 
 impl TransformerBlock {
+    /// Create a transformer block with random-initialized parameters.
     pub fn new(d_model: usize, num_heads: usize, d_ff: usize) -> Self {
         let _d_k = d_model / num_heads;
         Self {
@@ -156,6 +192,7 @@ impl TransformerBlock {
         }
     }
 
+    /// Forward pass with optional attention mask.
     pub fn forward(&self, x: &Tensor, mask: Option<&Tensor>) -> MathResult<Tensor> {
         // Self-attention with residual
         let normed = self.ln1.forward(x);

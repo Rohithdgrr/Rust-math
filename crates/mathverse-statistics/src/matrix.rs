@@ -1,13 +1,25 @@
 //! Multivariate statistics: covariance matrix, correlation matrix, PCA, Mahalanobis distance.
 
+use mathverse_core::error::{MathError, MathResult};
+
 /// Covariance matrix from data (rows = observations, cols = variables).
 /// Returns a `p × p` matrix (row-major).
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::covariance_matrix;
+///
+/// let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]];
+/// let cov = covariance_matrix(&data);
+/// assert_eq!(cov.len(), 2);
+/// ```
+#[must_use]
 pub fn covariance_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
     let n = data.len();
     let p = data[0].len();
-    // Compute means
     let mut means = vec![0.0; p];
-    for row in data {
+    for row in data.iter() {
         for j in 0..p {
             means[j] += row[j];
         }
@@ -15,17 +27,16 @@ pub fn covariance_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
     for m in means.iter_mut() {
         *m /= n as f64;
     }
-    // Compute covariance matrix
     let mut cov = vec![vec![0.0; p]; p];
-    for row in data {
+    for row in data.iter() {
         for i in 0..p {
             for j in 0..p {
                 cov[i][j] += (row[i] - means[i]) * (row[j] - means[j]);
             }
         }
     }
-    for (_i, row) in cov.iter_mut().enumerate().take(p) {
-        for (_j, val) in row.iter_mut().enumerate().take(p) {
+    for row in cov.iter_mut().take(p) {
+        for val in row.iter_mut().take(p) {
             *val /= (n - 1) as f64;
         }
     }
@@ -33,6 +44,17 @@ pub fn covariance_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
 }
 
 /// Correlation matrix from data.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::correlation_matrix;
+///
+/// let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[2.0, 4.0], &[3.0, 6.0]];
+/// let corr = correlation_matrix(&data);
+/// assert!((corr[0][1] - 1.0).abs() < 1e-10);
+/// ```
+#[must_use]
 pub fn correlation_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
     let cov = covariance_matrix(data);
     let p = cov.len();
@@ -61,14 +83,27 @@ pub struct PCA {
     pub explained_variance_ratio: Vec<f64>,
 }
 
-/// Perform PCA on centered data (rows = observations, cols = variables).
+/// Perform PCA on data (rows = observations, cols = variables).
 /// Returns the top `min(n, p)` components.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::pca;
+///
+/// let data: Vec<&[f64]> = vec![
+///     &[1.0, 2.0], &[2.0, 4.0], &[3.0, 6.0],
+///     &[4.0, 8.0], &[5.0, 10.0],
+/// ];
+/// let result = pca(&data);
+/// assert!(result.explained_variance[0] > 0.0);
+/// ```
+#[must_use]
 pub fn pca(data: &[&[f64]]) -> PCA {
     let n = data.len();
     let p = data[0].len();
-    // Center data
     let mut means = vec![0.0; p];
-    for row in data {
+    for row in data.iter() {
         for j in 0..p {
             means[j] += row[j];
         }
@@ -76,29 +111,27 @@ pub fn pca(data: &[&[f64]]) -> PCA {
     for m in means.iter_mut() {
         *m /= n as f64;
     }
-    let centered: Vec<Vec<f64>> = data.iter()
+    let centered: Vec<Vec<f64>> = data
+        .iter()
         .map(|row| row.iter().zip(&means).map(|(x, m)| x - m).collect())
         .collect();
 
-    // Compute covariance matrix
     let cov = covariance_matrix(&centered.iter().map(|r| r.as_slice()).collect::<Vec<_>>());
 
-    // Power iteration for eigenvalues/eigenvectors
     let k = p.min(n);
     let mut components = Vec::new();
     let mut explained_variance = Vec::new();
 
-    let mut matrix = cov.clone();
+    let mut matrix = cov;
     for _ in 0..k {
         let (eigenvalue, eigenvector) = power_iteration(&matrix);
         explained_variance.push(eigenvalue);
-        components.push(eigenvector.clone());
-        // Deflate matrix
         for i in 0..p {
             for j in 0..p {
                 matrix[i][j] -= eigenvalue * eigenvector[i] * eigenvector[j];
             }
         }
+        components.push(eigenvector);
     }
     let total: f64 = explained_variance.iter().sum();
     let explained_variance_ratio = explained_variance.iter().map(|v| *v / total).collect();
@@ -111,10 +144,12 @@ pub fn pca(data: &[&[f64]]) -> PCA {
 }
 
 /// Transform data using PCA components.
+#[must_use]
 pub fn pca_transform(data: &[&[f64]], components: &[Vec<f64>], means: &[f64]) -> Vec<Vec<f64>> {
     data.iter()
         .map(|row| {
-            components.iter()
+            components
+                .iter()
                 .map(|comp| {
                     row.iter().zip(comp).zip(means)
                         .map(|((x, c), m)| (x - m) * c)
@@ -126,13 +161,13 @@ pub fn pca_transform(data: &[&[f64]], components: &[Vec<f64>], means: &[f64]) ->
 }
 
 /// Mahalanobis distance from point to distribution defined by mean and inverse covariance.
+#[must_use]
 pub fn mahalanobis(point: &[f64], mean: &[f64], cov_inv: &[Vec<f64>]) -> f64 {
     let n = point.len();
     let mut d = vec![0.0; n];
     for i in 0..n {
         d[i] = point[i] - mean[i];
     }
-    // d^T Σ^{-1} d
     let mut dist2 = 0.0;
     for i in 0..n {
         for j in 0..n {
@@ -143,7 +178,21 @@ pub fn mahalanobis(point: &[f64], mean: &[f64], cov_inv: &[Vec<f64>]) -> f64 {
 }
 
 /// Invert a symmetric positive-definite matrix (Cholesky decomposition).
-pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+///
+/// # Errors
+///
+/// Returns [`MathError::Singular`] if the matrix is not positive-definite.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::cholesky_inverse;
+///
+/// let a = vec![vec![4.0, 2.0], vec![2.0, 3.0]];
+/// let inv = cholesky_inverse(&a).unwrap();
+/// assert!((a[0][0] * inv[0][0] + a[0][1] * inv[1][0] - 1.0).abs() < 1e-10);
+/// ```
+pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> MathResult<Vec<Vec<f64>>> {
     let n = matrix.len();
     let mut l = vec![vec![0.0; n]; n];
     for i in 0..n {
@@ -154,12 +203,11 @@ pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
             }
             let diag = matrix[i][i] - sum;
             if diag <= 0.0 {
-                return None;
+                return Err(MathError::Singular);
             }
             l[i][j] = if i == j { diag.sqrt() } else { (matrix[i][j] - sum) / l[j][j] };
         }
     }
-    // Invert L
     let mut linv = vec![vec![0.0; n]; n];
     for j in 0..n {
         linv[j][j] = 1.0 / l[j][j];
@@ -168,22 +216,35 @@ pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
             linv[i][j] = -sum / l[i][i];
         }
     }
-    // A^{-1} = (L^{-1})^T L^{-1}
     let mut result = vec![vec![0.0; n]; n];
-    for (i, _) in linv.iter().enumerate().take(n) {
-        for (j, _) in linv.iter().enumerate().take(n) {
+    for i in 0..n {
+        for j in 0..n {
             let mut sum = 0.0;
-            for (_k, linv_k) in linv.iter().enumerate().take(n) {
+            for linv_k in linv.iter().take(n) {
                 sum += linv_k[i] * linv_k[j];
             }
             result[i][j] = sum;
         }
     }
-    Some(result)
+    Ok(result)
 }
 
 /// Inverse covariance (precision matrix).
-pub fn precision_matrix(data: &[&[f64]]) -> Option<Vec<Vec<f64>>> {
+///
+/// # Errors
+///
+/// Returns [`MathError::Singular`] if the covariance matrix is singular.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::precision_matrix;
+///
+/// let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]];
+/// let prec = precision_matrix(&data).unwrap();
+/// assert_eq!(prec.len(), 2);
+/// ```
+pub fn precision_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
     let cov = covariance_matrix(data);
     cholesky_inverse(&cov)
 }
@@ -196,7 +257,6 @@ fn power_iteration(matrix: &[Vec<f64>]) -> (f64, Vec<f64>) {
     let n = matrix.len();
     let mut b: Vec<f64> = (0..n).map(|i| if i == 0 { 1.0 } else { 0.0 }).collect();
     for _ in 0..100 {
-        // Matrix-vector multiply
         let mut new_b = vec![0.0; n];
         for i in 0..n {
             for j in 0..n {
@@ -212,7 +272,6 @@ fn power_iteration(matrix: &[Vec<f64>]) -> (f64, Vec<f64>) {
         }
         b = new_b;
     }
-    // Rayleigh quotient
     let mut av = vec![0.0; n];
     for i in 0..n {
         for j in 0..n {
@@ -233,16 +292,16 @@ mod tests {
         let cov = covariance_matrix(&data);
         assert_eq!(cov.len(), 2);
         assert_eq!(cov[0].len(), 2);
-        assert!((cov[0][0] - cov[1][1]).abs() < 1e-10); // same variance
-        assert!((cov[0][1] - cov[1][0]).abs() < 1e-10); // symmetric
+        assert!((cov[0][0] - cov[1][1]).abs() < 1e-10);
+        assert!((cov[0][1] - cov[1][0]).abs() < 1e-10);
     }
 
     #[test]
     fn correlation_matrix_test() {
         let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[2.0, 4.0], &[3.0, 6.0]];
         let corr = correlation_matrix(&data);
-        assert!((corr[0][1] - 1.0).abs() < 1e-10); // perfectly correlated
-        assert!((corr[0][0] - 1.0).abs() < 1e-10); // diagonal = 1
+        assert!((corr[0][1] - 1.0).abs() < 1e-10);
+        assert!((corr[0][0] - 1.0).abs() < 1e-10);
     }
 
     #[test]
@@ -259,7 +318,6 @@ mod tests {
 
     #[test]
     fn mahalanobis_test() {
-        // Points in 1D with mean=0, variance=1 → Mahalanobis = |x|
         let cov_inv = vec![vec![1.0]];
         let mean = vec![0.0];
         assert!((mahalanobis(&[3.0], &mean, &cov_inv) - 3.0).abs() < 1e-10);
@@ -269,14 +327,26 @@ mod tests {
     fn cholesky_inverse_test() {
         let a = vec![vec![4.0, 2.0], vec![2.0, 3.0]];
         let inv = cholesky_inverse(&a).unwrap();
-        // a * inv ≈ I
         let prod = vec![
-            vec![a[0][0]*inv[0][0] + a[0][1]*inv[1][0], a[0][0]*inv[0][1] + a[0][1]*inv[1][1]],
-            vec![a[1][0]*inv[0][0] + a[1][1]*inv[1][0], a[1][0]*inv[0][1] + a[1][1]*inv[1][1]],
+            vec![a[0][0] * inv[0][0] + a[0][1] * inv[1][0], a[0][0] * inv[0][1] + a[0][1] * inv[1][1]],
+            vec![a[1][0] * inv[0][0] + a[1][1] * inv[1][0], a[1][0] * inv[0][1] + a[1][1] * inv[1][1]],
         ];
         assert!((prod[0][0] - 1.0).abs() < 1e-10);
-        assert!((prod[0][1]).abs() < 1e-10);
-        assert!((prod[1][0]).abs() < 1e-10);
+        assert!(prod[0][1].abs() < 1e-10);
+        assert!(prod[1][0].abs() < 1e-10);
         assert!((prod[1][1] - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn cholesky_singular_test() {
+        let a = vec![vec![1.0, 1.0], vec![1.0, 1.0]];
+        assert_eq!(cholesky_inverse(&a), Err(MathError::Singular));
+    }
+
+    #[test]
+    fn precision_matrix_test() {
+        let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]];
+        let prec = precision_matrix(&data).unwrap();
+        assert_eq!(prec.len(), 2);
     }
 }

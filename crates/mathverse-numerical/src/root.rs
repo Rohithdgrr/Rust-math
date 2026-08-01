@@ -164,14 +164,15 @@ pub fn brent(
             return Ok(a);
         }
         
+        let mut s;
         if fa != fc && fb != fc {
             // Inverse quadratic interpolation
-            let s = a * fb * fc / ((fa - fb) * (fa - fc))
+            s = a * fb * fc / ((fa - fb) * (fa - fc))
                 + b * fa * fc / ((fb - fa) * (fb - fc))
                 + c * fa * fb / ((fc - fa) * (fc - fb));
         } else {
             // Secant method
-            let s = b - fb * (b - a) / (fb - fa);
+            s = b - fb * (b - a) / (fb - fa);
         }
         
         // Check if interpolation is acceptable
@@ -181,7 +182,7 @@ pub fn brent(
             || !mflag && (c - d).abs() < tol
         {
             // Bisection
-            let s = (a + b) / 2.0;
+            s = (a + b) / 2.0;
             mflag = true;
         } else {
             mflag = false;

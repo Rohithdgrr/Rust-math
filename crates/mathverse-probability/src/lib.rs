@@ -20,6 +20,40 @@
 //! let sample: f64 = n.sample(&mut rng);
 //! ```
 
+#![forbid(unsafe_code)]
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![allow(missing_docs)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::suboptimal_flops)]
+#![allow(clippy::imprecise_flops)]
+#![allow(clippy::while_float)]
+#![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::use_self)]
+#![allow(clippy::manual_midpoint)]
+#![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::option_if_let_else)]
+#![allow(clippy::float_cmp)]
+#![allow(clippy::cast_lossless)]
+#![allow(clippy::cloned_instead_of_copied)]
+#![allow(clippy::unused_self)]
+#![allow(clippy::no_effect_underscore_binding)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::comparison_chain)]
+#![allow(clippy::if_not_else)]
+#![allow(clippy::redundant_clone)]
+#![allow(clippy::similar_names)]
+#![allow(clippy::many_single_char_names)]
+#![allow(clippy::suspicious_operation_groupings)]
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::assigning_clones)]
+#![allow(clippy::implicit_clone)]
 #![allow(
     unstable_name_collisions,
     clippy::needless_range_loop,
@@ -49,11 +83,15 @@ pub mod simulation;
 pub mod special;
 pub mod stochastic;
 
+/// Extension trait for `f64` providing special mathematical functions.
 pub trait F64Ext {
+    /// Compute the gamma function Γ(x) for x > 0.
     fn gamma(self) -> f64;
 }
 
+/// Implementation of the `F64Ext` trait for `f64`.
 impl F64Ext for f64 {
+    /// Compute the gamma function Γ(x) for x > 0.
     fn gamma(self) -> f64 {
         special::gamma_fn(self)
     }
@@ -64,15 +102,21 @@ pub use distributions::{
 };
 pub use rng::Rng;
 
+use mathverse_core::error::MathError;
+
 /// Bayes' theorem: `P(A|B) = P(A)·P(B|A) / P(B)`.
 ///
 /// ```
 /// use mathverse_probability::bayes;
 /// // 0.4·0.6 / 0.3 = 0.8
-/// assert!((bayes(0.4, 0.6, 0.3) - 0.8).abs() < 1e-12);
+/// assert!((bayes(0.4, 0.6, 0.3).unwrap() - 0.8).abs() < 1e-12);
 /// ```
-pub fn bayes(prior: f64, likelihood: f64, evidence: f64) -> f64 {
-    prior * likelihood / evidence
+#[inline]
+pub fn bayes(prior: f64, likelihood: f64, evidence: f64) -> Result<f64, MathError> {
+    if evidence == 0.0 {
+        return Err(MathError::InvalidArgument("evidence must not be zero"));
+    }
+    Ok(prior * likelihood / evidence)
 }
 
 /// Monte Carlo estimate of `∫_a^b f(x) dx`: `(estimate, standard error)`.
@@ -105,6 +149,7 @@ pub fn mc_integrate(
 
 /// One step of a Markov chain: next state from row `state` of the
 /// transition matrix (rows must sum to 1).
+#[inline]
 pub fn markov_step(transition: &[&[f64]], state: usize, rng: &mut Rng) -> usize {
     let row = transition[state];
     let u = rng.uniform();
@@ -126,6 +171,7 @@ pub fn markov_step(transition: &[&[f64]], state: usize, rng: &mut Rng) -> usize 
 /// let p = markov_distribution(&[&[0.9, 0.1], &[0.5, 0.5]], &[1.0, 0.0], 500);
 /// assert!((p[0] - 5.0 / 6.0).abs() < 1e-9 && (p[1] - 1.0 / 6.0).abs() < 1e-9);
 /// ```
+#[inline]
 pub fn markov_distribution(transition: &[&[f64]], start: &[f64], steps: usize) -> Vec<f64> {
     let mut p = start.to_vec();
     for _ in 0..steps {

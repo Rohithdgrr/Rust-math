@@ -6,7 +6,9 @@ use mathverse_core::error::{MathError, MathResult};
 /// N-dimensional tensor with row-major (C-contiguous) data.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tensor {
+    /// Tensor shape in row-major order.
     pub shape: Vec<usize>,
+    /// Flat row-major data buffer.
     pub data: Vec<f64>,
 }
 
@@ -359,52 +361,62 @@ impl Tensor {
         Ok(Tensor { shape: target, data })
     }
 
+    /// Add a scalar to every element.
     #[must_use]
     pub fn add_scalar(&self, s: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x + s).collect() }
     }
 
+    /// Subtract a scalar from every element.
     #[must_use]
     pub fn sub_scalar(&self, s: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x - s).collect() }
     }
 
+    /// Multiply every element by a scalar.
     #[must_use]
     pub fn mul_scalar(&self, s: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x * s).collect() }
     }
 
+    /// Divide every element by a scalar (denominator clamped to `f64::EPSILON`).
     #[must_use]
     pub fn div_scalar(&self, s: f64) -> Tensor {
         let denom = s.max(f64::EPSILON);
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x / denom).collect() }
     }
 
+    /// Negate every element.
     #[must_use]
     pub fn neg(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| -x).collect() }
     }
 
+    /// Absolute value of every element.
     #[must_use]
     pub fn abs(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.abs()).collect() }
     }
 
+    /// Square root of every element.
     #[must_use]
     pub fn sqrt(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.sqrt()).collect() }
     }
 
+    /// Exponential of every element.
     #[must_use]
     pub fn exp(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.exp()).collect() }
     }
 
+    /// Natural logarithm of every element.
     #[must_use]
     pub fn ln(&self) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.ln()).collect() }
     }
 
+    /// Raise every element to a floating-point exponent.
     #[must_use]
     pub fn powf(&self, e: f64) -> Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x.powf(e)).collect() }
@@ -799,6 +811,7 @@ impl Tensor {
 // Broadcasting helper: NumPy trailing-dim rules
 // ---------------------------------------------------------------------------
 
+/// Compute the broadcasted shape of `a` and `b` using NumPy trailing-dimension rules.
 pub fn broadcast_shapes(a: &[usize], b: &[usize]) -> MathResult<Vec<usize>> {
     let nd = a.len().max(b.len());
     let mut result = vec![0usize; nd];

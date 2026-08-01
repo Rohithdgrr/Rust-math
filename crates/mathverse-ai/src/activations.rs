@@ -18,6 +18,7 @@ pub fn leaky_relu(t: &Tensor, slope: f64) -> Tensor {
     Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| if x > 0.0 { x } else { slope * x }).collect() }
 }
 
+/// Derivative of LeakyReLU (1 where x > 0, else `slope`).
 pub fn leaky_relu_grad(t: &Tensor, slope: f64) -> Tensor {
     Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| if x > 0.0 { 1.0 } else { slope }).collect() }
 }
@@ -59,6 +60,7 @@ pub fn gelu(t: &Tensor) -> Tensor {
     }).collect() }
 }
 
+/// Derivative of GELU (tanh approximation).
 pub fn gelu_grad(t: &Tensor) -> Tensor {
     let c = (2.0 / std::f64::consts::PI).sqrt();
     Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| {
@@ -78,6 +80,7 @@ pub fn sigmoid(t: &Tensor) -> Tensor {
     }).collect() }
 }
 
+/// Derivative of [`sigmoid`].
 pub fn sigmoid_grad(t: &Tensor) -> Tensor {
     let s = sigmoid(t);
     Tensor { shape: t.shape.clone(), data: s.data.iter().map(|&v| v * (1.0 - v)).collect() }
@@ -88,6 +91,7 @@ pub fn tanh(t: &Tensor) -> Tensor {
     Tensor { shape: t.shape.clone(), data: t.data.iter().map(|x| x.tanh()).collect() }
 }
 
+/// Derivative of [`tanh`].
 pub fn tanh_grad(t: &Tensor) -> Tensor {
     let h = tanh(t);
     Tensor { shape: h.shape.clone(), data: h.data.iter().map(|&v| 1.0 - v * v).collect() }

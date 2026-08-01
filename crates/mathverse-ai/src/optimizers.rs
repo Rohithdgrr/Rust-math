@@ -3,14 +3,18 @@
 
 /// SGD with momentum and optional weight decay.
 pub struct Sgd {
+    /// Learning rate.
     pub lr: f64,
+    /// Momentum factor in `[0, 1)`.
     pub momentum: f64,
+    /// L2 weight decay coefficient.
     pub weight_decay: f64,
     velocity: Vec<f64>,
     initialized: bool,
 }
 
 impl Sgd {
+    /// Create a new SGD optimizer.
     pub fn new(lr: f64, momentum: f64, weight_decay: f64) -> Self {
         Self { lr, momentum, weight_decay, velocity: Vec::new(), initialized: false }
     }
@@ -35,22 +39,29 @@ impl Sgd {
 
 /// Adam optimizer.
 pub struct Adam {
+    /// Learning rate.
     pub lr: f64,
+    /// Exponential decay rate for first moment estimates.
     pub beta1: f64,
+    /// Exponential decay rate for second moment estimates.
     pub beta2: f64,
+    /// Small value added to the denominator for numerical stability.
     pub eps: f64,
+    /// L2 weight decay coefficient (coupled to gradient, Adam-style).
     pub weight_decay: f64,
     m: Vec<f64>,
     v: Vec<f64>,
-    t: usize,
+    t: i32,
     initialized: bool,
 }
 
 impl Adam {
+    /// Create a new Adam optimizer.
     pub fn new(lr: f64, beta1: f64, beta2: f64, eps: f64, weight_decay: f64) -> Self {
         Self { lr, beta1, beta2, eps, weight_decay, m: Vec::new(), v: Vec::new(), t: 0, initialized: false }
     }
 
+    /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
         assert_eq!(params.len(), grads.len());
         if !self.initialized {
@@ -59,8 +70,8 @@ impl Adam {
             self.initialized = true;
         }
         self.t += 1;
-        let bc1 = 1.0 - self.beta1.powi(self.t as i32);
-        let bc2 = 1.0 - self.beta2.powi(self.t as i32);
+        let bc1 = 1.0 - self.beta1.powi(self.t);
+        let bc2 = 1.0 - self.beta2.powi(self.t);
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             let mut grad = *g;
             if self.weight_decay > 0.0 {
@@ -74,27 +85,35 @@ impl Adam {
         }
     }
 
+    /// Reset internal moment estimates and step counter.
     pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
 }
 
 /// AdamW optimizer (decoupled weight decay).
 pub struct AdamW {
+    /// Learning rate.
     pub lr: f64,
+    /// Exponential decay rate for first moment estimates.
     pub beta1: f64,
+    /// Exponential decay rate for second moment estimates.
     pub beta2: f64,
+    /// Small value added to the denominator for numerical stability.
     pub eps: f64,
+    /// Decoupled weight decay coefficient.
     pub weight_decay: f64,
     m: Vec<f64>,
     v: Vec<f64>,
-    t: usize,
+    t: i32,
     initialized: bool,
 }
 
 impl AdamW {
+    /// Create a new AdamW optimizer.
     pub fn new(lr: f64, beta1: f64, beta2: f64, eps: f64, weight_decay: f64) -> Self {
         Self { lr, beta1, beta2, eps, weight_decay, m: Vec::new(), v: Vec::new(), t: 0, initialized: false }
     }
 
+    /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
         assert_eq!(params.len(), grads.len());
         if !self.initialized {
@@ -103,8 +122,8 @@ impl AdamW {
             self.initialized = true;
         }
         self.t += 1;
-        let bc1 = 1.0 - self.beta1.powi(self.t as i32);
-        let bc2 = 1.0 - self.beta2.powi(self.t as i32);
+        let bc1 = 1.0 - self.beta1.powi(self.t);
+        let bc2 = 1.0 - self.beta2.powi(self.t);
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             // Decoupled weight decay: decay applied directly to params, not via grad
             if self.weight_decay > 0.0 {
@@ -118,6 +137,7 @@ impl AdamW {
         }
     }
 
+    /// Reset internal moment estimates and step counter.
     pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
 }
 
@@ -127,18 +147,24 @@ impl AdamW {
 
 /// Learning rate schedule type.
 pub enum Schedule {
+    /// Constant learning rate of `1.0` (scale externally if needed).
     Constant,
+    /// Multiply the learning rate by `gamma` every `step_size` steps.
     StepDecay { step_size: usize, gamma: f64 },
+    /// Cosine annealing between `1.0` and `eta_min` with period `t_max`.
     CosineAnnealing { t_max: usize, eta_min: f64 },
+    /// Linear warmup from `base_lr` to `target_lr` for `warmup_steps` steps.
     LinearWarmup { warmup_steps: usize, base_lr: f64, target_lr: f64 },
 }
 
+/// Learning rate scheduler driven by a [`Schedule`].
 pub struct LrScheduler {
     schedule: Schedule,
     step_count: usize,
 }
 
 impl LrScheduler {
+    /// Create a new scheduler.
     pub fn new(schedule: Schedule) -> Self {
         Self { schedule, step_count: 0 }
     }
@@ -174,10 +200,15 @@ impl LrScheduler {
 
 /// RMSprop optimizer.
 pub struct RMSprop {
+    /// Learning rate.
     pub lr: f64,
+    /// Exponential decay rate for squared gradients.
     pub alpha: f64,
+    /// Small value added to the denominator for numerical stability.
     pub eps: f64,
+    /// L2 weight decay coefficient.
     pub weight_decay: f64,
+    /// Momentum factor applied to the normalized gradient.
     pub momentum: f64,
     avg_sq: Vec<f64>,
     velocity: Vec<f64>,
@@ -185,10 +216,12 @@ pub struct RMSprop {
 }
 
 impl RMSprop {
+    /// Create a new RMSprop optimizer.
     pub fn new(lr: f64, alpha: f64, eps: f64, weight_decay: f64, momentum: f64) -> Self {
         Self { lr, alpha, eps, weight_decay, momentum, avg_sq: Vec::new(), velocity: Vec::new(), initialized: false }
     }
 
+    /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
         assert_eq!(params.len(), grads.len());
         if !self.initialized {
@@ -205,24 +238,31 @@ impl RMSprop {
         }
     }
 
+    /// Reset running averages and momentum state.
     pub fn zero_grad(&mut self) { self.avg_sq.clear(); self.velocity.clear(); self.initialized = false; }
 }
 
 /// Lion optimizer (EvoLved Sign Momentum).
 pub struct Lion {
+    /// Learning rate.
     pub lr: f64,
+    /// First momentum coefficient.
     pub beta1: f64,
+    /// Second momentum coefficient.
     pub beta2: f64,
+    /// L2 weight decay coefficient.
     pub weight_decay: f64,
     m: Vec<f64>,
     initialized: bool,
 }
 
 impl Lion {
+    /// Create a new Lion optimizer.
     pub fn new(lr: f64, beta1: f64, beta2: f64, weight_decay: f64) -> Self {
         Self { lr, beta1, beta2, weight_decay, m: Vec::new(), initialized: false }
     }
 
+    /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
         assert_eq!(params.len(), grads.len());
         if !self.initialized {
@@ -237,23 +277,29 @@ impl Lion {
         }
     }
 
+    /// Reset internal momentum state.
     pub fn zero_grad(&mut self) { self.m.clear(); self.initialized = false; }
 }
 
 /// AdaGrad optimizer.
 pub struct AdaGrad {
+    /// Learning rate.
     pub lr: f64,
+    /// Small value added to the denominator for numerical stability.
     pub eps: f64,
+    /// L2 weight decay coefficient.
     pub weight_decay: f64,
     sum_sq: Vec<f64>,
     initialized: bool,
 }
 
 impl AdaGrad {
+    /// Create a new AdaGrad optimizer.
     pub fn new(lr: f64, eps: f64, weight_decay: f64) -> Self {
         Self { lr, eps, weight_decay, sum_sq: Vec::new(), initialized: false }
     }
 
+    /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
         assert_eq!(params.len(), grads.len());
         if !self.initialized {
@@ -268,14 +314,19 @@ impl AdaGrad {
         }
     }
 
+    /// Reset accumulated squared gradients.
     pub fn zero_grad(&mut self) { self.sum_sq.clear(); self.initialized = false; }
 }
 
 /// AdaDelta optimizer.
 pub struct AdaDelta {
+    /// Learning rate.
     pub lr: f64,
+    /// Decay rate for moving averages.
     pub rho: f64,
+    /// Small value added to the denominator for numerical stability.
     pub eps: f64,
+    /// L2 weight decay coefficient.
     pub weight_decay: f64,
     avg_sq: Vec<f64>,
     avg_dx: Vec<f64>,
@@ -283,10 +334,12 @@ pub struct AdaDelta {
 }
 
 impl AdaDelta {
+    /// Create a new AdaDelta optimizer.
     pub fn new(lr: f64, rho: f64, eps: f64, weight_decay: f64) -> Self {
         Self { lr, rho, eps, weight_decay, avg_sq: Vec::new(), avg_dx: Vec::new(), initialized: false }
     }
 
+    /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
         assert_eq!(params.len(), grads.len());
         if !self.initialized {
@@ -304,27 +357,35 @@ impl AdaDelta {
         }
     }
 
+    /// Reset running averages.
     pub fn zero_grad(&mut self) { self.avg_sq.clear(); self.avg_dx.clear(); self.initialized = false; }
 }
 
 /// Nadam optimizer (Nesterov-accelerated Adam).
 pub struct Nadam {
+    /// Learning rate.
     pub lr: f64,
+    /// Exponential decay rate for first moment estimates.
     pub beta1: f64,
+    /// Exponential decay rate for second moment estimates.
     pub beta2: f64,
+    /// Small value added to the denominator for numerical stability.
     pub eps: f64,
+    /// L2 weight decay coefficient.
     pub weight_decay: f64,
     m: Vec<f64>,
     v: Vec<f64>,
-    t: usize,
+    t: i32,
     initialized: bool,
 }
 
 impl Nadam {
+    /// Create a new Nadam optimizer.
     pub fn new(lr: f64, beta1: f64, beta2: f64, eps: f64, weight_decay: f64) -> Self {
         Self { lr, beta1, beta2, eps, weight_decay, m: Vec::new(), v: Vec::new(), t: 0, initialized: false }
     }
 
+    /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
         assert_eq!(params.len(), grads.len());
         if !self.initialized {
@@ -333,9 +394,9 @@ impl Nadam {
             self.initialized = true;
         }
         self.t += 1;
-        let bc1 = 1.0 - self.beta1.powi(self.t as i32);
-        let bc2 = 1.0 - self.beta2.powi(self.t as i32);
-        let bc1_next = 1.0 - self.beta1.powi((self.t + 1) as i32);
+        let bc1 = 1.0 - self.beta1.powi(self.t);
+        let bc2 = 1.0 - self.beta2.powi(self.t);
+        let bc1_next = 1.0 - self.beta1.powi(self.t + 1);
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             let mut grad = *g;
             if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
@@ -348,6 +409,7 @@ impl Nadam {
         }
     }
 
+    /// Reset internal moment estimates and step counter.
     pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
 }
 

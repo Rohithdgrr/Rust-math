@@ -12,3 +12,7 @@ categories = ["science", "mathematics"]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+rand = "0.8"
+
+[dev-dependencies]
+rand = "0.8"

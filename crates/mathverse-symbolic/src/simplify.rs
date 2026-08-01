@@ -145,8 +145,6 @@ fn simplify_neg(a: &Expr) -> Expr {
         Expr::Neg(inner) => (**inner).clone(),
         // -(c) = -c
         Expr::Constant(c) => Expr::c(-c),
-        // -0 = 0
-        Expr::Constant(0.0) => Expr::c(0.0),
         _ => a.clone().neg(),
     }
 }
@@ -221,13 +219,13 @@ fn factor_add(a: &Expr, b: &Expr) -> Expr {
     // Check if both terms have a common factor
     if let (Expr::Mul(a1, a2), Expr::Mul(b1, b2)) = (a, b) {
         if a1 == b1 {
-            a1.clone().mul(a2.clone().add((**b2).clone()))
+            (**a1).clone().mul((**a2).clone().add((**b2).clone()))
         } else if a1 == b2 {
-            a1.clone().mul(a2.clone().add((**b1).clone()))
+            (**a1).clone().mul((**a2).clone().add((**b1).clone()))
         } else if a2 == b1 {
-            a2.clone().mul((**a1).clone().add((**b2).clone()))
+            (**a2).clone().mul((**a1).clone().add((**b2).clone()))
         } else if a2 == b2 {
-            a2.clone().mul((**a1).clone().add((**b1).clone()))
+            (**a2).clone().mul((**a1).clone().add((**b1).clone()))
         } else {
             a.clone().add(b.clone())
         }
@@ -240,13 +238,13 @@ fn factor_add(a: &Expr, b: &Expr) -> Expr {
 fn factor_sub(a: &Expr, b: &Expr) -> Expr {
     if let (Expr::Mul(a1, a2), Expr::Mul(b1, b2)) = (a, b) {
         if a1 == b1 {
-            a1.clone().mul(a2.clone().sub((**b2).clone()))
+            (**a1).clone().mul((**a2).clone().sub((**b2).clone()))
         } else if a1 == b2 {
-            a1.clone().mul(a2.clone().sub((**b1).clone()))
+            (**a1).clone().mul((**a2).clone().sub((**b1).clone()))
         } else if a2 == b1 {
-            a2.clone().mul((**a1).clone().sub((**b2).clone()))
+            (**a2).clone().mul((**a1).clone().sub((**b2).clone()))
         } else if a2 == b2 {
-            a2.clone().mul((**a1).clone().sub((**b1).clone()))
+            (**a2).clone().mul((**a1).clone().sub((**b1).clone()))
         } else {
             a.clone().sub(b.clone())
         }

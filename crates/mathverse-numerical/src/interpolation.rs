@@ -20,8 +20,8 @@ impl CubicSpline {
         
         // Solve tridiagonal system for second derivatives
         let h: Vec<f64> = xs.windows(2).map(|w| w[1] - w[0]).collect();
-        let alpha: Vec<f64> = xs.windows(2)
-            .map(|w| 3.0 * ((ys[w[1] as usize] - ys[w[0] as usize]) / h[w[0]] - (ys[w[0] as usize] - ys[w[0] - 1]) / h[w[0] - 1]))
+        let alpha: Vec<f64> = (1..n - 1)
+            .map(|i| 3.0 * ((ys[i + 1] - ys[i]) / h[i] - (ys[i] - ys[i - 1]) / h[i - 1]))
             .collect();
         
         let mut l = vec![1.0; n];

@@ -294,7 +294,7 @@ impl PreconditionedCG {
         }
         
         // z = M^(-1) * r
-        let mut z = r.iter().zip(&m_inv).map(|(&ri, &mi)| ri * mi).collect();
+        let mut z: Vec<f64> = r.iter().zip(&m_inv).map(|(&ri, &mi)| ri * mi).collect();
         
         let mut p = z.clone();
         let mut rz: f64 = r.iter().zip(&z).map(|(&ri, &zi)| ri * zi).sum();
@@ -556,7 +556,7 @@ impl BiCGSTAB {
             let alpha = rho / r0_hat.iter().zip(&ap).map(|(&r0i, &api)| r0i * api).sum::<f64>();
             
             // s = r - alpha * Ap
-            let mut s = r.iter().zip(&ap).map(|(&ri, &api)| ri - alpha * api).collect();
+            let mut s: Vec<f64> = r.iter().zip(&ap).map(|(&ri, &api)| ri - alpha * api).collect();
             
             let s_norm: f64 = s.iter().map(|&si| si * si).sum::<f64>().sqrt();
             if s_norm < self.tolerance {

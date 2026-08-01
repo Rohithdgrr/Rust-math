@@ -4,21 +4,32 @@ use crate::tensor::Tensor;
 
 /// A mini-batch of inputs and targets.
 pub struct Batch {
+    /// Batch inputs (first dimension is batch size).
     pub x: Tensor,
+    /// Batch targets (first dimension is batch size).
     pub y: Tensor,
 }
 
 /// DataLoader: iterates over data in shuffled mini-batches.
 pub struct DataLoader {
+    /// Full input tensor (first dimension is dataset size).
     pub x: Tensor,
+    /// Full target tensor (first dimension is dataset size).
     pub y: Tensor,
+    /// Number of samples per batch.
     pub batch_size: usize,
+    /// Whether to shuffle indices on `reset()`.
     pub shuffle: bool,
     indices: Vec<usize>,
     pos: usize,
 }
 
 impl DataLoader {
+    /// Create a new [`DataLoader`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `x.shape[0]` is not present (i.e. `x` is scalar).
     pub fn new(x: Tensor, y: Tensor, batch_size: usize, shuffle: bool) -> Self {
         let n = x.shape[0];
         let indices: Vec<usize> = (0..n).collect();
@@ -87,6 +98,8 @@ impl Iterator for DataLoader {
 }
 
 /// Train/test split: returns (x_train, x_test, y_train, y_test).
+///
+/// `test_ratio` should be in `[0.0, 1.0]`. This function is deterministic given `seed`.
 pub fn train_test_split(x: &Tensor, y: &Tensor, test_ratio: f64, seed: u64) -> (Tensor, Tensor, Tensor, Tensor) {
     let n = x.shape[0];
     let test_size = (n as f64 * test_ratio) as usize;
@@ -154,7 +167,7 @@ mod tests {
     fn train_test_split_test() {
         let x = Tensor::arange(0.0, 10.0, 1.0).reshape(&[10, 1]).unwrap();
         let y = Tensor::arange(0.0, 10.0, 1.0).reshape(&[10, 1]).unwrap();
-        let (_x_tr, _x_te, _y_tr, _y_te) = train_test_split(&x, &y, 0.2, 42);
+        let (x_tr, x_te, _y_tr, _y_te) = train_test_split(&x, &y, 0.2, 42);
         assert_eq!(x_tr.shape[0], 8);
         assert_eq!(x_te.shape[0], 2);
     }
