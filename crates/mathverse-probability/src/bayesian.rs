@@ -48,27 +48,22 @@ impl Prior for BetaPrior {
     }
 
     fn sample(&self, rng: &mut Rng) -> Vec<f64> {
-        let _beta_dist = crate::distributions::Beta {
-            alpha: self.alpha,
-            beta: self.beta,
-        };
-        // Use rejection sampling for beta
-        let mut x;
-        loop {
-            x = rng.uniform();
-            let u = rng.uniform();
-            let pdf = x.powf(self.alpha - 1.0) * (1.0 - x).powf(self.beta - 1.0);
-            let max_pdf = if self.alpha >= 1.0 && self.beta >= 1.0 {
-                let mode = (self.alpha - 1.0) / (self.alpha + self.beta - 2.0);
-                mode.powf(self.alpha - 1.0) * (1.0 - mode).powf(self.beta - 1.0)
-            } else {
-                1.0
-            };
-            if u < pdf / max_pdf {
-                break;
-            }
+        if self.alpha <= 0.0 || self.beta <= 0.0 {
+            return vec![f64::NAN];
         }
-        vec![x]
+
+        let x = crate::distributions::Gamma {
+            shape: self.alpha,
+            rate: 1.0,
+        }
+        .sample(rng);
+        let y = crate::distributions::Gamma {
+            shape: self.beta,
+            rate: 1.0,
+        }
+        .sample(rng);
+        let total = x + y;
+        vec![if total > 0.0 { x / total } else { 0.5 }]
     }
 }
 
@@ -463,5 +458,16 @@ mod tests {
         assert!((bf - 10.0).abs() < 1e-10);
         let interpretation = BayesFactor::interpret(bf);
         assert_eq!(interpretation, "Strong evidence");
+    }
+
+    #[test]
+    fn test_beta_prior_sample_with_subunit_shapes() {
+        let prior = BetaPrior::new(0.5, 0.5);
+        let mut rng = Rng::new(7);
+        for _ in 0..100 {
+            let sample = prior.sample(&mut rng)[0];
+            assert!(sample.is_finite());
+            assert!((0.0..=1.0).contains(&sample));
+        }
     }
 }

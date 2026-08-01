@@ -430,14 +430,15 @@ pub struct RobustEstimation;
 impl RobustEstimation {
     /// Median (robust to outliers).
     #[must_use]
-    pub fn median(data: &mut [f64]) -> f64 {
-        data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let n = data.len();
+    pub fn median(data: &[f64]) -> f64 {
+        let mut sorted = data.to_vec();
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let n = sorted.len();
 
         if n.is_multiple_of(2) {
-            (data[n / 2 - 1] + data[n / 2]) / 2.0
+            (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
         } else {
-            data[n / 2]
+            sorted[n / 2]
         }
     }
 
@@ -544,6 +545,7 @@ impl BayesianEstimation {
         log_prior: impl Fn(&[f64]) -> f64,
         log_likelihood: impl Fn(&[f64]) -> f64,
         initial: &[f64],
+        rng: &mut crate::rng::Rng,
     ) -> Vec<f64> {
         let mut params = initial.to_vec();
         let mut best_params = params.clone();
@@ -556,7 +558,7 @@ impl BayesianEstimation {
                     mu: 0.0,
                     sigma: 0.01,
                 }
-                .sample(&mut crate::rng::Rng::new(42));
+                .sample(rng);
             }
 
             let posterior = log_prior(&new_params) + log_likelihood(&new_params);
@@ -597,9 +599,10 @@ mod tests {
 
     #[test]
     fn test_robust_median() {
-        let mut data = vec![1.0, 2.0, 100.0, 4.0, 5.0];
-        let median = RobustEstimation::median(&mut data);
+        let data = vec![1.0, 2.0, 100.0, 4.0, 5.0];
+        let median = RobustEstimation::median(&data);
         assert_eq!(median, 4.0);
+        assert_eq!(data, vec![1.0, 2.0, 100.0, 4.0, 5.0]);
     }
 
     #[test]
