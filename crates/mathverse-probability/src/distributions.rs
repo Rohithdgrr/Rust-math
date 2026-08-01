@@ -861,10 +861,6 @@ impl BetaFunc for (f64, f64) {
         } else if !(a > 0.0 && b > 0.0) {
             f64::NAN
         } else {
-            const MAX_ITERS: usize = 200;
-            const EPS: f64 = 3.0e-14;
-            const FPMIN: f64 = 1.0e-300;
-
             fn betacf(a: f64, b: f64, x: f64) -> f64 {
                 const MAX_ITERS: usize = 200;
                 const EPS: f64 = 3.0e-14;
