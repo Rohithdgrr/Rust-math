@@ -102,7 +102,7 @@ impl Tensor {
     /// Pseudo-random normal with explicit seed.
     pub fn randn_seeded(shape: &[usize], seed: u64) -> Self {
         use std::cell::Cell;
-        thread_local! { static S: Cell<u64> = Cell::new(0); }
+        thread_local! { static S: Cell<u64> = const { Cell::new(0) }; }
         S.with(|s| s.set(seed));
         let numel: usize = shape.iter().product();
         let data: Vec<f64> = (0..numel).map(|_| {
@@ -249,6 +249,7 @@ impl Tensor {
             }
             s
         };
+        #[allow(clippy::needless_range_loop)]
         for flat in 0..self.numel() {
             let mut old_flat = 0;
             for (i, &a) in axes.iter().enumerate() {
@@ -293,6 +294,7 @@ impl Tensor {
             }
             s
         };
+        #[allow(clippy::needless_range_loop)]
         for flat in 0..out_numel {
             let mut coords = vec![0usize; target_shape.len()];
             let mut rem = flat;
@@ -349,7 +351,6 @@ impl Tensor {
     }
 
     /// Element-wise div (safe: replaces zero with epsilon).
-    #[must_use]
     pub fn div(&self, other: &Tensor) -> MathResult<Tensor> {
         let target = broadcast_shapes(&self.shape, &other.shape)?;
         let a = self.broadcast_to(&target)?;
@@ -554,7 +555,6 @@ impl Tensor {
     // -----------------------------------------------------------------------
 
     /// Element-wise where: condition ? a : b.
-    #[must_use]
     pub fn where_tensor(condition: &Tensor, a: &Tensor, b: &Tensor) -> MathResult<Tensor> {
         let target = broadcast_shapes(&broadcast_shapes(&condition.shape, &a.shape)?, &b.shape)?;
         let c = condition.broadcast_to(&target)?;
@@ -568,11 +568,10 @@ impl Tensor {
 
     /// Gather along axis: selects from `self` using indices.
     /// `indices` has same shape as output, values are indices along `axis`.
-    #[must_use]
     pub fn gather(&self, axis: usize, indices: &Tensor) -> MathResult<Tensor> {
         let mut out_data = Vec::with_capacity(indices.numel());
         let axis_size = self.shape[axis];
-        let outer: usize = self.shape[..axis].iter().product();
+        let _outer: usize = self.shape[..axis].iter().product();
         let inner: usize = self.shape[axis + 1..].iter().product();
         let iouter: usize = indices.shape[..axis].iter().product();
         let iinner: usize = indices.shape[axis + 1..].iter().product();
@@ -591,11 +590,10 @@ impl Tensor {
     }
 
     /// Scatter add: adds `src` into a zero tensor at positions given by `indices`.
-    #[must_use]
     pub fn scatter_add(&self, axis: usize, indices: &Tensor, src: &Tensor) -> MathResult<Tensor> {
         let mut out = self.clone();
         let axis_size = self.shape[axis];
-        let outer: usize = self.shape[..axis].iter().product();
+        let _outer: usize = self.shape[..axis].iter().product();
         let inner: usize = self.shape[axis + 1..].iter().product();
         let iouter: usize = indices.shape[..axis].iter().product();
         let iinner: usize = indices.shape[axis + 1..].iter().product();
@@ -630,6 +628,7 @@ impl Tensor {
                     (self.data[flat], a)
                 }).collect();
                 pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+                #[allow(clippy::needless_range_loop)]
                 for ki in 0..k {
                     val_data.push(pairs[ki].0);
                     idx_data.push(pairs[ki].1 as f64);
@@ -643,7 +642,6 @@ impl Tensor {
     }
 
     /// Concatenate tensors along an axis.
-    #[must_use]
     pub fn concat(tensors: &[Tensor], axis: usize) -> MathResult<Tensor> {
         if tensors.is_empty() { return Err(MathError::InvalidArgument("concat: empty input")); }
         let ndim = tensors[0].shape.len();
@@ -676,7 +674,6 @@ impl Tensor {
     }
 
     /// Split into chunks along axis.
-    #[must_use]
     pub fn split(&self, num_chunks: usize, axis: usize) -> MathResult<Vec<Tensor>> {
         if axis >= self.shape.len() { return Err(MathError::InvalidArgument("split: axis out of range")); }
         let chunk_size = self.shape[axis] / num_chunks;
@@ -708,7 +705,6 @@ impl Tensor {
     }
 
     /// Cross product (3-vectors only).
-    #[must_use]
     pub fn cross(&self, other: &Tensor) -> MathResult<Tensor> {
         if self.numel() != 3 || other.numel() != 3 {
             return Err(MathError::InvalidArgument("cross: requires 3-element vectors"));
@@ -1071,3 +1067,16 @@ mod tests {
         assert_eq!(u.shape, vec![3, 1]);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

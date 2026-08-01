@@ -3,6 +3,7 @@
 use crate::rng::Rng;
 
 /// Covariance matrix for multivariate distributions.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct CovarianceMatrix {
     pub data: Vec<Vec<f64>>,
@@ -16,13 +17,13 @@ impl CovarianceMatrix {
         if dim == 0 {
             return Err("Covariance matrix must have at least one dimension".to_string());
         }
-        
+
         for row in &data {
             if row.len() != dim {
                 return Err("Covariance matrix must be square".to_string());
             }
         }
-        
+
         // Check symmetry
         for i in 0..dim {
             for j in 0..dim {
@@ -31,7 +32,7 @@ impl CovarianceMatrix {
                 }
             }
         }
-        
+
         Ok(CovarianceMatrix {
             data,
             dimension: dim,
@@ -43,22 +44,22 @@ impl CovarianceMatrix {
         if samples.is_empty() {
             return Err("No samples provided".to_string());
         }
-        
+
         let n_vars = samples[0].len();
         if n_vars == 0 {
             return Err("Samples must have at least one variable".to_string());
         }
-        
+
         // Check all samples have same dimension
         for sample in samples {
             if sample.len() != n_vars {
                 return Err("All samples must have the same dimension".to_string());
             }
         }
-        
+
         let n = samples.len();
         let mut means = vec![0.0; n_vars];
-        
+
         // Compute means
         for sample in samples {
             for (i, &val) in sample.iter().enumerate() {
@@ -68,7 +69,7 @@ impl CovarianceMatrix {
         for mean in &mut means {
             *mean /= n as f64;
         }
-        
+
         // Compute covariance matrix
         let mut cov = vec![vec![0.0; n_vars]; n_vars];
         for sample in samples {
@@ -78,28 +79,31 @@ impl CovarianceMatrix {
                 }
             }
         }
-        
+
         let divisor = if n > 1 { (n - 1) as f64 } else { 1.0 };
         for i in 0..n_vars {
             for j in 0..n_vars {
                 cov[i][j] /= divisor;
             }
         }
-        
+
         Self::new(cov)
     }
 
     /// Get the covariance between variables i and j.
+    #[must_use]
     pub fn get(&self, i: usize, j: usize) -> f64 {
         self.data[i][j]
     }
 
     /// Get the variance of variable i.
+    #[must_use]
     pub fn variance(&self, i: usize) -> f64 {
         self.data[i][i]
     }
 
     /// Check if the matrix is positive definite.
+    #[must_use]
     pub fn is_positive_definite(&self) -> bool {
         // Use Cholesky decomposition attempt to check positive definiteness
         self.cholesky().is_ok()
@@ -109,11 +113,11 @@ impl CovarianceMatrix {
     pub fn cholesky(&self) -> Result<Vec<Vec<f64>>, String> {
         let n = self.dimension;
         let mut l = vec![vec![0.0; n]; n];
-        
+
         for i in 0..n {
             for j in 0..=i {
                 let mut sum = 0.0;
-                
+
                 if j == i {
                     for k in 0..j {
                         sum += l[j][k] * l[j][k];
@@ -131,12 +135,13 @@ impl CovarianceMatrix {
                 }
             }
         }
-        
+
         Ok(l)
     }
 }
 
 /// Correlation matrix.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct CorrelationMatrix {
     pub data: Vec<Vec<f64>>,
@@ -148,7 +153,7 @@ impl CorrelationMatrix {
     pub fn from_covariance(cov: &CovarianceMatrix) -> Self {
         let n = cov.dimension;
         let mut corr = vec![vec![0.0; n]; n];
-        
+
         for i in 0..n {
             for j in 0..n {
                 let std_i = cov.variance(i).sqrt();
@@ -160,7 +165,7 @@ impl CorrelationMatrix {
                 }
             }
         }
-        
+
         CorrelationMatrix {
             data: corr,
             dimension: n,
@@ -168,6 +173,7 @@ impl CorrelationMatrix {
     }
 
     /// Get correlation between variables i and j.
+    #[must_use]
     pub fn get(&self, i: usize, j: usize) -> f64 {
         self.data[i][j]
     }
@@ -177,15 +183,15 @@ impl CorrelationMatrix {
         if x.len() != y.len() || x.is_empty() {
             return Err("Vectors must have the same non-zero length".to_string());
         }
-        
+
         let n = x.len();
         let mean_x = x.iter().sum::<f64>() / n as f64;
         let mean_y = y.iter().sum::<f64>() / n as f64;
-        
+
         let mut numerator = 0.0;
         let mut sum_sq_x = 0.0;
         let mut sum_sq_y = 0.0;
-        
+
         for i in 0..n {
             let dx = x[i] - mean_x;
             let dy = y[i] - mean_y;
@@ -193,12 +199,12 @@ impl CorrelationMatrix {
             sum_sq_x += dx * dx;
             sum_sq_y += dy * dy;
         }
-        
+
         let denominator = (sum_sq_x * sum_sq_y).sqrt();
         if denominator == 0.0 {
             return Ok(0.0);
         }
-        
+
         Ok(numerator / denominator)
     }
 
@@ -207,13 +213,13 @@ impl CorrelationMatrix {
         if x.len() != y.len() || x.is_empty() {
             return Err("Vectors must have the same non-zero length".to_string());
         }
-        
-        let n = x.len();
-        
+
+        let _n = x.len();
+
         // Compute ranks
         let rank_x = Self::ranks(x);
         let rank_y = Self::ranks(y);
-        
+
         // Compute Pearson correlation on ranks
         Self::pearson(&rank_x, &rank_y)
     }
@@ -223,16 +229,16 @@ impl CorrelationMatrix {
         if x.len() != y.len() || x.is_empty() {
             return Err("Vectors must have the same non-zero length".to_string());
         }
-        
+
         let n = x.len();
         let mut concordant = 0;
         let mut discordant = 0;
-        
+
         for i in 0..n {
             for j in (i + 1)..n {
                 let sign_x = (x[i] - x[j]).signum();
                 let sign_y = (y[i] - y[j]).signum();
-                
+
                 if sign_x == sign_y && sign_x != 0.0 {
                     concordant += 1;
                 } else if sign_x != 0.0 && sign_y != 0.0 {
@@ -240,12 +246,12 @@ impl CorrelationMatrix {
                 }
             }
         }
-        
+
         let total = concordant + discordant;
         if total == 0 {
             return Ok(0.0);
         }
-        
+
         Ok((concordant - discordant) as f64 / total as f64)
     }
 
@@ -253,7 +259,7 @@ impl CorrelationMatrix {
         let n = data.len();
         let mut indexed: Vec<(usize, f64)> = data.iter().cloned().enumerate().collect();
         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        
+
         let mut ranks = vec![0.0; n];
         let mut i = 0;
         while i < n {
@@ -261,21 +267,22 @@ impl CorrelationMatrix {
             while j < n && indexed[j].1 == indexed[i].1 {
                 j += 1;
             }
-            
+
             // Handle ties: assign average rank
             let avg_rank = (i + j - 1) as f64 / 2.0 + 1.0;
             for k in i..j {
                 ranks[indexed[k].0] = avg_rank;
             }
-            
+
             i = j;
         }
-        
+
         ranks
     }
 }
 
 /// Multivariate normal distribution.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct MultivariateNormal {
     pub mean: Vec<f64>,
@@ -288,22 +295,20 @@ impl MultivariateNormal {
         if mean.len() != covariance.dimension {
             return Err("Mean dimension must match covariance dimension".to_string());
         }
-        
+
         if !covariance.is_positive_definite() {
             return Err("Covariance matrix must be positive definite".to_string());
         }
-        
-        Ok(MultivariateNormal {
-            mean,
-            covariance,
-        })
+
+        Ok(MultivariateNormal { mean, covariance })
     }
 
     /// Sample from the multivariate normal distribution.
+    #[must_use]
     pub fn sample(&self, rng: &mut Rng) -> Vec<f64> {
         let n = self.mean.len();
         let l = self.covariance.cholesky().unwrap();
-        
+
         // Generate standard normal samples
         let mut z = vec![0.0; n];
         for i in 0..n {
@@ -311,7 +316,7 @@ impl MultivariateNormal {
             let u2 = rng.uniform();
             z[i] = (-2.0 * u1.ln()).sqrt() * (2.0 * core::f64::consts::PI * u2).cos();
         }
-        
+
         // Transform: x = μ + L * z
         let mut x = self.mean.clone();
         for i in 0..n {
@@ -319,32 +324,34 @@ impl MultivariateNormal {
                 x[i] += l[i][j] * z[j];
             }
         }
-        
+
         x
     }
 
     /// PDF at point x.
+    #[must_use]
     pub fn pdf(&self, x: &[f64]) -> f64 {
         let n = self.mean.len();
         let det = self.determinant(&self.covariance.data);
         if det <= 0.0 {
             return 0.0;
         }
-        
+
         let inv = self.inverse(&self.covariance.data);
         let diff: Vec<f64> = x.iter().zip(self.mean.iter()).map(|(a, b)| a - b).collect();
-        
+
         let mut quadratic = 0.0;
         for i in 0..n {
             for j in 0..n {
                 quadratic += diff[i] * inv[i][j] * diff[j];
             }
         }
-        
+
         let coeff = 1.0 / ((2.0 * core::f64::consts::PI).powf(n as f64 / 2.0) * det.sqrt());
         coeff * (-0.5 * quadratic).exp()
     }
 
+    #[must_use]
     fn determinant(&self, matrix: &[Vec<f64>]) -> f64 {
         let n = matrix.len();
         if n == 1 {
@@ -353,11 +360,11 @@ impl MultivariateNormal {
         if n == 2 {
             return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
         }
-        
+
         // Use LU decomposition for larger matrices
         let mut lu = matrix.to_vec();
         let mut det = 1.0;
-        
+
         for i in 0..n {
             // Pivot
             let mut max_row = i;
@@ -368,18 +375,18 @@ impl MultivariateNormal {
                     max_row = j;
                 }
             }
-            
+
             if max_val < 1e-10 {
                 return 0.0;
             }
-            
+
             if max_row != i {
                 lu.swap(i, max_row);
                 det *= -1.0;
             }
-            
+
             det *= lu[i][i];
-            
+
             // Eliminate
             for j in (i + 1)..n {
                 let factor = lu[j][i] / lu[i][i];
@@ -388,14 +395,14 @@ impl MultivariateNormal {
                 }
             }
         }
-        
+
         det
     }
 
     fn inverse(&self, matrix: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let n = matrix.len();
         let mut aug = vec![vec![0.0; 2 * n]; n];
-        
+
         // Augment with identity matrix
         for i in 0..n {
             for j in 0..n {
@@ -403,7 +410,7 @@ impl MultivariateNormal {
             }
             aug[i][n + i] = 1.0;
         }
-        
+
         // Gaussian elimination
         for i in 0..n {
             // Pivot
@@ -415,21 +422,21 @@ impl MultivariateNormal {
                     max_row = j;
                 }
             }
-            
+
             if max_row != i {
                 aug.swap(i, max_row);
             }
-            
+
             let pivot = aug[i][i];
             if pivot.abs() < 1e-10 {
                 continue;
             }
-            
+
             // Scale row
             for j in 0..2 * n {
                 aug[i][j] /= pivot;
             }
-            
+
             // Eliminate column
             for j in 0..n {
                 if j != i {
@@ -440,7 +447,7 @@ impl MultivariateNormal {
                 }
             }
         }
-        
+
         // Extract inverse
         let mut inv = vec![vec![0.0; n]; n];
         for i in 0..n {
@@ -448,12 +455,13 @@ impl MultivariateNormal {
                 inv[i][j] = aug[i][n + j];
             }
         }
-        
+
         inv
     }
 }
 
 /// Gaussian copula for modeling dependence.
+#[must_use]
 pub struct GaussianCopula {
     pub correlation: CorrelationMatrix,
 }
@@ -467,29 +475,32 @@ impl GaussianCopula {
                 return Err("Diagonal elements must be 1.0".to_string());
             }
         }
-        
+
         Ok(GaussianCopula { correlation })
     }
 
     /// Sample from the copula.
+    #[must_use]
     pub fn sample(&self, rng: &mut Rng) -> Vec<f64> {
         let n = self.correlation.dimension;
-        let mut mean = vec![0.0; n];
+        let mean = vec![0.0; n];
         let mut cov_data = vec![vec![0.0; n]; n];
-        
+
         for i in 0..n {
             for j in 0..n {
                 cov_data[i][j] = self.correlation.get(i, j);
             }
         }
-        
+
         let cov = CovarianceMatrix::new(cov_data).unwrap();
         let mvn = MultivariateNormal::new(mean, cov).unwrap();
-        
+
         let x = mvn.sample(rng);
-        
+
         // Transform to uniform via normal CDF
-        x.iter().map(|&xi| 0.5 * (1.0 + crate::distributions::erf(xi / core::f64::consts::SQRT_2))).collect()
+        x.iter()
+            .map(|&xi| 0.5 * (1.0 + crate::distributions::erf(xi / core::f64::consts::SQRT_2)))
+            .collect()
     }
 }
 
@@ -505,7 +516,7 @@ mod tests {
             vec![3.0, 4.0],
             vec![4.0, 5.0],
         ];
-        
+
         let cov = CovarianceMatrix::from_samples(&samples).unwrap();
         assert!((cov.variance(0) - 1.6666667).abs() < 1e-6);
         assert!((cov.variance(1) - 1.6666667).abs() < 1e-6);
@@ -514,13 +525,10 @@ mod tests {
 
     #[test]
     fn test_correlation_from_covariance() {
-        let cov_data = vec![
-            vec![4.0, 2.0],
-            vec![2.0, 9.0],
-        ];
+        let cov_data = vec![vec![4.0, 2.0], vec![2.0, 9.0]];
         let cov = CovarianceMatrix::new(cov_data).unwrap();
         let corr = CorrelationMatrix::from_covariance(&cov);
-        
+
         assert!((corr.get(0, 1) - 1.0 / 3.0).abs() < 1e-10);
     }
 
@@ -528,7 +536,7 @@ mod tests {
     fn test_pearson_correlation() {
         let x = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let y = vec![2.0, 4.0, 6.0, 8.0, 10.0];
-        
+
         let corr = CorrelationMatrix::pearson(&x, &y).unwrap();
         assert!((corr - 1.0).abs() < 1e-10);
     }
@@ -536,13 +544,10 @@ mod tests {
     #[test]
     fn test_multivariate_normal() {
         let mean = vec![0.0, 0.0];
-        let cov_data = vec![
-            vec![1.0, 0.5],
-            vec![0.5, 1.0],
-        ];
+        let cov_data = vec![vec![1.0, 0.5], vec![0.5, 1.0]];
         let cov = CovarianceMatrix::new(cov_data).unwrap();
         let mvn = MultivariateNormal::new(mean, cov).unwrap();
-        
+
         let mut rng = Rng::new(42);
         let sample = mvn.sample(&mut rng);
         assert_eq!(sample.len(), 2);

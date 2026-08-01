@@ -21,6 +21,7 @@ pub fn accuracy(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
 pub fn precision(pred: &Tensor, target: &Tensor, num_classes: usize) -> MathResult<Vec<f64>> {
     let cm = confusion_matrix(pred, target, num_classes)?;
     let mut result = Vec::with_capacity(num_classes);
+    #[allow(clippy::needless_range_loop)]
     for c in 0..num_classes {
         let tp = cm[c][c];
         let col_sum: f64 = (0..num_classes).map(|r| cm[r][c]).sum();
@@ -33,6 +34,7 @@ pub fn precision(pred: &Tensor, target: &Tensor, num_classes: usize) -> MathResu
 pub fn recall(pred: &Tensor, target: &Tensor, num_classes: usize) -> MathResult<Vec<f64>> {
     let cm = confusion_matrix(pred, target, num_classes)?;
     let mut result = Vec::with_capacity(num_classes);
+    #[allow(clippy::needless_range_loop)]
     for c in 0..num_classes {
         let tp = cm[c][c];
         let row_sum: f64 = cm[c].iter().sum();
@@ -191,3 +193,11 @@ mod tests {
         assert!((explained_variance(&pred, &target).unwrap() - 1.0).abs() < E);
     }
 }
+
+
+
+
+
+
+
+

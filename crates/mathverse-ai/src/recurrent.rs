@@ -45,7 +45,7 @@ pub fn rnn_forward(
     for t in 0..seq_len {
         for b in 0..batch {
             let mut new_h = vec![0.0; hidden_size];
-            for i in 0..hidden_size {
+#[allow(clippy::needless_range_loop)]            for i in 0..hidden_size {
                 let mut val = 0.0;
                 // W_ih @ x[t]
                 for j in 0..input_size {
@@ -116,7 +116,7 @@ pub fn lstm_forward(
     for t in 0..seq_len {
         for b in 0..batch {
             let mut gates = vec![0.0; 4 * hidden_size];
-            for i in 0..4 * hidden_size {
+#[allow(clippy::needless_range_loop)]            for i in 0..4 * hidden_size {
                 let mut val = 0.0;
                 for j in 0..input_size {
                     val += w_ih.data[i * input_size + j] * x.data[b * seq_len * input_size + t * input_size + j];
@@ -129,7 +129,7 @@ pub fn lstm_forward(
 
             let mut new_c = vec![0.0; hidden_size];
             let mut new_h = vec![0.0; hidden_size];
-            for i in 0..hidden_size {
+#[allow(clippy::needless_range_loop)]            for i in 0..hidden_size {
                 let input_gate = sigmoid_val(gates[i]);
                 let forget_gate = sigmoid_val(gates[hidden_size + i]);
                 let cell_gate = gates[2 * hidden_size + i].tanh();
@@ -202,7 +202,7 @@ pub fn gru_forward(
             }
 
             let mut new_h = vec![0.0; hidden_size];
-            for i in 0..hidden_size {
+#[allow(clippy::needless_range_loop)]            for i in 0..hidden_size {
                 let z = sigmoid_val(gates_ih[i] + gates_hh[i]);
                 let r = sigmoid_val(gates_ih[hidden_size + i] + gates_hh[hidden_size + i]);
                 let n = (gates_ih[2 * hidden_size + i] + r * gates_hh[2 * hidden_size + i]).tanh();
@@ -234,7 +234,7 @@ mod tests {
     use super::*;
     const E: f64 = 1e-5;
 
-    #[test]
+#[test]
     fn rnn_forward_test() {
         let x = Tensor::new(&[1, 2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
         let w_ih = Tensor::new(&[2, 3], &[0.1, 0.2, 0.3, 0.4, 0.5, 0.6]).unwrap();
@@ -243,10 +243,10 @@ mod tests {
         assert_eq!(out.shape, vec![1, 2, 2]);
         assert_eq!(h.shape, vec![1, 2]);
         // Hidden state should be non-zero after processing
-        assert!(h.data.iter().any(|&v| v.abs() > 1e-6));
+        assert!(h.data.iter().any(|&v| v.abs() > E));
     }
 
-    #[test]
+#[test]
     fn rnn_with_initial_hidden() {
         let x = Tensor::new(&[1, 1, 2], &[1.0, 1.0]).unwrap();
         let w_ih = Tensor::new(&[2, 2], &[0.1, 0.2, 0.3, 0.4]).unwrap();
@@ -254,7 +254,7 @@ mod tests {
         let h0 = Tensor::new(&[1, 2], &[0.5, 0.5]).unwrap();
         let (_, h) = rnn_forward(&x, &w_ih, &w_hh, Some(&h0), f64::tanh).unwrap();
         // h should differ from h0
-        assert!((h.data[0] - 0.5).abs() > 1e-6 || (h.data[1] - 0.5).abs() > 1e-6);
+        assert!((h.data[0] - 0.5).abs() > E || (h.data[1] - 0.5).abs() > E);
     }
 
     #[test]
@@ -294,3 +294,11 @@ mod tests {
         assert!((h.data[0] - h.data[2]).abs() > 1e-6 || (h.data[1] - h.data[3]).abs() > 1e-6);
     }
 }
+
+
+
+
+
+
+
+

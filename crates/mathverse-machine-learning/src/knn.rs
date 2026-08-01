@@ -3,11 +3,19 @@
 use mathverse_core::error::MathResult;
 
 /// KNN classifier. Predicts the majority class among k nearest neighbors.
-pub fn classify(x_train: &[Vec<f64>], y_train: &[f64], x_test: &[Vec<f64>], k: usize) -> MathResult<Vec<f64>> {
+#[must_use]
+pub fn classify(
+    x_train: &[Vec<f64>],
+    y_train: &[f64],
+    x_test: &[Vec<f64>],
+    k: usize,
+) -> MathResult<Vec<f64>> {
     assert_eq!(x_train.len(), y_train.len());
     let mut results = Vec::with_capacity(x_test.len());
     for query in x_test {
-        let mut dists: Vec<(f64, f64)> = x_train.iter().zip(y_train)
+        let mut dists: Vec<(f64, f64)> = x_train
+            .iter()
+            .zip(y_train)
             .map(|(x, &y)| (euclidean(query, x), y))
             .collect();
         dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
@@ -15,18 +23,30 @@ pub fn classify(x_train: &[Vec<f64>], y_train: &[f64], x_test: &[Vec<f64>], k: u
         for &(_, label) in dists.iter().take(k) {
             *counts.entry(label.to_bits()).or_insert(0) += 1;
         }
-        let best = counts.iter().max_by_key(|(_, c)| *c).map(|(&v, _)| f64::from_bits(v)).unwrap_or(0.0);
+        let best = counts
+            .iter()
+            .max_by_key(|(_, c)| *c)
+            .map(|(&v, _)| f64::from_bits(v))
+            .unwrap_or(0.0);
         results.push(best);
     }
     Ok(results)
 }
 
 /// KNN regressor. Predicts the mean of k nearest neighbors.
-pub fn regress(x_train: &[Vec<f64>], y_train: &[f64], x_test: &[Vec<f64>], k: usize) -> MathResult<Vec<f64>> {
+#[must_use]
+pub fn regress(
+    x_train: &[Vec<f64>],
+    y_train: &[f64],
+    x_test: &[Vec<f64>],
+    k: usize,
+) -> MathResult<Vec<f64>> {
     assert_eq!(x_train.len(), y_train.len());
     let mut results = Vec::with_capacity(x_test.len());
     for query in x_test {
-        let mut dists: Vec<(f64, f64)> = x_train.iter().zip(y_train)
+        let mut dists: Vec<(f64, f64)> = x_train
+            .iter()
+            .zip(y_train)
             .map(|(x, &y)| (euclidean(query, x), y))
             .collect();
         dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
@@ -36,8 +56,15 @@ pub fn regress(x_train: &[Vec<f64>], y_train: &[f64], x_test: &[Vec<f64>], k: us
     Ok(results)
 }
 
-fn euclidean(a: &[f64], b: &[f64]) -> f64 {
-    a.iter().zip(b).map(|(ai, bi)| (ai - bi).powi(2)).sum::<f64>().sqrt()
+/// Euclidean distance between two vectors.
+#[must_use]
+#[inline]
+pub(crate) fn euclidean(a: &[f64], b: &[f64]) -> f64 {
+    a.iter()
+        .zip(b)
+        .map(|(ai, bi)| (ai - bi).powi(2))
+        .sum::<f64>()
+        .sqrt()
 }
 
 #[cfg(test)]

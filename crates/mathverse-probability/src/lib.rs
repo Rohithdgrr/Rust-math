@@ -1,38 +1,67 @@
-//! Probability: distributions, Bayes, Monte Carlo, Markov chains.
+//! # mathverse-probability
 //!
-//! Dependency-free deterministic RNG (xorshift64*); seed for reproducibility.
+//! Probability and stochastic processes: distributions, Bayesian inference,
+//! Monte Carlo methods, Markov chains, queueing theory, extreme value theory,
+//! hypothesis testing, estimation, and more.
+//!
+//! Dependency-free deterministic RNG (xorshift64\*); seed for reproducibility.
+//!
+//! # Quick start
+//!
+//! ```rust
+//! use mathverse_probability::{Rng, bayes, Normal};
+//!
+//! // Bayes' theorem
+//! let posterior = bayes(0.01, 0.9, 0.01 * 0.9 + 0.99 * 0.1);
+//!
+//! // Sample from a normal distribution
+//! let mut rng = Rng::new(42);
+//! let n = Normal { mu: 0.0, sigma: 1.0 };
+//! let sample: f64 = n.sample(&mut rng);
+//! ```
 
-pub mod distributions;
-pub mod rng;
-pub mod properties;
-pub mod multivariate;
-pub mod stochastic;
-pub mod markov;
+#![allow(
+    unstable_name_collisions,
+    clippy::needless_range_loop,
+    clippy::type_complexity,
+    clippy::double_must_use
+)]
+
 pub mod bayesian;
-pub mod sampling;
-pub mod limit_theorems;
+pub mod conditional;
+pub mod distributions;
+pub mod estimation;
+pub mod extreme_value;
+pub mod generating_functions;
+pub mod hypothesis;
 pub mod inequalities;
 pub mod information;
-pub mod reliability;
+pub mod limit_theorems;
+pub mod markov;
+pub mod multivariate;
+pub mod properties;
 pub mod queueing;
-pub mod extreme_value;
-pub mod hypothesis;
-pub mod estimation;
 pub mod random_variables;
-pub mod generating_functions;
-pub mod conditional;
+pub mod reliability;
+pub mod rng;
+pub mod sampling;
 pub mod simulation;
 pub mod special;
+pub mod stochastic;
 
 pub trait F64Ext {
     fn gamma(self) -> f64;
 }
 
 impl F64Ext for f64 {
-    fn gamma(self) -> f64 { special::gamma_fn(self) }
+    fn gamma(self) -> f64 {
+        special::gamma_fn(self)
+    }
 }
 
-pub use distributions::{Bernoulli, Binomial, ContinuousDist, DiscreteDist, Distribution, Normal, Poisson, Uniform};
+pub use distributions::{
+    Bernoulli, Binomial, ContinuousDist, DiscreteDist, Distribution, Normal, Poisson, Uniform,
+};
 pub use rng::Rng;
 
 /// Bayes' theorem: `P(A|B) = P(A)·P(B|A) / P(B)`.
@@ -54,7 +83,13 @@ pub fn bayes(prior: f64, likelihood: f64, evidence: f64) -> f64 {
 /// let (est, err) = mc_integrate(&f64::sin, 0.0, core::f64::consts::PI, 100_000, &mut rng);
 /// assert!((est - 2.0).abs() < 5.0 * err, "est {est} err {err}");
 /// ```
-pub fn mc_integrate(f: &dyn Fn(f64) -> f64, a: f64, b: f64, samples: usize, rng: &mut Rng) -> (f64, f64) {
+pub fn mc_integrate(
+    f: &dyn Fn(f64) -> f64,
+    a: f64,
+    b: f64,
+    samples: usize,
+    rng: &mut Rng,
+) -> (f64, f64) {
     let n = samples as f64;
     let (mut sum, mut sumsq) = (0.0, 0.0);
     for _ in 0..samples {

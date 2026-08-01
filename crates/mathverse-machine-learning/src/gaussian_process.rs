@@ -1,19 +1,30 @@
-use std::f64;
-
+/// Covariance kernel for Gaussian process regression.
 #[derive(Debug, Clone)]
 pub enum GpKernel {
-    RBF { length: f64 },
-    Matern52 { length: f64 },
-    RationalQuadratic { length: f64, alpha: f64 },
+    /// Radial basis function (squared exponential) kernel.
+    RBF {
+        /// Length scale parameter.
+        length: f64,
+    },
+    /// Matérn 5/2 kernel.
+    Matern52 {
+        /// Length scale parameter.
+        length: f64,
+    },
+    /// Rational quadratic kernel.
+    RationalQuadratic {
+        /// Length scale parameter.
+        length: f64,
+        /// Mixture weight parameter.
+        alpha: f64,
+    },
 }
 
 impl GpKernel {
-    fn compute(&self, x1: &[f64], x2: &[f64]) -> f64 {
-        let dist: f64 = x1
-            .iter()
-            .zip(x2.iter())
-            .map(|(a, b)| (a - b).powi(2))
-            .sum();
+    /// Compute kernel similarity between two vectors.
+    #[must_use]
+    pub fn compute(&self, x1: &[f64], x2: &[f64]) -> f64 {
+        let dist: f64 = x1.iter().zip(x2.iter()).map(|(a, b)| (a - b).powi(2)).sum();
         let r = dist.sqrt();
         match self {
             GpKernel::RBF { length } => (-dist / (2.0 * length * length)).exp(),
@@ -35,9 +46,12 @@ impl GpKernel {
     }
 }
 
+/// Gaussian process regression model.
 #[derive(Debug, Clone)]
 pub struct GaussianProcess {
+    /// Kernel function used for covariance.
     pub kernel: GpKernel,
+    /// Noise variance added to the diagonal of the kernel matrix.
     pub noise: f64,
     x_train: Vec<Vec<f64>>,
     y_train: Vec<f64>,
@@ -45,6 +59,8 @@ pub struct GaussianProcess {
 }
 
 impl GaussianProcess {
+    /// Fit the GP to training data, returning an error if the kernel matrix is singular.
+    #[must_use]
     pub fn fit(
         x: &[Vec<f64>],
         y: &[f64],
@@ -69,6 +85,8 @@ impl GaussianProcess {
         })
     }
 
+    /// Predict means and variances at the given test points.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> (Vec<f64>, Vec<f64>) {
         let n_train = self.x_train.len();
         let n_test = x.len();
@@ -100,17 +118,17 @@ impl GaussianProcess {
             // variance = k_star_star[i][i] - k_star[i] . K_inv . k_star[i]^T
             let mut var = k_star_star[i][i];
             // k_star[i] . K_inv is a vector of length n_train
-            let mut ki_Kinv = vec![0.0; n_train];
+            let mut ki_kinv = vec![0.0; n_train];
             for kk in 0..n_train {
                 let mut s = 0.0;
                 for j in 0..n_train {
                     s += k_star[i][j] * self.k_inv[j][kk];
                 }
-                ki_Kinv[kk] = s;
+                ki_kinv[kk] = s;
             }
             // then dot with k_star[i]
             for kk in 0..n_train {
-                var -= ki_Kinv[kk] * k_star[i][kk];
+                var -= ki_kinv[kk] * k_star[i][kk];
             }
             variances.push(var.max(0.0));
         }
@@ -217,10 +235,7 @@ mod tests {
                     sum += m[i][k] * inv[k][j];
                 }
                 let expected = if i == j { 1.0 } else { 0.0 };
-                assert!(
-                    (sum - expected).abs() < 1e-10,
-                    "({i},{j}): got {sum}"
-                );
+                assert!((sum - expected).abs() < 1e-10, "({i},{j}): got {sum}");
             }
         }
     }

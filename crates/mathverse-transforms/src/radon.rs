@@ -5,7 +5,7 @@ pub fn radon_transform(image: &[Vec<f64>], n_angles: usize, n_offsets: usize) ->
     for theta_idx in 0..n_angles {
         let theta = theta_idx as f64 * core::f64::consts::PI / n_angles as f64;
         for offset_idx in 0..n_offsets {
-            let offset = -max_offset as f64 + 2.0 * max_offset as f64 * offset_idx as f64 / (n_offsets - 1) as f64;
+            let offset = -(max_offset as f64) + 2.0 * max_offset as f64 * offset_idx as f64 / (n_offsets - 1) as f64;
             let mut sum = 0.0;
             for x in 0..w {
                 for y in 0..h {

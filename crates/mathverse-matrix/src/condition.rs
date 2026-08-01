@@ -183,7 +183,7 @@ impl SensitivityAnalysis {
         b: &mathverse_vector::Vector,
     ) -> f64 {
         let residual = m.mul_vec(x).unwrap();
-        let diff = residual.sub(b).unwrap();
+        let diff = residual.sub(&b);
         let norm_residual = MatrixNorms::vector_p_norm(&diff.data, 2.0);
         let norm_b = MatrixNorms::vector_p_norm(&b.data, 2.0);
         
@@ -199,7 +199,7 @@ impl SensitivityAnalysis {
         x_computed: &mathverse_vector::Vector,
         x_exact: &mathverse_vector::Vector,
     ) -> f64 {
-        let diff = x_computed.sub(x_exact).unwrap();
+        let diff = x_computed.sub(&x_exact);
         let norm_diff = MatrixNorms::vector_p_norm(&diff.data, 2.0);
         let norm_exact = MatrixNorms::vector_p_norm(&x_exact.data, 2.0);
         

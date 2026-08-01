@@ -23,16 +23,13 @@ pub fn bisection(
 ) -> MathResult<f64> {
     let fa = f(a);
     let fb = f(b);
-    
     if fa * fb > 0.0 {
-        return Err(MathError::InvalidInput("Interval does not bracket a root".to_string()));
+        return Err(MathError::InvalidArgument("interval does not bracket a root"));
     }
-    
     let mut a = a;
     let mut b = b;
     let mut fa = fa;
     let mut fb = fb;
-    
     for _ in 0..max_iter {
         let c = (a + b) / 2.0;
         let fc = f(c);
@@ -80,7 +77,7 @@ pub fn newton_raphson(
         let dfx = df(x);
         
         if dfx.abs() < 1e-15 {
-            return Err(MathError::InvalidInput("Derivative is zero".to_string()));
+            return Err(MathError::InvalidArgument("derivative is zero"));
         }
         
         let x_new = x - fx / dfx;
@@ -92,7 +89,7 @@ pub fn newton_raphson(
         x = x_new;
     }
     
-    Err(MathError::InvalidInput("Max iterations exceeded".to_string()))
+    Err(MathError::NotConverged("bisection max iterations exceeded"))
 }
 
 /// Secant method for finding roots of f(x) = 0.
@@ -122,7 +119,7 @@ pub fn secant(
         let denominator = f_curr - f_prev;
         
         if denominator.abs() < 1e-15 {
-            return Err(MathError::InvalidInput("Denominator is zero".to_string()));
+            return Err(MathError::InvalidArgument("denominator is zero"));
         }
         
         let x_new = x_curr - f_curr * (x_curr - x_prev) / denominator;
@@ -159,16 +156,13 @@ pub fn false_position(
 ) -> MathResult<f64> {
     let fa = f(a);
     let fb = f(b);
-    
     if fa * fb > 0.0 {
-        return Err(MathError::InvalidInput("Interval does not bracket a root".to_string()));
+        return Err(MathError::InvalidArgument("interval does not bracket a root"));
     }
-    
     let mut a = a;
     let mut b = b;
     let mut fa = fa;
     let mut fb = fb;
-    
     for _ in 0..max_iter {
         let c = (a * fb - b * fa) / (fb - fa);
         let fc = f(c);
@@ -212,7 +206,7 @@ pub fn newton_raphson_auto(
         let dfx = derivative(f, x);
         
         if dfx.abs() < 1e-15 {
-            return Err(MathError::InvalidInput("Derivative is zero".to_string()));
+            return Err(MathError::InvalidArgument("derivative is zero"));
         }
         
         let x_new = x - fx / dfx;
@@ -224,7 +218,7 @@ pub fn newton_raphson_auto(
         x = x_new;
     }
     
-    Err(MathError::InvalidInput("Max iterations exceeded".to_string()))
+    Err(MathError::NotConverged("newton max iterations exceeded"))
 }
 
 #[cfg(test)]

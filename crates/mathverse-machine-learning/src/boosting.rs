@@ -2,14 +2,21 @@
 
 /// Gradient boosting regressor.
 pub struct GradientBoostingRegressor {
+    /// Number of boosting rounds.
     pub n_estimators: usize,
+    /// Step size shrinkage applied to each tree's contribution.
     pub learning_rate: f64,
+    /// Maximum depth of each weak learner.
     pub max_depth: usize,
+    /// Initial prediction (mean of target values).
     pub initial_prediction: f64,
+    /// Fitted weak learners from each boosting round.
     pub trees: Vec<WeakTree>,
+    /// Feature subset used by each weak learner.
     pub feature_indices: Vec<Vec<usize>>,
 }
 
+/// A decision stump used as a weak learner in gradient boosting.
 #[derive(Debug, Clone)]
 pub struct WeakTree {
     feature: usize,
@@ -19,11 +26,21 @@ pub struct WeakTree {
 }
 
 impl GradientBoostingRegressor {
+    /// Creates a new regressor with the given hyperparameters.
+    #[must_use]
+    #[inline]
     pub fn new(n_estimators: usize, learning_rate: f64, max_depth: usize) -> Self {
-        Self { n_estimators, learning_rate, max_depth, initial_prediction: 0.0,
-               trees: Vec::new(), feature_indices: Vec::new() }
+        Self {
+            n_estimators,
+            learning_rate,
+            max_depth,
+            initial_prediction: 0.0,
+            trees: Vec::new(),
+            feature_indices: Vec::new(),
+        }
     }
 
+    /// Fits the model to training data by sequentially fitting stumps on residuals.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         let n = y.len();
         let p = x[0].len();
@@ -50,41 +67,68 @@ impl GradientBoostingRegressor {
         }
     }
 
+    /// Returns predictions for each input sample.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
-        x.iter().map(|row| {
-            let mut pred = self.initial_prediction;
-            for (tree, feats) in self.trees.iter().zip(&self.feature_indices) {
-                let x_sub: Vec<f64> = feats.iter().map(|&j| row[j]).collect();
-                // Find matching tree (use first feature)
-                let tree_feat = feats.iter().position(|&f| f == tree.feature).unwrap_or(0);
-                let val = if tree_feat < x_sub.len() { x_sub[tree_feat] } else { 0.0 };
-                pred += self.learning_rate * if val <= tree.threshold { tree.left_value } else { tree.right_value };
-            }
-            pred
-        }).collect()
+        x.iter()
+            .map(|row| {
+                let mut pred = self.initial_prediction;
+                for (tree, feats) in self.trees.iter().zip(&self.feature_indices) {
+                    let x_sub: Vec<f64> = feats.iter().map(|&j| row[j]).collect();
+                    // Find matching tree (use first feature)
+                    let tree_feat = feats.iter().position(|&f| f == tree.feature).unwrap_or(0);
+                    let val = if tree_feat < x_sub.len() {
+                        x_sub[tree_feat]
+                    } else {
+                        0.0
+                    };
+                    pred += self.learning_rate
+                        * if val <= tree.threshold {
+                            tree.left_value
+                        } else {
+                            tree.right_value
+                        };
+                }
+                pred
+            })
+            .collect()
     }
 }
 
 fn fit_stump(x: &[Vec<f64>], y: &[f64], feats: &[usize]) -> WeakTree {
     let n = y.len();
-    let mut best = WeakTree { feature: 0, threshold: 0.0, left_value: 0.0, right_value: 0.0 };
+    let mut best = WeakTree {
+        feature: 0,
+        threshold: 0.0,
+        left_value: 0.0,
+        right_value: 0.0,
+    };
     let mut best_loss = f64::INFINITY;
     for &j in feats {
         let mut vals: Vec<(f64, f64)> = x.iter().zip(y).map(|(row, &yi)| (row[j], yi)).collect();
         vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
         for i in 0..n - 1 {
-            if (vals[i].0 - vals[i + 1].0).abs() < 1e-10 { continue; }
+            if (vals[i].0 - vals[i + 1].0).abs() < 1e-10 {
+                continue;
+            }
             let thresh = (vals[i].0 + vals[i + 1].0) / 2.0;
             let left_y: Vec<f64> = vals.iter().take(i + 1).map(|(_, y)| *y).collect();
             let right_y: Vec<f64> = vals.iter().skip(i + 1).map(|(_, y)| *y).collect();
-            if left_y.is_empty() || right_y.is_empty() { continue; }
+            if left_y.is_empty() || right_y.is_empty() {
+                continue;
+            }
             let lm = left_y.iter().sum::<f64>() / left_y.len() as f64;
             let rm = right_y.iter().sum::<f64>() / right_y.len() as f64;
             let loss: f64 = left_y.iter().map(|y| (y - lm).powi(2)).sum::<f64>()
                 + right_y.iter().map(|y| (y - rm).powi(2)).sum::<f64>();
             if loss < best_loss {
                 best_loss = loss;
-                best = WeakTree { feature: j, threshold: thresh, left_value: lm, right_value: rm };
+                best = WeakTree {
+                    feature: j,
+                    threshold: thresh,
+                    left_value: lm,
+                    right_value: rm,
+                };
             }
         }
     }
@@ -92,7 +136,11 @@ fn fit_stump(x: &[Vec<f64>], y: &[f64], feats: &[usize]) -> WeakTree {
 }
 
 fn predict_stump(tree: &WeakTree, x: &[f64]) -> f64 {
-    if x[tree.feature] <= tree.threshold { tree.left_value } else { tree.right_value }
+    if x[tree.feature] <= tree.threshold {
+        tree.left_value
+    } else {
+        tree.right_value
+    }
 }
 
 fn use_xorshift_shuffle(v: &mut [usize]) {
@@ -118,7 +166,12 @@ mod tests {
         let mut gb = GradientBoostingRegressor::new(50, 0.1, 3);
         gb.fit(&x, &y);
         let preds = gb.predict(&x);
-        let mae: f64 = preds.iter().zip(&y).map(|(p, t)| (p - t).abs()).sum::<f64>() / 20.0;
+        let mae: f64 = preds
+            .iter()
+            .zip(&y)
+            .map(|(p, t)| (p - t).abs())
+            .sum::<f64>()
+            / 20.0;
         assert!(mae < 2.0);
     }
 
@@ -129,7 +182,12 @@ mod tests {
         let mut gb = GradientBoostingRegressor::new(100, 0.1, 3);
         gb.fit(&x, &y);
         let preds = gb.predict(&x);
-        let mae: f64 = preds.iter().zip(&y).map(|(p, t)| (p - t).abs()).sum::<f64>() / 30.0;
+        let mae: f64 = preds
+            .iter()
+            .zip(&y)
+            .map(|(p, t)| (p - t).abs())
+            .sum::<f64>()
+            / 30.0;
         assert!(mae < 2.0);
     }
 }

@@ -1,6 +1,3 @@
-use mathverse_core::error::{MathError, MathResult};
-use std::f64;
-
 struct LcgRng {
     state: u64,
 }
@@ -11,7 +8,8 @@ impl LcgRng {
     }
 
     fn next_f64(&mut self) -> f64 {
-        self.state = self.state
+        self.state = self
+            .state
             .wrapping_mul(6364136223846793005)
             .wrapping_add(1442695040888963407);
         (self.state >> 11) as f64 / (1u64 << 53) as f64
@@ -20,10 +18,12 @@ impl LcgRng {
     fn next_normal(&mut self) -> f64 {
         let u1 = self.next_f64().max(1e-10);
         let u2 = self.next_f64();
-        (-2.0 * u1.ln()).sqrt() * (2.0 * f64::consts::PI * u2).cos()
+        (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
     }
 }
 
+/// Generates a synthetic classification dataset with n_classes.
+#[must_use]
 pub fn make_classification(
     n_samples: usize,
     n_features: usize,
@@ -48,6 +48,8 @@ pub fn make_classification(
     (x, y)
 }
 
+/// Generates a synthetic regression dataset with Gaussian noise.
+#[must_use]
 pub fn make_regression(
     n_samples: usize,
     n_features: usize,
@@ -55,9 +57,7 @@ pub fn make_regression(
     seed: u64,
 ) -> (Vec<Vec<f64>>, Vec<f64>) {
     let mut rng = LcgRng::new(seed);
-    let true_weights: Vec<f64> = (0..n_features)
-        .map(|_| rng.next_normal())
-        .collect();
+    let true_weights: Vec<f64> = (0..n_features).map(|_| rng.next_normal()).collect();
 
     let mut x = Vec::with_capacity(n_samples);
     let mut y = Vec::with_capacity(n_samples);
@@ -77,6 +77,8 @@ pub fn make_regression(
     (x, y)
 }
 
+/// Generates isotropic Gaussian blobs for clustering.
+#[must_use]
 pub fn make_blobs(
     n_samples: usize,
     n_centers: usize,
@@ -104,27 +106,25 @@ pub fn make_blobs(
     (x, y)
 }
 
-pub fn make_moons(
-    n_samples: usize,
-    noise: f64,
-    seed: u64,
-) -> (Vec<Vec<f64>>, Vec<f64>) {
+/// Generates two interleaving half-circle moons for binary classification.
+#[must_use]
+pub fn make_moons(n_samples: usize, noise: f64, seed: u64) -> (Vec<Vec<f64>>, Vec<f64>) {
     let mut rng = LcgRng::new(seed);
     let mut x = Vec::with_capacity(n_samples);
     let mut y = Vec::with_capacity(n_samples);
 
     for i in 0..n_samples {
         let class = i % 2;
-        let t = rng.next_f64() * f64::consts::PI;
+        let t = rng.next_f64() * std::f64::consts::PI;
         let x0 = if class == 0 {
             t.cos() + noise * rng.next_normal()
         } else {
-            (t + f64::consts::PI).cos() + noise * rng.next_normal()
+            (t + std::f64::consts::PI).cos() + noise * rng.next_normal()
         };
         let x1 = if class == 0 {
             t.sin() + noise * rng.next_normal()
         } else {
-            (t + f64::consts::PI).sin() + noise * rng.next_normal()
+            (t + std::f64::consts::PI).sin() + noise * rng.next_normal()
         };
         x.push(vec![x0, x1]);
         y.push(class as f64);
@@ -133,6 +133,8 @@ pub fn make_moons(
     (x, y)
 }
 
+/// Generates two concentric circles for binary classification.
+#[must_use]
 pub fn make_circles(
     n_samples: usize,
     noise: f64,
@@ -145,7 +147,7 @@ pub fn make_circles(
 
     for i in 0..n_samples {
         let class = i % 2;
-        let t = rng.next_f64() * 2.0 * f64::consts::PI;
+        let t = rng.next_f64() * 2.0 * std::f64::consts::PI;
         let r = if class == 0 { 1.0 } else { factor };
         let x0 = r * t.cos() + noise * rng.next_normal();
         let x1 = r * t.sin() + noise * rng.next_normal();
@@ -156,6 +158,8 @@ pub fn make_circles(
     (x, y)
 }
 
+/// Generates n_classes interleaving spirals for multi-class classification.
+#[must_use]
 pub fn make_spirals(
     n_samples: usize,
     noise: f64,
@@ -168,9 +172,9 @@ pub fn make_spirals(
 
     for i in 0..n_samples {
         let class = i % n_classes;
-        let t = rng.next_f64() * 2.0 * f64::consts::PI;
-        let r = t / (2.0 * f64::consts::PI) + rng.next_normal() * noise;
-        let offset = class as f64 * 2.0 * f64::consts::PI / n_classes as f64;
+        let t = rng.next_f64() * 2.0 * std::f64::consts::PI;
+        let r = t / (2.0 * std::f64::consts::PI) + rng.next_normal() * noise;
+        let offset = class as f64 * 2.0 * std::f64::consts::PI / n_classes as f64;
         let x0 = r * (t + offset).cos();
         let x1 = r * (t + offset).sin();
         x.push(vec![x0, x1]);

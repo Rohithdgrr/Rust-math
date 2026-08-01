@@ -154,7 +154,7 @@ impl Dropout {
         if !training || self.p == 0.0 { return x.clone(); }
         let scale = 1.0 / (1.0 - self.p);
         use std::cell::Cell;
-        thread_local! { static S: Cell<u64> = Cell::new(0x1234_5678); }
+        thread_local! { static S: Cell<u64> = const { Cell::new(0x1234_5678) }; }
         let data: Vec<f64> = x.data.iter().map(|&v| {
             S.with(|s| {
                 let mut x = s.get();
@@ -350,3 +350,4 @@ mod tests {
         assert!((out.data[0] - 2.0).abs() < 1e-9);
     }
 }
+

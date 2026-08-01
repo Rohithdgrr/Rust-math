@@ -208,12 +208,12 @@ impl GeneralizedEigenApplications {
 
     /// Buckling load analysis: (K - λK_G)φ = 0.
     pub fn buckling_load(k: &Matrix, k_g: &Matrix) -> MathResult<Vec<f64>> {
-        Self::compute(k, k_g).map(|d| d.eigenvalues)
+        GeneralizedEigen::compute(k, k_g).map(|d| d.eigenvalues)
     }
 
     /// Vibration analysis: (K - ω²M)φ = 0.
     pub fn natural_frequencies(k: &Matrix, m: &Matrix) -> MathResult<Vec<f64>> {
-        let eigenvalues = Self::compute(k, m)?.eigenvalues;
+        let eigenvalues = GeneralizedEigen::compute(k, m)?.eigenvalues;
         // ω = sqrt(λ)
         Ok(eigenvalues.iter().map(|&λ| λ.sqrt()).collect())
     }

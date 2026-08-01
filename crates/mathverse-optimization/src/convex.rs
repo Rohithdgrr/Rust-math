@@ -12,8 +12,8 @@ pub fn is_convex_1d(f: &dyn Fn(f64) -> f64, a: f64, b: f64, steps: usize) -> boo
 }
 
 pub fn convex_hull_1d(points: &[f64]) -> (f64, f64) {
-    (*points.iter().cloned().fold(f64::INFINITY, f64::min).borrow(),
-     *points.iter().cloned().fold(f64::NEG_INFINITY, f64::max).borrow())
+    (points.iter().cloned().fold(f64::INFINITY, f64::min),
+     points.iter().cloned().fold(f64::NEG_INFINITY, f64::max))
 }
 
 pub fn convex_combination(points: &[[f64; 2]], weights: &[f64]) -> [f64; 2] {

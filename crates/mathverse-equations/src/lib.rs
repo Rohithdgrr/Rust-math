@@ -12,7 +12,7 @@ pub use differential::*;
 pub use matrix_eq::*;
 
 pub fn solve_linear_system(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
-    linear_system::solve_gauss(a, b)
+    solve_gauss(a, b)
 }
 
 pub use polynomial::solve_quadratic;

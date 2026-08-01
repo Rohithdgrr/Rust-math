@@ -65,6 +65,7 @@ pub fn scaled_dot_product_attention(
 
     // Apply mask (set masked positions to -inf)
     if let Some(m) = mask {
+        #[allow(clippy::needless_range_loop)]
         for idx in 0..scores_data.len() {
             if m.data[idx] < -1e10 {
                 scores_data[idx] = f64::NEG_INFINITY;
@@ -126,7 +127,7 @@ pub fn multi_head_attention(
     // q: [batch, num_heads, seq_len, d_k]
     let mut head_outputs = Vec::new();
     let mut all_weights = Vec::new();
-    for h in 0..num_heads {
+#[allow(clippy::needless_range_loop)]    for h in 0..num_heads {
         // Extract head h: [batch, seq_len, d_k]
         let qh = extract_head(&q, h)?;
         let kh = extract_head(&k, h)?;
@@ -138,7 +139,7 @@ pub fn multi_head_attention(
 
     // Concatenate heads: [batch, seq_len, num_heads*d_v]
     let mut concat_data = vec![0.0; batch * seq_len * num_heads * d_v];
-    for h in 0..num_heads {
+#[allow(clippy::needless_range_loop)]    for h in 0..num_heads {
         for bi in 0..batch {
             for s in 0..seq_len {
                 for d in 0..d_v {
@@ -324,3 +325,13 @@ mod tests {
         assert_eq!(out.shape, vec![batch, seq, d_model]);
     }
 }
+
+
+
+
+
+
+
+
+
+

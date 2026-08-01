@@ -28,9 +28,9 @@ fn gamma_ln(x: f64) -> f64 {
     // Lanczos approximation
     let g = 7.0;
     let c = [
-        0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-        771.32342877765313, -176.61502916214059, 12.507343278686905,
-        -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+        0.999_999_999_999_809_9, 676.5203681218851, -1259.1392167224028,
+        771.3234287776531, -176.6150291621406, 12.507343278686905,
+        -0.13857109526572012, 9.984369578019572e-6, 1.5056327351493116e-7,
     ];
     if x < 0.5 {
         return (PI / (PI * x).sin()).ln() - gamma_ln(1.0 - x);
@@ -38,8 +38,8 @@ fn gamma_ln(x: f64) -> f64 {
     let x = x - 1.0;
     let mut a = c[0];
     let tu = x + g + 0.5;
-    for i in 1..c.len() {
-        a += c[i] / (x + i as f64);
+    for (i, c_i) in c.iter().enumerate().skip(1) {
+        a += c_i / (x + i as f64);
     }
     0.5 * (TAU).ln() + (x + g + 0.5).ln() * (x + 0.5) - tu + a.ln()
 }
@@ -97,12 +97,11 @@ fn beta_inc(a: f64, b: f64, x: f64) -> f64 {
     if x >= 1.0 { return 1.0; }
     let ln_beta = gamma_ln(a) + gamma_ln(b) - gamma_ln(a + b);
     let prefix = (a * x.ln() + b * (1.0 - x).ln() - ln_beta).exp() / a;
-    let mut f = 1.0;
     let mut c = 1.0;
     let mut d = 1.0 - (a + b) * x / (a + 1.0);
     if d.abs() < 1e-30 { d = 1e-30; }
     d = 1.0 / d;
-    f = d;
+    let mut f = d;
     for i in 1..200 {
         let m = i as f64;
         let numerator = m * (b - m) * x / ((a + 2.0 * m - 1.0) * (a + 2.0 * m));
@@ -221,12 +220,15 @@ pub fn f_ppf(p: f64, d1: f64, d2: f64) -> f64 {
 pub struct Normal;
 
 impl Normal {
+    /// Normal probability density function: `φ(x) = e^{-x²/2} / √(2π)`.
     pub fn pdf(x: f64) -> f64 {
         (-0.5 * x * x).exp() / (2.0 * PI).sqrt()
     }
+    /// Normal cumulative distribution function.
     pub fn cdf(x: f64) -> f64 {
         0.5 * erfc(-x / SQRT_2)
     }
+    /// Normal percent-point function (inverse CDF).
     pub fn ppf(p: f64) -> f64 {
         if p <= 0.0 { return f64::NEG_INFINITY; }
         if p >= 1.0 { return f64::INFINITY; }
@@ -248,7 +250,11 @@ impl Normal {
 }
 
 pub fn normal_pdf(x: f64) -> f64 { Normal::pdf(x) }
+
+/// Normal CDF: `Φ(x) = ½(1 + erf(x/√2))`.
 pub fn normal_cdf(x: f64) -> f64 { Normal::cdf(x) }
+
+/// Normal PPF (quantile): inverse of `normal_cdf`.
 pub fn normal_ppf(p: f64) -> f64 { Normal::ppf(p) }
 
 // ---------------------------------------------------------------------------
@@ -258,8 +264,11 @@ pub fn normal_ppf(p: f64) -> f64 { Normal::ppf(p) }
 pub struct StudentT;
 
 impl StudentT {
+    /// Student's t probability density function.
     pub fn pdf(t: f64, df: f64) -> f64 { student_t_pdf(t, df) }
+    /// Student's t cumulative distribution function.
     pub fn cdf(t: f64, df: f64) -> f64 { student_t_cdf(t, df) }
+    /// Student's t percent-point function (inverse CDF).
     pub fn ppf(p: f64, df: f64) -> f64 { student_t_ppf(p, df) }
 }
 
@@ -270,8 +279,11 @@ impl StudentT {
 pub struct ChiSquared;
 
 impl ChiSquared {
+    /// Chi-squared probability density function.
     pub fn pdf(x: f64, k: f64) -> f64 { chi_squared_pdf(x, k) }
+    /// Chi-squared cumulative distribution function.
     pub fn cdf(x: f64, k: f64) -> f64 { chi_squared_cdf(x, k) }
+    /// Chi-squared percent-point function (inverse CDF).
     pub fn ppf(p: f64, k: f64) -> f64 { chi_squared_ppf(p, k) }
 }
 
@@ -282,8 +294,11 @@ impl ChiSquared {
 pub struct FDist;
 
 impl FDist {
+    /// F-distribution probability density function.
     pub fn pdf(x: f64, d1: f64, d2: f64) -> f64 { f_pdf(x, d1, d2) }
+    /// F-distribution cumulative distribution function.
     pub fn cdf(x: f64, d1: f64, d2: f64) -> f64 { f_cdf(x, d1, d2) }
+    /// F-distribution percent-point function (inverse CDF).
     pub fn ppf(p: f64, d1: f64, d2: f64) -> f64 { f_ppf(p, d1, d2) }
 }
 
@@ -294,17 +309,23 @@ impl FDist {
 pub struct Binomial;
 
 impl Binomial {
+    /// Binomial probability mass function: `P(X = k)`.
     pub fn pmf(k: u64, n: u64, p: f64) -> f64 {
         binomial_coeff(n, k) * p.powi(k as i32) * (1.0 - p).powi((n - k) as i32)
     }
+    /// Binomial cumulative distribution function.
     pub fn cdf(k: u64, n: u64, p: f64) -> f64 {
         (0..=k).map(|i| Self::pmf(i, n, p)).sum()
     }
+    /// Binomial mean: `n * p`.
     pub fn mean(n: u64, p: f64) -> f64 { n as f64 * p }
+    /// Binomial variance: `n * p * (1 - p)`.
     pub fn variance(n: u64, p: f64) -> f64 { n as f64 * p * (1.0 - p) }
 }
 
+/// Binomial PMF: `P(X = k) = C(n,k) * p^k * (1-p)^(n-k)`.
 pub fn binomial_pmf(k: u64, n: u64, p: f64) -> f64 { Binomial::pmf(k, n, p) }
+/// Binomial CDF: `P(X ≤ k)`.
 pub fn binomial_cdf(k: u64, n: u64, p: f64) -> f64 { Binomial::cdf(k, n, p) }
 
 // ---------------------------------------------------------------------------
@@ -314,17 +335,23 @@ pub fn binomial_cdf(k: u64, n: u64, p: f64) -> f64 { Binomial::cdf(k, n, p) }
 pub struct Poisson;
 
 impl Poisson {
+    /// Poisson probability mass function: `P(X = k) = e^{-λ} * λ^k / k!`.
     pub fn pmf(k: u64, lambda: f64) -> f64 {
         (-lambda + k as f64 * lambda.ln() - gamma_ln(k as f64 + 1.0)).exp()
     }
+    /// Poisson cumulative distribution function.
     pub fn cdf(k: u64, lambda: f64) -> f64 {
         (0..=k).map(|i| Self::pmf(i, lambda)).sum()
     }
+    /// Poisson mean: `λ`.
     pub fn mean(lambda: f64) -> f64 { lambda }
+    /// Poisson variance: `λ`.
     pub fn variance(lambda: f64) -> f64 { lambda }
 }
 
+/// Poisson PMF: `P(X = k) = e^{-λ} * λ^k / k!`.
 pub fn poisson_pmf(k: u64, lambda: f64) -> f64 { Poisson::pmf(k, lambda) }
+/// Poisson CDF: `P(X ≤ k)`.
 pub fn poisson_cdf(k: u64, lambda: f64) -> f64 { Poisson::cdf(k, lambda) }
 
 // ---------------------------------------------------------------------------

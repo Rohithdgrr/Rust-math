@@ -1,12 +1,6 @@
-use mathverse_core::error::{MathError, MathResult};
-use std::f64;
-
-pub fn cross_val_score<F>(
-    x: &[Vec<f64>],
-    y: &[f64],
-    k: usize,
-    predict_fn: F,
-) -> Vec<f64>
+/// Performs k-fold cross-validation and returns negative MSE scores.
+#[must_use]
+pub fn cross_val_score<F>(x: &[Vec<f64>], y: &[f64], k: usize, predict_fn: F) -> Vec<f64>
 where
     F: Fn(&[Vec<f64>], &[f64], &[Vec<f64>]) -> Vec<f64>,
 {
@@ -44,6 +38,8 @@ where
     scores
 }
 
+/// Splits data into k stratified folds preserving class distribution.
+#[must_use]
 pub fn stratified_k_fold(y: &[f64], k: usize, seed: u64) -> Vec<(Vec<usize>, Vec<usize>)> {
     let n = y.len();
     let mut indices: Vec<usize> = (0..n).collect();
@@ -59,7 +55,8 @@ pub fn stratified_k_fold(y: &[f64], k: usize, seed: u64) -> Vec<(Vec<usize>, Vec
     }
 
     // Group by class
-    let mut class_groups: std::collections::HashMap<i64, Vec<usize>> = std::collections::HashMap::new();
+    let mut class_groups: std::collections::HashMap<i64, Vec<usize>> =
+        std::collections::HashMap::new();
     for &idx in &indices {
         let class = (y[idx] * 1000.0).round() as i64;
         class_groups.entry(class).or_default().push(idx);
@@ -86,6 +83,8 @@ pub fn stratified_k_fold(y: &[f64], k: usize, seed: u64) -> Vec<(Vec<usize>, Vec
         .collect()
 }
 
+/// Computes learning curve showing train/validation scores at various dataset sizes.
+#[must_use]
 pub fn learning_curve<F>(
     x: &[Vec<f64>],
     y: &[f64],
@@ -130,6 +129,8 @@ where
         .collect()
 }
 
+/// Estimates model performance via bootstrap resampling, returning (mean, std).
+#[must_use]
 pub fn bootstrap_score<F>(
     x: &[Vec<f64>],
     y: &[f64],
@@ -192,11 +193,7 @@ where
 mod tests {
     use super::*;
 
-    fn simple_predict(
-        train_x: &[Vec<f64>],
-        train_y: &[f64],
-        test_x: &[Vec<f64>],
-    ) -> Vec<f64> {
+    fn simple_predict(train_x: &[Vec<f64>], train_y: &[f64], test_x: &[Vec<f64>]) -> Vec<f64> {
         let mean_y: f64 = train_y.iter().sum::<f64>() / train_y.len() as f64;
         let mean_x: Vec<f64> = if !train_x.is_empty() {
             (0..train_x[0].len())

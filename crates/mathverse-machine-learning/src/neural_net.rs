@@ -1,26 +1,37 @@
-use std::f64;
-
+/// A single layer in a neural network.
 #[derive(Debug, Clone)]
 pub enum Layer {
+    /// Fully connected layer with weights and bias.
     Linear {
+        /// Weight matrix (rows = output neurons, cols = input features).
         weights: Vec<Vec<f64>>,
+        /// Bias vector.
         bias: Vec<f64>,
     },
+    /// Rectified linear unit activation.
     ReLU,
+    /// Sigmoid activation.
     Sigmoid,
+    /// Softmax activation (normalizes to probabilities).
     Softmax,
 }
 
+/// A simple feedforward neural network.
 #[derive(Debug, Clone)]
 pub struct NeuralNet {
     layers: Vec<Layer>,
 }
 
 impl NeuralNet {
+    /// Create a new neural network with the given layer sequence.
+    #[must_use]
+    #[inline]
     pub fn new(layers: Vec<Layer>) -> Self {
         Self { layers }
     }
 
+    /// Compute the forward pass through all layers.
+    #[must_use]
     pub fn forward(&self, x: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let mut activations = x.to_vec();
         for layer in &self.layers {
@@ -43,34 +54,29 @@ impl NeuralNet {
                     }
                     out
                 }
-                Layer::ReLU => {
-                    activations
-                        .iter()
-                        .map(|row| row.iter().map(|&v| v.max(0.0)).collect())
-                        .collect()
-                }
-                Layer::Sigmoid => {
-                    activations
-                        .iter()
-                        .map(|row| row.iter().map(|&v| 1.0 / (1.0 + (-v).exp())).collect())
-                        .collect()
-                }
-                Layer::Softmax => {
-                    activations
-                        .iter()
-                        .map(|row| {
-                            let max_val = row.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-                            let exps: Vec<f64> = row.iter().map(|&v| (v - max_val).exp()).collect();
-                            let sum: f64 = exps.iter().sum();
-                            exps.iter().map(|&e| e / sum).collect()
-                        })
-                        .collect()
-                }
+                Layer::ReLU => activations
+                    .iter()
+                    .map(|row| row.iter().map(|&v| v.max(0.0)).collect())
+                    .collect(),
+                Layer::Sigmoid => activations
+                    .iter()
+                    .map(|row| row.iter().map(|&v| 1.0 / (1.0 + (-v).exp())).collect())
+                    .collect(),
+                Layer::Softmax => activations
+                    .iter()
+                    .map(|row| {
+                        let max_val = row.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+                        let exps: Vec<f64> = row.iter().map(|&v| (v - max_val).exp()).collect();
+                        let sum: f64 = exps.iter().sum();
+                        exps.iter().map(|&e| e / sum).collect()
+                    })
+                    .collect(),
             };
         }
         activations
     }
 
+    /// Train the network with gradient descent for the given number of epochs.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64], lr: f64, epochs: usize) {
         let input_dim = x[0].len();
         let mut output_weights = vec![0.0; input_dim];
@@ -78,7 +84,7 @@ impl NeuralNet {
 
         for _ in 0..epochs {
             for (i, xi) in x.iter().enumerate() {
-                let hidden = self.forward(&[xi.clone()]);
+                let hidden = self.forward(std::slice::from_ref(xi));
                 let h = &hidden[0];
 
                 let pred: f64 = h
@@ -98,7 +104,10 @@ impl NeuralNet {
                     if let Layer::Linear { weights, bias } = layer {
                         for (j, w_row) in weights.iter_mut().enumerate() {
                             for w in w_row.iter_mut() {
-                                *w -= lr * error * output_weights.get(j).copied().unwrap_or(0.0) * 0.01;
+                                *w -= lr
+                                    * error
+                                    * output_weights.get(j).copied().unwrap_or(0.0)
+                                    * 0.01;
                             }
                         }
                         for b in bias.iter_mut() {
@@ -120,6 +129,8 @@ impl NeuralNet {
         });
     }
 
+    /// Predict output values for the given inputs.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         let out = self.forward(x);
         out.iter()

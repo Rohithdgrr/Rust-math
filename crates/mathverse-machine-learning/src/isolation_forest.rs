@@ -1,12 +1,13 @@
 //! Isolation Forest for anomaly detection.
 
-use mathverse_core::error::MathResult;
-
 /// Isolation Forest model.
 pub struct IsolationForest {
+    /// Number of trees in the forest.
     pub n_trees: usize,
+    /// Number of samples to draw for each tree.
     pub subsample_size: usize,
-    pub trees: Vec<IsolationTree>,
+    trees: Vec<IsolationTree>,
+    /// Anomaly score threshold for classification.
     pub threshold: f64,
 }
 
@@ -21,64 +22,106 @@ struct IsolationTree {
 
 enum IsolationTreeData {
     Branch { tree: IsolationTree },
-    Leaf { size: usize },
 }
 
-fn build_tree(data: &[Vec<f64>], max_depth: usize, current_depth: usize, rng_state: &mut u64) -> IsolationTree {
+fn build_tree(
+    data: &[Vec<f64>],
+    max_depth: usize,
+    current_depth: usize,
+    rng_state: &mut u64,
+) -> IsolationTree {
     let n = data.len();
     let p = data[0].len();
 
     if n <= 1 || current_depth >= max_depth {
-        return IsolationTree { feature: 0, threshold: 0.0, left: None, right: None, depth: current_depth, size: n };
+        return IsolationTree {
+            feature: 0,
+            threshold: 0.0,
+            left: None,
+            right: None,
+            depth: current_depth,
+            size: n,
+        };
     }
 
     // Pick random feature
-    *rng_state ^= *rng_state << 13; *rng_state ^= *rng_state >> 7; *rng_state ^= *rng_state << 17;
+    *rng_state ^= *rng_state << 13;
+    *rng_state ^= *rng_state >> 7;
+    *rng_state ^= *rng_state << 17;
     let feature = (*rng_state as usize) % p;
 
     // Pick random threshold between min and max of feature
-    let min_val = data.iter().map(|xi| xi[feature]).fold(f64::INFINITY, f64::min);
-    let max_val = data.iter().map(|xi| xi[feature]).fold(f64::NEG_INFINITY, f64::max);
+    let min_val = data
+        .iter()
+        .map(|xi| xi[feature])
+        .fold(f64::INFINITY, f64::min);
+    let max_val = data
+        .iter()
+        .map(|xi| xi[feature])
+        .fold(f64::NEG_INFINITY, f64::max);
     if (max_val - min_val).abs() < 1e-15 {
-        return IsolationTree { feature: 0, threshold: 0.0, left: None, right: None, depth: current_depth, size: n };
+        return IsolationTree {
+            feature: 0,
+            threshold: 0.0,
+            left: None,
+            right: None,
+            depth: current_depth,
+            size: n,
+        };
     }
-    *rng_state ^= *rng_state << 13; *rng_state ^= *rng_state >> 7; *rng_state ^= *rng_state << 17;
+    *rng_state ^= *rng_state << 13;
+    *rng_state ^= *rng_state >> 7;
+    *rng_state ^= *rng_state << 17;
     let threshold = min_val + ((*rng_state as f64) / (u64::MAX as f64)) * (max_val - min_val);
 
-    let left_data: Vec<Vec<f64>> = data.iter().filter(|xi| xi[feature] < threshold).cloned().collect();
-    let right_data: Vec<Vec<f64>> = data.iter().filter(|xi| xi[feature] >= threshold).cloned().collect();
+    let left_data: Vec<Vec<f64>> = data
+        .iter()
+        .filter(|xi| xi[feature] < threshold)
+        .cloned()
+        .collect();
+    let right_data: Vec<Vec<f64>> = data
+        .iter()
+        .filter(|xi| xi[feature] >= threshold)
+        .cloned()
+        .collect();
 
     let left = if left_data.is_empty() {
         None
     } else {
-        Some(Box::new(IsolationTreeData::Branch { tree: build_tree(&left_data, max_depth, current_depth + 1, rng_state) }))
+        Some(Box::new(IsolationTreeData::Branch {
+            tree: build_tree(&left_data, max_depth, current_depth + 1, rng_state),
+        }))
     };
     let right = if right_data.is_empty() {
         None
     } else {
-        Some(Box::new(IsolationTreeData::Branch { tree: build_tree(&right_data, max_depth, current_depth + 1, rng_state) }))
+        Some(Box::new(IsolationTreeData::Branch {
+            tree: build_tree(&right_data, max_depth, current_depth + 1, rng_state),
+        }))
     };
 
-    IsolationTree { feature, threshold, left, right, depth: current_depth, size: n }
+    IsolationTree {
+        feature,
+        threshold,
+        left,
+        right,
+        depth: current_depth,
+        size: n,
+    }
 }
 
 impl IsolationTree {
     fn path_length(&self, x: &[f64]) -> f64 {
         match (&self.left, &self.right) {
-            (None, None) => {
-                // Leaf
-                self.depth as f64 + c_factor(self.size)
-            }
+            (None, None) => self.depth as f64 + c_factor(self.size),
             (Some(left), Some(right)) => {
                 if x[self.feature] < self.threshold {
                     match left.as_ref() {
                         IsolationTreeData::Branch { tree } => tree.path_length(x),
-                        IsolationTreeData::Leaf { size } => self.depth as f64 + c_factor(*size),
                     }
                 } else {
                     match right.as_ref() {
                         IsolationTreeData::Branch { tree } => tree.path_length(x),
-                        IsolationTreeData::Leaf { size } => self.depth as f64 + c_factor(*size),
                     }
                 }
             }
@@ -86,7 +129,6 @@ impl IsolationTree {
                 if x[self.feature] < self.threshold {
                     match left.as_ref() {
                         IsolationTreeData::Branch { tree } => tree.path_length(x),
-                        IsolationTreeData::Leaf { size } => self.depth as f64 + c_factor(*size),
                     }
                 } else {
                     self.depth as f64 + c_factor(self.size)
@@ -97,49 +139,73 @@ impl IsolationTree {
 }
 
 /// Average path length of unsuccessful search in BST.
+#[must_use]
+#[inline]
 fn c_factor(n: usize) -> f64 {
-    if n <= 1 { return 0.0; }
+    if n <= 1 {
+        return 0.0;
+    }
     2.0 * ((n as f64 - 1.0).ln()) - 2.0 * (n as f64 - 1.0) / n as f64 + 1.0
 }
 
 impl IsolationForest {
+    /// Create a new Isolation Forest with the given number of trees and subsample size.
+    #[must_use]
+    #[inline]
     pub fn new(n_trees: usize, subsample_size: usize) -> Self {
-        Self { n_trees, subsample_size, trees: Vec::new(), threshold: -0.5 }
+        Self {
+            n_trees,
+            subsample_size,
+            trees: Vec::new(),
+            threshold: -0.5,
+        }
     }
 
+    /// Build the forest by fitting to the training data.
     pub fn fit(&mut self, x: &[Vec<f64>]) {
         let n = x.len();
         let mut rng = 0xABCD_1234_u64;
         let max_depth = (self.subsample_size as f64).ceil() as usize;
 
-        self.trees = (0..self.n_trees).map(|_| {
-            // Subsample
-            let mut indices: Vec<usize> = (0..n).collect();
-            let sub_n = self.subsample_size.min(n);
-            for i in (1..n).rev() {
-                rng ^= rng << 13; rng ^= rng >> 7; rng ^= rng << 17;
-                let j = (rng as usize) % (i + 1);
-                indices.swap(i, j);
-            }
-            let subsample: Vec<Vec<f64>> = indices.iter().take(sub_n).map(|&i| x[i].clone()).collect();
-            build_tree(&subsample, max_depth, 0, &mut rng)
-        }).collect();
+        self.trees = (0..self.n_trees)
+            .map(|_| {
+                // Subsample
+                let mut indices: Vec<usize> = (0..n).collect();
+                let sub_n = self.subsample_size.min(n);
+                for i in (1..n).rev() {
+                    rng ^= rng << 13;
+                    rng ^= rng >> 7;
+                    rng ^= rng << 17;
+                    let j = (rng as usize) % (i + 1);
+                    indices.swap(i, j);
+                }
+                let subsample: Vec<Vec<f64>> =
+                    indices.iter().take(sub_n).map(|&i| x[i].clone()).collect();
+                build_tree(&subsample, max_depth, 0, &mut rng)
+            })
+            .collect();
     }
 
     /// Compute anomaly scores: higher = more anomalous.
+    #[must_use]
+    #[inline]
     pub fn score_samples(&self, x: &[Vec<f64>]) -> Vec<f64> {
-        let n = x.len() as f64;
         let avg_c = c_factor(self.subsample_size);
-        x.iter().map(|xi| {
-            let avg_path: f64 = self.trees.iter().map(|t| t.path_length(xi)).sum::<f64>() / self.trees.len() as f64;
-            // Anomaly score: 2^(-avg_path / c_factor(n))
-            (-avg_path / avg_c * 2.0_f64.ln()).exp()
-        }).collect()
+        x.iter()
+            .map(|xi| {
+                let avg_path: f64 = self.trees.iter().map(|t| t.path_length(xi)).sum::<f64>()
+                    / self.trees.len() as f64;
+                // Anomaly score: 2^(-avg_path / c_factor(n))
+                (-avg_path / avg_c * 2.0_f64.ln()).exp()
+            })
+            .collect()
     }
 
     /// Predict: -1 for anomaly, 1 for normal.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<i32> {
-        self.score_samples(x).iter()
+        self.score_samples(x)
+            .iter()
             .map(|&s| if s > 0.5 { -1 } else { 1 })
             .collect()
     }

@@ -30,7 +30,7 @@ impl DataLoader {
         self.pos = 0;
         if self.shuffle {
             use std::cell::Cell;
-            thread_local! { static S: Cell<u64> = Cell::new(0xABCD); }
+            thread_local! { static S: Cell<u64> = const { Cell::new(0xABCD) }; }
             // Fisher-Yates shuffle with xorshift
             for i in (1..self.indices.len()).rev() {
                 S.with(|s| {
@@ -46,11 +46,11 @@ impl DataLoader {
 
     /// Number of batches.
     pub fn num_batches(&self) -> usize {
-        (self.x.shape[0] + self.batch_size - 1) / self.batch_size
+        self.x.shape[0].div_ceil(self.batch_size)
     }
 
     /// Get next batch.
-    pub fn next(&mut self) -> Option<Batch> {
+    pub fn next_batch(&mut self) -> Option<Batch> {
         if self.pos >= self.x.shape[0] { return None; }
         let end = (self.pos + self.batch_size).min(self.x.shape[0]);
         let batch_len = end - self.pos;
@@ -82,7 +82,7 @@ impl Iterator for DataLoader {
     type Item = Batch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.next()
+        self.next_batch()
     }
 }
 
@@ -154,8 +154,10 @@ mod tests {
     fn train_test_split_test() {
         let x = Tensor::arange(0.0, 10.0, 1.0).reshape(&[10, 1]).unwrap();
         let y = Tensor::arange(0.0, 10.0, 1.0).reshape(&[10, 1]).unwrap();
-        let (x_tr, x_te, y_tr, y_te) = train_test_split(&x, &y, 0.2, 42);
+        let (_x_tr, _x_te, _y_tr, _y_te) = train_test_split(&x, &y, 0.2, 42);
         assert_eq!(x_tr.shape[0], 8);
         assert_eq!(x_te.shape[0], 2);
     }
 }
+
+

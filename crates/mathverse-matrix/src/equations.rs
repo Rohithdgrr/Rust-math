@@ -70,9 +70,9 @@ impl SylvesterEquation {
         // Build Kronecker sum matrix
         let i_m = Matrix::identity(m);
         let i_n = Matrix::identity(n);
-        
-        let kron_a = crate::kronecker::KroneckerProduct::compute(&i_n, a)?;
-        let kron_bt = crate::kronecker::KroneckerProduct::compute(&b.transpose(), &i_m)?;
+
+        let kron_a = crate::kronecker::KroneckerProduct::compute(&i_n, a);
+        let kron_bt = crate::kronecker::KroneckerProduct::compute(&b.transpose(), &i_m);
         
         let kron_sum = kron_a.add(&kron_bt)?;
         
@@ -187,8 +187,8 @@ impl LyapunovEquation {
         let n = a.rows;
         
         let i_n = Matrix::identity(n);
-        let kron_a = crate::kronecker::KroneckerProduct::compute(&i_n, a)?;
-        let kron_a_t = crate::kronecker::KroneckerProduct::compute(&a, &i_n)?;
+        let kron_a = crate::kronecker::KroneckerProduct::compute(&i_n, a);
+        let kron_a_t = crate::kronecker::KroneckerProduct::compute(&a, &i_n);
         
         let kron_sum = kron_a.add(&kron_a_t)?;
         
@@ -261,9 +261,9 @@ impl SteinEquation {
         
         let i_m = Matrix::identity(m);
         let i_n = Matrix::identity(n);
-        
-        let kron_a = crate::kronecker::KroneckerProduct::compute(&b.transpose(), a)?;
-        let kron_i = crate::kronecker::KroneckerProduct::compute(&i_n, &i_m)?;
+
+        let kron_a = crate::kronecker::KroneckerProduct::compute(&b.transpose(), a);
+        let kron_i = crate::kronecker::KroneckerProduct::compute(&i_n, &i_m);
         
         let kron_diff = kron_i.sub(&kron_a)?;
         

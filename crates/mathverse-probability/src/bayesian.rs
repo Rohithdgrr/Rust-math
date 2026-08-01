@@ -1,7 +1,7 @@
 //! Bayesian methods: priors, posteriors, conjugate priors, credible intervals, Bayesian inference.
 
-use crate::rng::Rng;
-use crate::distributions::{Distribution, ContinuousDist, DiscreteDist};
+use crate::distributions::BetaFunc;
+use crate::{rng::Rng, F64Ext};
 
 /// Prior distribution trait.
 pub trait Prior {
@@ -10,12 +10,14 @@ pub trait Prior {
 }
 
 /// Beta prior for Bernoulli/Binomial likelihood.
+#[must_use]
 pub struct BetaPrior {
     pub alpha: f64,
     pub beta: f64,
 }
 
 impl BetaPrior {
+    #[must_use]
     pub fn new(alpha: f64, beta: f64) -> Self {
         BetaPrior { alpha, beta }
     }
@@ -29,6 +31,7 @@ impl BetaPrior {
     }
 
     /// Predictive distribution (Beta-Bernoulli).
+    #[must_use]
     pub fn predictive(&self) -> f64 {
         self.alpha / (self.alpha + self.beta)
     }
@@ -45,7 +48,7 @@ impl Prior for BetaPrior {
     }
 
     fn sample(&self, rng: &mut Rng) -> Vec<f64> {
-        let beta_dist = crate::distributions::Beta {
+        let _beta_dist = crate::distributions::Beta {
             alpha: self.alpha,
             beta: self.beta,
         };
@@ -70,27 +73,31 @@ impl Prior for BetaPrior {
 }
 
 /// Normal prior for Normal likelihood.
+#[must_use]
 pub struct NormalPrior {
     pub mu: f64,
     pub sigma: f64,
 }
 
 impl NormalPrior {
+    #[must_use]
     pub fn new(mu: f64, sigma: f64) -> Self {
         NormalPrior { mu, sigma }
     }
 
     /// Posterior after observing data with known variance.
+    #[must_use]
     pub fn posterior_known_variance(&self, data: &[f64], known_variance: f64) -> NormalPrior {
         let n = data.len() as f64;
         let sample_mean = data.iter().sum::<f64>() / n;
-        
+
         let prior_precision = 1.0 / (self.sigma * self.sigma);
         let data_precision = n / known_variance;
         let posterior_precision = prior_precision + data_precision;
         let posterior_sigma = 1.0 / posterior_precision.sqrt();
-        let posterior_mu = (prior_precision * self.mu + data_precision * sample_mean) / posterior_precision;
-        
+        let posterior_mu =
+            (prior_precision * self.mu + data_precision * sample_mean) / posterior_precision;
+
         NormalPrior {
             mu: posterior_mu,
             sigma: posterior_sigma,
@@ -117,12 +124,14 @@ impl Prior for NormalPrior {
 }
 
 /// Gamma prior for Poisson/Exponential likelihood.
+#[must_use]
 pub struct GammaPrior {
     pub shape: f64,
     pub rate: f64,
 }
 
 impl GammaPrior {
+    #[must_use]
     pub fn new(shape: f64, rate: f64) -> Self {
         GammaPrior { shape, rate }
     }
@@ -156,18 +165,22 @@ impl Prior for GammaPrior {
 }
 
 /// Dirichlet prior for Multinomial likelihood.
+#[must_use]
 pub struct DirichletPrior {
     pub alpha: Vec<f64>,
 }
 
 impl DirichletPrior {
+    #[must_use]
     pub fn new(alpha: Vec<f64>) -> Self {
         DirichletPrior { alpha }
     }
 
     /// Posterior after observing counts.
     pub fn posterior(&self, counts: &[u64]) -> DirichletPrior {
-        let new_alpha: Vec<f64> = self.alpha.iter()
+        let new_alpha: Vec<f64> = self
+            .alpha
+            .iter()
             .zip(counts.iter())
             .map(|(&a, &c)| a + c as f64)
             .collect();
@@ -175,6 +188,7 @@ impl DirichletPrior {
     }
 
     /// Expected value of the Dirichlet distribution.
+    #[must_use]
     pub fn mean(&self) -> Vec<f64> {
         let sum: f64 = self.alpha.iter().sum();
         self.alpha.iter().map(|&a| a / sum).collect()
@@ -186,15 +200,15 @@ impl Prior for DirichletPrior {
         if x.len() != self.alpha.len() {
             return f64::NEG_INFINITY;
         }
-        
+
         let sum: f64 = x.iter().sum();
         if (sum - 1.0).abs() > 1e-10 {
             return f64::NEG_INFINITY;
         }
-        
+
         let alpha_sum: f64 = self.alpha.iter().sum();
         let mut log_pdf = alpha_sum.gamma().ln();
-        
+
         for (i, &a) in self.alpha.iter().enumerate() {
             log_pdf -= a.gamma().ln();
             if x[i] > 0.0 {
@@ -203,12 +217,14 @@ impl Prior for DirichletPrior {
                 return f64::NEG_INFINITY;
             }
         }
-        
+
         log_pdf
     }
 
     fn sample(&self, rng: &mut Rng) -> Vec<f64> {
-        let mut gamma_samples: Vec<f64> = self.alpha.iter()
+        let gamma_samples: Vec<f64> = self
+            .alpha
+            .iter()
             .map(|&a| {
                 let gamma = crate::distributions::Gamma {
                     shape: a,
@@ -217,39 +233,42 @@ impl Prior for DirichletPrior {
                 gamma.sample(rng)
             })
             .collect();
-        
+
         let sum: f64 = gamma_samples.iter().sum();
         gamma_samples.iter().map(|&x| x / sum).collect()
     }
 }
 
 /// Credible interval computation.
+#[must_use]
 pub struct CredibleInterval;
 
 impl CredibleInterval {
     /// Compute credible interval from samples.
+    #[must_use]
     pub fn from_samples(samples: &[f64], alpha: f64) -> (f64, f64) {
         let mut sorted = samples.to_vec();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        
+
         let n = sorted.len();
         let lower_idx = ((alpha / 2.0) * n as f64) as usize;
         let upper_idx = ((1.0 - alpha / 2.0) * n as f64) as usize;
-        
+
         (sorted[lower_idx], sorted[upper_idx.min(n - 1)])
     }
 
     /// Highest posterior density (HPD) interval.
+    #[must_use]
     pub fn hpd(samples: &[f64], alpha: f64) -> (f64, f64) {
         let mut sorted = samples.to_vec();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        
+
         let n = sorted.len();
         let m = ((1.0 - alpha) * n as f64) as usize;
-        
+
         let mut min_width = f64::INFINITY;
         let mut best_interval = (0.0, 0.0);
-        
+
         for i in 0..=(n - m) {
             let width = sorted[i + m - 1] - sorted[i];
             if width < min_width {
@@ -257,21 +276,24 @@ impl CredibleInterval {
                 best_interval = (sorted[i], sorted[i + m - 1]);
             }
         }
-        
+
         best_interval
     }
 }
 
 /// Bayesian model selection using Bayes factor.
+#[must_use]
 pub struct BayesFactor;
 
 impl BayesFactor {
     /// Compute Bayes factor (evidence ratio).
+    #[must_use]
     pub fn compute(evidence_m1: f64, evidence_m2: f64) -> f64 {
         evidence_m1 / evidence_m2
     }
 
     /// Interpret Bayes factor strength.
+    #[must_use]
     pub fn interpret(bf: f64) -> &'static str {
         if bf < 1.0 {
             Self::interpret(1.0 / bf)
@@ -289,6 +311,7 @@ impl BayesFactor {
     }
 
     /// Approximate evidence using Laplace approximation.
+    #[must_use]
     pub fn laplace_approximation(
         log_likelihood: impl Fn(&[f64]) -> f64,
         log_prior: impl Fn(&[f64]) -> f64,
@@ -297,29 +320,27 @@ impl BayesFactor {
     ) -> f64 {
         let log_posterior = log_likelihood(mode) + log_prior(mode);
         let n = mode.len();
-        
+
         // Compute determinant of Hessian
         let mut det = 1.0;
         for i in 0..n {
             det *= hessian[i][i];
         }
-        
-        let evidence = (log_posterior + 0.5 * (2.0 * core::f64::consts::PI).ln() * n as f64 - 0.5 * det.ln()).exp();
-        evidence
+
+        (log_posterior + 0.5 * (2.0 * core::f64::consts::PI).ln() * n as f64 - 0.5 * det.ln()).exp()
     }
 }
 
 /// Hierarchical Bayesian model.
+#[must_use]
 pub struct HierarchicalModel {
     pub hyperprior: Box<dyn Prior>,
     pub likelihood: Box<dyn Fn(&[f64], &[f64]) -> f64>,
 }
 
 impl HierarchicalModel {
-    pub fn new<F>(
-        hyperprior: Box<dyn Prior>,
-        likelihood: F,
-    ) -> Self
+    #[must_use]
+    pub fn new<F>(hyperprior: Box<dyn Prior>, likelihood: F) -> Self
     where
         F: Fn(&[f64], &[f64]) -> f64 + 'static,
     {
@@ -330,22 +351,20 @@ impl HierarchicalModel {
     }
 
     /// Sample from hierarchical model using Gibbs sampling.
-    pub fn sample(&self, data: &[f64], n_samples: usize, rng: &mut Rng) -> Vec<Vec<f64>> {
-        let mut hyperparams = self.hyperprior.sample(rng);
+    pub fn sample(&self, _data: &[f64], n_samples: usize, rng: &mut Rng) -> Vec<Vec<f64>> {
         let mut samples = Vec::new();
-        
+
         for _ in 0..n_samples {
-            // Sample hyperparameters given data
-            // This is a simplified version - in practice would use proper conditional
-            hyperparams = self.hyperprior.sample(rng);
-            samples.push(hyperparams.clone());
+            let hyperparams = self.hyperprior.sample(rng);
+            samples.push(hyperparams);
         }
-        
+
         samples
     }
 }
 
 /// Empirical Bayes estimation.
+#[must_use]
 pub struct EmpiricalBayes;
 
 impl EmpiricalBayes {
@@ -358,14 +377,18 @@ impl EmpiricalBayes {
         let mut params = initial.to_vec();
         let mut best_params = params.clone();
         let mut best_ll = marginal_likelihood(&params);
-        
+
         // Simple hill climbing
         for _ in 0..1000 {
             let mut new_params = params.clone();
             for p in &mut new_params {
-                *p += crate::distributions::Normal { mu: 0.0, sigma: 0.1 }.sample(rng);
+                *p += crate::distributions::Normal {
+                    mu: 0.0,
+                    sigma: 0.1,
+                }
+                .sample(rng);
             }
-            
+
             let ll = marginal_likelihood(&new_params);
             if ll > best_ll {
                 best_ll = ll;
@@ -373,31 +396,27 @@ impl EmpiricalBayes {
                 params = new_params;
             }
         }
-        
+
         best_params
     }
 }
 
 /// Bayesian hypothesis testing.
+#[must_use]
 pub struct BayesianHypothesisTest;
 
 impl BayesianHypothesisTest {
     /// Compute posterior probability of hypothesis.
-    pub fn posterior_probability(
-        prior_h1: f64,
-        evidence_h1: f64,
-        evidence_h2: f64,
-    ) -> f64 {
+    #[must_use]
+    pub fn posterior_probability(prior_h1: f64, evidence_h1: f64, evidence_h2: f64) -> f64 {
         let bf = evidence_h1 / evidence_h2;
         let posterior_odds = (prior_h1 / (1.0 - prior_h1)) * bf;
         posterior_odds / (1.0 + posterior_odds)
     }
 
     /// Savage-Dickey density ratio for nested models.
-    pub fn savage_dickey(
-        prior_density: f64,
-        posterior_density: f64,
-    ) -> f64 {
+    #[must_use]
+    pub fn savage_dickey(prior_density: f64, posterior_density: f64) -> f64 {
         posterior_density / prior_density
     }
 }

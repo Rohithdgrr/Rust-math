@@ -69,6 +69,7 @@ pub fn diffusion_forward_process(
     }
     // Compute alpha_bar_t = prod(1 - beta_i) for i in 0..=t
     let mut alpha_bar = 1.0;
+    #[allow(clippy::needless_range_loop)]
     for i in 0..=t {
         alpha_bar *= 1.0 - betas[i];
     }
@@ -95,6 +96,7 @@ pub fn diffusion_reverse_process(
     let alpha_t = 1.0 - beta_t;
 
     let mut alpha_bar = 1.0;
+    #[allow(clippy::needless_range_loop)]
     for i in 0..=t {
         alpha_bar *= 1.0 - betas[i];
     }
@@ -175,3 +177,12 @@ mod tests {
         assert!(x_prev.data.iter().all(|&x| x.is_finite()));
     }
 }
+
+
+
+
+
+
+
+
+

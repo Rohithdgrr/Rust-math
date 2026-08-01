@@ -1,7 +1,7 @@
 //! Moore-Penrose pseudoinverse: computation and applications.
 
 use crate::Matrix;
-use mathverse_core::error::{MathError, MathResult};
+use mathverse_core::error::MathResult;
 
 /// Moore-Penrose pseudoinverse.
 pub struct Pseudoinverse;
@@ -29,7 +29,7 @@ impl Pseudoinverse {
     }
 
     /// Compute pseudoinverse for tall matrices (m > n) using normal equations.
-    pub fn tall(m: &Matrix, tolerance: f64) -> MathResult<Matrix> {
+    pub fn tall(m: &Matrix, _tolerance: f64) -> MathResult<Matrix> {
         let ata = m.transpose().mul(m)?;
         let inv_ata = ata.inverse()?;
         let pinv = inv_ata.mul(&m.transpose())?;
@@ -37,7 +37,7 @@ impl Pseudoinverse {
     }
 
     /// Compute pseudoinverse for wide matrices (m < n) using normal equations.
-    pub fn wide(m: &Matrix, tolerance: f64) -> MathResult<Matrix> {
+    pub fn wide(m: &Matrix, _tolerance: f64) -> MathResult<Matrix> {
         let aat = m.mul(&m.transpose())?;
         let inv_aat = aat.inverse()?;
         let pinv = m.transpose().mul(&inv_aat)?;

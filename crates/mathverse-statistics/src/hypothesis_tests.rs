@@ -1,8 +1,8 @@
 //! Hypothesis tests: t-test, Welch's t-test, paired t-test, chi-squared, F-test,
 //! binomial test, Mann-Whitney U, Wilcoxon signed-rank.
 
-use crate::distributions::{normal_cdf, normal_ppf, student_t_cdf, student_t_ppf, chi_squared_cdf, f_cdf};
-use crate::descriptive::{mean, variance_sample, std_dev_sample, median};
+use crate::distributions::{normal_cdf, student_t_cdf, chi_squared_cdf, f_cdf};
+use crate::descriptive::{mean, variance_sample, std_dev_sample};
 
 /// Two-sample t-test (equal variance).
 /// Returns (t-statistic, two-tailed p-value).
@@ -164,8 +164,8 @@ pub fn mann_whitney_u(a: &[f64], b: &[f64]) -> (f64, f64) {
             j += 1;
         }
         let avg_rank = (i + j) as f64 / 2.0 + 0.5; // 1-indexed average
-        for k in i..j {
-            ranks[k] = avg_rank;
+        for rank_idx in ranks.iter_mut().take(j).skip(i) {
+            *rank_idx = avg_rank;
         }
         i = j;
     }
@@ -205,8 +205,8 @@ pub fn wilcoxon_signed_rank(a: &[f64], b: &[f64]) -> (f64, f64) {
             j += 1;
         }
         let avg_rank = (i + j) as f64 / 2.0 + 0.5;
-        for k in i..j {
-            ranks[k] = avg_rank;
+        for rank_idx in ranks.iter_mut().take(j).skip(i) {
+            *rank_idx = avg_rank;
         }
         i = j;
     }

@@ -1,10 +1,13 @@
-use mathverse_core::error::{MathError, MathResult};
-use std::f64;
-
+/// Base estimator type for bagging ensemble.
 #[derive(Debug, Clone)]
 pub enum BaggingBase {
+    /// Decision tree base estimator.
     DecisionTree,
-    KNN { k: usize },
+    /// K-nearest neighbors base estimator.
+    Knn {
+        /// Number of nearest neighbors.
+        k: usize,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -84,11 +87,7 @@ fn knn_predict(train_x: &[Vec<f64>], train_y: &[f64], x: &[Vec<f64>], k: usize) 
                 .iter()
                 .zip(train_y.iter())
                 .map(|(tx, &ty)| {
-                    let d: f64 = xi
-                        .iter()
-                        .zip(tx.iter())
-                        .map(|(a, b)| (a - b).powi(2))
-                        .sum();
+                    let d: f64 = xi.iter().zip(tx.iter()).map(|(a, b)| (a - b).powi(2)).sum();
                     (d, ty)
                 })
                 .collect();
@@ -116,22 +115,31 @@ fn bootstrap_sample_indices(n: usize, sample_size: usize, seed: u64) -> Vec<usiz
     let mut rng_state = seed;
     (0..sample_size)
         .map(|_| {
-            rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            rng_state = rng_state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             (rng_state >> 33) as usize % n
         })
         .collect()
 }
 
+/// Bagging classifier that trains multiple base estimators on bootstrap samples.
 #[derive(Debug, Clone)]
 pub struct BaggingClassifier {
+    /// Number of base estimators to train.
     pub n_estimators: usize,
+    /// Fraction of samples to draw for each base estimator.
     pub max_samples: f64,
+    /// Type of base estimator used in the ensemble.
     pub base_estimator: BaggingBase,
     trees: Vec<SimpleDecisionTree>,
     knn_data: Vec<(Vec<Vec<f64>>, Vec<f64>)>,
 }
 
 impl BaggingClassifier {
+    /// Creates a new `BaggingClassifier`.
+    #[must_use]
+    #[inline]
     pub fn new(n_estimators: usize, max_samples: f64, base_estimator: BaggingBase) -> Self {
         Self {
             n_estimators,
@@ -142,6 +150,7 @@ impl BaggingClassifier {
         }
     }
 
+    /// Fits the bagging classifier on training data.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         self.trees.clear();
         self.knn_data.clear();
@@ -157,13 +166,15 @@ impl BaggingClassifier {
                 BaggingBase::DecisionTree => {
                     self.trees.push(SimpleDecisionTree::fit(&boot_x, &boot_y));
                 }
-                BaggingBase::KNN { k: _ } => {
+                BaggingBase::Knn { k: _ } => {
                     self.knn_data.push((boot_x, boot_y));
                 }
             }
         }
     }
 
+    /// Predicts class labels using majority vote across all estimators.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         let n = x.len();
         let mut all_preds: Vec<Vec<f64>> = Vec::new();
@@ -175,7 +186,7 @@ impl BaggingClassifier {
 
         for (train_x, train_y) in &self.knn_data {
             let k = match &self.base_estimator {
-                BaggingBase::KNN { k } => *k,
+                BaggingBase::Knn { k } => *k,
                 _ => 3,
             };
             all_preds.push(knn_predict(train_x, train_y, x, k));
@@ -190,15 +201,21 @@ impl BaggingClassifier {
     }
 }
 
+/// AdaBoost classifier that sequentially trains weak learners with weighted samples.
 #[derive(Debug, Clone)]
 pub struct AdaBoostClassifier {
+    /// Number of boosting rounds.
     pub n_estimators: usize,
+    /// Learning rate shrinks the contribution of each classifier.
     pub learning_rate: f64,
     trees: Vec<SimpleDecisionTree>,
     alphas: Vec<f64>,
 }
 
 impl AdaBoostClassifier {
+    /// Creates a new `AdaBoostClassifier`.
+    #[must_use]
+    #[inline]
     pub fn new(n_estimators: usize, learning_rate: f64) -> Self {
         Self {
             n_estimators,
@@ -208,10 +225,14 @@ impl AdaBoostClassifier {
         }
     }
 
+    /// Fits the AdaBoost classifier on training data.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         let n = x.len();
         let mut weights = vec![1.0 / n as f64; n];
-        let y_sign: Vec<f64> = y.iter().map(|&yi| if yi > 0.5 { 1.0 } else { -1.0 }).collect();
+        let y_sign: Vec<f64> = y
+            .iter()
+            .map(|&yi| if yi > 0.5 { 1.0 } else { -1.0 })
+            .collect();
 
         self.trees.clear();
         self.alphas.clear();
@@ -222,7 +243,9 @@ impl AdaBoostClassifier {
             let indices: Vec<usize> = (0..n)
                 .map(|_| {
                     let r = {
-                        rng_state = rng_state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                        rng_state = rng_state
+                            .wrapping_mul(6364136223846793005)
+                            .wrapping_add(1442695040888963407);
                         (rng_state >> 33) as f64 / (1u64 << 31) as f64
                     };
                     let mut cumsum = 0.0;
@@ -246,7 +269,11 @@ impl AdaBoostClassifier {
             let err_raw: f64 = (0..n)
                 .map(|i| {
                     let pred_sign = if preds[i] > 0.5 { 1.0 } else { -1.0 };
-                    if (pred_sign - y_sign[i]).abs() > 0.5 { weights[i] } else { 0.0 }
+                    if (pred_sign - y_sign[i]).abs() > 0.5 {
+                        weights[i]
+                    } else {
+                        0.0
+                    }
                 })
                 .sum();
             let err = err_raw.clamp(1e-10, 1.0 - 1e-10);
@@ -278,6 +305,8 @@ impl AdaBoostClassifier {
         }
     }
 
+    /// Predicts class labels by weighted sum of weak learner outputs.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         let n = x.len();
         let mut scores = vec![0.0; n];
@@ -297,24 +326,23 @@ impl AdaBoostClassifier {
     }
 }
 
-fn weighted_targets(y: &[f64], weights: &[f64]) -> Vec<f64> {
-    // For stump fitting, return weighted version
-    y.iter()
-        .zip(weights.iter())
-        .map(|(&yi, &wi)| yi * wi)
-        .collect()
-}
-
+/// Base learner type for stacking ensemble.
 #[derive(Debug, Clone)]
 pub enum StackingBase {
+    /// Logistic regression base learner.
     Logistic,
-    KNN,
+    /// K-nearest neighbors base learner.
+    Knn,
+    /// Decision tree base learner.
     DecisionTree,
 }
 
+/// Meta-learner type for stacking ensemble.
 #[derive(Debug, Clone)]
 pub enum StackingMeta {
+    /// Logistic regression meta-learner.
     Logistic,
+    /// Linear regression meta-learner.
     Linear,
 }
 
@@ -333,7 +361,12 @@ impl SimpleLogistic {
 
         for _ in 0..200 {
             for (xi, &yi) in x.iter().zip(y.iter()) {
-                let logit: f64 = w.iter().zip(xi.iter()).map(|(wi, xij)| wi * xij).sum::<f64>() + b;
+                let logit: f64 = w
+                    .iter()
+                    .zip(xi.iter())
+                    .map(|(wi, xij)| wi * xij)
+                    .sum::<f64>()
+                    + b;
                 let pred = 1.0 / (1.0 + (-logit).exp());
                 let error = pred - yi;
                 for (wi, &xij) in w.iter_mut().zip(xi.iter()) {
@@ -342,13 +375,22 @@ impl SimpleLogistic {
                 b -= lr * error / x.len() as f64;
             }
         }
-        Self { weights: w, bias: b }
+        Self {
+            weights: w,
+            bias: b,
+        }
     }
 
     fn predict_proba(&self, x: &[Vec<f64>]) -> Vec<f64> {
         x.iter()
             .map(|xi| {
-                let logit: f64 = self.weights.iter().zip(xi.iter()).map(|(w, x)| w * x).sum::<f64>() + self.bias;
+                let logit: f64 = self
+                    .weights
+                    .iter()
+                    .zip(xi.iter())
+                    .map(|(w, x)| w * x)
+                    .sum::<f64>()
+                    + self.bias;
                 1.0 / (1.0 + (-logit).exp())
             })
             .collect()
@@ -370,7 +412,12 @@ impl SimpleLinear {
 
         for _ in 0..200 {
             for (xi, &yi) in x.iter().zip(y.iter()) {
-                let pred: f64 = w.iter().zip(xi.iter()).map(|(wi, xij)| wi * xij).sum::<f64>() + b;
+                let pred: f64 = w
+                    .iter()
+                    .zip(xi.iter())
+                    .map(|(wi, xij)| wi * xij)
+                    .sum::<f64>()
+                    + b;
                 let error = pred - yi;
                 for (wi, &xij) in w.iter_mut().zip(xi.iter()) {
                     *wi -= lr * error * xij / x.len() as f64;
@@ -378,21 +425,32 @@ impl SimpleLinear {
                 b -= lr * error / x.len() as f64;
             }
         }
-        Self { weights: w, bias: b }
+        Self {
+            weights: w,
+            bias: b,
+        }
     }
 
     fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         x.iter()
             .map(|xi| {
-                self.weights.iter().zip(xi.iter()).map(|(w, x)| w * x).sum::<f64>() + self.bias
+                self.weights
+                    .iter()
+                    .zip(xi.iter())
+                    .map(|(w, x)| w * x)
+                    .sum::<f64>()
+                    + self.bias
             })
             .collect()
     }
 }
 
+/// Stacking classifier that trains base learners and a meta-learner on their predictions.
 #[derive(Debug, Clone)]
 pub struct StackingClassifier {
+    /// List of base learner types.
     pub base_models: Vec<StackingBase>,
+    /// Meta-learner type.
     pub meta_model: StackingMeta,
     base_trained: Vec<BaseTrained>,
     meta_trained: Option<MetaTrained>,
@@ -401,7 +459,11 @@ pub struct StackingClassifier {
 #[derive(Debug, Clone)]
 enum BaseTrained {
     Logistic(SimpleLogistic),
-    KNN { train_x: Vec<Vec<f64>>, train_y: Vec<f64>, k: usize },
+    Knn {
+        train_x: Vec<Vec<f64>>,
+        train_y: Vec<f64>,
+        k: usize,
+    },
     DecisionTree(SimpleDecisionTree),
 }
 
@@ -412,6 +474,9 @@ enum MetaTrained {
 }
 
 impl StackingClassifier {
+    /// Creates a new `StackingClassifier`.
+    #[must_use]
+    #[inline]
     pub fn new(base_models: Vec<StackingBase>, meta_model: StackingMeta) -> Self {
         Self {
             base_models,
@@ -421,12 +486,13 @@ impl StackingClassifier {
         }
     }
 
+    /// Fits the stacking classifier on training data.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         self.base_trained.clear();
 
         // Train base models and get meta-features
         let mut meta_features: Vec<Vec<f64>> = Vec::with_capacity(x.len());
-        for i in 0..x.len() {
+        for _i in 0..x.len() {
             meta_features.push(Vec::with_capacity(self.base_models.len()));
         }
 
@@ -440,9 +506,9 @@ impl StackingClassifier {
                     }
                     BaseTrained::Logistic(model)
                 }
-                StackingBase::KNN => {
+                StackingBase::Knn => {
                     let k = 3.min(x.len());
-                    BaseTrained::KNN {
+                    BaseTrained::Knn {
                         train_x: x.to_vec(),
                         train_y: y.to_vec(),
                         k,
@@ -460,9 +526,14 @@ impl StackingClassifier {
             self.base_trained.push(trained);
         }
 
-        // Fill in KNN predictions
+        // Fill in Knn predictions
         for trained in &self.base_trained {
-            if let BaseTrained::KNN { train_x, train_y, k } = trained {
+            if let BaseTrained::Knn {
+                train_x,
+                train_y,
+                k,
+            } = trained
+            {
                 let preds = knn_predict(train_x, train_y, x, *k);
                 for (mf, p) in meta_features.iter_mut().zip(preds.iter()) {
                     mf.push(*p);
@@ -486,7 +557,11 @@ impl StackingClassifier {
         for trained in &self.base_trained {
             let preds = match trained {
                 BaseTrained::Logistic(model) => model.predict_proba(x),
-                BaseTrained::KNN { train_x, train_y, k } => knn_predict(train_x, train_y, x, *k),
+                BaseTrained::Knn {
+                    train_x,
+                    train_y,
+                    k,
+                } => knn_predict(train_x, train_y, x, *k),
                 BaseTrained::DecisionTree(model) => model.predict(x),
             };
             for (mf, p) in meta_features.iter_mut().zip(preds.iter()) {
@@ -496,6 +571,8 @@ impl StackingClassifier {
         meta_features
     }
 
+    /// Predicts class labels using the stacked ensemble.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         let meta_features = self.get_meta_features(x);
         match self.meta_trained.as_ref().unwrap() {
@@ -518,7 +595,14 @@ mod tests {
     use super::*;
 
     fn simple_data() -> (Vec<Vec<f64>>, Vec<f64>) {
-        let x = vec![vec![0.0], vec![1.0], vec![2.0], vec![3.0], vec![4.0], vec![5.0]];
+        let x = vec![
+            vec![0.0],
+            vec![1.0],
+            vec![2.0],
+            vec![3.0],
+            vec![4.0],
+            vec![5.0],
+        ];
         let y = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
         (x, y)
     }
@@ -529,14 +613,18 @@ mod tests {
         let mut model = BaggingClassifier::new(10, 0.8, BaggingBase::DecisionTree);
         model.fit(&x, &y);
         let preds = model.predict(&x);
-        let correct = preds.iter().zip(y.iter()).filter(|(p, t)| (**p - *t).abs() < 0.5).count();
+        let correct = preds
+            .iter()
+            .zip(y.iter())
+            .filter(|(p, t)| (**p - *t).abs() < 0.5)
+            .count();
         assert!(correct >= 4, "only {correct}/6 correct");
     }
 
     #[test]
     fn bagging_knn() {
         let (x, y) = simple_data();
-        let mut model = BaggingClassifier::new(5, 0.8, BaggingBase::KNN { k: 3 });
+        let mut model = BaggingClassifier::new(5, 0.8, BaggingBase::Knn { k: 3 });
         model.fit(&x, &y);
         let preds = model.predict(&x);
         assert_eq!(preds.len(), 6);
@@ -545,13 +633,23 @@ mod tests {
     #[test]
     fn adaboost_fit_predict() {
         let x = vec![
-            vec![0.0], vec![1.0], vec![2.0], vec![3.0],
-            vec![2.5], vec![3.5], vec![4.0], vec![5.0],
+            vec![0.0],
+            vec![1.0],
+            vec![2.0],
+            vec![3.0],
+            vec![2.5],
+            vec![3.5],
+            vec![4.0],
+            vec![5.0],
         ];
         let y = vec![0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0];
         let mut model = AdaBoostClassifier::new(3, 0.5);
         model.fit(&x, &y);
-        assert!(model.trees.len() >= 1, "should have at least 1 tree, got {}", model.trees.len());
+        assert!(
+            model.trees.len() >= 1,
+            "should have at least 1 tree, got {}",
+            model.trees.len()
+        );
         assert!(!model.alphas.is_empty());
     }
 
@@ -565,7 +663,11 @@ mod tests {
         model.fit(&x, &y);
         let preds = model.predict(&x);
         assert_eq!(preds.len(), 6);
-        let correct = preds.iter().zip(y.iter()).filter(|(p, t)| (**p - *t).abs() < 0.5).count();
+        let correct = preds
+            .iter()
+            .zip(y.iter())
+            .filter(|(p, t)| (**p - *t).abs() < 0.5)
+            .count();
         assert!(correct >= 4, "only {correct}/6 correct");
     }
 }

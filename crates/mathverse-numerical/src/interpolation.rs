@@ -342,7 +342,7 @@ impl MultilinearInterpolation {
             .zip(&self.grid_dims)
             .zip(&self.grid_min)
             .zip(&self.grid_max)
-            .map(|((((&xi, &n), &min), &max)| {
+            .map(|((( &xi, &n), &min), &max)| {
                 let normalized = (xi - min) / (max - min);
                 let idx = (normalized * (n - 1) as f64).floor() as usize;
                 idx.min(n - 2)

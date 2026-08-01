@@ -14,8 +14,8 @@ pub fn polynomial_regression(xs: &[f64], ys: &[f64], degree: usize) -> Vec<f64> 
         let yi = ys[i];
         for j in 0..d {
             xty[j] += xi.powi(j as i32) * yi;
-            for k in 0..d {
-                xtx[j][k] += xi.powi((j + k) as i32);
+            for (k, xtx_jk) in xtx[j].iter_mut().enumerate() {
+                *xtx_jk += xi.powi((j + k) as i32);
             }
         }
     }
@@ -193,8 +193,9 @@ fn gaussian_elimination(a: &mut [Vec<f64>], b: &mut [f64]) -> Vec<f64> {
         // Eliminate below
         for j in (i + 1)..n {
             let factor = a[j][i] / pivot;
-            for k in i..n {
-                a[j][k] -= factor * a[i][k];
+            let (a_top, a_bot) = a.split_at_mut(j);
+            for (k, a_jk) in a_bot[0].iter_mut().enumerate().skip(i) {
+                *a_jk -= factor * a_top[i][k];
             }
             b[j] -= factor * b[i];
         }

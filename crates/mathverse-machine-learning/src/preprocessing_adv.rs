@@ -1,31 +1,5 @@
-use mathverse_core::error::{MathError, MathResult};
-use std::f64;
-
-pub fn one_hot_encode(labels: &[f64], num_classes: usize) -> Vec<Vec<f64>> {
-    labels
-        .iter()
-        .map(|&l| {
-            let class = (l as usize).min(num_classes - 1);
-            (0..num_classes)
-                .map(|c| if c == class { 1.0 } else { 0.0 })
-                .collect()
-        })
-        .collect()
-}
-
-pub fn one_hot_decode(encoded: &[Vec<f64>]) -> Vec<f64> {
-    encoded
-        .iter()
-        .map(|row| {
-            row.iter()
-                .enumerate()
-                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
-                .map(|(i, _)| i as f64)
-                .unwrap_or(0.0)
-        })
-        .collect()
-}
-
+/// Encodes values as contiguous integer labels starting from 0.
+#[must_use]
 pub fn label_encode(values: &[f64]) -> Vec<f64> {
     let mut unique: Vec<f64> = values.to_vec();
     unique.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -42,6 +16,8 @@ pub fn label_encode(values: &[f64]) -> Vec<f64> {
         .collect()
 }
 
+/// Encodes values by their position in the specified order, or -1 if not found.
+#[must_use]
 pub fn ordinal_encode(values: &[f64], order: &[f64]) -> Vec<f64> {
     values
         .iter()
@@ -55,6 +31,7 @@ pub fn ordinal_encode(values: &[f64], order: &[f64]) -> Vec<f64> {
         .collect()
 }
 
+/// Replaces NaN values with column means.
 pub fn impute_mean(x: &mut [Vec<f64>]) {
     if x.is_empty() {
         return;
@@ -79,6 +56,7 @@ pub fn impute_mean(x: &mut [Vec<f64>]) {
     }
 }
 
+/// Replaces NaN values with column medians.
 pub fn impute_median(x: &mut [Vec<f64>]) {
     if x.is_empty() {
         return;
@@ -93,7 +71,7 @@ pub fn impute_median(x: &mut [Vec<f64>]) {
         vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let median = if vals.is_empty() {
             0.0
-        } else if vals.len() % 2 == 0 {
+        } else if vals.len().is_multiple_of(2) {
             (vals[vals.len() / 2 - 1] + vals[vals.len() / 2]) / 2.0
         } else {
             vals[vals.len() / 2]
@@ -107,6 +85,7 @@ pub fn impute_median(x: &mut [Vec<f64>]) {
     }
 }
 
+/// Replaces NaN values with a constant value.
 pub fn impute_constant(x: &mut [Vec<f64>], val: f64) {
     for row in x.iter_mut() {
         for cell in row.iter_mut() {
@@ -117,6 +96,8 @@ pub fn impute_constant(x: &mut [Vec<f64>], val: f64) {
     }
 }
 
+/// Applies power transformation using "yeo-johnson" or "box-cox" method.
+#[must_use]
 pub fn power_transform(x: &[Vec<f64>], method: &str) -> Vec<Vec<f64>> {
     match method {
         "yeo-johnson" => yeo_johnson(x),
@@ -145,19 +126,15 @@ fn box_cox(x: &[Vec<f64>]) -> Vec<Vec<f64>> {
     x.iter()
         .map(|row| {
             row.iter()
-                .map(|&v| {
-                    if v > 0.0 {
-                        v.ln()
-                    } else {
-                        0.0
-                    }
-                })
+                .map(|&v| if v > 0.0 { v.ln() } else { 0.0 })
                 .collect()
         })
         .collect()
 }
 
-pub fn quantile_transform(x: &[Vec<f64>], n_quantiles: usize) -> Vec<Vec<f64>> {
+/// Transforms features to uniform distribution using rank-based quantile mapping.
+#[must_use]
+pub fn quantile_transform(x: &[Vec<f64>], _n_quantiles: usize) -> Vec<Vec<f64>> {
     if x.is_empty() {
         return Vec::new();
     }
@@ -166,11 +143,8 @@ pub fn quantile_transform(x: &[Vec<f64>], n_quantiles: usize) -> Vec<Vec<f64>> {
 
     (0..n_cols)
         .map(|col| {
-            let mut vals: Vec<(usize, f64)> = x
-                .iter()
-                .enumerate()
-                .map(|(i, row)| (i, row[col]))
-                .collect();
+            let mut vals: Vec<(usize, f64)> =
+                x.iter().enumerate().map(|(i, row)| (i, row[col])).collect();
             vals.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
             let mut result = vec![0.0; n];
@@ -184,7 +158,8 @@ pub fn quantile_transform(x: &[Vec<f64>], n_quantiles: usize) -> Vec<Vec<f64>> {
         .collect()
 }
 
-// Actually quantile_transform should transform all columns, returning same shape
+/// Quantile transform returning the same shape as input (fixed version).
+#[must_use]
 pub fn quantile_transform_fixed(x: &[Vec<f64>], _n_quantiles: usize) -> Vec<Vec<f64>> {
     if x.is_empty() {
         return Vec::new();
@@ -194,11 +169,8 @@ pub fn quantile_transform_fixed(x: &[Vec<f64>], _n_quantiles: usize) -> Vec<Vec<
 
     let mut result = vec![vec![0.0; n_cols]; n];
     for col in 0..n_cols {
-        let mut vals: Vec<(usize, f64)> = x
-            .iter()
-            .enumerate()
-            .map(|(i, row)| (i, row[col]))
-            .collect();
+        let mut vals: Vec<(usize, f64)> =
+            x.iter().enumerate().map(|(i, row)| (i, row[col])).collect();
         vals.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
         for (rank, &(idx, _)) in vals.iter().enumerate() {
@@ -208,6 +180,8 @@ pub fn quantile_transform_fixed(x: &[Vec<f64>], _n_quantiles: usize) -> Vec<Vec<
     result
 }
 
+/// Scales features using median and IQR, returning (scaled, medians, iqrs).
+#[must_use]
 pub fn robust_scale(x: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>, Vec<f64>) {
     if x.is_empty() {
         return (Vec::new(), Vec::new(), Vec::new());
@@ -222,7 +196,7 @@ pub fn robust_scale(x: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>, Vec<f64>) {
         let mut vals: Vec<f64> = x.iter().map(|row| row[col]).collect();
         vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-        let median = if n % 2 == 0 {
+        let median = if n.is_multiple_of(2) {
             (vals[n / 2 - 1] + vals[n / 2]) / 2.0
         } else {
             vals[n / 2]
@@ -248,6 +222,8 @@ pub fn robust_scale(x: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>, Vec<f64>) {
     (scaled, medians, iqrs)
 }
 
+/// Normalizes each row to unit L1 norm (sum of absolute values = 1).
+#[must_use]
 pub fn normalize_l1(x: &[Vec<f64>]) -> Vec<Vec<f64>> {
     x.iter()
         .map(|row| {
@@ -261,6 +237,8 @@ pub fn normalize_l1(x: &[Vec<f64>]) -> Vec<Vec<f64>> {
         .collect()
 }
 
+/// Normalizes each row to unit L2 norm (Euclidean length = 1).
+#[must_use]
 pub fn normalize_l2(x: &[Vec<f64>]) -> Vec<Vec<f64>> {
     x.iter()
         .map(|row| {
@@ -277,12 +255,21 @@ pub fn normalize_l2(x: &[Vec<f64>]) -> Vec<Vec<f64>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::feature::{one_hot_decode, one_hot_encode};
 
     #[test]
     fn test_one_hot() {
         let labels = vec![0.0, 1.0, 2.0, 1.0];
         let encoded = one_hot_encode(&labels, 3);
-        assert_eq!(encoded, vec![vec![1.0, 0.0, 0.0], vec![0.0, 1.0, 0.0], vec![0.0, 0.0, 1.0], vec![0.0, 1.0, 0.0]]);
+        assert_eq!(
+            encoded,
+            vec![
+                vec![1.0, 0.0, 0.0],
+                vec![0.0, 1.0, 0.0],
+                vec![0.0, 0.0, 1.0],
+                vec![0.0, 1.0, 0.0]
+            ]
+        );
         let decoded = one_hot_decode(&encoded);
         assert_eq!(decoded, labels);
     }
@@ -344,7 +331,12 @@ mod tests {
 
     #[test]
     fn test_robust_scale() {
-        let x = vec![vec![1.0, 10.0], vec![2.0, 20.0], vec![3.0, 30.0], vec![4.0, 40.0]];
+        let x = vec![
+            vec![1.0, 10.0],
+            vec![2.0, 20.0],
+            vec![3.0, 30.0],
+            vec![4.0, 40.0],
+        ];
         let (scaled, medians, iqrs) = robust_scale(&x);
         assert_eq!(scaled.len(), 4);
         assert!(iqrs[0] > 0.0);

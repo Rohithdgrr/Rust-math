@@ -2,7 +2,8 @@
 name = "mathverse-probability"
 version = "0.1.0"
 edition = "2021"
-description = "MathVerse probability: distributions, Bayes, Monte Carlo, Markov chains"
+rust-version = "1.87"
+description = "Probability: distributions, Bayes, Monte Carlo, Markov chains, queueing, extreme value theory"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
 keywords = ["math", "probability", "distributions", "bayesian", "monte-carlo"]
@@ -10,3 +11,5 @@ categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+
+[dev-dependencies]

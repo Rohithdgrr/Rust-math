@@ -103,17 +103,16 @@ pub fn hessian(f: &dyn Fn(&[f64]) -> f64, x: &[f64]) -> Vec<f64> {
                 f(&p)
             }, x[i]);
             if i != j {
-                // Mixed partial: use central difference
-                let h = 1e-4 * x[i].abs().max(1.0).max(x[j].abs());
+                let step = 1e-4 * x[i].abs().max(1.0).max(x[j].abs());
                 let mut p1 = x.to_vec();
                 let mut p2 = x.to_vec();
                 let mut p3 = x.to_vec();
                 let mut p4 = x.to_vec();
-                p1[i] += h; p1[j] += h;
-                p2[i] += h; p2[j] -= h;
-                p3[i] -= h; p3[j] += h;
-                p4[i] -= h; p4[j] -= h;
-                h[i * n + j] = (f(&p1) - f(&p2) - f(&p3) + f(&p4)) / (4.0 * h * h);
+                p1[i] += step; p1[j] += step;
+                p2[i] += step; p2[j] -= step;
+                p3[i] -= step; p3[j] += step;
+                p4[i] -= step; p4[j] -= step;
+                h[i * n + j] = (f(&p1) - f(&p2) - f(&p3) + f(&p4)) / (4.0 * step * step);
             }
         }
     }

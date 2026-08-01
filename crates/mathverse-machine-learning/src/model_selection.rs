@@ -1,9 +1,10 @@
 //! Model selection: train/test split, k-fold cross-validation, evaluation metrics.
 
+type SplitData = (Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, Vec<f64>);
+
 /// Split data into train/test sets.
-pub fn train_test_split(
-    x: &[Vec<f64>], y: &[f64], test_ratio: f64, seed: u64,
-) -> (Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, Vec<f64>) {
+#[must_use]
+pub fn train_test_split(x: &[Vec<f64>], y: &[f64], test_ratio: f64, seed: u64) -> SplitData {
     let n = x.len();
     let n_test = (n as f64 * test_ratio).round() as usize;
     let indices = shuffled_indices(n, seed);
@@ -17,8 +18,10 @@ pub fn train_test_split(
 }
 
 /// K-fold cross-validation for classification (returns accuracy per fold).
+#[must_use]
 pub fn k_fold_cv<F>(x: &[Vec<f64>], y: &[f64], k: usize, seed: u64, predict_fn: F) -> Vec<f64>
-where F: Fn(&[Vec<f64>], &[f64], &[Vec<f64>]) -> Vec<f64>,
+where
+    F: Fn(&[Vec<f64>], &[f64], &[Vec<f64>]) -> Vec<f64>,
 {
     let n = x.len();
     let indices = shuffled_indices(n, seed);
@@ -29,7 +32,9 @@ where F: Fn(&[Vec<f64>], &[f64], &[Vec<f64>]) -> Vec<f64>,
         let start = fold * fold_size;
         let end = if fold == k - 1 { n } else { start + fold_size };
         let test_idx: Vec<usize> = indices[start..end].to_vec();
-        let train_idx: Vec<usize> = indices.iter().enumerate()
+        let train_idx: Vec<usize> = indices
+            .iter()
+            .enumerate()
             .filter(|(i, _)| *i < start || *i >= end)
             .map(|(_, &i)| i)
             .collect();
@@ -38,47 +43,67 @@ where F: Fn(&[Vec<f64>], &[f64], &[Vec<f64>]) -> Vec<f64>,
         let x_test: Vec<Vec<f64>> = test_idx.iter().map(|&i| x[i].clone()).collect();
         let y_test: Vec<f64> = test_idx.iter().map(|&i| y[i]).collect();
         let preds = predict_fn(&x_train, &y_train, &x_test);
-        let correct = preds.iter().zip(&y_test).filter(|(p, t)| (**p - **t).abs() < 0.5).count();
+        let correct = preds
+            .iter()
+            .zip(&y_test)
+            .filter(|(p, t)| (**p - **t).abs() < 0.5)
+            .count();
         accuracies.push(correct as f64 / y_test.len() as f64);
     }
     accuracies
 }
 
 /// Compute accuracy from predictions and labels.
+#[must_use]
 pub fn accuracy(pred: &[f64], target: &[f64]) -> f64 {
-    let correct = pred.iter().zip(target).filter(|(p, t)| (**p - **t).abs() < 0.5).count();
+    let correct = pred
+        .iter()
+        .zip(target)
+        .filter(|(p, t)| (**p - **t).abs() < 0.5)
+        .count();
     correct as f64 / pred.len() as f64
 }
 
 /// Confusion matrix.
+#[must_use]
 pub fn confusion_matrix(pred: &[f64], target: &[f64], num_classes: usize) -> Vec<Vec<f64>> {
     let mut cm = vec![vec![0.0; num_classes]; num_classes];
     for (p, t) in pred.iter().zip(target) {
         let pi = *p as usize;
         let ti = *t as usize;
-        if pi < num_classes && ti < num_classes { cm[ti][pi] += 1.0; }
+        if pi < num_classes && ti < num_classes {
+            cm[ti][pi] += 1.0;
+        }
     }
     cm
 }
 
 /// ROC curve points (FPR, TPR).
+#[must_use]
 pub fn roc_curve(scores: &[f64], labels: &[f64]) -> Vec<(f64, f64)> {
     let mut pairs: Vec<(f64, f64)> = scores.iter().zip(labels).map(|(&s, &l)| (s, l)).collect();
     pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
     let total_pos: f64 = labels.iter().sum();
     let total_neg = labels.len() as f64 - total_pos;
-    if total_pos == 0.0 || total_neg == 0.0 { return vec![(0.0, 0.0), (1.0, 1.0)]; }
+    if total_pos == 0.0 || total_neg == 0.0 {
+        return vec![(0.0, 0.0), (1.0, 1.0)];
+    }
     let mut points = vec![(0.0, 0.0)];
     let mut tp = 0.0;
     let mut fp = 0.0;
     for &(_, l) in &pairs {
-        if l > 0.5 { tp += 1.0; } else { fp += 1.0; }
+        if l > 0.5 {
+            tp += 1.0;
+        } else {
+            fp += 1.0;
+        }
         points.push((fp / total_neg, tp / total_pos));
     }
     points
 }
 
 /// AUC from ROC curve points.
+#[must_use]
 pub fn auc(points: &[(f64, f64)]) -> f64 {
     let mut area = 0.0;
     for w in points.windows(2) {
@@ -137,7 +162,9 @@ mod tests {
         let x: Vec<Vec<f64>> = (0..20).map(|i| vec![i as f64]).collect();
         let y: Vec<f64> = (0..20).map(|i| if i < 10 { 0.0 } else { 1.0 }).collect();
         let accs = k_fold_cv(&x, &y, 5, 42, |_xtr, _ytr, xte| {
-            xte.iter().map(|row| if row[0] < 10.0 { 0.0 } else { 1.0 }).collect()
+            xte.iter()
+                .map(|row| if row[0] < 10.0 { 0.0 } else { 1.0 })
+                .collect()
         });
         assert_eq!(accs.len(), 5);
         let mean: f64 = accs.iter().sum::<f64>() / 5.0;

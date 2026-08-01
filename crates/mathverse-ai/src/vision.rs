@@ -16,7 +16,7 @@ pub fn patch_embedding(x: &Tensor, patch_size: usize, d_model: usize) -> MathRes
     let channels = x.shape[1];
     let h = x.shape[2];
     let w = x.shape[3];
-    if h % patch_size != 0 || w % patch_size != 0 {
+    if !h.is_multiple_of(patch_size) || !w.is_multiple_of(patch_size) {
         return Err(MathError::InvalidArgument("H and W must be divisible by patch_size"));
     }
     let patches_h = h / patch_size;
@@ -140,6 +140,7 @@ pub fn vit_forward(
                     // Compute scores for this head
                     let mut scores = vec![0.0; seq_len];
                     let mut max_s = f64::NEG_INFINITY;
+                    #[allow(clippy::needless_range_loop)]
                     for j in 0..seq_len {
                         let mut dot = 0.0;
                         for d in 0..d_k {
@@ -150,6 +151,7 @@ pub fn vit_forward(
                         if scores[j] > max_s { max_s = scores[j]; }
                     }
                     let mut sum_exp = 0.0;
+                    #[allow(clippy::needless_range_loop)]
                     for j in 0..seq_len {
                         scores[j] = (scores[j] - max_s).exp();
                         sum_exp += scores[j];
@@ -157,7 +159,8 @@ pub fn vit_forward(
                     let inv = 1.0 / sum_exp.max(f64::EPSILON);
                     for d in 0..d_k {
                         let mut val = 0.0;
-                        for j in 0..seq_len {
+                        #[allow(clippy::needless_range_loop)]
+                    for j in 0..seq_len {
                             val += scores[j] * v.data[bi * seq_len * d_model + j * d_model + h * d_k + d];
                         }
                         attn_out[bi * seq_len * d_model + i * d_model + h * d_k + d] = val * inv;
@@ -235,3 +238,15 @@ mod tests {
         assert!(out.data.iter().all(|&v| v.is_finite()));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+

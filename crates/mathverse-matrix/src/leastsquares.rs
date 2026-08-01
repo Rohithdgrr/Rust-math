@@ -48,8 +48,8 @@ impl LeastSquares {
         
         // Compute residuals
         let ax = m.mul_vec(&mathverse_vector::Vector::new(x.clone()))?;
-        let residuals = b.sub(&ax)?;
-        let residual_norm = crate::norms::MatrixNorms::frobenius(&residuals.to_matrix());
+        let residuals = b.sub(&ax);
+        let residual_norm = crate::norms::MatrixNorms::frobenius(&Matrix::from_vector(&residuals));
         
         let rank = crate::rank::MatrixRank::compute(m, 1e-10)?;
         
@@ -76,8 +76,8 @@ impl LeastSquares {
         
         // Compute residuals
         let ax = m.mul_vec(&x)?;
-        let residuals = b.sub(&ax)?;
-        let residual_norm = crate::norms::MatrixNorms::frobenius(&residuals.to_matrix());
+        let residuals = b.sub(&ax);
+        let residual_norm = crate::norms::MatrixNorms::frobenius(&Matrix::from_vector(&residuals));
         
         let rank = crate::rank::MatrixRank::compute(m, 1e-10)?;
         
@@ -118,8 +118,8 @@ impl LeastSquares {
         
         // Compute residuals
         let ax = m.mul_vec(&x)?;
-        let residuals = b.sub(&ax)?;
-        let residual_norm = crate::norms::MatrixNorms::frobenius(&residuals.to_matrix());
+        let residuals = b.sub(&ax);
+        let residual_norm = crate::norms::MatrixNorms::frobenius(&Matrix::from_vector(&residuals));
         
         Ok(LeastSquaresResult {
             solution: x,
@@ -197,8 +197,8 @@ impl LeastSquares {
         
         // Compute residuals
         let ax = m.mul_vec(&x)?;
-        let residuals = b.sub(&ax)?;
-        let residual_norm = crate::norms::MatrixNorms::frobenius(&residuals.to_matrix());
+        let residuals = b.sub(&ax);
+        let residual_norm = crate::norms::MatrixNorms::frobenius(&Matrix::from_vector(&residuals));
         
         let rank = crate::rank::MatrixRank::compute(m, 1e-10)?;
         
@@ -239,8 +239,8 @@ impl LeastSquares {
         
         // Compute residuals
         let ax = m.mul_vec(&mathverse_vector::Vector::new(x.clone()))?;
-        let residuals = b.sub(&ax)?;
-        let residual_norm = crate::norms::MatrixNorms::frobenius(&residuals.to_matrix());
+        let residuals = b.sub(&ax);
+        let residual_norm = crate::norms::MatrixNorms::frobenius(&Matrix::from_vector(&residuals));
         
         let rank = crate::rank::MatrixRank::compute(m, 1e-10)?;
         
@@ -267,7 +267,7 @@ impl LeastSquares {
         for _ in 0..max_iterations {
             // Compute gradient: A^T (Ax - b)
             let ax = m.mul_vec(&mathverse_vector::Vector::new(x.clone()))?;
-            let residual = ax.sub(b)?;
+            let residual = ax.sub(b);
             let gradient = m.transpose().mul_vec(&residual)?;
             
             // Find most negative gradient among inactive variables
@@ -321,8 +321,8 @@ impl LeastSquares {
         
         // Compute residuals
         let ax = m.mul_vec(&mathverse_vector::Vector::new(x.clone()))?;
-        let residuals = b.sub(&ax)?;
-        let residual_norm = crate::norms::MatrixNorms::frobenius(&residuals.to_matrix());
+        let residuals = b.sub(&ax);
+        let residual_norm = crate::norms::MatrixNorms::frobenius(&Matrix::from_vector(&residuals));
         
         let rank = crate::rank::MatrixRank::compute(m, 1e-10)?;
         

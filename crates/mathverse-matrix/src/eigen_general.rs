@@ -41,9 +41,9 @@ impl GeneralEigen {
             };
             
             let shifted = h.sub(&Matrix::identity(n).scale(shift))?;
-            let (h_q, h_r) = shifted.qr()?;
-            h = h_r.mul(&h_q)?.add(&Matrix::identity(n).scale(shift))?;
-            q = q.mul(&h_q)?;
+            let qr_result = shifted.qr()?;
+            h = qr_result.r.mul(&qr_result.q)?.add(&Matrix::identity(n).scale(shift))?;
+            q = q.mul(&qr_result.q)?;
             
             // Check for convergence
             if Self::is_upper_triangular(&h, 1e-10) {
@@ -237,17 +237,17 @@ impl EigenvalueSensitivity {
     /// Spectral abscissa (maximum real part of eigenvalues).
     pub fn spectral_abscissa(m: &Matrix) -> MathResult<f64> {
         let decomp = GeneralEigen::compute(m)?;
-        decomp.eigenvalues.iter()
+        Ok(decomp.eigenvalues.iter()
             .map(|&lambda| lambda)
-            .fold(f64::NEG_INFINITY, f64::max)
+            .fold(f64::NEG_INFINITY, f64::max))
     }
 
     /// Spectral radius (maximum absolute value of eigenvalues).
     pub fn spectral_radius(m: &Matrix) -> MathResult<f64> {
         let decomp = GeneralEigen::compute(m)?;
-        decomp.eigenvalues.iter()
+        Ok(decomp.eigenvalues.iter()
             .map(|&lambda| lambda.abs())
-            .fold(f64::NEG_INFINITY, f64::max)
+            .fold(f64::NEG_INFINITY, f64::max))
     }
 }
 

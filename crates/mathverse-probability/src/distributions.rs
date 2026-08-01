@@ -1,6 +1,6 @@
 //! Distributions: moments, pmf/pdf, cdf. Sampling lives in the parent module.
 
-use crate::rng::Rng;
+use crate::{rng::Rng, F64Ext};
 
 /// Common moment API for every distribution.
 pub trait Distribution {
@@ -31,6 +31,7 @@ pub trait ContinuousDist: Distribution {
 }
 
 /// `P(X = 1) = p`.
+#[must_use]
 pub struct Bernoulli {
     pub p: f64,
 }
@@ -60,6 +61,7 @@ impl DiscreteDist for Bernoulli {
 }
 
 /// `Binomial(n, p)`: successes in `n` independent trials.
+#[must_use]
 pub struct Binomial {
     pub n: u64,
     pub p: f64,
@@ -87,6 +89,7 @@ impl DiscreteDist for Binomial {
 }
 
 /// `Poisson(λ)`: count of events in a fixed interval.
+#[must_use]
 pub struct Poisson {
     pub lambda: f64,
 }
@@ -116,6 +119,7 @@ impl DiscreteDist for Poisson {
 }
 
 /// `Uniform(a, b)` on `[a, b)`.
+#[must_use]
 pub struct Uniform {
     pub a: f64,
     pub b: f64,
@@ -142,6 +146,7 @@ impl ContinuousDist for Uniform {
 }
 
 /// `Normal(μ, σ)`. CDF via Abramowitz–Stegun erf approximation (|err| < 1.5e-7).
+#[must_use]
 pub struct Normal {
     pub mu: f64,
     pub sigma: f64,
@@ -172,9 +177,12 @@ impl Normal {
     }
 }
 
-pub fn erf(x: f64) -> f64 { crate::special::erf(x) }
+pub fn erf(x: f64) -> f64 {
+    crate::special::erf(x)
+}
 
 /// Exponential distribution with rate λ.
+#[must_use]
 pub struct Exponential {
     pub lambda: f64,
 }
@@ -209,6 +217,7 @@ impl Exponential {
 }
 
 /// Log-normal distribution.
+#[must_use]
 pub struct LogNormal {
     pub mu: f64,
     pub sigma: f64,
@@ -242,12 +251,16 @@ impl ContinuousDist for LogNormal {
 }
 impl LogNormal {
     pub fn sample(&self, rng: &mut Rng) -> f64 {
-        let n = Normal { mu: self.mu, sigma: self.sigma };
+        let n = Normal {
+            mu: self.mu,
+            sigma: self.sigma,
+        };
         n.sample(rng).exp()
     }
 }
 
 /// Weibull distribution.
+#[must_use]
 pub struct Weibull {
     pub shape: f64,
     pub scale: f64,
@@ -267,7 +280,8 @@ impl ContinuousDist for Weibull {
         if x < 0.0 {
             0.0
         } else {
-            (self.shape / self.scale) * (x / self.scale).powf(self.shape - 1.0)
+            (self.shape / self.scale)
+                * (x / self.scale).powf(self.shape - 1.0)
                 * (-(x / self.scale).powf(self.shape)).exp()
         }
     }
@@ -286,6 +300,7 @@ impl Weibull {
 }
 
 /// Chi-squared distribution with k degrees of freedom.
+#[must_use]
 pub struct ChiSquared {
     pub k: f64,
 }
@@ -321,7 +336,10 @@ impl ChiSquared {
     pub fn sample(&self, rng: &mut Rng) -> f64 {
         let mut sum = 0.0;
         for _ in 0..self.k as usize {
-            let n = Normal { mu: 0.0, sigma: 1.0 };
+            let n = Normal {
+                mu: 0.0,
+                sigma: 1.0,
+            };
             let z = n.sample(rng);
             sum += z * z;
         }
@@ -330,6 +348,7 @@ impl ChiSquared {
 }
 
 /// Student's t-distribution with ν degrees of freedom.
+#[must_use]
 pub struct StudentsT {
     pub nu: f64,
 }
@@ -352,7 +371,8 @@ impl Distribution for StudentsT {
 impl ContinuousDist for StudentsT {
     fn pdf(&self, x: f64) -> f64 {
         let nu = self.nu;
-        let coeff = ((1.0 + nu).gamma() / (nu.sqrt() * nu.sqrt() * core::f64::consts::PI * (nu / 2.0).gamma()));
+        let coeff = (1.0 + nu).gamma()
+            / (nu.sqrt() * nu.sqrt() * core::f64::consts::PI * (nu / 2.0).gamma());
         coeff * (1.0 + x * x / nu).powf(-(nu + 1.0) / 2.0)
     }
     fn cdf(&self, x: f64) -> f64 {
@@ -368,6 +388,7 @@ impl ContinuousDist for StudentsT {
 }
 
 /// F-distribution with d1 and d2 degrees of freedom.
+#[must_use]
 pub struct FDistribution {
     pub d1: f64,
     pub d2: f64,
@@ -415,6 +436,7 @@ impl ContinuousDist for FDistribution {
 }
 
 /// Geometric distribution (number of trials until first success).
+#[must_use]
 pub struct Geometric {
     pub p: f64,
 }
@@ -444,6 +466,7 @@ impl DiscreteDist for Geometric {
 }
 
 /// Negative binomial distribution.
+#[must_use]
 pub struct NegativeBinomial {
     pub r: f64,
     pub p: f64,
@@ -472,6 +495,7 @@ impl DiscreteDist for NegativeBinomial {
 }
 
 /// Hypergeometric distribution.
+#[must_use]
 pub struct Hypergeometric {
     pub n: u64,
     pub k: u64,
@@ -496,7 +520,8 @@ impl DiscreteDist for Hypergeometric {
         let x = x as u64;
         let k_choose_x = mathverse_core::algorithms::binomial(self.k, x) as f64;
         let n_minus_k = self.n - self.k;
-        let n_minus_k_choose = mathverse_core::algorithms::binomial(n_minus_k, self.n_draws - x) as f64;
+        let n_minus_k_choose =
+            mathverse_core::algorithms::binomial(n_minus_k, self.n_draws - x) as f64;
         let n_choose = mathverse_core::algorithms::binomial(self.n, self.n_draws) as f64;
         (k_choose_x * n_minus_k_choose) / n_choose
     }
@@ -506,6 +531,7 @@ impl DiscreteDist for Hypergeometric {
 }
 
 /// Cauchy distribution.
+#[must_use]
 pub struct Cauchy {
     pub x0: f64,
     pub gamma: f64,
@@ -533,6 +559,7 @@ impl Cauchy {
 }
 
 /// Laplace distribution.
+#[must_use]
 pub struct Laplace {
     pub mu: f64,
     pub b: f64,
@@ -565,13 +592,14 @@ impl Laplace {
 }
 
 /// Gumbel distribution.
+#[must_use]
 pub struct Gumbel {
     pub mu: f64,
     pub beta: f64,
 }
 impl Distribution for Gumbel {
     fn mean(&self) -> f64 {
-        self.mu + self.beta * 0.57721566490153286060651209008240243104215933593992f64
+        self.mu + self.beta * 0.577_215_664_901_532_9_f64
     }
     fn variance(&self) -> f64 {
         (core::f64::consts::PI * core::f64::consts::PI / 6.0) * self.beta * self.beta
@@ -593,6 +621,7 @@ impl Gumbel {
 }
 
 /// Pareto distribution.
+#[must_use]
 pub struct Pareto {
     pub xm: f64,
     pub alpha: f64,
@@ -636,6 +665,7 @@ impl Pareto {
 }
 
 /// Triangular distribution.
+#[must_use]
 pub struct Triangular {
     pub a: f64,
     pub b: f64,
@@ -682,6 +712,7 @@ impl ContinuousDist for Triangular {
 }
 
 /// Beta distribution.
+#[must_use]
 pub struct Beta {
     pub alpha: f64,
     pub beta: f64,
@@ -718,6 +749,7 @@ impl ContinuousDist for Beta {
 }
 
 /// Gamma distribution.
+#[must_use]
 pub struct Gamma {
     pub shape: f64,
     pub rate: f64,
@@ -763,7 +795,11 @@ fn marsaglia_tsang_gamma(shape: f64, rng: &mut Rng) -> f64 {
     let d = shape - 1.0 / 3.0;
     let c = 1.0 / (9.0 * d).sqrt();
     loop {
-        let x = Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
+        let x = Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        }
+        .sample(rng);
         let v = (1.0 + c * x).powi(3);
         if v <= 0.0 {
             continue;
@@ -778,9 +814,11 @@ fn marsaglia_tsang_gamma(shape: f64, rng: &mut Rng) -> f64 {
     }
 }
 
-pub fn lower_gamma(a: f64, x: f64) -> f64 { crate::special::lower_gamma(a, x) }
+pub fn lower_gamma(a: f64, x: f64) -> f64 {
+    crate::special::lower_gamma(a, x)
+}
 
-trait BetaFunc {
+pub(crate) trait BetaFunc {
     fn beta(self) -> f64;
     fn beta_inc(self, x: f64) -> f64;
 }
@@ -829,7 +867,10 @@ mod tests {
         let u = Uniform { a: 0.0, b: 4.0 };
         assert!((u.mean() - 2.0).abs() < 1e-12);
         assert!((u.variance() - 16.0 / 12.0).abs() < 1e-12);
-        let n = Normal { mu: 0.0, sigma: 1.0 };
+        let n = Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        };
         assert!((n.mean() - 0.0).abs() < 1e-12);
         assert!((n.variance() - 1.0).abs() < 1e-12);
     }
@@ -841,7 +882,10 @@ mod tests {
         assert!((b.cdf(5) - 638.0 / 1024.0).abs() < 1e-12);
         let p = Poisson { lambda: 2.0 };
         assert!((p.pmf(0) - (-2.0f64).exp()).abs() < 1e-12);
-        let n = Normal { mu: 0.0, sigma: 1.0 };
+        let n = Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        };
         assert!((n.cdf(0.0) - 0.5).abs() < 1e-9);
         assert!((n.cdf(1.0) - 0.841344746).abs() < 1e-6);
         assert!((n.cdf(-1.0) - 0.158655254).abs() < 1e-6);
@@ -851,7 +895,10 @@ mod tests {
     #[test]
     fn sampling_empirics() {
         let mut rng = Rng::new(42);
-        let n = Normal { mu: 2.0, sigma: 3.0 };
+        let n = Normal {
+            mu: 2.0,
+            sigma: 3.0,
+        };
         let m: f64 = (0..50_000).map(|_| n.sample(&mut rng)).sum::<f64>() / 50_000.0;
         assert!((m - 2.0).abs() < 0.1, "empirical mean {m}");
         let u = rng.uniform();

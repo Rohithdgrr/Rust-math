@@ -124,7 +124,7 @@ impl PolarApplications {
     /// Matrix sign function using polar decomposition.
     pub fn matrix_sign(m: &Matrix) -> MathResult<Matrix> {
         let polar = PolarDecompositionImpl::compute(m)?;
-        polar.u
+        Ok(polar.u)
     }
 
     /// Orthogonal Procrustes problem: find orthogonal Q minimizing ||AQ - B||_F.

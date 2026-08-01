@@ -26,9 +26,9 @@ impl SchurDecompositionImpl {
         
         // QR iteration
         for _ in 0..100 {
-            let (mut h_q, h_r) = h.qr()?;
-            h = h_r.mul(&h_q)?;
-            q = q.mul(&h_q)?;
+            let qr_result = h.qr()?;
+            h = qr_result.r.mul(&qr_result.q)?;
+            q = q.mul(&qr_result.q)?;
             
             // Check for convergence
             if Self::is_upper_triangular(&h, 1e-10) {

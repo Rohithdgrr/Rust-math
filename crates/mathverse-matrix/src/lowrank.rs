@@ -1,7 +1,7 @@
 //! Low-rank approximation using truncated SVD and other methods.
 
 use crate::Matrix;
-use mathverse_core::error::{MathError, MathResult};
+use mathverse_core::error::MathResult;
 
 /// Low-rank approximation result.
 #[derive(Debug, Clone)]
@@ -89,7 +89,7 @@ impl LowRankApprox {
         
         // Generate random projection matrix
         let mut rng = crate::rng::Rng::new(42);
-        let omega = Matrix::zeros(m_cols, target_rank);
+        let mut omega = Matrix::zeros(m_cols, target_rank);
         for i in 0..m_cols {
             for j in 0..target_rank {
                 omega.set(i, j, rng.uniform() * 2.0 - 1.0);
@@ -126,7 +126,7 @@ impl LowRankApprox {
         }
         
         let s_trunc = svd_b.s[..k_actual].to_vec();
-        let vt_trunc = Matrix::zeros(k_actual, m_cols);
+        let mut vt_trunc = Matrix::zeros(k_actual, m_cols);
         for i in 0..k_actual {
             for j in 0..m_cols {
                 vt_trunc.set(i, j, svd_b.vt.get(i, j));
@@ -207,7 +207,7 @@ impl RankSelection {
         let n = matrix_size as f64;
         let beta = singular_values.len() as f64 / n;
         let tau = 0.56 * beta.powf(3.0) - 0.95 * beta.powf(1.5) + 1.43 * beta.powf(0.5);
-        let threshold = tau * (n as f64).sqrt();
+        let threshold = tau * n.sqrt();
         
         singular_values.iter()
             .take_while(|&&s| s > threshold)
@@ -219,7 +219,7 @@ impl RankSelection {
     pub fn cross_validation(
         m: &Matrix,
         max_rank: usize,
-        folds: usize,
+        _folds: usize,
     ) -> MathResult<usize> {
         let mut best_rank = 1;
         let mut best_error = f64::INFINITY;
@@ -288,7 +288,7 @@ impl MatrixCompletion {
     /// Nuclear norm minimization (simplified).
     pub fn nuclear_norm_minimization(
         observed: &Matrix,
-        mask: &Matrix,
+        _mask: &Matrix,
         max_rank: usize,
     ) -> MathResult<Matrix> {
         // Use low-rank approximation as proxy

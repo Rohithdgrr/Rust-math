@@ -1,6 +1,9 @@
 //! Hypothesis testing: Type I/II errors, power analysis, p-values, likelihood ratio tests, multiple testing.
 
+use crate::distributions::ContinuousDist;
+
 /// Hypothesis test result.
+#[must_use]
 #[derive(Debug, Clone)]
 pub struct TestResult {
     pub test_statistic: f64,
@@ -10,6 +13,7 @@ pub struct TestResult {
 }
 
 impl TestResult {
+    #[must_use]
     pub fn new(test_statistic: f64, p_value: f64, alpha: f64) -> Self {
         TestResult {
             test_statistic,
@@ -21,10 +25,12 @@ impl TestResult {
 }
 
 /// Z-test for known population variance.
+#[must_use]
 pub struct ZTest;
 
 impl ZTest {
     /// One-sample Z-test.
+    #[must_use]
     pub fn one_sample(
         sample_mean: f64,
         population_mean: f64,
@@ -34,11 +40,12 @@ impl ZTest {
     ) -> TestResult {
         let z = (sample_mean - population_mean) / (population_std / (sample_size as f64).sqrt());
         let p_value = Self::p_value(z, alternative);
-        
+
         TestResult::new(z, p_value, 0.05)
     }
 
     /// Two-sample Z-test.
+    #[must_use]
     pub fn two_sample(
         mean1: f64,
         mean2: f64,
@@ -51,7 +58,7 @@ impl ZTest {
         let se = (std1 * std1 / n1 as f64 + std2 * std2 / n2 as f64).sqrt();
         let z = (mean1 - mean2) / se;
         let p_value = Self::p_value(z, alternative);
-        
+
         TestResult::new(z, p_value, 0.05)
     }
 
@@ -59,26 +66,22 @@ impl ZTest {
         let normal_cdf = |x: f64| -> f64 {
             0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
         };
-        
+
         match alternative {
-            AlternativeHypothesis::TwoSided => {
-                2.0 * (1.0 - normal_cdf(z.abs()))
-            }
-            AlternativeHypothesis::Greater => {
-                1.0 - normal_cdf(z)
-            }
-            AlternativeHypothesis::Less => {
-                normal_cdf(z)
-            }
+            AlternativeHypothesis::TwoSided => 2.0 * (1.0 - normal_cdf(z.abs())),
+            AlternativeHypothesis::Greater => 1.0 - normal_cdf(z),
+            AlternativeHypothesis::Less => normal_cdf(z),
         }
     }
 }
 
 /// T-test for unknown population variance.
+#[must_use]
 pub struct TTest;
 
 impl TTest {
     /// One-sample T-test.
+    #[must_use]
     pub fn one_sample(
         sample_mean: f64,
         sample_std: f64,
@@ -89,11 +92,12 @@ impl TTest {
         let t = (sample_mean - population_mean) / (sample_std / (sample_size as f64).sqrt());
         let df = sample_size - 1;
         let p_value = Self::p_value(t, df, alternative);
-        
+
         TestResult::new(t, p_value, 0.05)
     }
 
     /// Two-sample T-test (equal variances).
+    #[must_use]
     pub fn two_sample_equal_var(
         mean1: f64,
         mean2: f64,
@@ -103,17 +107,18 @@ impl TTest {
         n2: usize,
         alternative: AlternativeHypothesis,
     ) -> TestResult {
-        let pooled_std = ((n1 - 1) as f64 * std1 * std1 + (n2 - 1) as f64 * std2 * std2) 
-            / (n1 + n2 - 2) as f64;
+        let pooled_std =
+            ((n1 - 1) as f64 * std1 * std1 + (n2 - 1) as f64 * std2 * std2) / (n1 + n2 - 2) as f64;
         let se = pooled_std.sqrt() * (1.0 / n1 as f64 + 1.0 / n2 as f64).sqrt();
         let t = (mean1 - mean2) / se;
         let df = n1 + n2 - 2;
         let p_value = Self::p_value(t, df, alternative);
-        
+
         TestResult::new(t, p_value, 0.05)
     }
 
     /// Two-sample T-test (unequal variances, Welch's t-test).
+    #[must_use]
     pub fn two_sample_unequal_var(
         mean1: f64,
         mean2: f64,
@@ -125,30 +130,30 @@ impl TTest {
     ) -> TestResult {
         let se = (std1 * std1 / n1 as f64 + std2 * std2 / n2 as f64).sqrt();
         let t = (mean1 - mean2) / se;
-        
+
         // Welch-Satterthwaite degrees of freedom
         let df = (std1 * std1 / n1 as f64 + std2 * std2 / n2 as f64).powi(2)
-            / ((std1 * std1 / n1 as f64).powi(2) / (n1 - 1) as f64 
+            / ((std1 * std1 / n1 as f64).powi(2) / (n1 - 1) as f64
                 + (std2 * std2 / n2 as f64).powi(2) / (n2 - 1) as f64);
-        
+
         let p_value = Self::p_value(t, df as usize, alternative);
-        
+
         TestResult::new(t, p_value, 0.05)
     }
 
     fn p_value(t: f64, df: usize, alternative: AlternativeHypothesis) -> f64 {
         // Approximate t-distribution CDF
         let t_cdf = |x: f64, df: f64| -> f64 {
-            if df > 100 {
+            if df > 100.0 {
                 // Use normal approximation for large df
                 0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
             } else {
                 // Simplified approximation
                 let beta = crate::distributions::Beta {
-                    alpha: df as f64 / 2.0,
+                    alpha: df / 2.0,
                     beta: 0.5,
                 };
-                let z = df as f64 / (df as f64 + x * x);
+                let z = df / (df + x * x);
                 if x >= 0.0 {
                     1.0 - 0.5 * beta.cdf(z)
                 } else {
@@ -156,57 +161,51 @@ impl TTest {
                 }
             }
         };
-        
+
         match alternative {
-            AlternativeHypothesis::TwoSided => {
-                2.0 * (1.0 - t_cdf(t.abs(), df as f64))
-            }
-            AlternativeHypothesis::Greater => {
-                1.0 - t_cdf(t, df as f64)
-            }
-            AlternativeHypothesis::Less => {
-                t_cdf(t, df as f64)
-            }
+            AlternativeHypothesis::TwoSided => 2.0 * (1.0 - t_cdf(t.abs(), df as f64)),
+            AlternativeHypothesis::Greater => 1.0 - t_cdf(t, df as f64),
+            AlternativeHypothesis::Less => t_cdf(t, df as f64),
         }
     }
 }
 
 /// Chi-squared test.
+#[must_use]
 pub struct ChiSquaredTest;
 
 impl ChiSquaredTest {
     /// Chi-squared goodness of fit test.
-    pub fn goodness_of_fit(
-        observed: &[f64],
-        expected: &[f64],
-    ) -> TestResult {
+    #[must_use]
+    pub fn goodness_of_fit(observed: &[f64], expected: &[f64]) -> TestResult {
         if observed.len() != expected.len() {
             return TestResult::new(f64::NAN, 1.0, 0.05);
         }
-        
+
         let mut chi_sq = 0.0;
         for (&o, &e) in observed.iter().zip(expected.iter()) {
             if e > 0.0 {
                 chi_sq += (o - e) * (o - e) / e;
             }
         }
-        
+
         let df = observed.len() - 1;
         let p_value = Self::p_value(chi_sq, df);
-        
+
         TestResult::new(chi_sq, p_value, 0.05)
     }
 
     /// Chi-squared test of independence.
+    #[must_use]
     pub fn independence(contingency: &[Vec<f64>]) -> TestResult {
         let n_rows = contingency.len();
         let n_cols = contingency[0].len();
-        
+
         // Compute row and column totals
         let mut row_totals = vec![0.0; n_rows];
         let mut col_totals = vec![0.0; n_cols];
         let mut total = 0.0;
-        
+
         for i in 0..n_rows {
             for j in 0..n_cols {
                 row_totals[i] += contingency[i][j];
@@ -214,7 +213,7 @@ impl ChiSquaredTest {
                 total += contingency[i][j];
             }
         }
-        
+
         // Compute chi-squared statistic
         let mut chi_sq = 0.0;
         for i in 0..n_rows {
@@ -225,10 +224,10 @@ impl ChiSquaredTest {
                 }
             }
         }
-        
+
         let df = (n_rows - 1) * (n_cols - 1);
         let p_value = Self::p_value(chi_sq, df);
-        
+
         TestResult::new(chi_sq, p_value, 0.05)
     }
 
@@ -242,27 +241,28 @@ impl ChiSquaredTest {
             };
             gamma.cdf(x)
         };
-        
+
         1.0 - chi_sq_cdf(chi_sq, df as f64)
     }
 }
 
 /// F-test.
+#[must_use]
 pub struct FTest;
 
 impl FTest {
     /// F-test for equality of variances.
-    pub fn variance_equality(
-        var1: f64,
-        var2: f64,
-        n1: usize,
-        n2: usize,
-    ) -> TestResult {
-        let f = if var1 > var2 { var1 / var2 } else { var2 / var1 };
+    #[must_use]
+    pub fn variance_equality(var1: f64, var2: f64, n1: usize, n2: usize) -> TestResult {
+        let f = if var1 > var2 {
+            var1 / var2
+        } else {
+            var2 / var1
+        };
         let df1 = n1 - 1;
         let df2 = n2 - 1;
         let p_value = Self::p_value(f, df1, df2);
-        
+
         TestResult::new(f, p_value, 0.05)
     }
 
@@ -276,16 +276,18 @@ impl FTest {
             let z = d1 * x / (d1 * x + d2);
             beta.cdf(z)
         };
-        
-        1.0 - f_cdf(f, df1 as f64, df2 as f64)
+
+        1.0_f64 - f_cdf(f, df1 as f64, df2 as f64)
     }
 }
 
 /// Likelihood ratio test.
+#[must_use]
 pub struct LikelihoodRatioTest;
 
 impl LikelihoodRatioTest {
     /// Likelihood ratio test statistic.
+    #[must_use]
     pub fn test_statistic(
         log_likelihood_null: f64,
         log_likelihood_alt: f64,
@@ -293,7 +295,7 @@ impl LikelihoodRatioTest {
     ) -> TestResult {
         let lr_stat = 2.0 * (log_likelihood_alt - log_likelihood_null);
         let p_value = ChiSquaredTest::p_value(lr_stat, df);
-        
+
         TestResult::new(lr_stat, p_value, 0.05)
     }
 }
@@ -306,10 +308,12 @@ pub enum AlternativeHypothesis {
 }
 
 /// Power analysis.
+#[must_use]
 pub struct PowerAnalysis;
 
 impl PowerAnalysis {
     /// Calculate power of a test.
+    #[must_use]
     pub fn calculate_power(
         effect_size: f64,
         sample_size: usize,
@@ -338,11 +342,12 @@ impl PowerAnalysis {
     }
 
     /// Required sample size for desired power.
+    #[must_use]
     pub fn required_sample_size(
         effect_size: f64,
         alpha: f64,
         desired_power: f64,
-        test_type: TestType,
+        _test_type: TestType,
     ) -> usize {
         let z_alpha = Self::critical_z(alpha);
         let z_beta = Self::critical_z(1.0 - desired_power);
@@ -355,7 +360,7 @@ impl PowerAnalysis {
         let normal_cdf = |x: f64| -> f64 {
             0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
         };
-        
+
         // Binary search for critical value
         let mut low = 0.0;
         let mut high = 5.0;
@@ -378,94 +383,93 @@ pub enum TestType {
 }
 
 /// Multiple testing correction.
+#[must_use]
 pub struct MultipleTesting;
 
 impl MultipleTesting {
     /// Bonferroni correction.
+    #[must_use]
     pub fn bonferroni(p_values: &[f64], alpha: f64) -> Vec<bool> {
         let corrected_alpha = alpha / p_values.len() as f64;
         p_values.iter().map(|&p| p < corrected_alpha).collect()
     }
 
     /// Holm-Bonferroni correction (step-down).
+    #[must_use]
     pub fn holm_bonferroni(p_values: &[f64], alpha: f64) -> Vec<bool> {
         let n = p_values.len();
-        let mut indexed: Vec<(usize, f64)> = p_values.iter()
-            .cloned()
-            .enumerate()
-            .collect();
+        let mut indexed: Vec<(usize, f64)> = p_values.iter().cloned().enumerate().collect();
         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        
+
         let mut rejected = vec![false; n];
         let mut alpha_i = alpha;
-        
-        for (i, (idx, &p)) in indexed.iter().enumerate() {
-            if p < alpha_i {
+
+        for (i, (idx, p)) in indexed.iter().enumerate() {
+            if *p < alpha_i {
                 rejected[*idx] = true;
             } else {
                 break;
             }
             alpha_i = alpha / (n - i - 1) as f64;
         }
-        
+
         rejected
     }
 
     /// Benjamini-Hochberg procedure (FDR control).
+    #[must_use]
     pub fn benjamini_hochberg(p_values: &[f64], q: f64) -> Vec<bool> {
         let n = p_values.len();
-        let mut indexed: Vec<(usize, f64)> = p_values.iter()
-            .cloned()
-            .enumerate()
-            .collect();
+        let mut indexed: Vec<(usize, f64)> = p_values.iter().cloned().enumerate().collect();
         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        
+
         let mut rejected = vec![false; n];
         let mut max_idx = None;
-        
-        for (i, (idx, &p)) in indexed.iter().enumerate() {
+
+        for (i, (_idx, p)) in indexed.iter().enumerate() {
             let threshold = (i + 1) as f64 * q / n as f64;
-            if p <= threshold {
+            if *p <= threshold {
                 max_idx = Some(i);
             }
         }
-        
+
         if let Some(max_i) = max_idx {
             for (idx, _) in indexed.iter().take(max_i + 1) {
                 rejected[*idx] = true;
             }
         }
-        
+
         rejected
     }
 
     /// False discovery rate estimation.
+    #[must_use]
     pub fn estimate_fdr(p_values: &[f64], threshold: f64) -> f64 {
         let n = p_values.len();
         let significant = p_values.iter().filter(|&&p| p < threshold).count();
-        
+
         if significant == 0 {
             return 0.0;
         }
-        
+
         let expected_false = threshold * n as f64;
         expected_false / significant as f64
     }
 }
 
 /// Neyman-Pearson lemma.
+#[must_use]
 pub struct NeymanPearson;
 
 impl NeymanPearson {
     /// Most powerful test for simple hypotheses.
-    pub fn most_powerful_test(
-        likelihood_ratio: f64,
-        threshold: f64,
-    ) -> bool {
+    #[must_use]
+    pub fn most_powerful_test(likelihood_ratio: f64, threshold: f64) -> bool {
         likelihood_ratio > threshold
     }
 
     /// Likelihood ratio for simple hypotheses.
+    #[must_use]
     pub fn likelihood_ratio(
         x: f64,
         null_pdf: impl Fn(f64) -> f64,
@@ -473,7 +477,7 @@ impl NeymanPearson {
     ) -> f64 {
         let p_null = null_pdf(x);
         let p_alt = alt_pdf(x);
-        
+
         if p_null > 0.0 {
             p_alt / p_null
         } else {
@@ -483,18 +487,16 @@ impl NeymanPearson {
 }
 
 /// Sequential probability ratio test (SPRT).
+#[must_use]
 pub struct SPRT;
 
 impl SPRT {
     /// Wald's SPRT.
-    pub fn test(
-        log_likelihood_ratio: f64,
-        alpha: f64,
-        beta: f64,
-    ) -> SPRTDecision {
+    #[must_use]
+    pub fn test(log_likelihood_ratio: f64, alpha: f64, beta: f64) -> SPRTDecision {
         let a = (beta / (1.0 - alpha)).ln();
         let b = ((1.0 - beta) / alpha).ln();
-        
+
         if log_likelihood_ratio >= b {
             SPRTDecision::RejectNull
         } else if log_likelihood_ratio <= a {
@@ -551,7 +553,7 @@ mod tests {
 
     #[test]
     fn test_sprt() {
-        let decision = SPRT::test(2.0, 0.05, 0.1);
+        let decision = SPRT::test(3.5, 0.05, 0.1);
         assert!(matches!(decision, SPRTDecision::RejectNull));
     }
 }

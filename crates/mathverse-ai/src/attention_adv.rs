@@ -94,12 +94,12 @@ pub fn grouped_query_attention(
     let q_dim = q.shape[2];
     let seq_kv = k.shape[1];
     let kv_dim = k.shape[2];
-    if kv_dim % num_groups != 0 {
+    if !kv_dim.is_multiple_of(num_groups) {
         return Err(MathError::InvalidArgument("kv_dim must be divisible by num_groups"));
     }
     let d_k = kv_dim / num_groups;
     let num_heads = q_dim / d_k;
-    if q_dim % d_k != 0 {
+    if !q_dim.is_multiple_of(d_k) {
         return Err(MathError::InvalidArgument("q_dim must be divisible by d_k (kv_dim/num_groups)"));
     }
 
@@ -112,6 +112,7 @@ pub fn grouped_query_attention(
             for i in 0..seq_q {
                 let mut scores = vec![0.0; seq_kv];
                 let mut max_s = f64::NEG_INFINITY;
+                #[allow(clippy::needless_range_loop)]
                 for j in 0..seq_kv {
                     let mut dot = 0.0;
                     for d in 0..d_k {
@@ -123,6 +124,7 @@ pub fn grouped_query_attention(
                     if scores[j] > max_s { max_s = scores[j]; }
                 }
                 let mut sum_exp = 0.0;
+                #[allow(clippy::needless_range_loop)]
                 for j in 0..seq_kv {
                     scores[j] = (scores[j] - max_s).exp();
                     sum_exp += scores[j];
@@ -130,7 +132,8 @@ pub fn grouped_query_attention(
                 let inv = 1.0 / sum_exp.max(f64::EPSILON);
                 for d in 0..d_k {
                     let mut val = 0.0;
-                    for j in 0..seq_kv {
+                    #[allow(clippy::needless_range_loop)]
+                for j in 0..seq_kv {
                         let v_idx = bi * seq_kv * kv_dim + j * kv_dim + g * d_k + d;
                         val += scores[j] * v.data[v_idx];
                     }
@@ -207,6 +210,7 @@ pub fn cross_attention(
         for i in 0..seq_q {
             for d in 0..d_model {
                 let mut val = 0.0;
+                #[allow(clippy::needless_range_loop)]
                 for j in 0..seq_kv {
                     val += scores[bi * seq_q * seq_kv + i * seq_kv + j]
                         * value.data[bi * seq_kv * d_model + j * d_model + d];
@@ -291,7 +295,7 @@ pub fn linear_attention(q: &Tensor, k: &Tensor, v: &Tensor) -> MathResult<Tensor
 #[cfg(test)]
 mod tests {
     use super::*;
-    const E: f64 = 1e-4;
+    const E: f64 = 1e-6;
 
     #[test]
     fn flash_attention_matches_standard() {
@@ -302,7 +306,7 @@ mod tests {
         let out = flash_attention(&q, &k, &v, 2).unwrap();
         assert_eq!(out.shape, vec![1, 3, 4]);
         // Output should be finite and non-zero
-        assert!(out.data.iter().any(|&x| x.abs() > 1e-6));
+        assert!(out.data.iter().any(|&x| x.abs() > E));
         assert!(out.data.iter().all(|&x| x.is_finite()));
     }
 
@@ -361,3 +365,16 @@ mod tests {
         assert!(out.data.iter().all(|&x| x.is_finite()));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

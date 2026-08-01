@@ -15,17 +15,22 @@ pub fn rank(vectors: &[Vec<f64>]) -> usize {
     let n_cols = mat[0].len();
     for col in 0..n_cols {
         let mut pivot_row = None;
-        for row in rank..n_rows {
-            if mat[row][col].abs() > 1e-10 { pivot_row = Some(row); break; }
+        for (row_idx, row) in mat.iter().enumerate().skip(rank) {
+            if row[col].abs() > 1e-10 { pivot_row = Some(row_idx); break; }
         }
         if let Some(pr) = pivot_row {
             mat.swap(rank, pr);
             let pivot = mat[rank][col];
-            for j in 0..n_cols { mat[rank][j] /= pivot; }
-            for row in 0..n_rows {
-                if row != rank && mat[row][col].abs() > 1e-10 {
-                    let factor = mat[row][col];
-                    for j in 0..n_cols { mat[row][j] -= factor * mat[rank][j]; }
+            let rank_row = mat[rank].clone();
+            for val in mat[rank].iter_mut() {
+                *val /= pivot;
+            }
+            for (row_idx, row) in mat.iter_mut().enumerate() {
+                if row_idx != rank && row[col].abs() > 1e-10 {
+                    let factor = row[col];
+                    for (j, val) in row.iter_mut().enumerate() {
+                        *val -= factor * rank_row[j];
+                    }
                 }
             }
             rank += 1;

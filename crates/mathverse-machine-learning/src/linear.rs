@@ -5,14 +5,19 @@ use mathverse_core::error::{MathError, MathResult};
 /// Linear regression result.
 #[derive(Debug, Clone)]
 pub struct LinearResult {
+    /// Regression coefficients for each feature.
     pub coefficients: Vec<f64>,
+    /// Intercept (bias) term.
     pub intercept: f64,
+    /// R-squared goodness-of-fit metric.
     pub r_squared: f64,
+    /// Residuals (actual − predicted) for each sample.
     pub residuals: Vec<f64>,
 }
 
 /// Ordinary least squares linear regression.
-/// `x`: [n_samples × n_features], `y`: [n_samples].
+/// `x`: \[n_samples × n_features\], `y`: \[n_samples\].
+#[must_use]
 pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<LinearResult> {
     let n = y.len();
     let p = x[0].len();
@@ -39,22 +44,48 @@ pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<LinearResult> {
     let mut ss_tot = 0.0;
     let y_mean: f64 = y.iter().sum::<f64>() / n as f64;
     for i in 0..n {
-        let pred = intercept + x[i].iter().zip(&coefficients).map(|(xi, ci)| xi * ci).sum::<f64>();
+        let pred = intercept
+            + x[i]
+                .iter()
+                .zip(&coefficients)
+                .map(|(xi, ci)| xi * ci)
+                .sum::<f64>();
         let r = y[i] - pred;
         residuals.push(r);
         ss_res += r * r;
         ss_tot += (y[i] - y_mean).powi(2);
     }
-    let r_squared = if ss_tot == 0.0 { 1.0 } else { 1.0 - ss_res / ss_tot };
-    Ok(LinearResult { coefficients, intercept, r_squared, residuals })
+    let r_squared = if ss_tot == 0.0 {
+        1.0
+    } else {
+        1.0 - ss_res / ss_tot
+    };
+    Ok(LinearResult {
+        coefficients,
+        intercept,
+        r_squared,
+        residuals,
+    })
 }
 
 /// Predict using fitted coefficients.
+#[must_use]
+#[inline]
 pub fn predict(x: &[Vec<f64>], coefficients: &[f64], intercept: f64) -> Vec<f64> {
-    x.iter().map(|row| intercept + row.iter().zip(coefficients).map(|(xi, ci)| xi * ci).sum::<f64>()).collect()
+    x.iter()
+        .map(|row| {
+            intercept
+                + row
+                    .iter()
+                    .zip(coefficients)
+                    .map(|(xi, ci)| xi * ci)
+                    .sum::<f64>()
+        })
+        .collect()
 }
 
 /// Ridge regression (L2 penalty).
+#[must_use]
 pub fn fit_ridge(x: &[Vec<f64>], y: &[f64], alpha: f64) -> MathResult<LinearResult> {
     let n = y.len();
     let p = x[0].len();
@@ -84,26 +115,51 @@ pub fn fit_ridge(x: &[Vec<f64>], y: &[f64], alpha: f64) -> MathResult<LinearResu
     let mut ss_tot = 0.0;
     let y_mean: f64 = y.iter().sum::<f64>() / n as f64;
     for i in 0..n {
-        let pred = intercept + x[i].iter().zip(&coefficients).map(|(xi, ci)| xi * ci).sum::<f64>();
+        let pred = intercept
+            + x[i]
+                .iter()
+                .zip(&coefficients)
+                .map(|(xi, ci)| xi * ci)
+                .sum::<f64>();
         let r = y[i] - pred;
         residuals.push(r);
         ss_res += r * r;
         ss_tot += (y[i] - y_mean).powi(2);
     }
-    let r_squared = if ss_tot == 0.0 { 1.0 } else { 1.0 - ss_res / ss_tot };
-    Ok(LinearResult { coefficients, intercept, r_squared, residuals })
+    let r_squared = if ss_tot == 0.0 {
+        1.0
+    } else {
+        1.0 - ss_res / ss_tot
+    };
+    Ok(LinearResult {
+        coefficients,
+        intercept,
+        r_squared,
+        residuals,
+    })
 }
 
 /// Lasso regression (L1 penalty) via coordinate descent.
-pub fn fit_lasso(x: &[Vec<f64>], y: &[f64], alpha: f64, max_iters: usize, tol: f64) -> MathResult<LinearResult> {
+#[must_use]
+pub fn fit_lasso(
+    x: &[Vec<f64>],
+    y: &[f64],
+    alpha: f64,
+    max_iters: usize,
+    tol: f64,
+) -> MathResult<LinearResult> {
     let n = y.len();
     let p = x[0].len();
     let mut coef = vec![0.0; p];
     let mut intercept = y.iter().sum::<f64>() / n as f64;
     // Precompute column means and residual
-    let mut residual: Vec<f64> = y.iter().enumerate().map(|(i, &yi)| {
-        yi - intercept - x[i].iter().zip(&coef).map(|(xi, ci)| xi * ci).sum::<f64>()
-    }).collect();
+    let mut residual: Vec<f64> = y
+        .iter()
+        .enumerate()
+        .map(|(i, &yi)| {
+            yi - intercept - x[i].iter().zip(&coef).map(|(xi, ci)| xi * ci).sum::<f64>()
+        })
+        .collect();
     for _iter in 0..max_iters {
         let mut max_change = 0.0;
         for j in 0..p {
@@ -113,7 +169,9 @@ pub fn fit_lasso(x: &[Vec<f64>], y: &[f64], alpha: f64, max_iters: usize, tol: f
             let old = coef[j];
             coef[j] = soft_threshold(rho, alpha) / z.max(1e-10);
             let change = (coef[j] - old).abs();
-            if change > max_change { max_change = change; }
+            if change > max_change {
+                max_change = change;
+            }
             // Update residual
             for i in 0..n {
                 residual[i] -= x[i][j] * (coef[j] - old);
@@ -122,8 +180,12 @@ pub fn fit_lasso(x: &[Vec<f64>], y: &[f64], alpha: f64, max_iters: usize, tol: f
         // Update intercept
         let mean_res: f64 = residual.iter().sum::<f64>() / n as f64;
         intercept += mean_res;
-        for r in residual.iter_mut() { *r -= mean_res; }
-        if max_change < tol { break; }
+        for r in residual.iter_mut() {
+            *r -= mean_res;
+        }
+        if max_change < tol {
+            break;
+        }
     }
     let mut residuals = Vec::with_capacity(n);
     let mut ss_res = 0.0;
@@ -136,12 +198,27 @@ pub fn fit_lasso(x: &[Vec<f64>], y: &[f64], alpha: f64, max_iters: usize, tol: f
         ss_res += r * r;
         ss_tot += (y[i] - y_mean).powi(2);
     }
-    let r_squared = if ss_tot == 0.0 { 1.0 } else { 1.0 - ss_res / ss_tot };
-    Ok(LinearResult { coefficients: coef, intercept, r_squared, residuals })
+    let r_squared = if ss_tot == 0.0 {
+        1.0
+    } else {
+        1.0 - ss_res / ss_tot
+    };
+    Ok(LinearResult {
+        coefficients: coef,
+        intercept,
+        r_squared,
+        residuals,
+    })
 }
 
 fn soft_threshold(x: f64, lambda: f64) -> f64 {
-    if x > lambda { x - lambda } else if x < -lambda { x + lambda } else { 0.0 }
+    if x > lambda {
+        x - lambda
+    } else if x < -lambda {
+        x + lambda
+    } else {
+        0.0
+    }
 }
 
 fn solve_symmetric(a: &[Vec<f64>], b: &[f64]) -> MathResult<Vec<f64>> {
@@ -153,10 +230,18 @@ fn solve_symmetric(a: &[Vec<f64>], b: &[f64]) -> MathResult<Vec<f64>> {
     for i in 0..n {
         for j in 0..=i {
             let mut sum = 0.0;
-            for k in 0..j { sum += l[i][k] * l[j][k]; }
+            for k in 0..j {
+                sum += l[i][k] * l[j][k];
+            }
             let diag = a[i][i] - sum;
-            if diag <= 0.0 { return Err(MathError::Singular); }
-            l[i][j] = if i == j { diag.sqrt() } else { (a[i][j] - sum) / l[j][j] };
+            if diag <= 0.0 {
+                return Err(MathError::Singular);
+            }
+            l[i][j] = if i == j {
+                diag.sqrt()
+            } else {
+                (a[i][j] - sum) / l[j][j]
+            };
         }
     }
     // Forward solve Ly = b
@@ -191,7 +276,12 @@ mod tests {
 
     #[test]
     fn fit_2d() {
-        let x = vec![vec![1.0, 2.0], vec![2.0, 1.0], vec![3.0, 4.0], vec![4.0, 3.0]];
+        let x = vec![
+            vec![1.0, 2.0],
+            vec![2.0, 1.0],
+            vec![3.0, 4.0],
+            vec![4.0, 3.0],
+        ];
         let y: Vec<f64> = x.iter().map(|r| 2.0 * r[0] + 3.0 * r[1]).collect();
         let r = fit(&x, &y).unwrap();
         assert!((r.coefficients[0] - 2.0).abs() < E);

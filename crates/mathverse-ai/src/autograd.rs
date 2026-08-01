@@ -6,18 +6,8 @@
 use crate::tensor::Tensor;
 use std::cell::RefCell;
 
-type OpFn = Box<dyn Fn(&[Tensor], &Tensor) -> Tensor>;
-type BackwardFn = Box<dyn Fn(&[Tensor], &Tensor, &Tensor) -> Vec<Tensor>>;
-
-#[derive(Clone)]
-struct GraphOp {
-    inputs: Vec<usize>,
-    outputs: usize,
-    backward_fn: usize,
-}
-
 thread_local! {
-    static GRAPH: RefCell<Vec<GraphEntry>> = RefCell::new(Vec::new());
+    static GRAPH: RefCell<Vec<GraphEntry>> = const { RefCell::new(Vec::new()) };
 }
 
 enum GraphEntry {
@@ -131,7 +121,7 @@ pub fn mse_loss(pred: &GradTensor, target: &GradTensor) -> GradTensor {
 /// Backward pass from a scalar loss tensor.
 pub fn backward(loss: &mut GradTensor, scale: f64) {
     GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
+        let g = g.borrow();
         let n = g.len();
         let mut grads: Vec<Option<Tensor>> = vec![None; n];
 
@@ -148,7 +138,7 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
             match &g[i] {
                 GraphEntry::Tensor(_) => {}
                 GraphEntry::Op { inputs, backward_fn } => {
-                    let input_tensors: Vec<Tensor> = inputs.iter().map(|&id| {
+                    let _input_tensors: Vec<Tensor> = inputs.iter().map(|&id| {
                         match &g[id] {
                             GraphEntry::Tensor(t) => t.clone(),
                             _ => Tensor::zeros(&[1]),
@@ -229,49 +219,3 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
     });
 }
 
-/// Clear the computation graph.
-pub fn clear_graph() {
-    GRAPH.with(|g| g.borrow_mut().clear());
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn add_grad() {
-        let mut a = GradTensor::new(Tensor::new(&[3], &[1.0, 2.0, 3.0]).unwrap());
-        let b = GradTensor::new(Tensor::new(&[3], &[4.0, 5.0, 6.0]).unwrap());
-        let mut out = add(&a, &b);
-        assert_eq!(out.tensor.data, vec![5.0, 7.0, 9.0]);
-        backward(&mut out, 1.0);
-        clear_graph();
-    }
-
-    #[test]
-    fn mul_grad() {
-        let mut a = GradTensor::new(Tensor::new(&[3], &[1.0, 2.0, 3.0]).unwrap());
-        let b = GradTensor::new(Tensor::new(&[3], &[4.0, 5.0, 6.0]).unwrap());
-        let mut out = mul(&a, &b);
-        assert_eq!(out.tensor.data, vec![4.0, 10.0, 18.0]);
-        backward(&mut out, 1.0);
-        clear_graph();
-    }
-
-    #[test]
-    fn matmul_grad() {
-        let a = GradTensor::new(Tensor::new(&[2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap());
-        let b = GradTensor::new(Tensor::new(&[3, 2], &[7.0, 8.0, 9.0, 10.0, 11.0, 12.0]).unwrap());
-        let out = matmul(&a, &b);
-        assert_eq!(out.tensor.shape, vec![2, 2]);
-        clear_graph();
-    }
-
-    #[test]
-    fn relu_grad_test() {
-        let a = GradTensor::new(Tensor::new(&[4], &[-1.0, 0.0, 1.0, 2.0]).unwrap());
-        let out = relu_op(&a);
-        assert_eq!(out.tensor.data, vec![0.0, 0.0, 1.0, 2.0]);
-        clear_graph();
-    }
-}

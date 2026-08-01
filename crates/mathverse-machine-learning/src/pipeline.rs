@@ -1,27 +1,48 @@
-use mathverse_core::error::{MathError, MathResult};
-use std::f64;
 use std::fs;
 use std::io::{Read, Write};
 
+/// A single step in a preprocessing/model pipeline.
 #[derive(Debug, Clone)]
 pub enum PipelineStep {
+    /// Standardize features to zero mean and unit variance.
     Standardize,
+    /// Scale features to [0, 1] range.
     MinMax,
-    PCA { n_components: usize },
-    FeatureSelect { k: usize },
+    /// Reduce dimensionality via PCA.
+    Pca {
+        /// Number of components to keep.
+        n_components: usize,
+    },
+    /// Select top features by correlation with target.
+    FeatureSelect {
+        /// Number of top features to select.
+        k: usize,
+    },
+    /// Train a model as the final pipeline step.
     Model(ModelType),
 }
 
+/// Supported model types for the pipeline.
 #[derive(Debug, Clone)]
 pub enum ModelType {
+    /// Linear regression.
     Linear,
+    /// Logistic regression.
     Logistic,
-    KNN { k: usize },
+    /// K-nearest neighbors.
+    Knn {
+        /// Number of nearest neighbors.
+        k: usize,
+    },
+    /// Decision tree (single stump).
     DecisionTree,
+    /// Random forest of 5 decision stumps.
     RandomForest,
-    SVM,
+    /// Support vector machine with linear kernel.
+    Svm,
 }
 
+/// Sequential pipeline of preprocessing steps and a final model.
 #[derive(Debug, Clone)]
 pub struct Pipeline {
     steps: Vec<PipelineStep>,
@@ -30,21 +51,49 @@ pub struct Pipeline {
 
 #[derive(Debug, Clone)]
 enum FittedParams {
-    Standardize { means: Vec<f64>, stds: Vec<f64> },
-    MinMax { mins: Vec<f64>, maxs: Vec<f64> },
-    PCA { components: Vec<Vec<f64>>, means: Vec<f64> },
-    FeatureSelect { selected: Vec<usize> },
+    Standardize {
+        means: Vec<f64>,
+        stds: Vec<f64>,
+    },
+    MinMax {
+        mins: Vec<f64>,
+        maxs: Vec<f64>,
+    },
+    Pca {
+        components: Vec<Vec<f64>>,
+        means: Vec<f64>,
+    },
+    FeatureSelect {
+        selected: Vec<usize>,
+    },
     Model(ModelFitted),
 }
 
 #[derive(Debug, Clone)]
 enum ModelFitted {
-    Linear { weights: Vec<f64>, bias: f64 },
-    Logistic { weights: Vec<f64>, bias: f64 },
-    KNN { train_x: Vec<Vec<f64>>, train_y: Vec<f64>, k: usize },
-    DecisionTree { tree: SimpleTree },
-    RandomForest { trees: Vec<SimpleTree> },
-    SVM { weights: Vec<f64>, bias: f64 },
+    Linear {
+        weights: Vec<f64>,
+        bias: f64,
+    },
+    Logistic {
+        weights: Vec<f64>,
+        bias: f64,
+    },
+    Knn {
+        train_x: Vec<Vec<f64>>,
+        train_y: Vec<f64>,
+        k: usize,
+    },
+    DecisionTree {
+        tree: SimpleTree,
+    },
+    RandomForest {
+        trees: Vec<SimpleTree>,
+    },
+    Svm {
+        weights: Vec<f64>,
+        bias: f64,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +105,9 @@ struct SimpleTree {
 }
 
 impl Pipeline {
+    /// Creates a new pipeline with the given steps.
+    #[must_use]
+    #[inline]
     pub fn new(steps: Vec<PipelineStep>) -> Self {
         Self {
             steps,
@@ -63,6 +115,7 @@ impl Pipeline {
         }
     }
 
+    /// Fits all pipeline steps on training data.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         self.fitted_params.clear();
         let mut current_x = x.to_vec();
@@ -72,7 +125,8 @@ impl Pipeline {
                 PipelineStep::Standardize => {
                     let (means, stds) = compute_mean_std(&current_x);
                     let standardized = standardize(&current_x, &means, &stds);
-                    self.fitted_params.push(FittedParams::Standardize { means, stds });
+                    self.fitted_params
+                        .push(FittedParams::Standardize { means, stds });
                     current_x = standardized;
                 }
                 PipelineStep::MinMax => {
@@ -81,11 +135,12 @@ impl Pipeline {
                     self.fitted_params.push(FittedParams::MinMax { mins, maxs });
                     current_x = minmaxed;
                 }
-                PipelineStep::PCA { n_components } => {
+                PipelineStep::Pca { n_components } => {
                     let n = *n_components;
                     let (components, means) = compute_pca(&current_x, n);
                     let projected = apply_pca(&current_x, &components, &means);
-                    self.fitted_params.push(FittedParams::PCA { components, means });
+                    self.fitted_params
+                        .push(FittedParams::Pca { components, means });
                     current_x = projected;
                 }
                 PipelineStep::FeatureSelect { k } => {
@@ -94,7 +149,8 @@ impl Pipeline {
                         .iter()
                         .map(|row| selected.iter().map(|&i| row[i]).collect())
                         .collect();
-                    self.fitted_params.push(FittedParams::FeatureSelect { selected });
+                    self.fitted_params
+                        .push(FittedParams::FeatureSelect { selected });
                     current_x = selected_x;
                 }
                 PipelineStep::Model(model_type) => {
@@ -105,6 +161,8 @@ impl Pipeline {
         }
     }
 
+    /// Transforms and predicts using the fitted pipeline.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         let mut current_x = x.to_vec();
 
@@ -116,7 +174,7 @@ impl Pipeline {
                 FittedParams::MinMax { mins, maxs } => {
                     current_x = min_max_scale(&current_x, mins, maxs);
                 }
-                FittedParams::PCA { components, means } => {
+                FittedParams::Pca { components, means } => {
                     current_x = apply_pca(&current_x, components, means);
                 }
                 FittedParams::FeatureSelect { selected } => {
@@ -145,7 +203,11 @@ fn compute_mean_std(x: &[Vec<f64>]) -> (Vec<f64>, Vec<f64>) {
         .collect();
     let stds: Vec<f64> = (0..n_cols)
         .map(|col| {
-            let var = x.iter().map(|row| (row[col] - means[col]).powi(2)).sum::<f64>() / n;
+            let var = x
+                .iter()
+                .map(|row| (row[col] - means[col]).powi(2))
+                .sum::<f64>()
+                / n;
             var.sqrt().max(1e-10)
         })
         .collect();
@@ -206,10 +268,14 @@ fn compute_pca(x: &[Vec<f64>], n_components: usize) -> (Vec<Vec<f64>>, Vec<f64>)
         .map(|col| x.iter().map(|row| row[col]).sum::<f64>() / x.len() as f64)
         .collect();
 
-    // Simplified PCA using variance-based component selection
+    // Simplified Pca using variance-based component selection
     let mut variances: Vec<(usize, f64)> = (0..n_cols)
         .map(|col| {
-            let var = x.iter().map(|row| (row[col] - means[col]).powi(2)).sum::<f64>() / x.len() as f64;
+            let var = x
+                .iter()
+                .map(|row| (row[col] - means[col]).powi(2))
+                .sum::<f64>()
+                / x.len() as f64;
             (col, var)
         })
         .collect();
@@ -258,8 +324,14 @@ fn select_top_k_features(x: &[Vec<f64>], y: &[f64], k: usize) -> Vec<usize> {
     let mut correlations: Vec<(usize, f64)> = (0..n_cols)
         .map(|col| {
             let mean_x: f64 = x.iter().map(|row| row[col]).sum::<f64>() / x.len() as f64;
-            let var_x: f64 = x.iter().map(|row| (row[col] - mean_x).powi(2)).sum::<f64>() / x.len() as f64;
-            let cov: f64 = x.iter().zip(y.iter()).map(|(row, yi)| (row[col] - mean_x) * (yi - mean_y)).sum::<f64>() / x.len() as f64;
+            let var_x: f64 =
+                x.iter().map(|row| (row[col] - mean_x).powi(2)).sum::<f64>() / x.len() as f64;
+            let cov: f64 = x
+                .iter()
+                .zip(y.iter())
+                .map(|(row, yi)| (row[col] - mean_x) * (yi - mean_y))
+                .sum::<f64>()
+                / x.len() as f64;
             let corr = if var_x > 1e-10 && var_y > 1e-10 {
                 cov / (var_x.sqrt() * var_y.sqrt())
             } else {
@@ -276,31 +348,44 @@ fn fit_model(model_type: &ModelType, x: &[Vec<f64>], y: &[f64]) -> ModelFitted {
     match model_type {
         ModelType::Linear => {
             let (w, b) = fit_linear(x, y);
-            ModelFitted::Linear { weights: w, bias: b }
+            ModelFitted::Linear {
+                weights: w,
+                bias: b,
+            }
         }
         ModelType::Logistic => {
             let (w, b) = fit_logistic(x, y);
-            ModelFitted::Logistic { weights: w, bias: b }
+            ModelFitted::Logistic {
+                weights: w,
+                bias: b,
+            }
         }
-        ModelType::KNN { k } => {
-            ModelFitted::KNN { train_x: x.to_vec(), train_y: y.to_vec(), k: *k }
-        }
+        ModelType::Knn { k } => ModelFitted::Knn {
+            train_x: x.to_vec(),
+            train_y: y.to_vec(),
+            k: *k,
+        },
         ModelType::DecisionTree => {
             let tree = fit_decision_stump(x, y);
             ModelFitted::DecisionTree { tree }
         }
         ModelType::RandomForest => {
-            let trees: Vec<SimpleTree> = (0..5).map(|i| {
-                let indices: Vec<usize> = (0..x.len()).map(|j| (j + i * 7) % x.len()).collect();
-                let bx: Vec<Vec<f64>> = indices.iter().map(|&i| x[i].clone()).collect();
-                let by: Vec<f64> = indices.iter().map(|&i| y[i]).collect();
-                fit_decision_stump(&bx, &by)
-            }).collect();
+            let trees: Vec<SimpleTree> = (0..5)
+                .map(|i| {
+                    let indices: Vec<usize> = (0..x.len()).map(|j| (j + i * 7) % x.len()).collect();
+                    let bx: Vec<Vec<f64>> = indices.iter().map(|&i| x[i].clone()).collect();
+                    let by: Vec<f64> = indices.iter().map(|&i| y[i]).collect();
+                    fit_decision_stump(&bx, &by)
+                })
+                .collect();
             ModelFitted::RandomForest { trees }
         }
-        ModelType::SVM => {
+        ModelType::Svm => {
             let (w, b) = fit_svm_simplified(x, y);
-            ModelFitted::SVM { weights: w, bias: b }
+            ModelFitted::Svm {
+                weights: w,
+                bias: b,
+            }
         }
     }
 }
@@ -352,7 +437,12 @@ fn fit_logistic(x: &[Vec<f64>], y: &[f64]) -> (Vec<f64>, f64) {
 
 fn fit_decision_stump(x: &[Vec<f64>], y: &[f64]) -> SimpleTree {
     if x.is_empty() {
-        return SimpleTree { feature: 0, threshold: 0.0, left_value: 0.0, right_value: 0.0 };
+        return SimpleTree {
+            feature: 0,
+            threshold: 0.0,
+            left_value: 0.0,
+            right_value: 0.0,
+        };
     }
     let n_features = x[0].len();
     let mut best_mse = f64::INFINITY;
@@ -362,11 +452,17 @@ fn fit_decision_stump(x: &[Vec<f64>], y: &[f64]) -> SimpleTree {
     let mut best_right = 0.0;
 
     for feat in 0..n_features {
-        let mut vals: Vec<(f64, f64)> = x.iter().zip(y.iter()).map(|(r, &yi)| (r[feat], yi)).collect();
+        let mut vals: Vec<(f64, f64)> = x
+            .iter()
+            .zip(y.iter())
+            .map(|(r, &yi)| (r[feat], yi))
+            .collect();
         vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
         for i in 0..vals.len() - 1 {
-            if vals[i].0 == vals[i + 1].0 { continue; }
+            if vals[i].0 == vals[i + 1].0 {
+                continue;
+            }
             let thresh = (vals[i].0 + vals[i + 1].0) / 2.0;
             let left: Vec<f64> = vals[..=i].iter().map(|&(_, y)| y).collect();
             let right: Vec<f64> = vals[i + 1..].iter().map(|&(_, y)| y).collect();
@@ -384,14 +480,18 @@ fn fit_decision_stump(x: &[Vec<f64>], y: &[f64]) -> SimpleTree {
         }
     }
 
-    SimpleTree { feature: best_feature, threshold: best_threshold, left_value: best_left, right_value: best_right }
+    SimpleTree {
+        feature: best_feature,
+        threshold: best_threshold,
+        left_value: best_left,
+        right_value: best_right,
+    }
 }
 
 fn fit_svm_simplified(x: &[Vec<f64>], y: &[f64]) -> (Vec<f64>, f64) {
     let mut w = vec![0.0; x[0].len()];
     let mut b = 0.0;
     let lr = 0.01;
-    let c = 1.0;
 
     for _ in 0..200 {
         for (xi, &yi) in x.iter().zip(y.iter()) {
@@ -414,65 +514,96 @@ fn fit_svm_simplified(x: &[Vec<f64>], y: &[f64]) -> (Vec<f64>, f64) {
 
 fn predict_model(model: &ModelFitted, x: &[Vec<f64>]) -> Vec<f64> {
     match model {
-        ModelFitted::Linear { weights, bias } => {
-            x.iter()
-                .map(|xi| weights.iter().zip(xi.iter()).map(|(w, x)| w * x).sum::<f64>() + bias)
-                .collect()
-        }
-        ModelFitted::Logistic { weights, bias } => {
-            x.iter()
-                .map(|xi| {
-                    let logit: f64 = weights.iter().zip(xi.iter()).map(|(w, x)| w * x).sum::<f64>() + bias;
-                    1.0 / (1.0 + (-logit).exp())
-                })
-                .collect()
-        }
-        ModelFitted::KNN { train_x, train_y, k } => {
-            x.iter()
-                .map(|xi| {
-                    let mut dists: Vec<(f64, f64)> = train_x
-                        .iter()
-                        .zip(train_y.iter())
-                        .map(|(tx, &ty)| {
-                            let d: f64 = xi.iter().zip(tx.iter()).map(|(a, b)| (a - b).powi(2)).sum();
-                            (d, ty)
-                        })
-                        .collect();
-                    dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-                    let kk = (*k).min(dists.len());
-                    dists[..kk].iter().map(|&(_, y)| y).sum::<f64>() / kk as f64
-                })
-                .collect()
-        }
-        ModelFitted::DecisionTree { tree } => {
-            x.iter()
-                .map(|xi| {
-                    if xi[tree.feature] <= tree.threshold { tree.left_value } else { tree.right_value }
-                })
-                .collect()
-        }
-        ModelFitted::RandomForest { trees } => {
-            x.iter()
-                .map(|xi| {
-                    let preds: Vec<f64> = trees
-                        .iter()
-                        .map(|t| if xi[t.feature] <= t.threshold { t.left_value } else { t.right_value })
-                        .collect();
-                    preds.iter().sum::<f64>() / preds.len() as f64
-                })
-                .collect()
-        }
-        ModelFitted::SVM { weights, bias } => {
-            x.iter()
-                .map(|xi| {
-                    let d: f64 = weights.iter().zip(xi.iter()).map(|(w, x)| w * x).sum::<f64>() + bias;
-                    if d > 0.0 { 1.0 } else { 0.0 }
-                })
-                .collect()
-        }
+        ModelFitted::Linear { weights, bias } => x
+            .iter()
+            .map(|xi| {
+                weights
+                    .iter()
+                    .zip(xi.iter())
+                    .map(|(w, x)| w * x)
+                    .sum::<f64>()
+                    + bias
+            })
+            .collect(),
+        ModelFitted::Logistic { weights, bias } => x
+            .iter()
+            .map(|xi| {
+                let logit: f64 = weights
+                    .iter()
+                    .zip(xi.iter())
+                    .map(|(w, x)| w * x)
+                    .sum::<f64>()
+                    + bias;
+                1.0 / (1.0 + (-logit).exp())
+            })
+            .collect(),
+        ModelFitted::Knn {
+            train_x,
+            train_y,
+            k,
+        } => x
+            .iter()
+            .map(|xi| {
+                let mut dists: Vec<(f64, f64)> = train_x
+                    .iter()
+                    .zip(train_y.iter())
+                    .map(|(tx, &ty)| {
+                        let d: f64 = xi.iter().zip(tx.iter()).map(|(a, b)| (a - b).powi(2)).sum();
+                        (d, ty)
+                    })
+                    .collect();
+                dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+                let kk = (*k).min(dists.len());
+                dists[..kk].iter().map(|&(_, y)| y).sum::<f64>() / kk as f64
+            })
+            .collect(),
+        ModelFitted::DecisionTree { tree } => x
+            .iter()
+            .map(|xi| {
+                if xi[tree.feature] <= tree.threshold {
+                    tree.left_value
+                } else {
+                    tree.right_value
+                }
+            })
+            .collect(),
+        ModelFitted::RandomForest { trees } => x
+            .iter()
+            .map(|xi| {
+                let preds: Vec<f64> = trees
+                    .iter()
+                    .map(|t| {
+                        if xi[t.feature] <= t.threshold {
+                            t.left_value
+                        } else {
+                            t.right_value
+                        }
+                    })
+                    .collect();
+                preds.iter().sum::<f64>() / preds.len() as f64
+            })
+            .collect(),
+        ModelFitted::Svm { weights, bias } => x
+            .iter()
+            .map(|xi| {
+                let d: f64 = weights
+                    .iter()
+                    .zip(xi.iter())
+                    .map(|(w, x)| w * x)
+                    .sum::<f64>()
+                    + bias;
+                if d > 0.0 {
+                    1.0
+                } else {
+                    0.0
+                }
+            })
+            .collect(),
     }
 }
 
+/// Serializes a pipeline to a file using Debug format.
+#[must_use]
 pub fn save_pipeline(pipeline: &Pipeline, path: &str) -> std::io::Result<()> {
     let serialized = format!("{:?}", pipeline);
     let mut file = fs::File::create(path)?;
@@ -480,19 +611,20 @@ pub fn save_pipeline(pipeline: &Pipeline, path: &str) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Loads a pipeline from a file (not yet implemented).
+#[must_use]
 pub fn load_pipeline(path: &str) -> std::io::Result<Pipeline> {
     let mut file = fs::File::open(path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     // Simple parsing - just return a default pipeline for now
     // In production, use serde
-    Err(std::io::Error::new(
-        std::io::ErrorKind::Other,
+    Err(std::io::Error::other(
         "Pipeline deserialization not yet implemented",
     ))
 }
 
-// SVM regularization constant
+// Svm regularization constant
 const C: f64 = 1.0;
 
 #[cfg(test)]
@@ -535,7 +667,12 @@ mod tests {
 
     #[test]
     fn test_pipeline_fit_predict() {
-        let x = vec![vec![1.0, 2.0], vec![3.0, 4.0], vec![5.0, 6.0], vec![7.0, 8.0]];
+        let x = vec![
+            vec![1.0, 2.0],
+            vec![3.0, 4.0],
+            vec![5.0, 6.0],
+            vec![7.0, 8.0],
+        ];
         let y = vec![0.0, 0.0, 1.0, 1.0];
         let mut pipeline = Pipeline::new(vec![
             PipelineStep::Standardize,
@@ -552,7 +689,7 @@ mod tests {
         let y = vec![0.0, 0.0, 1.0, 1.0];
         let mut pipeline = Pipeline::new(vec![
             PipelineStep::MinMax,
-            PipelineStep::Model(ModelType::KNN { k: 2 }),
+            PipelineStep::Model(ModelType::Knn { k: 2 }),
         ]);
         pipeline.fit(&x, &y);
         let preds = pipeline.predict(&x);
@@ -561,11 +698,14 @@ mod tests {
 
     #[test]
     fn test_pipeline_decision_tree() {
-        let x = vec![vec![0.0, 1.0], vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
+        let x = vec![
+            vec![0.0, 1.0],
+            vec![1.0, 2.0],
+            vec![2.0, 3.0],
+            vec![3.0, 4.0],
+        ];
         let y = vec![0.0, 0.0, 1.0, 1.0];
-        let mut pipeline = Pipeline::new(vec![
-            PipelineStep::Model(ModelType::DecisionTree),
-        ]);
+        let mut pipeline = Pipeline::new(vec![PipelineStep::Model(ModelType::DecisionTree)]);
         pipeline.fit(&x, &y);
         let preds = pipeline.predict(&x);
         assert_eq!(preds.len(), 4);

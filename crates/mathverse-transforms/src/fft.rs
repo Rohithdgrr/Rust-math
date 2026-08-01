@@ -71,7 +71,7 @@ pub fn cross_correlation(a: &[f64], b: &[f64]) -> Vec<f64> {
     for i in 0..b.len() { fb[i] = Complex::real(b[i]); }
     let pa = fft(&fa).unwrap();
     let pb = fft(&fb).unwrap();
-    let product: Vec<Complex> = pa.iter().zip(&pb).map(|(a, b)| a * b.conjugate()).collect();
+    let product: Vec<Complex> = pa.iter().zip(pb.iter()).map(|(a, b)| *a * b.conjugate()).collect();
     let result = ifft(&product).unwrap();
     result.iter().map(|c| c.re).collect()
 }

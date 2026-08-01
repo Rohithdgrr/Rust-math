@@ -29,6 +29,12 @@ pub struct Sequential {
     pub layers: Vec<Layer>,
 }
 
+impl Default for Sequential {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Sequential {
     pub fn new() -> Self { Self { layers: Vec::new() } }
 
@@ -200,3 +206,4 @@ mod tests {
         assert_eq!(out.shape, vec![2, 8, 16]);
     }
 }
+

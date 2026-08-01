@@ -241,6 +241,15 @@ impl MatrixSquareRoot {
 pub struct MatrixFunctions;
 
 impl MatrixFunctions {
+    /// Compute factorial for Taylor series coefficients.
+    fn factorial(n: u64) -> f64 {
+        if n == 0 || n == 1 {
+            1.0
+        } else {
+            (2..=n).fold(1.0_f64, |acc, i| acc * i as f64)
+        }
+    }
+
     /// Apply scalar function to matrix element-wise.
     pub fn elementwise(m: &Matrix, f: impl Fn(f64) -> f64) -> Matrix {
         Matrix {
@@ -292,7 +301,7 @@ impl MatrixFunctions {
         let mut sign = 1.0;
         
         for k in 1..=20 {
-            let coeff = sign / mathverse_core::factorial(k as u64) as f64;
+            let coeff = sign / Self::factorial(k as u64);
             result = result.add(&term.scale(coeff))?;
             term = term.mul(m)?;
             sign = -sign;
@@ -318,7 +327,7 @@ impl MatrixFunctions {
         let mut sign = -1.0;
         
         for k in 2..=20 {
-            let coeff = sign / mathverse_core::factorial(k as u64) as f64;
+            let coeff = sign / Self::factorial(k as u64);
             result = result.add(&term.scale(coeff))?;
             term = term.mul(m)?;
             sign = -sign;
@@ -336,14 +345,14 @@ impl MatrixFunctions {
     pub fn sinh(m: &Matrix) -> MathResult<Matrix> {
         let exp_m = MatrixExponential::compute(m)?;
         let exp_neg_m = MatrixExponential::compute(&m.scale(-1.0))?;
-        exp_m.sub(&exp_neg_m)?.scale(0.5)
+        Ok(exp_m.sub(&exp_neg_m)?.scale(0.5))
     }
 
     /// Matrix hyperbolic cosine.
     pub fn cosh(m: &Matrix) -> MathResult<Matrix> {
         let exp_m = MatrixExponential::compute(m)?;
         let exp_neg_m = MatrixExponential::compute(&m.scale(-1.0))?;
-        exp_m.add(&exp_neg_m)?.scale(0.5)
+        Ok(exp_m.add(&exp_neg_m)?.scale(0.5))
     }
 
     /// Matrix absolute value (element-wise).

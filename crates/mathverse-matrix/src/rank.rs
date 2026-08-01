@@ -82,7 +82,7 @@ impl MatrixRank {
         
         // Generate random projection matrix
         let mut rng = crate::rng::Rng::new(42);
-        let omega = Matrix::zeros(m_cols, k);
+        let mut omega = Matrix::zeros(m_cols, k);
         for i in 0..m_cols {
             for j in 0..k {
                 omega.set(i, j, rng.uniform() * 2.0 - 1.0);
@@ -249,7 +249,7 @@ impl RankRevealing {
                 let norm: f64 = (0..m_rows)
                     .map(|i| a.get(i, j).abs())
                     .map(|x| x * x)
-                    .sum()
+                    .sum::<f64>()
                     .sqrt();
                 if norm > max_norm {
                     max_norm = norm;

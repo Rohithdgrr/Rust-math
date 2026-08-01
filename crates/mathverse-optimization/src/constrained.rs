@@ -1,4 +1,4 @@
-pub fn lagrangian(f: &dyn Fn(&[f64]) -> f64, g: &[dyn Fn(&[f64]) -> f64], x0: &[f64], lr: f64, tol: f64, max_iters: usize) -> Vec<f64> {
+pub fn lagrangian(f: &dyn Fn(&[f64]) -> f64, g: &[Box<dyn Fn(&[f64]) -> f64>], x0: &[f64], lr: f64, tol: f64, max_iters: usize) -> Vec<f64> {
     let n = x0.len();
     let m = g.len();
     let mut x = x0.to_vec();
@@ -34,7 +34,7 @@ pub fn lagrangian(f: &dyn Fn(&[f64]) -> f64, g: &[dyn Fn(&[f64]) -> f64], x0: &[
     x
 }
 
-pub fn penalty_method(f: &dyn Fn(&[f64]) -> f64, g: &[dyn Fn(&[f64]) -> f64], x0: &[f64], mu: f64, tol: f64, max_outer: usize, max_inner: usize) -> Vec<f64> {
+pub fn penalty_method(f: &dyn Fn(&[f64]) -> f64, g: &[Box<dyn Fn(&[f64]) -> f64>], x0: &[f64], mu: f64, tol: f64, max_outer: usize, max_inner: usize) -> Vec<f64> {
     let n = x0.len();
     let mut x = x0.to_vec();
     let mut mu = mu;
@@ -62,7 +62,7 @@ pub fn penalty_method(f: &dyn Fn(&[f64]) -> f64, g: &[dyn Fn(&[f64]) -> f64], x0
     x
 }
 
-pub fn augmented_lagrangian(f: &dyn Fn(&[f64]) -> f64, g: &[dyn Fn(&[f64]) -> f64], x0: &[f64], mu: f64, tol: f64, max_outer: usize) -> Vec<f64> {
+pub fn augmented_lagrangian(f: &dyn Fn(&[f64]) -> f64, g: &[Box<dyn Fn(&[f64]) -> f64>], x0: &[f64], mu: f64, tol: f64, max_outer: usize) -> Vec<f64> {
     let n = x0.len();
     let m = g.len();
     let mut x = x0.to_vec();

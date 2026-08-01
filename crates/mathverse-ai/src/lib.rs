@@ -1,4 +1,22 @@
 //! AI/ML mathematical primitives: tensors, activations, losses, optimizers, attention, layers, models.
+//!
+//! # Features
+//!
+//! - N-dimensional tensor with broadcasting, reshaping, and element-wise math
+//! - Activation functions: ReLU, GELU, Swish, Mish, Softmax, Sigmoid, Tanh, and more
+//! - Loss functions: MSE, MAE, Huber, Cross-Entropy, Binary Cross-Entropy, KL Divergence, Hinge
+//! - Evaluation metrics: Accuracy, Precision, Recall, F1, Confusion Matrix, ROC AUC, R², Explained Variance
+//! - Stateful optimizers: SGD (with momentum), Adam, AdamW
+//! - Learning rate schedulers: Constant, Step Decay, Cosine Annealing, Linear Warmup
+//! - Attention math: QKV projection, scaled dot-product attention, multi-head attention
+//! - Positional encodings: sinusoidal (additive), rotary (RoPE)
+//! - Layer/Batch/RMS normalization
+
+#![warn(missing_docs)]
+#![forbid(unsafe_code)]
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+
+extern crate alloc;
 
 pub mod tensor;
 pub mod activations;

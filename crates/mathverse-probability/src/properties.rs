@@ -86,6 +86,7 @@ impl SampleMoments {
     }
 
     /// Compute percentile from sorted samples.
+    #[must_use]
     pub fn percentile(sorted_data: &[f64], p: f64) -> f64 {
         if sorted_data.is_empty() {
             return f64::NAN;
@@ -109,6 +110,7 @@ impl SampleMoments {
     }
 
     /// Compute interquartile range (IQR).
+    #[must_use]
     pub fn iqr(sorted_data: &[f64]) -> f64 {
         let q75 = Self::percentile(sorted_data, 0.75);
         let q25 = Self::percentile(sorted_data, 0.25);
@@ -137,7 +139,6 @@ impl OrderStatistics {
         let pivot_index = Self::partition(data, left, right);
 
         if k == pivot_index {
-            return;
         } else if k < pivot_index {
             Self::quickselect(data, k, left, pivot_index);
         } else {
@@ -159,6 +160,7 @@ impl OrderStatistics {
     }
 
     /// Compute minimum and maximum.
+    #[must_use]
     pub fn range(data: &[f64]) -> (f64, f64) {
         if data.is_empty() {
             return (f64::NAN, f64::NAN);
@@ -245,10 +247,10 @@ mod tests {
     fn test_percentile() {
         let mut data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        
+
         let median = SampleMoments::percentile(&data, 0.5);
         assert!((median - 5.5).abs() < 1e-10);
-        
+
         let q25 = SampleMoments::percentile(&data, 0.25);
         assert!((q25 - 3.25).abs() < 1e-10);
     }
@@ -258,7 +260,7 @@ mod tests {
         let mut data = vec![5.0, 3.0, 1.0, 4.0, 2.0];
         let min = OrderStatistics::kth_smallest(&mut data, 1).unwrap();
         assert!((min - 1.0).abs() < 1e-10);
-        
+
         let max = OrderStatistics::kth_smallest(&mut data, 5).unwrap();
         assert!((max - 5.0).abs() < 1e-10);
     }
@@ -276,6 +278,6 @@ mod tests {
         let mut data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let iqr = SampleMoments::iqr(&data);
-        assert!((iqr - 5.0).abs() < 1e-10);
+        assert!((iqr - 4.5).abs() < 1e-10);
     }
 }

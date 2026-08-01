@@ -251,6 +251,15 @@ impl MatrixPolynomial {
 pub struct MatrixSeriesFunctions;
 
 impl MatrixSeriesFunctions {
+    /// Compute factorial for Taylor series coefficients.
+    fn factorial(n: u64) -> f64 {
+        if n == 0 || n == 1 {
+            1.0
+        } else {
+            (2..=n).fold(1.0_f64, |acc, i| acc * i as f64)
+        }
+    }
+
     /// Matrix sine via Taylor series.
     pub fn sin(m: &Matrix, terms: usize) -> MathResult<Matrix> {
         if !m.is_square() {
@@ -263,7 +272,7 @@ impl MatrixSeriesFunctions {
         let mut sign = 1.0;
         
         for k in 1..=terms {
-            let factorial = mathverse_core::factorial((2 * k - 1) as u64) as f64;
+            let factorial = Self::factorial((2 * k - 1) as u64);
             let coeff = sign / factorial;
             result = result.add(&term.scale(coeff))?;
             term = term.mul(m)?.mul(m)?;
@@ -291,7 +300,7 @@ impl MatrixSeriesFunctions {
         
         for k in 1..=terms {
             term = term.mul(m)?.mul(m)?;
-            let factorial = mathverse_core::factorial((2 * k) as u64) as f64;
+            let factorial = Self::factorial((2 * k) as u64);
             let coeff = sign / factorial;
             result = result.add(&term.scale(coeff))?;
             sign = -sign;
@@ -309,14 +318,14 @@ impl MatrixSeriesFunctions {
     pub fn sinh(m: &Matrix, terms: usize) -> MathResult<Matrix> {
         let sin = Self::sin(m, terms)?;
         let sin_neg = Self::sin(&m.scale(-1.0), terms)?;
-        sin.sub(&sin_neg)?.scale(0.5)
+        Ok(sin.sub(&sin_neg)?.scale(0.5))
     }
 
     /// Matrix hyperbolic cosine.
     pub fn cosh(m: &Matrix, terms: usize) -> MathResult<Matrix> {
         let cos = Self::cos(m, terms)?;
         let cos_neg = Self::cos(&m.scale(-1.0), terms)?;
-        cos.add(&cos_neg)?.scale(0.5)
+        Ok(cos.add(&cos_neg)?.scale(0.5))
     }
 }
 

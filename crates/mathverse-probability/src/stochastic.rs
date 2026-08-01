@@ -1,14 +1,16 @@
 //! Stochastic processes: random walks, Brownian motion, Poisson processes, Gaussian processes.
 
-use crate::rng::Rng;
+use crate::{distributions::DiscreteDist, rng::Rng};
 
 /// Simple random walk.
+#[must_use]
 pub struct RandomWalk {
     pub step_size: f64,
     pub current: f64,
 }
 
 impl RandomWalk {
+    #[must_use]
     pub fn new(step_size: f64, initial: f64) -> Self {
         RandomWalk {
             step_size,
@@ -34,6 +36,7 @@ impl RandomWalk {
 }
 
 /// Brownian motion (Wiener process).
+#[must_use]
 pub struct BrownianMotion {
     pub dt: f64,
     pub current: f64,
@@ -41,6 +44,7 @@ pub struct BrownianMotion {
 }
 
 impl BrownianMotion {
+    #[must_use]
     pub fn new(dt: f64, initial: f64) -> Self {
         BrownianMotion {
             dt,
@@ -51,7 +55,12 @@ impl BrownianMotion {
 
     /// Simulate one step of Brownian motion.
     pub fn step(&mut self, rng: &mut Rng) -> f64 {
-        let increment = (self.dt).sqrt() * crate::distributions::Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
+        let increment = (self.dt).sqrt()
+            * crate::distributions::Normal {
+                mu: 0.0,
+                sigma: 1.0,
+            }
+            .sample(rng);
         self.current += increment;
         self.time += self.dt;
         self.current
@@ -68,16 +77,21 @@ impl BrownianMotion {
 
     /// Geometric Brownian motion (used in Black-Scholes).
     pub fn geometric_step(&mut self, drift: f64, volatility: f64, rng: &mut Rng) -> f64 {
-        let z = crate::distributions::Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
-        let increment = (drift - 0.5 * volatility * volatility) * self.dt 
-            + volatility * (self.dt).sqrt() * z;
-        self.current = self.current * increment.exp();
+        let z = crate::distributions::Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        }
+        .sample(rng);
+        let increment =
+            (drift - 0.5 * volatility * volatility) * self.dt + volatility * (self.dt).sqrt() * z;
+        self.current *= increment.exp();
         self.time += self.dt;
         self.current
     }
 }
 
 /// Poisson process.
+#[must_use]
 pub struct PoissonProcess {
     pub rate: f64,
     pub current_time: f64,
@@ -85,6 +99,7 @@ pub struct PoissonProcess {
 }
 
 impl PoissonProcess {
+    #[must_use]
     pub fn new(rate: f64) -> Self {
         PoissonProcess {
             rate,
@@ -94,6 +109,7 @@ impl PoissonProcess {
     }
 
     /// Time until next event (exponentially distributed).
+    #[must_use]
     pub fn time_to_next_event(&self, rng: &mut Rng) -> f64 {
         let u = rng.uniform().max(1e-300);
         -u.ln() / self.rate
@@ -102,35 +118,40 @@ impl PoissonProcess {
     /// Simulate events up to time T.
     pub fn simulate(&mut self, t_max: f64, rng: &mut Rng) -> Vec<f64> {
         let mut event_times = Vec::new();
-        
+
         while self.current_time < t_max {
             let dt = self.time_to_next_event(rng);
             self.current_time += dt;
-            
+
             if self.current_time <= t_max {
                 event_times.push(self.current_time);
                 self.event_count += 1;
             }
         }
-        
+
         event_times
     }
 
     /// Number of events in time interval [0, t].
+    #[must_use]
     pub fn count_in_interval(&self, t: f64, rng: &mut Rng) -> u64 {
-        let poisson = crate::distributions::Poisson { lambda: self.rate * t };
+        let poisson = crate::distributions::Poisson {
+            lambda: self.rate * t,
+        };
         poisson.sample(rng) as u64
     }
 }
 
 /// Gaussian process.
+#[must_use]
 pub struct GaussianProcess {
     pub mean_fn: Box<dyn Fn(f64) -> f64>,
     pub kernel_fn: Box<dyn Fn(f64, f64) -> f64>,
 }
 
 impl GaussianProcess {
-    pub fn new<F1, F2>(mean_fn: F1, kernel_fn: F2) -> Self 
+    #[must_use]
+    pub fn new<F1, F2>(mean_fn: F1, kernel_fn: F2) -> Self
     where
         F1: Fn(f64) -> f64 + 'static,
         F2: Fn(f64, f64) -> f64 + 'static,
@@ -142,6 +163,7 @@ impl GaussianProcess {
     }
 
     /// Squared exponential (RBF) kernel.
+    #[must_use]
     pub fn rbf_kernel(length_scale: f64, variance: f64) -> Box<dyn Fn(f64, f64) -> f64> {
         Box::new(move |x1, x2| {
             let diff = x1 - x2;
@@ -150,11 +172,16 @@ impl GaussianProcess {
     }
 
     /// Matérn kernel.
-    pub fn matern_kernel(length_scale: f64, variance: f64, nu: f64) -> Box<dyn Fn(f64, f64) -> f64> {
+    #[must_use]
+    pub fn matern_kernel(
+        length_scale: f64,
+        variance: f64,
+        nu: f64,
+    ) -> Box<dyn Fn(f64, f64) -> f64> {
         Box::new(move |x1, x2| {
             let diff = (x1 - x2).abs();
-            let sqrt_2_nu_diff = (2.0_f64.sqrt() * nu.sqrt() * diff / length_scale);
-            let bessel = if sqrt_2_nu_diff < 1e-10 {
+            let sqrt_2_nu_diff = 2.0_f64.sqrt() * nu.sqrt() * diff / length_scale;
+            let _bessel = if sqrt_2_nu_diff < 1e-10 {
                 1.0
             } else {
                 // Simplified Bessel function approximation
@@ -165,6 +192,7 @@ impl GaussianProcess {
     }
 
     /// Sample from the GP at given points.
+    #[must_use]
     pub fn sample(&self, x_points: &[f64], rng: &mut Rng) -> Vec<f64> {
         let n = x_points.len();
         if n == 0 {
@@ -190,15 +218,17 @@ impl GaussianProcess {
 }
 
 /// Ornstein-Uhlenbeck process (mean-reverting).
+#[must_use]
 pub struct OrnsteinUhlenbeck {
-    pub theta: f64,  // Mean reversion level
-    pub mu: f64,      // Mean
-    pub sigma: f64,   // Volatility
+    pub theta: f64, // Mean reversion level
+    pub mu: f64,    // Mean
+    pub sigma: f64, // Volatility
     pub current: f64,
     pub dt: f64,
 }
 
 impl OrnsteinUhlenbeck {
+    #[must_use]
     pub fn new(theta: f64, mu: f64, sigma: f64, initial: f64, dt: f64) -> Self {
         OrnsteinUhlenbeck {
             theta,
@@ -211,7 +241,11 @@ impl OrnsteinUhlenbeck {
 
     /// Simulate one step using Euler-Maruyama.
     pub fn step(&mut self, rng: &mut Rng) -> f64 {
-        let z = crate::distributions::Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
+        let z = crate::distributions::Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        }
+        .sample(rng);
         let drift = self.theta * (self.mu - self.current) * self.dt;
         let diffusion = self.sigma * (self.dt).sqrt() * z;
         self.current += drift + diffusion;
@@ -229,10 +263,11 @@ impl OrnsteinUhlenbeck {
 }
 
 /// Jump diffusion process (Merton's model).
+#[must_use]
 pub struct JumpDiffusion {
     pub drift: f64,
     pub volatility: f64,
-    pub jump_intensity: f64,  // Poisson rate
+    pub jump_intensity: f64, // Poisson rate
     pub jump_mean: f64,
     pub jump_vol: f64,
     pub current: f64,
@@ -240,7 +275,16 @@ pub struct JumpDiffusion {
 }
 
 impl JumpDiffusion {
-    pub fn new(drift: f64, volatility: f64, jump_intensity: f64, jump_mean: f64, jump_vol: f64, initial: f64, dt: f64) -> Self {
+    #[must_use]
+    pub fn new(
+        drift: f64,
+        volatility: f64,
+        jump_intensity: f64,
+        jump_mean: f64,
+        jump_vol: f64,
+        initial: f64,
+        dt: f64,
+    ) -> Self {
         JumpDiffusion {
             drift,
             volatility,
@@ -255,33 +299,46 @@ impl JumpDiffusion {
     /// Simulate one step.
     pub fn step(&mut self, rng: &mut Rng) -> f64 {
         // Continuous part
-        let z = crate::distributions::Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
-        let continuous = (self.drift - 0.5 * self.volatility * self.volatility) * self.dt 
+        let z = crate::distributions::Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        }
+        .sample(rng);
+        let continuous = (self.drift - 0.5 * self.volatility * self.volatility) * self.dt
             + self.volatility * (self.dt).sqrt() * z;
-        
+
         // Jump part
-        let n_jumps = crate::distributions::Poisson { lambda: self.jump_intensity * self.dt }.sample(rng);
+        let n_jumps = crate::distributions::Poisson {
+            lambda: self.jump_intensity * self.dt,
+        }
+        .sample(rng);
         let mut jump_sum = 0.0;
         for _ in 0..n_jumps.max(0) {
-            let jump_z = crate::distributions::Normal { mu: self.jump_mean, sigma: self.jump_vol }.sample(rng);
+            let jump_z = crate::distributions::Normal {
+                mu: self.jump_mean,
+                sigma: self.jump_vol,
+            }
+            .sample(rng);
             jump_sum += jump_z;
         }
-        
-        self.current = self.current * (continuous + jump_sum).exp();
+
+        self.current *= (continuous + jump_sum).exp();
         self.current
     }
 }
 
 /// Levy process (simplified).
+#[must_use]
 pub struct LevyProcess {
-    pub alpha: f64,  // Stability parameter
-    pub beta: f64,   // Skewness
+    pub alpha: f64, // Stability parameter
+    pub beta: f64,  // Skewness
     pub scale: f64,
     pub current: f64,
     pub dt: f64,
 }
 
 impl LevyProcess {
+    #[must_use]
     pub fn new(alpha: f64, beta: f64, scale: f64, initial: f64, dt: f64) -> Self {
         LevyProcess {
             alpha,
@@ -296,14 +353,26 @@ impl LevyProcess {
     pub fn step(&mut self, rng: &mut Rng) -> f64 {
         // Simplified: use normal for alpha=2, Cauchy for alpha=1
         let increment = if (self.alpha - 2.0).abs() < 0.01 {
-            crate::distributions::Normal { mu: 0.0, sigma: self.scale * (self.dt).sqrt() }.sample(rng)
+            crate::distributions::Normal {
+                mu: 0.0,
+                sigma: self.scale * (self.dt).sqrt(),
+            }
+            .sample(rng)
         } else if (self.alpha - 1.0).abs() < 0.01 {
-            crate::distributions::Cauchy { x0: 0.0, gamma: self.scale * self.dt }.sample(rng)
+            crate::distributions::Cauchy {
+                x0: 0.0,
+                gamma: self.scale * self.dt,
+            }
+            .sample(rng)
         } else {
             // General case: use normal approximation
-            crate::distributions::Normal { mu: 0.0, sigma: self.scale * (self.dt).sqrt() }.sample(rng)
+            crate::distributions::Normal {
+                mu: 0.0,
+                sigma: self.scale * (self.dt).sqrt(),
+            }
+            .sample(rng)
         };
-        
+
         self.current += increment;
         self.current
     }
@@ -335,7 +404,7 @@ mod tests {
         let mut rng = Rng::new(42);
         let mut pp = PoissonProcess::new(2.0);
         let events = pp.simulate(5.0, &mut rng);
-        assert!(events.len() > 0);
+        assert!(!events.is_empty());
         for &t in &events {
             assert!(t <= 5.0);
         }
@@ -352,10 +421,7 @@ mod tests {
     #[test]
     fn test_gaussian_process() {
         let mut rng = Rng::new(42);
-        let gp = GaussianProcess::new(
-            |_| 0.0,
-            GaussianProcess::rbf_kernel(1.0, 1.0),
-        );
+        let gp = GaussianProcess::new(|_| 0.0, GaussianProcess::rbf_kernel(1.0, 1.0));
         let x_points = vec![0.0, 0.5, 1.0, 1.5, 2.0];
         let samples = gp.sample(&x_points, &mut rng);
         assert_eq!(samples.len(), 5);

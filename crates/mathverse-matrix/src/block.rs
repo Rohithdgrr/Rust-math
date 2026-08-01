@@ -259,8 +259,8 @@ impl BlockOperations {
     /// Block LU decomposition.
     pub fn block_lu(m: &BlockMatrix) -> MathResult<(BlockMatrix, BlockMatrix)> {
         let n = m.block_rows;
-        
-        let mut l = BlockMatrix::diagonal(vec![Matrix::identity(m.get_block(0, 0).rows); n])?;
+
+        let mut l = BlockOperations::diagonal(vec![Matrix::identity(m.get_block(0, 0).rows); n])?;
         let mut u = m.clone();
         
         for k in 0..n {
@@ -270,8 +270,8 @@ impl BlockOperations {
             for i in (k + 1)..n {
                 let u_ik = u.get_block(i, k);
                 let l_ik = u_ik.mul(&inv_u_kk)?;
-                l.set_block(i, k, l_ik)?;
-                
+                l.set_block(i, k, l_ik.clone())?;
+
                 for j in k..n {
                     let u_ij = u.get_block(i, j);
                     let u_kj = u.get_block(k, j);
@@ -288,7 +288,7 @@ impl BlockOperations {
     /// Block Cholesky decomposition.
     pub fn block_cholesky(m: &BlockMatrix) -> MathResult<BlockMatrix> {
         let n = m.block_rows;
-        let mut l = BlockMatrix::diagonal(vec![Matrix::zeros(m.get_block(0, 0).rows, m.get_block(0, 0).cols); n])?;
+        let mut l = BlockOperations::diagonal(vec![Matrix::zeros(m.get_block(0, 0).rows, m.get_block(0, 0).cols); n])?;
         
         for j in 0..n {
             // L_jj = Cholesky(A_jj - sum(L_jk L_jk^T))
@@ -301,8 +301,8 @@ impl BlockOperations {
             }
             
             let l_jj = sum.cholesky()?;
-            l.set_block(j, j, l_jj)?;
-            
+            l.set_block(j, j, l_jj.clone())?;
+
             // L_ij = (A_ij - sum(L_ik L_jk^T)) L_jj^{-T}
             for i in (j + 1)..n {
                 let mut sum_ij = m.get_block(i, j).clone();
@@ -313,7 +313,7 @@ impl BlockOperations {
                     let product = l_ik.mul(&l_jk_t)?;
                     sum_ij = sum_ij.sub(&product)?;
                 }
-                
+
                 let l_jj_inv = l_jj.inverse()?;
                 let l_jj_inv_t = l_jj_inv.transpose();
                 let l_ij = sum_ij.mul(&l_jj_inv_t)?;

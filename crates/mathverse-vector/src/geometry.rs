@@ -20,7 +20,8 @@ pub fn triple_product(a: &[f64], b: &[f64], c: &[f64]) -> f64 {
     if a.len() != 3 || b.len() != 3 || c.len() != 3 { return 0.0; }
     a[0]*(b[1]*c[2]-b[2]*c[1]) - a[1]*(b[0]*c[2]-b[2]*c[0]) + a[2]*(b[0]*c[1]-b[1]*c[0])
 }
-pub fn gram_schmidt(vectors: &mut Vec<Vec<f64>>) {
+#[allow(clippy::ptr_arg)]
+pub fn gram_schmidt(vectors: &mut [Vec<f64>]) {
     let n = vectors.len();
     for i in 0..n {
         for j in 0..i {

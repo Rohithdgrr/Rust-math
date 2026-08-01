@@ -25,8 +25,8 @@ where
 
 /// Simple pseudo-random index (xorshift32, no external dependency).
 fn rand_index(n: usize) -> usize {
-    use std::cell::Cell;
-    thread_local! { static STATE: Cell<u32> = Cell::new(0x1234_5678); }
+    use core::cell::Cell;
+    thread_local! { static STATE: Cell<u32> = const { Cell::new(0x1234_5678) }; }
     STATE.with(|s| {
         let mut x = s.get();
         x ^= x << 13;

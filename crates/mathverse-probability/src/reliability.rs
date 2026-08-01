@@ -1,5 +1,7 @@
 //! Reliability theory: survival functions, hazard functions, failure rates, MTTF, MTBF, censored data.
 
+use crate::F64Ext;
+
 /// Survival function (reliability function).
 pub struct SurvivalFunction;
 
@@ -15,12 +17,12 @@ impl SurvivalFunction {
         let n = 1000;
         let dt = t / n as f64;
         let mut integral = 0.0;
-        
+
         for i in 0..n {
             let s = (i as f64 + 0.5) * dt;
             integral += hazard(s) * dt;
         }
-        
+
         (-integral).exp()
     }
 
@@ -29,7 +31,7 @@ impl SurvivalFunction {
         if failure_times.is_empty() {
             return 1.0;
         }
-        
+
         let n = failure_times.len();
         let count = failure_times.iter().filter(|&&x| x > t).count();
         count as f64 / n as f64
@@ -41,19 +43,20 @@ impl SurvivalFunction {
         if n == 0 {
             return Vec::new();
         }
-        
+
         // Sort by time
-        let mut indexed: Vec<(usize, f64, bool)> = times.iter()
+        let mut indexed: Vec<(usize, f64, bool)> = times
+            .iter()
             .zip(events.iter())
             .enumerate()
-            .map(|(i, &t, &e)| (i, t, e))
+            .map(|(i, (&t, &e))| (i, t, e))
             .collect();
         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        
+
         let mut survival = Vec::new();
         let mut s = 1.0;
         let mut at_risk = n as f64;
-        
+
         for (_, t, event) in indexed {
             if event {
                 s *= (at_risk - 1.0) / at_risk;
@@ -61,7 +64,7 @@ impl SurvivalFunction {
             survival.push((t, s));
             at_risk -= 1.0;
         }
-        
+
         survival
     }
 }
@@ -71,7 +74,11 @@ pub struct HazardFunction;
 
 impl HazardFunction {
     /// Hazard function h(t) = f(t) / S(t).
-    pub fn from_pdf_survival(pdf: impl Fn(f64) -> f64, survival: impl Fn(f64) -> f64, t: f64) -> f64 {
+    pub fn from_pdf_survival(
+        pdf: impl Fn(f64) -> f64,
+        survival: impl Fn(f64) -> f64,
+        t: f64,
+    ) -> f64 {
         let s = survival(t);
         if s > 0.0 {
             pdf(t) / s
@@ -85,12 +92,12 @@ impl HazardFunction {
         let n = 1000;
         let dt = t / n as f64;
         let mut integral = 0.0;
-        
+
         for i in 0..n {
             let s = (i as f64 + 0.5) * dt;
             integral += hazard(s) * dt;
         }
-        
+
         integral
     }
 
@@ -100,18 +107,19 @@ impl HazardFunction {
         if n == 0 {
             return Vec::new();
         }
-        
-        let mut indexed: Vec<(usize, f64, bool)> = times.iter()
+
+        let mut indexed: Vec<(usize, f64, bool)> = times
+            .iter()
             .zip(events.iter())
             .enumerate()
-            .map(|(i, &t, &e)| (i, t, e))
+            .map(|(i, (&t, &e))| (i, t, e))
             .collect();
         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        
+
         let mut cumulative_hazard = Vec::new();
         let mut h = 0.0;
         let mut at_risk = n;
-        
+
         for (_, t, event) in indexed {
             if event {
                 h += 1.0 / at_risk as f64;
@@ -119,7 +127,7 @@ impl HazardFunction {
             cumulative_hazard.push((t, h));
             at_risk -= 1;
         }
-        
+
         cumulative_hazard
     }
 
@@ -155,17 +163,17 @@ impl HazardFunction {
 pub struct MTTF;
 
 impl MTTF {
-    /// MTTF from survival function: E[T] = ∫₀^∞ S(t) dt.
+    /// MTTF from survival function: E\[T\] = integral of S(t) dt.
     pub fn from_survival(survival: impl Fn(f64) -> f64, max_time: f64) -> f64 {
         let n = 10000;
         let dt = max_time / n as f64;
         let mut integral = 0.0;
-        
+
         for i in 0..n {
             let t = (i as f64 + 0.5) * dt;
             integral += survival(t) * dt;
         }
-        
+
         integral
     }
 
@@ -223,22 +231,21 @@ impl ReliabilityMetrics {
 
     /// System reliability for parallel system.
     pub fn parallel(component_reliabilities: &[f64]) -> f64 {
-        let failure_prob: f64 = component_reliabilities.iter()
-            .map(|&r| 1.0 - r)
-            .product();
+        let failure_prob: f64 = component_reliabilities.iter().map(|&r| 1.0 - r).product();
         1.0 - failure_prob
     }
 
     /// System reliability for k-out-of-n system.
     pub fn k_out_of_n(k: usize, component_reliability: f64, n: usize) -> f64 {
         let mut reliability = 0.0;
-        
+
         for i in k..=n {
             let combinations = mathverse_core::algorithms::binomial(n as u64, i as u64) as f64;
-            reliability += combinations * component_reliability.powi(i as i32) 
+            reliability += combinations
+                * component_reliability.powi(i as i32)
                 * (1.0 - component_reliability).powi((n - i) as i32);
         }
-        
+
         reliability
     }
 
@@ -246,13 +253,13 @@ impl ReliabilityMetrics {
     pub fn standby(component_reliability: f64, n_components: usize) -> f64 {
         let lambda = -component_reliability.ln();
         let mut reliability = 0.0;
-        
+
         for i in 0..n_components {
-            let term = (lambda * i as f64).exp() * (lambda * i as f64).powi(i as i32) 
-                / (i as f64).gamma();
+            let term =
+                (lambda * i as f64).exp() * (lambda * i as f64).powi(i as i32) / (i as f64).gamma();
             reliability += term * component_reliability;
         }
-        
+
         reliability.min(1.0)
     }
 }
@@ -262,68 +269,62 @@ pub struct CensoredData;
 
 impl CensoredData {
     /// Right-censored data analysis.
-    pub fn right_censored(
-        observed_times: &[f64],
-        is_censored: &[bool],
-    ) -> (f64, f64) {
+    pub fn right_censored(observed_times: &[f64], is_censored: &[bool]) -> (f64, f64) {
         let n = observed_times.len();
         if n == 0 {
             return (0.0, 0.0);
         }
-        
+
         let mut sum_observed = 0.0;
         let mut n_observed = 0;
-        
+
         for (&t, &censored) in observed_times.iter().zip(is_censored.iter()) {
             if !censored {
                 sum_observed += t;
                 n_observed += 1;
             }
         }
-        
+
         let mttf = if n_observed > 0 {
             sum_observed / n_observed as f64
         } else {
             0.0
         };
-        
+
         let censoring_rate = is_censored.iter().filter(|&&c| c).count() as f64 / n as f64;
-        
+
         (mttf, censoring_rate)
     }
 
     /// Left-censored data analysis.
-    pub fn left_censored(
-        detection_limit: f64,
-        observed_values: &[f64],
-    ) -> (f64, usize) {
+    pub fn left_censored(detection_limit: f64, observed_values: &[f64]) -> (f64, usize) {
         let n = observed_values.len();
-        let n_censored = observed_values.iter().filter(|&&x| x <= detection_limit).count();
-        
+        let n_censored = observed_values
+            .iter()
+            .filter(|&&x| x <= detection_limit)
+            .count();
+
         let mean = if n > n_censored {
-            let sum: f64 = observed_values.iter()
+            let sum: f64 = observed_values
+                .iter()
                 .filter(|&&x| x > detection_limit)
                 .sum();
             sum / (n - n_censored) as f64
         } else {
             detection_limit
         };
-        
+
         (mean, n_censored)
     }
 
     /// Interval-censored data analysis.
-    pub fn interval_censored(
-        intervals: &[(f64, f64)],
-    ) -> f64 {
+    pub fn interval_censored(intervals: &[(f64, f64)]) -> f64 {
         if intervals.is_empty() {
             return 0.0;
         }
-        
-        let sum: f64 = intervals.iter()
-            .map(|(a, b)| (a + b) / 2.0)
-            .sum();
-        
+
+        let sum: f64 = intervals.iter().map(|(a, b)| (a + b) / 2.0).sum();
+
         sum / intervals.len() as f64
     }
 }
@@ -337,7 +338,7 @@ impl FailureRateAnalysis {
         if failure_times.is_empty() {
             return 0.0;
         }
-        
+
         let count = failure_times.iter().filter(|&&t| t <= time_window).count();
         count as f64 / time_window
     }
@@ -347,12 +348,12 @@ impl FailureRateAnalysis {
         if failure_times.len() < 2 {
             return Vec::new();
         }
-        
+
         let mut tbf = Vec::new();
         for i in 1..failure_times.len() {
             tbf.push(failure_times[i] - failure_times[i - 1]);
         }
-        
+
         tbf
     }
 
@@ -361,14 +362,14 @@ impl FailureRateAnalysis {
         if tbf.len() < 3 {
             return "insufficient data";
         }
-        
+
         let n = tbf.len();
-        let first_half = &tbf[..n/2];
-        let second_half = &tbf[n/2..];
-        
+        let first_half = &tbf[..n / 2];
+        let second_half = &tbf[n / 2..];
+
         let mean_first = first_half.iter().sum::<f64>() / first_half.len() as f64;
         let mean_second = second_half.iter().sum::<f64>() / second_half.len() as f64;
-        
+
         if mean_second > mean_first * 1.1 {
             "decreasing failure rate (improving)"
         } else if mean_second < mean_first * 0.9 {
@@ -384,11 +385,7 @@ pub struct WarrantyAnalysis;
 
 impl WarrantyAnalysis {
     /// Expected warranty cost.
-    pub fn expected_cost(
-        failure_rate: f64,
-        repair_cost: f64,
-        warranty_period: f64,
-    ) -> f64 {
+    pub fn expected_cost(failure_rate: f64, repair_cost: f64, warranty_period: f64) -> f64 {
         let expected_failures = failure_rate * warranty_period;
         expected_failures * repair_cost
     }
@@ -415,10 +412,8 @@ mod tests {
 
     #[test]
     fn test_survival_function() {
-        let cdf = |t: f64| -> f64 {
-            if t < 0.0 { 0.0 } else if t > 1.0 { 1.0 } else { t }
-        };
-        
+        let cdf = |t: f64| -> f64 { t.clamp(0.0, 1.0) };
+
         let s = SurvivalFunction::from_cdf(cdf, 0.5);
         assert!((s - 0.5).abs() < 1e-10);
     }

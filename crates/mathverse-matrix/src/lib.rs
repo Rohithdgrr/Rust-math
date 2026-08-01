@@ -47,6 +47,20 @@ pub struct Matrix {
 }
 
 impl Matrix {
+    /// Convert vector to column matrix.
+    pub fn from_vector(v: &mathverse_vector::Vector) -> Matrix {
+        Matrix {
+            rows: v.data.len(),
+            cols: 1,
+            data: v.data.clone(),
+        }
+    }
+
+    /// Ones matrix.
+    pub fn ones(rows: usize, cols: usize) -> Matrix {
+        Matrix { rows, cols, data: vec![1.0; rows * cols] }
+    }
+
     /// Zero matrix.
     pub fn zeros(rows: usize, cols: usize) -> Matrix {
         Matrix { rows, cols, data: vec![0.0; rows * cols] }
@@ -102,6 +116,11 @@ impl Matrix {
     /// Column `j` as a vector (copy).
     pub fn col(&self, j: usize) -> Vec<f64> {
         (0..self.rows).map(|i| self.get(i, j)).collect()
+    }
+
+    /// Row `i` as a vector (copy).
+    pub fn row(&self, i: usize) -> Vec<f64> {
+        (0..self.cols).map(|j| self.get(i, j)).collect()
     }
 
     /// `a[i][j] == a[j][i]` within `tol * max(|a|)`, and square.

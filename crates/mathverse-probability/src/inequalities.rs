@@ -1,6 +1,6 @@
 //! Probability inequalities: Chebyshev, Chernoff, Hoeffding, Markov, Jensen, Azuma, concentration.
 
-/// Markov's inequality: P(X ≥ a) ≤ E[X] / a for non-negative X.
+/// Markov's inequality: P(X >= a) <= E\[X\] / a for non-negative X.
 pub struct MarkovInequality;
 
 impl MarkovInequality {
@@ -56,12 +56,12 @@ impl ChernoffBound {
     /// Chernoff bound for sum of Bernoulli random variables.
     pub fn bernoulli_bound(p: f64, n: usize, delta: f64) -> f64 {
         let mu = p * n as f64;
-        let x = (1.0 + delta) * mu;
-        
+        let _x = (1.0 + delta) * mu;
+
         if delta <= 0.0 {
             return 1.0;
         }
-        
+
         // Upper tail: P(X ≥ (1+δ)μ) ≤ exp(-μδ²/(2+δ))
         let bound = (-mu * delta * delta / (2.0 + delta)).exp();
         bound.min(1.0)
@@ -70,22 +70,18 @@ impl ChernoffBound {
     /// Lower tail Chernoff bound.
     pub fn bernoulli_lower_bound(p: f64, n: usize, delta: f64) -> f64 {
         let mu = p * n as f64;
-        
+
         if delta <= 0.0 || delta >= 1.0 {
             return 1.0;
         }
-        
+
         // Lower tail: P(X ≤ (1-δ)μ) ≤ exp(-μδ²/2)
         let bound = (-mu * delta * delta / 2.0).exp();
         bound.min(1.0)
     }
 
     /// General Chernoff bound using moment generating function.
-    pub fn general_bound(
-        mgf: impl Fn(f64) -> f64,
-        threshold: f64,
-        t: f64,
-    ) -> f64 {
+    pub fn general_bound(mgf: impl Fn(f64) -> f64, threshold: f64, t: f64) -> f64 {
         if t <= 0.0 {
             return 1.0;
         }
@@ -136,18 +132,13 @@ impl AzumaInequality {
     }
 
     /// Azuma inequality for martingale difference sequence.
-    pub fn martingale_bound(
-        differences: &[f64],
-        epsilon: f64,
-    ) -> f64 {
-        let c_sq: f64 = differences.iter()
-            .map(|&d| d * d)
-            .sum();
-        
+    pub fn martingale_bound(differences: &[f64], epsilon: f64) -> f64 {
+        let c_sq: f64 = differences.iter().map(|&d| d * d).sum();
+
         if epsilon <= 0.0 || c_sq == 0.0 {
             return 1.0;
         }
-        
+
         let bound = (-2.0 * epsilon * epsilon / c_sq).exp();
         bound.min(1.0)
     }
@@ -158,18 +149,13 @@ pub struct McDiarmidInequality;
 
 impl McDiarmidInequality {
     /// McDiarmid's bounded differences inequality.
-    pub fn bound(
-        c_i: &[f64],
-        epsilon: f64,
-    ) -> f64 {
+    pub fn bound(c_i: &[f64], epsilon: f64) -> f64 {
         if epsilon <= 0.0 {
             return 1.0;
         }
-        
-        let c_sq_sum: f64 = c_i.iter()
-            .map(|&c| c * c)
-            .sum();
-        
+
+        let c_sq_sum: f64 = c_i.iter().map(|&c| c * c).sum();
+
         let bound = (-2.0 * epsilon * epsilon / c_sq_sum).exp();
         bound.min(1.0)
     }
@@ -185,20 +171,15 @@ pub struct BennettInequality;
 
 impl BennettInequality {
     /// Bennett's inequality.
-    pub fn bound(
-        n: usize,
-        variance: f64,
-        max_diff: f64,
-        epsilon: f64,
-    ) -> f64 {
+    pub fn bound(n: usize, variance: f64, max_diff: f64, epsilon: f64) -> f64 {
         if epsilon <= 0.0 || max_diff <= 0.0 {
             return 1.0;
         }
-        
+
         let sigma_sq = variance;
         let b = max_diff;
         let t = epsilon;
-        
+
         // Bennett's bound: exp(-n * sigma²/b² * h(bt/σ²))
         // where h(u) = (1+u)ln(1+u) - u
         let u = b * t / sigma_sq;
@@ -207,8 +188,8 @@ impl BennettInequality {
         } else {
             0.0
         };
-        
-        let bound = (-n as f64 * sigma_sq / (b * b) * h).exp();
+
+        let bound = (-(n as f64) * sigma_sq / (b * b) * h).exp();
         bound.min(1.0)
     }
 }
@@ -218,22 +199,17 @@ pub struct BernsteinInequality;
 
 impl BernsteinInequality {
     /// Bernstein's inequality.
-    pub fn bound(
-        n: usize,
-        variance: f64,
-        max_diff: f64,
-        epsilon: f64,
-    ) -> f64 {
+    pub fn bound(n: usize, variance: f64, max_diff: f64, epsilon: f64) -> f64 {
         if epsilon <= 0.0 {
             return 1.0;
         }
-        
+
         let sigma_sq = variance;
         let b = max_diff;
         let t = epsilon;
-        
+
         // Bernstein's bound: exp(-nt²/(2σ² + 2bt/3))
-        let bound = (-n as f64 * t * t / (2.0 * sigma_sq + 2.0 * b * t / 3.0)).exp();
+        let bound = (-(n as f64) * t * t / (2.0 * sigma_sq + 2.0 * b * t / 3.0)).exp();
         bound.min(1.0)
     }
 }
@@ -243,60 +219,60 @@ pub struct JensenInequality;
 
 impl JensenInequality {
     /// Check Jensen's inequality for a convex function.
-    pub fn check_convex(
-        values: &[f64],
-        weights: &[f64],
-        f: impl Fn(f64) -> f64,
-    ) -> bool {
+    pub fn check_convex(values: &[f64], weights: &[f64], f: impl Fn(f64) -> f64) -> bool {
         if values.len() != weights.len() || values.is_empty() {
             return false;
         }
-        
+
         let weight_sum: f64 = weights.iter().sum();
         if weight_sum == 0.0 {
             return false;
         }
-        
+
         // E[f(X)] ≥ f(E[X])
-        let expected_x: f64 = values.iter()
+        let expected_x: f64 = values
+            .iter()
             .zip(weights.iter())
             .map(|(&x, &w)| x * w)
-            .sum() / weight_sum;
-        
-        let expected_f_x: f64 = values.iter()
+            .sum::<f64>()
+            / weight_sum;
+
+        let expected_f_x: f64 = values
+            .iter()
             .zip(weights.iter())
             .map(|(&x, &w)| f(x) * w)
-            .sum() / weight_sum;
-        
+            .sum::<f64>()
+            / weight_sum;
+
         expected_f_x >= f(expected_x) - 1e-10
     }
 
     /// Jensen's inequality for concave functions (reverse).
-    pub fn check_concave(
-        values: &[f64],
-        weights: &[f64],
-        f: impl Fn(f64) -> f64,
-    ) -> bool {
+    pub fn check_concave(values: &[f64], weights: &[f64], f: impl Fn(f64) -> f64) -> bool {
         if values.len() != weights.len() || values.is_empty() {
             return false;
         }
-        
+
         let weight_sum: f64 = weights.iter().sum();
         if weight_sum == 0.0 {
             return false;
         }
-        
+
         // E[f(X)] ≤ f(E[X]) for concave f
-        let expected_x: f64 = values.iter()
+        let expected_x: f64 = values
+            .iter()
             .zip(weights.iter())
             .map(|(&x, &w)| x * w)
-            .sum() / weight_sum;
-        
-        let expected_f_x: f64 = values.iter()
+            .sum::<f64>()
+            / weight_sum;
+
+        let expected_f_x: f64 = values
+            .iter()
             .zip(weights.iter())
             .map(|(&x, &w)| f(x) * w)
-            .sum() / weight_sum;
-        
+            .sum::<f64>()
+            / weight_sum;
+
         expected_f_x <= f(expected_x) + 1e-10
     }
 }
@@ -314,10 +290,7 @@ impl KolmogorovInequality {
     }
 
     /// Kolmogorov's maximal inequality.
-    pub fn maximal_bound(
-        variances: &[f64],
-        epsilon: f64,
-    ) -> f64 {
+    pub fn maximal_bound(variances: &[f64], epsilon: f64) -> f64 {
         let variance_sum: f64 = variances.iter().sum();
         Self::bound(variance_sum, epsilon)
     }
@@ -332,7 +305,7 @@ impl DoobInequality {
         if p <= 1.0 {
             return 1.0;
         }
-        (p / (p - 1.0)).powf(p) / n as f64.powf(p - 1.0)
+        (p / (p - 1.0)).powf(p) / (n as f64).powf(p - 1.0)
     }
 
     /// Doob's Lp inequality.
@@ -364,27 +337,24 @@ pub struct ConcentrationOfMeasure;
 
 impl ConcentrationOfMeasure {
     /// Levy's lemma for Lipschitz functions on the sphere.
-    pub fn levy_bound(
-        dimension: usize,
-        lipschitz_constant: f64,
-        epsilon: f64,
-    ) -> f64 {
+    pub fn levy_bound(dimension: usize, lipschitz_constant: f64, epsilon: f64) -> f64 {
         if epsilon <= 0.0 {
             return 1.0;
         }
-        let bound = 2.0 * (-dimension as f64 * epsilon * epsilon / (2.0 * lipschitz_constant * lipschitz_constant)).exp();
+        let bound = 2.0
+            * (-(dimension as f64) * epsilon * epsilon
+                / (2.0 * lipschitz_constant * lipschitz_constant))
+                .exp();
         bound.min(1.0)
     }
 
     /// Gaussian concentration (isoperimetric inequality).
-    pub fn gaussian_bound(
-        lipschitz_constant: f64,
-        epsilon: f64,
-    ) -> f64 {
+    pub fn gaussian_bound(lipschitz_constant: f64, epsilon: f64) -> f64 {
         if epsilon <= 0.0 {
             return 1.0;
         }
-        let bound = 2.0 * (-epsilon * epsilon / (2.0 * lipschitz_constant * lipschitz_constant)).exp();
+        let bound =
+            2.0 * (-epsilon * epsilon / (2.0 * lipschitz_constant * lipschitz_constant)).exp();
         bound.min(1.0)
     }
 }
@@ -421,8 +391,8 @@ mod tests {
     fn test_jensen_inequality() {
         let values = vec![0.0, 1.0, 2.0];
         let weights = vec![1.0, 1.0, 1.0];
-        let f = |x: f64| x * x;  // convex function
-        
+        let f = |x: f64| x * x; // convex function
+
         assert!(JensenInequality::check_convex(&values, &weights, f));
     }
 

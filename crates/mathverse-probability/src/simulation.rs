@@ -3,10 +3,14 @@
 use crate::rng::Rng;
 
 /// Monte Carlo simulation.
+#[must_use]
 pub struct MonteCarloSimulation;
 
 impl MonteCarloSimulation {
     /// Simple Monte Carlo integration.
+    ///
+    /// Delegates to [`crate::mc_integrate`].
+    #[must_use]
     pub fn integrate(
         f: impl Fn(f64) -> f64,
         a: f64,
@@ -14,44 +18,32 @@ impl MonteCarloSimulation {
         n_samples: usize,
         rng: &mut Rng,
     ) -> (f64, f64) {
-        let mut sum = 0.0;
-        let mut sum_sq = 0.0;
-        
-        for _ in 0..n_samples {
-            let x = a + (b - a) * rng.uniform();
-            let y = f(x);
-            sum += y;
-            sum_sq += y * y;
-        }
-        
-        let mean = sum / n_samples as f64;
-        let variance = (sum_sq / n_samples as f64 - mean * mean) / n_samples as f64;
-        let integral = mean * (b - a);
-        
-        (integral, variance.sqrt() * (b - a))
+        crate::mc_integrate(&f, a, b, n_samples, rng)
     }
 
     /// Monte Carlo estimation of probability.
+    #[must_use]
     pub fn estimate_probability(
         event: impl Fn(&mut Rng) -> bool,
         n_samples: usize,
         rng: &mut Rng,
     ) -> (f64, f64) {
         let mut count = 0;
-        
+
         for _ in 0..n_samples {
             if event(rng) {
                 count += 1;
             }
         }
-        
+
         let p = count as f64 / n_samples as f64;
         let variance = p * (1.0 - p) / n_samples as f64;
-        
+
         (p, variance.sqrt())
     }
 
     /// Monte Carlo for high-dimensional integration.
+    #[must_use]
     pub fn multidimensional_integrate(
         f: impl Fn(&[f64]) -> f64,
         bounds: &[(f64, f64)],
@@ -61,28 +53,29 @@ impl MonteCarloSimulation {
         let dim = bounds.len();
         let mut sum = 0.0;
         let mut sum_sq = 0.0;
-        
+
         for _ in 0..n_samples {
             let mut x = Vec::with_capacity(dim);
             for &(a, b) in bounds {
                 x.push(a + (b - a) * rng.uniform());
             }
-            
+
             let y = f(&x);
             sum += y;
             sum_sq += y * y;
         }
-        
+
         let mean = sum / n_samples as f64;
         let variance = (sum_sq / n_samples as f64 - mean * mean) / n_samples as f64;
-        
+
         let volume: f64 = bounds.iter().map(|&(a, b)| b - a).product();
         let integral = mean * volume;
-        
+
         (integral, variance.sqrt() * volume)
     }
 
     /// Monte Carlo option pricing (European call).
+    #[must_use]
     pub fn european_call_option(
         s0: f64,
         k: f64,
@@ -94,30 +87,36 @@ impl MonteCarloSimulation {
     ) -> (f64, f64) {
         let mut sum = 0.0;
         let mut sum_sq = 0.0;
-        
+
         for _ in 0..n_samples {
-            let z = crate::distributions::Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
+            let z = crate::distributions::Normal {
+                mu: 0.0,
+                sigma: 1.0,
+            }
+            .sample(rng);
             let st = s0 * ((r - 0.5 * sigma * sigma) * t + sigma * t.sqrt() * z).exp();
             let payoff = (st - k).max(0.0);
             let discounted = payoff * (-r * t).exp();
-            
+
             sum += discounted;
             sum_sq += discounted * discounted;
         }
-        
+
         let mean = sum / n_samples as f64;
         let variance = (sum_sq / n_samples as f64 - mean * mean) / n_samples as f64;
-        
+
         (mean, variance.sqrt())
     }
 }
 
 /// Event-driven simulation (discrete event simulation).
+#[must_use]
 pub struct EventDrivenSimulation {
     pub current_time: f64,
     pub event_queue: Vec<SimulationEvent>,
 }
 
+#[must_use]
 #[derive(Clone)]
 pub struct SimulationEvent {
     pub time: f64,
@@ -125,7 +124,14 @@ pub struct SimulationEvent {
     pub data: Vec<f64>,
 }
 
+impl Default for EventDrivenSimulation {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EventDrivenSimulation {
+    #[must_use]
     pub fn new() -> Self {
         EventDrivenSimulation {
             current_time: 0.0,
@@ -136,7 +142,8 @@ impl EventDrivenSimulation {
     /// Schedule an event.
     pub fn schedule(&mut self, event: SimulationEvent) {
         self.event_queue.push(event);
-        self.event_queue.sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
+        self.event_queue
+            .sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
     }
 
     /// Get next event.
@@ -144,7 +151,7 @@ impl EventDrivenSimulation {
         if self.event_queue.is_empty() {
             return None;
         }
-        
+
         let event = self.event_queue.remove(0);
         self.current_time = event.time;
         Some(event)
@@ -174,10 +181,12 @@ impl EventDrivenSimulation {
 }
 
 /// Random number generation utilities.
+#[must_use]
 pub struct RNGUtils;
 
 impl RNGUtils {
     /// Box-Muller transform for normal random variables.
+    #[must_use]
     pub fn box_muller(u1: f64, u2: f64) -> (f64, f64) {
         let r = (-2.0 * u1.ln()).sqrt();
         let theta = 2.0 * core::f64::consts::PI * u2;
@@ -185,12 +194,13 @@ impl RNGUtils {
     }
 
     /// Marsaglia polar method for normal random variables.
+    #[must_use]
     pub fn marsaglia_polar(rng: &mut Rng) -> Option<(f64, f64)> {
         loop {
             let u1 = 2.0 * rng.uniform() - 1.0;
             let u2 = 2.0 * rng.uniform() - 1.0;
             let s = u1 * u1 + u2 * u2;
-            
+
             if s < 1.0 && s > 0.0 {
                 let mult = (-2.0 * s.ln() / s).sqrt();
                 return Some((u1 * mult, u2 * mult));
@@ -199,8 +209,9 @@ impl RNGUtils {
     }
 
     /// Inverse transform sampling.
+    #[must_use]
     pub fn inverse_transform(
-        cdf: impl Fn(f64) -> f64,
+        _cdf: impl Fn(f64) -> f64,
         quantile: impl Fn(f64) -> f64,
         u: f64,
     ) -> f64 {
@@ -208,6 +219,7 @@ impl RNGUtils {
     }
 
     /// Acceptance-rejection sampling.
+    #[must_use]
     pub fn acceptance_rejection(
         target_pdf: impl Fn(f64) -> f64,
         proposal_pdf: impl Fn(f64) -> f64,
@@ -218,7 +230,7 @@ impl RNGUtils {
         loop {
             let x = proposal_sample(rng);
             let u = rng.uniform();
-            
+
             if u < target_pdf(x) / (m * proposal_pdf(x)) {
                 return x;
             }
@@ -226,25 +238,24 @@ impl RNGUtils {
     }
 
     /// Alias method for discrete distributions (simplified).
-    pub fn alias_method(
-        probabilities: &[f64],
-        rng: &mut Rng,
-    ) -> usize {
+    #[must_use]
+    pub fn alias_method(probabilities: &[f64], rng: &mut Rng) -> usize {
         let n = probabilities.len();
         let u = rng.uniform();
         let mut acc = 0.0;
-        
+
         for (i, &p) in probabilities.iter().enumerate() {
             acc += p;
             if u <= acc {
                 return i;
             }
         }
-        
+
         n - 1
     }
 
     /// Ziggurat algorithm for normal distribution (simplified).
+    #[must_use]
     pub fn ziggurat(rng: &mut Rng) -> f64 {
         // Simplified: use Box-Muller as fallback
         let u1 = rng.uniform();
@@ -255,25 +266,28 @@ impl RNGUtils {
 }
 
 /// Random variate generation for specific distributions.
+#[must_use]
 pub struct RandomVariateGeneration;
 
 impl RandomVariateGeneration {
     /// Generate exponential random variate.
+    #[must_use]
     pub fn exponential(lambda: f64, rng: &mut Rng) -> f64 {
         let u = rng.uniform().max(1e-300);
         -u.ln() / lambda
     }
 
     /// Generate Poisson random variate.
+    #[must_use]
     pub fn poisson(lambda: f64, rng: &mut Rng) -> i64 {
         let l = (-lambda).exp();
         let mut k = 0i64;
         let mut p = 1.0;
-        
+
         loop {
             k += 1;
             p *= rng.uniform();
-            
+
             if p <= l {
                 return k - 1;
             }
@@ -281,52 +295,59 @@ impl RandomVariateGeneration {
     }
 
     /// Generate binomial random variate.
+    #[must_use]
     pub fn binomial(n: u64, p: f64, rng: &mut Rng) -> i64 {
         let mut count = 0i64;
-        
+
         for _ in 0..n {
             if rng.uniform() < p {
                 count += 1;
             }
         }
-        
+
         count
     }
 
     /// Generate geometric random variate.
+    #[must_use]
     pub fn geometric(p: f64, rng: &mut Rng) -> i64 {
         let u = rng.uniform().max(1e-300);
         (u.ln() / (1.0 - p).ln()).ceil() as i64
     }
 
     /// Generate gamma random variate (Marsaglia-Tsang).
+    #[must_use]
     pub fn gamma(shape: f64, rate: f64, rng: &mut Rng) -> f64 {
         if shape < 1.0 {
             return Self::gamma(shape + 1.0, rate, rng) * rng.uniform().powf(1.0 / shape);
         }
-        
+
         let d = shape - 1.0 / 3.0;
         let c = 1.0 / (9.0 * d).sqrt();
-        
+
         loop {
             let mut x;
             let mut v;
-            
+
             loop {
-                x = crate::distributions::Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
+                x = crate::distributions::Normal {
+                    mu: 0.0,
+                    sigma: 1.0,
+                }
+                .sample(rng);
                 v = (1.0 + c * x).powi(3);
-                
+
                 if v > 0.0 {
                     break;
                 }
             }
-            
+
             let u = rng.uniform();
-            
+
             if u < 1.0 - 0.0331 * (x * x).powi(2) {
                 return d * v / rate;
             }
-            
+
             if u.ln() < 0.5 * x * x + d * (1.0 - v + v.ln()) {
                 return d * v / rate;
             }
@@ -334,6 +355,7 @@ impl RandomVariateGeneration {
     }
 
     /// Generate beta random variate.
+    #[must_use]
     pub fn beta(alpha: f64, beta_param: f64, rng: &mut Rng) -> f64 {
         let x = Self::gamma(alpha, 1.0, rng);
         let y = Self::gamma(beta_param, 1.0, rng);
@@ -341,18 +363,25 @@ impl RandomVariateGeneration {
     }
 
     /// Generate chi-squared random variate.
+    #[must_use]
     pub fn chi_squared(df: f64, rng: &mut Rng) -> f64 {
         Self::gamma(df / 2.0, 0.5, rng)
     }
 
     /// Generate Student's t random variate.
+    #[must_use]
     pub fn students_t(df: f64, rng: &mut Rng) -> f64 {
-        let z = crate::distributions::Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
+        let z = crate::distributions::Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        }
+        .sample(rng);
         let chi2 = Self::chi_squared(df, rng);
         z / (chi2 / df).sqrt()
     }
 
     /// Generate F-distribution random variate.
+    #[must_use]
     pub fn f_distribution(df1: f64, df2: f64, rng: &mut Rng) -> f64 {
         let chi2_1 = Self::chi_squared(df1, rng);
         let chi2_2 = Self::chi_squared(df2, rng);
@@ -361,37 +390,36 @@ impl RandomVariateGeneration {
 }
 
 /// Variance reduction for simulation.
+#[must_use]
 pub struct SimulationVarianceReduction;
 
 impl SimulationVarianceReduction {
     /// Antithetic variates for simulation.
-    pub fn antithetic_variates<F>(
-        estimator: F,
-        n_samples: usize,
-        rng: &mut Rng,
-    ) -> (f64, f64)
+    #[must_use]
+    pub fn antithetic_variates<F>(estimator: F, n_samples: usize, rng: &mut Rng) -> (f64, f64)
     where
         F: Fn(&mut Rng) -> f64,
     {
         let mut sum = 0.0;
         let mut sum_sq = 0.0;
-        
+
         for _ in 0..n_samples {
             let y1 = estimator(rng);
-            let y2 = estimator(rng);  // Would use complementary RNG in practice
+            let y2 = estimator(rng); // Would use complementary RNG in practice
             let avg = (y1 + y2) / 2.0;
-            
+
             sum += avg;
             sum_sq += avg * avg;
         }
-        
+
         let mean = sum / n_samples as f64;
         let variance = (sum_sq / n_samples as f64 - mean * mean) / n_samples as f64;
-        
+
         (mean, variance.sqrt())
     }
 
     /// Control variates for simulation.
+    #[must_use]
     pub fn control_variates<F, G>(
         estimator: F,
         control: G,
@@ -407,40 +435,42 @@ impl SimulationVarianceReduction {
         let mut sum_y = 0.0;
         let mut sum_xy = 0.0;
         let mut sum_y_sq = 0.0;
-        
+
         for _ in 0..n_samples {
             let x = estimator(rng);
             let y = control(rng);
-            
+
             sum_x += x;
             sum_y += y;
             sum_xy += x * y;
             sum_y_sq += y * y;
         }
-        
+
         let mean_x = sum_x / n_samples as f64;
         let mean_y = sum_y / n_samples as f64;
-        
-        let cov_xy = (sum_xy / n_samples as f64 - mean_x * mean_y);
-        let var_y = (sum_y_sq / n_samples as f64 - mean_y * mean_y);
-        
+
+        let cov_xy = sum_xy / n_samples as f64 - mean_x * mean_y;
+        let var_y = sum_y_sq / n_samples as f64 - mean_y * mean_y;
+
         let c = if var_y > 0.0 { cov_xy / var_y } else { 0.0 };
         let controlled_mean = mean_x - c * (mean_y - control_mean);
         let variance = var_y * (1.0 - c * c) / n_samples as f64;
-        
+
         (controlled_mean, variance.sqrt())
     }
 }
 
 /// Quasi-random sequences for simulation.
+#[must_use]
 pub struct QuasiRandomSimulation;
 
 impl QuasiRandomSimulation {
     /// Halton sequence for quasi-Monte Carlo.
+    #[must_use]
     pub fn halton_sequence(dim: usize, n: usize) -> Vec<Vec<f64>> {
         let mut sequence = Vec::new();
-        let mut bases = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
-        
+        let bases = vec![2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+
         for i in 0..n {
             let mut point = Vec::with_capacity(dim);
             for d in 0..dim {
@@ -449,7 +479,7 @@ impl QuasiRandomSimulation {
             }
             sequence.push(point);
         }
-        
+
         sequence
     }
 
@@ -457,34 +487,34 @@ impl QuasiRandomSimulation {
         let mut result = 0.0;
         let mut f = 1.0 / base as f64;
         let mut i = index;
-        
+
         while i > 0 {
             result += f * (i % base) as f64;
             i /= base;
             f /= base as f64;
         }
-        
+
         result
     }
 
     /// Sobol sequence (simplified 1D).
+    #[must_use]
     pub fn sobol_sequence_1d(n: usize) -> Vec<f64> {
         (0..n).map(|i| (i + 1) as f64 / n as f64).collect()
     }
 }
 
 /// Parallel simulation utilities.
+#[must_use]
 pub struct ParallelSimulation;
 
 impl ParallelSimulation {
     /// Split simulation into independent chunks.
-    pub fn split_simulation(
-        n_samples: usize,
-        n_chunks: usize,
-    ) -> Vec<(usize, usize)> {
+    #[must_use]
+    pub fn split_simulation(n_samples: usize, n_chunks: usize) -> Vec<(usize, usize)> {
         let chunk_size = n_samples / n_chunks;
         let mut chunks = Vec::new();
-        
+
         for i in 0..n_chunks {
             let start = i * chunk_size;
             let end = if i < n_chunks - 1 {
@@ -494,25 +524,26 @@ impl ParallelSimulation {
             };
             chunks.push((start, end));
         }
-        
+
         chunks
     }
 
     /// Combine results from parallel simulations.
+    #[must_use]
     pub fn combine_results(results: &[(f64, f64)]) -> (f64, f64) {
-        let n = results.len();
+        let _n = results.len();
         let mut sum = 0.0;
         let mut sum_weights = 0.0;
-        
+
         for &(value, variance) in results {
             let weight = if variance > 0.0 { 1.0 / variance } else { 1.0 };
             sum += value * weight;
             sum_weights += weight;
         }
-        
+
         let combined_mean = sum / sum_weights;
         let combined_variance = 1.0 / sum_weights;
-        
+
         (combined_mean, combined_variance.sqrt())
     }
 }
@@ -524,24 +555,16 @@ mod tests {
     #[test]
     fn test_monte_carlo_integration() {
         let mut rng = Rng::new(42);
-        let (integral, error) = MonteCarloSimulation::integrate(
-            |x| x * x,
-            0.0,
-            1.0,
-            10000,
-            &mut rng,
-        );
+        let (integral, _error) =
+            MonteCarloSimulation::integrate(|x| x * x, 0.0, 1.0, 10000, &mut rng);
         assert!((integral - 1.0 / 3.0).abs() < 0.05);
     }
 
     #[test]
     fn test_probability_estimation() {
         let mut rng = Rng::new(42);
-        let (p, error) = MonteCarloSimulation::estimate_probability(
-            |r| r.uniform() < 0.5,
-            10000,
-            &mut rng,
-        );
+        let (p, _error) =
+            MonteCarloSimulation::estimate_probability(|r| r.uniform() < 0.5, 10000, &mut rng);
         assert!((p - 0.5).abs() < 0.05);
     }
 
@@ -574,7 +597,7 @@ mod tests {
             event_type: "arrival".to_string(),
             data: vec![1.0],
         });
-        
+
         let event = sim.next_event();
         assert!(event.is_some());
         assert!((sim.current_time - 1.0).abs() < 1e-10);

@@ -1,7 +1,7 @@
 //! Matrix norms: Frobenius, L1, L∞, spectral, induced norms, nuclear norm.
 
 use crate::Matrix;
-use mathverse_core::error::{MathError, MathResult};
+use mathverse_core::error::MathResult;
 
 /// Matrix norms.
 pub struct MatrixNorms;

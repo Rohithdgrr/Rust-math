@@ -1,7 +1,7 @@
 //! Matrix calculus: gradients, Jacobians, Hessians, and automatic differentiation.
 
 use crate::Matrix;
-use mathverse_core::error::{MathError, MathResult};
+use mathverse_core::error::MathResult;
 
 /// Matrix derivative result.
 #[derive(Debug, Clone)]
@@ -152,19 +152,19 @@ impl MatrixCalculus {
         f: impl Fn(&Matrix) -> Matrix,
         m: &Matrix,
         h: f64,
-    ) -> Matrix {
+    ) -> MathResult<Matrix> {
         let n = m.rows * m.cols;
         let mut jacobian = Matrix::zeros(m.rows, m.cols);
-        
+
         for k in 0..n {
             let row = k / m.cols;
             let col = k % m.cols;
-            
+
             let partial = Self::partial_derivative(&f, m, row, col, h);
             jacobian = jacobian.add(&partial)?;
         }
-        
-        jacobian
+
+        Ok(jacobian)
     }
 }
 

@@ -53,19 +53,19 @@ impl KroneckerProduct {
         let ac = a.mul(c)?;
         let bd = b.mul(d)?;
         let right = Self::compute(&ac, &bd);
-        
-        Self::matrices_equal(&left, &right, 1e-10)
+
+        Ok(Self::matrices_equal(&left, &right, 1e-10))
     }
 
     /// Mixed product property: (A ⊗ B)^{-1} = A^{-1} ⊗ B^{-1}.
     pub fn inverse_property(a: &Matrix, b: &Matrix) -> MathResult<bool> {
         let inv_a = a.inverse()?;
         let inv_b = b.inverse()?;
-        
+
         let left = Self::compute(a, b).inverse()?;
         let right = Self::compute(&inv_a, &inv_b);
-        
-        Self::matrices_equal(&left, &right, 1e-10)
+
+        Ok(Self::matrices_equal(&left, &right, 1e-10))
     }
 
     /// Transpose property: (A ⊗ B)^T = A^T ⊗ B^T.
@@ -105,7 +105,7 @@ impl KroneckerProduct {
         let bxa = b.mul(x)?.mul(&a.transpose())?;
         let right = Self::vec(&bxa);
         
-        Self::vectors_equal(&left, &right, 1e-10)
+        Ok(Self::vectors_equal(&left, &right, 1e-10))
     }
 
     /// Vectorize matrix (column-major).

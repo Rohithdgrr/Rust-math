@@ -1,5 +1,3 @@
-use std::f64;
-
 #[derive(Debug, Clone)]
 struct TreeNode {
     feature: usize,
@@ -67,8 +65,8 @@ fn build_tree(
     let mut best_mse = f64::INFINITY;
     let mut best_feature = 0;
     let mut best_threshold = 0.0;
-    let mut best_left_val = 0.0;
-    let mut best_right_val = 0.0;
+    let mut _best_left_val = 0.0;
+    let mut _best_right_val = 0.0;
     let mut best_left_idx = Vec::new();
     let mut best_right_idx = Vec::new();
 
@@ -97,8 +95,8 @@ fn build_tree(
                 best_mse = mse;
                 best_feature = feature;
                 best_threshold = threshold;
-                best_left_val = lm;
-                best_right_val = rm;
+                _best_left_val = lm;
+                _best_right_val = rm;
                 best_left_idx = (0..x.len())
                     .filter(|&i| x[i][feature] <= threshold)
                     .collect();
@@ -132,18 +130,27 @@ fn build_tree(
     }
 }
 
+/// Gradient boosted regression tree ensemble for regression.
 #[derive(Debug, Clone)]
 pub struct XGBoostRegressor {
+    /// Number of boosting rounds.
     pub n_estimators: usize,
+    /// Step size shrinkage per round.
     pub learning_rate: f64,
+    /// Maximum depth of each tree.
     pub max_depth: usize,
+    /// L2 regularization term on weights.
     pub lambda: f64,
+    /// Minimum loss reduction required for a split.
     pub gamma: f64,
     trees: Vec<BoostTree>,
     base_score: f64,
 }
 
 impl XGBoostRegressor {
+    /// Create a new regressor with the given hyperparameters.
+    #[must_use]
+    #[inline]
     pub fn new(
         n_estimators: usize,
         learning_rate: f64,
@@ -162,6 +169,7 @@ impl XGBoostRegressor {
         }
     }
 
+    /// Fit the regressor to training data using gradient boosting.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         self.base_score = y.iter().sum::<f64>() / y.len() as f64;
         let mut predictions = vec![self.base_score; y.len()];
@@ -184,6 +192,8 @@ impl XGBoostRegressor {
         }
     }
 
+    /// Predict target values for the given inputs.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         let mut result = vec![self.base_score; x.len()];
         for tree in &self.trees {
@@ -196,18 +206,27 @@ impl XGBoostRegressor {
     }
 }
 
+/// Gradient boosted tree ensemble for binary classification.
 #[derive(Debug, Clone)]
 pub struct XGBoostClassifier {
+    /// Number of boosting rounds.
     pub n_estimators: usize,
+    /// Step size shrinkage per round.
     pub learning_rate: f64,
+    /// Maximum depth of each tree.
     pub max_depth: usize,
+    /// L2 regularization term on weights.
     pub lambda: f64,
+    /// Minimum loss reduction required for a split.
     pub gamma: f64,
     trees: Vec<BoostTree>,
     base_score: f64,
 }
 
 impl XGBoostClassifier {
+    /// Create a new classifier with the given hyperparameters.
+    #[must_use]
+    #[inline]
     pub fn new(
         n_estimators: usize,
         learning_rate: f64,
@@ -226,6 +245,7 @@ impl XGBoostClassifier {
         }
     }
 
+    /// Fit the classifier to binary-labeled training data.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         let pos_rate = y.iter().filter(|&&v| v > 0.5).count() as f64 / y.len() as f64;
         let pos_rate = pos_rate.clamp(0.01, 0.99);
@@ -238,7 +258,14 @@ impl XGBoostClassifier {
             let gradients: Vec<f64> = probs.iter().zip(y.iter()).map(|(p, yi)| p - yi).collect();
             let hessians: Vec<f64> = probs.iter().map(|p| p * (1.0 - p)).collect();
 
-            let tree = BoostTree::fit_with_hessians(x, &gradients, &hessians, self.max_depth, self.lambda, self.gamma);
+            let tree = BoostTree::fit_with_hessians(
+                x,
+                &gradients,
+                &hessians,
+                self.max_depth,
+                self.lambda,
+                self.gamma,
+            );
             let tree_preds = tree.predict(x);
 
             for (rp, tp) in raw_preds.iter_mut().zip(tree_preds.iter()) {
@@ -248,6 +275,9 @@ impl XGBoostClassifier {
         }
     }
 
+    /// Predict class probabilities for the given inputs.
+    /// Predict class probabilities for the given inputs.
+    #[must_use]
     pub fn predict_proba(&self, x: &[Vec<f64>]) -> Vec<f64> {
         let raw = self.predict_raw(x);
         raw.iter().map(|&v| sigmoid(v)).collect()
@@ -264,6 +294,8 @@ impl XGBoostClassifier {
         result
     }
 
+    /// Predict binary class labels (0.0 or 1.0) for the given inputs.
+    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         self.predict_proba(x)
             .iter()
@@ -337,8 +369,7 @@ fn build_tree_weighted(
             }
 
             let gain = 0.5
-                * (left_g * left_g / (left_h + lambda)
-                    + right_g * right_g / (right_h + lambda)
+                * (left_g * left_g / (left_h + lambda) + right_g * right_g / (right_h + lambda)
                     - sum_g * sum_g / (sum_h + lambda))
                 - gamma;
 
@@ -369,8 +400,24 @@ fn build_tree_weighted(
     let right_g: Vec<f64> = best_right_idx.iter().map(|&i| gradients[i]).collect();
     let right_h: Vec<f64> = best_right_idx.iter().map(|&i| hessians[i]).collect();
 
-    let left = build_tree_weighted(&left_x, &left_g, &left_h, depth + 1, max_depth, lambda, gamma);
-    let right = build_tree_weighted(&right_x, &right_g, &right_h, depth + 1, max_depth, lambda, gamma);
+    let left = build_tree_weighted(
+        &left_x,
+        &left_g,
+        &left_h,
+        depth + 1,
+        max_depth,
+        lambda,
+        gamma,
+    );
+    let right = build_tree_weighted(
+        &right_x,
+        &right_g,
+        &right_h,
+        depth + 1,
+        max_depth,
+        lambda,
+        gamma,
+    );
 
     TreeNode {
         feature: best_feature,
@@ -398,16 +445,20 @@ mod tests {
         model.fit(&x, &y);
         let preds = model.predict(&x);
         for (pred, target) in preds.iter().zip(y.iter()) {
-            assert!(
-                (pred - target).abs() < 0.5,
-                "pred={pred}, target={target}"
-            );
+            assert!((pred - target).abs() < 0.5, "pred={pred}, target={target}");
         }
     }
 
     #[test]
     fn xgb_classifier_fit_predict() {
-        let x = vec![vec![0.0], vec![1.0], vec![2.0], vec![3.0], vec![4.0], vec![5.0]];
+        let x = vec![
+            vec![0.0],
+            vec![1.0],
+            vec![2.0],
+            vec![3.0],
+            vec![4.0],
+            vec![5.0],
+        ];
         let y = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
         let mut model = XGBoostClassifier::new(100, 0.1, 3, 1.0, 0.0);
         model.fit(&x, &y);

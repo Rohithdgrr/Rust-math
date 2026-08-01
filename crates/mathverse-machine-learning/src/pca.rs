@@ -4,21 +4,36 @@
 //! convenience.  The struct-based [`PCA`] and [`KernelPCA`] types below provide
 //! a fit / transform workflow with `n_components` limiting.
 
-pub use mathverse_statistics::matrix::{covariance_matrix, pca, pca_transform, PCA as StatisticsPCA};
+pub use mathverse_statistics::matrix::{
+    covariance_matrix, pca, pca_transform, PCA as StatisticsPCA,
+};
 
 /// PCA model with fitted components.
 pub struct PCA {
+    /// Number of principal components to retain.
     pub n_components: usize,
+    /// Principal component directions (each row is a component).
     pub components: Vec<Vec<f64>>, // [n_components, n_features]
+    /// Per-feature mean used for centering.
     pub mean: Vec<f64>,
+    /// Variance explained by each component.
     pub explained_variance: Vec<f64>,
+    /// Fraction of total variance explained by each component.
     pub explained_variance_ratio: Vec<f64>,
 }
 
 impl PCA {
+    /// Create a new PCA model for `n_components` components.
+    #[must_use]
+    #[inline]
     pub fn new(n_components: usize) -> Self {
-        Self { n_components, components: Vec::new(), mean: Vec::new(),
-               explained_variance: Vec::new(), explained_variance_ratio: Vec::new() }
+        Self {
+            n_components,
+            components: Vec::new(),
+            mean: Vec::new(),
+            explained_variance: Vec::new(),
+            explained_variance_ratio: Vec::new(),
+        }
     }
 
     /// Fit PCA using power iteration for eigendecomposition of covariance matrix.
@@ -34,10 +49,13 @@ impl PCA {
                 self.mean[j] += v;
             }
         }
-        for m in &mut self.mean { *m /= n as f64; }
+        for m in &mut self.mean {
+            *m /= n as f64;
+        }
 
         // Center data
-        let centered: Vec<Vec<f64>> = x.iter()
+        let centered: Vec<Vec<f64>> = x
+            .iter()
             .map(|xi| xi.iter().zip(&self.mean).map(|(v, m)| v - m).collect())
             .collect();
 
@@ -53,7 +71,9 @@ impl PCA {
         for _ in 0..n_comp {
             let mut v: Vec<f64> = (0..p).map(|i| (i as f64 * 0.1 + 0.5).sin()).collect();
             let norm: f64 = v.iter().map(|x| x * x).sum::<f64>().sqrt();
-            for v_i in &mut v { *v_i /= norm; }
+            for v_i in &mut v {
+                *v_i /= norm;
+            }
 
             let mut eigenvalue = 0.0;
             for _ in 0..200 {
@@ -65,7 +85,9 @@ impl PCA {
                 }
                 eigenvalue = new_v.iter().map(|x| x * x).sum::<f64>().sqrt();
                 if eigenvalue > 1e-15 {
-                    for nv in &mut new_v { *nv /= eigenvalue; }
+                    for nv in &mut new_v {
+                        *nv /= eigenvalue;
+                    }
                 }
                 v = new_v;
             }
@@ -82,19 +104,25 @@ impl PCA {
         }
 
         let total_var: f64 = self.explained_variance.iter().sum();
-        self.explained_variance_ratio = self.explained_variance.iter()
+        self.explained_variance_ratio = self
+            .explained_variance
+            .iter()
             .map(|v| if total_var > 0.0 { v / total_var } else { 0.0 })
             .collect();
     }
 
     /// Transform data to lower dimension.
+    #[must_use]
     pub fn transform(&self, x: &[Vec<f64>]) -> Vec<Vec<f64>> {
-        x.iter().map(|xi| {
-            let centered: Vec<f64> = xi.iter().zip(&self.mean).map(|(v, m)| v - m).collect();
-            self.components.iter().map(|comp| {
-                centered.iter().zip(comp).map(|(c, w)| c * w).sum()
-            }).collect()
-        }).collect()
+        x.iter()
+            .map(|xi| {
+                let centered: Vec<f64> = xi.iter().zip(&self.mean).map(|(v, m)| v - m).collect();
+                self.components
+                    .iter()
+                    .map(|comp| centered.iter().zip(comp).map(|(c, w)| c * w).sum())
+                    .collect()
+            })
+            .collect()
     }
 
     /// Fit and transform.
@@ -106,16 +134,30 @@ impl PCA {
 
 /// Kernel PCA for non-linear dimensionality reduction.
 pub struct KernelPCA {
+    /// Number of principal components to retain.
     pub n_components: usize,
+    /// RBF kernel bandwidth parameter.
     pub gamma: f64,
+    /// Training samples used as kernel basis.
     pub support: Vec<Vec<f64>>,
+    /// Eigenvectors of the centered kernel matrix.
     pub alphas: Vec<Vec<f64>>,
+    /// Eigenvalues of the centered kernel matrix.
     pub eigenvalues: Vec<f64>,
 }
 
 impl KernelPCA {
+    /// Create a new Kernel PCA model.
+    #[must_use]
+    #[inline]
     pub fn new(n_components: usize, gamma: f64) -> Self {
-        Self { n_components, gamma, support: Vec::new(), alphas: Vec::new(), eigenvalues: Vec::new() }
+        Self {
+            n_components,
+            gamma,
+            support: Vec::new(),
+            alphas: Vec::new(),
+            eigenvalues: Vec::new(),
+        }
     }
 
     fn kernel(&self, a: &[f64], b: &[f64]) -> f64 {
@@ -123,6 +165,7 @@ impl KernelPCA {
         (-self.gamma * d).exp()
     }
 
+    /// Fit kernel PCA and return the transformed data.
     pub fn fit_transform(&mut self, x: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let n = x.len();
         self.support = x.to_vec();
@@ -138,7 +181,10 @@ impl KernelPCA {
         }
 
         // Center kernel matrix
-        let row_mean: Vec<f64> = k.iter().map(|row| row.iter().sum::<f64>() / n as f64).collect();
+        let row_mean: Vec<f64> = k
+            .iter()
+            .map(|row| row.iter().sum::<f64>() / n as f64)
+            .collect();
         let grand_mean: f64 = row_mean.iter().sum::<f64>() / n as f64;
         for i in 0..n {
             for j in 0..n {
@@ -154,7 +200,9 @@ impl KernelPCA {
         for _ in 0..self.n_components.min(n) {
             let mut v: Vec<f64> = (0..n).map(|i| (i as f64 * 0.3).sin()).collect();
             let norm: f64 = v.iter().map(|x| x * x).sum::<f64>().sqrt();
-            for v_i in &mut v { *v_i /= norm; }
+            for v_i in &mut v {
+                *v_i /= norm;
+            }
 
             let mut eigenvalue = 0.0;
             for _ in 0..200 {
@@ -165,7 +213,11 @@ impl KernelPCA {
                     }
                 }
                 eigenvalue = new_v.iter().map(|x| x * x).sum::<f64>().sqrt();
-                if eigenvalue > 1e-15 { for nv in &mut new_v { *nv /= eigenvalue; } }
+                if eigenvalue > 1e-15 {
+                    for nv in &mut new_v {
+                        *nv /= eigenvalue;
+                    }
+                }
                 v = new_v;
             }
 
@@ -180,11 +232,14 @@ impl KernelPCA {
         }
 
         // Transform
-        (0..n).map(|i| {
-            self.alphas.iter().map(|alpha| {
-                alpha.iter().enumerate().map(|(j, &a)| a * k[i][j]).sum()
-            }).collect()
-        }).collect()
+        (0..n)
+            .map(|i| {
+                self.alphas
+                    .iter()
+                    .map(|alpha| alpha.iter().enumerate().map(|(j, &a)| a * k[i][j]).sum())
+                    .collect()
+            })
+            .collect()
     }
 }
 
@@ -207,8 +262,11 @@ mod tests {
     #[test]
     fn pca_2d_test() {
         let x: Vec<Vec<f64>> = vec![
-            vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0],
-            vec![4.0, 5.0], vec![5.0, 6.0],
+            vec![1.0, 2.0],
+            vec![2.0, 3.0],
+            vec![3.0, 4.0],
+            vec![4.0, 5.0],
+            vec![5.0, 6.0],
         ];
         let mut pca = PCA::new(2);
         let reduced = pca.fit_transform(&x);
@@ -218,8 +276,12 @@ mod tests {
     #[test]
     fn kernel_pca_test() {
         let x: Vec<Vec<f64>> = vec![
-            vec![1.0, 0.0], vec![0.0, 1.0], vec![-1.0, 0.0], vec![0.0, -1.0],
-            vec![2.0, 0.0], vec![0.0, 2.0],
+            vec![1.0, 0.0],
+            vec![0.0, 1.0],
+            vec![-1.0, 0.0],
+            vec![0.0, -1.0],
+            vec![2.0, 0.0],
+            vec![0.0, 2.0],
         ];
         let mut kpca = KernelPCA::new(1, 0.5);
         let reduced = kpca.fit_transform(&x);

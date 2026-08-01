@@ -1,8 +1,6 @@
-use mathverse_core::error::{MathError, MathResult};
-use std::f64;
-
+/// Computes Matthews correlation coefficient for binary classification.
+#[must_use]
 pub fn matthews_correlation(pred: &[f64], target: &[f64]) -> f64 {
-    let n = pred.len() as f64;
     let mut tp = 0.0;
     let mut fp = 0.0;
     let mut tn = 0.0;
@@ -27,9 +25,10 @@ pub fn matthews_correlation(pred: &[f64], target: &[f64]) -> f64 {
     (tp * tn - fp * fn_) / denom
 }
 
+/// Computes Cohen's kappa inter-rater agreement metric.
+#[must_use]
 pub fn cohen_kappa(pred: &[f64], target: &[f64]) -> f64 {
     let n = pred.len() as f64;
-    let mut agreement = 0.0;
     let mut po = 0.0; // observed agreement
 
     for (p, t) in pred.iter().zip(target.iter()) {
@@ -50,6 +49,8 @@ pub fn cohen_kappa(pred: &[f64], target: &[f64]) -> f64 {
     (po - pe) / (1.0 - pe)
 }
 
+/// Computes log loss (cross-entropy) from predicted probabilities.
+#[must_use]
 pub fn log_loss(pred_proba: &[Vec<f64>], target: &[f64]) -> f64 {
     let eps = 1e-15;
     let mut loss = 0.0;
@@ -63,6 +64,8 @@ pub fn log_loss(pred_proba: &[Vec<f64>], target: &[f64]) -> f64 {
     loss / target.len() as f64
 }
 
+/// Computes Brier score for probabilistic predictions.
+#[must_use]
 pub fn brier_score(pred_proba: &[Vec<f64>], target: &[f64]) -> f64 {
     let mut score = 0.0;
     for (probs, &t) in pred_proba.iter().zip(target.iter()) {
@@ -75,6 +78,8 @@ pub fn brier_score(pred_proba: &[Vec<f64>], target: &[f64]) -> f64 {
     score / target.len() as f64
 }
 
+/// Computes calibration curve (reliability diagram) with n_bins bins.
+#[must_use]
 pub fn calibration_curve(
     pred_proba: &[Vec<f64>],
     target: &[f64],
@@ -83,7 +88,11 @@ pub fn calibration_curve(
     let mut bins: Vec<(f64, f64, usize)> = vec![(0.0, 0.0, 0); n_bins];
 
     for (probs, &t) in pred_proba.iter().zip(target.iter()) {
-        let prob = if !probs.is_empty() { probs[1.min(probs.len() - 1)] } else { 0.0 };
+        let prob = if !probs.is_empty() {
+            probs[1.min(probs.len() - 1)]
+        } else {
+            0.0
+        };
         let bin_idx = ((prob * n_bins as f64) as usize).min(n_bins - 1);
         bins[bin_idx].0 += prob;
         bins[bin_idx].1 += t;
@@ -101,6 +110,8 @@ pub fn calibration_curve(
         .collect()
 }
 
+/// Computes precision@k from relevance scores and binary labels.
+#[must_use]
 pub fn precision_at_k(scores: &[f64], labels: &[f64], k: usize) -> f64 {
     let k = k.min(scores.len());
     let mut indexed: Vec<(f64, f64)> = scores
@@ -110,13 +121,12 @@ pub fn precision_at_k(scores: &[f64], labels: &[f64], k: usize) -> f64 {
         .collect();
     indexed.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
-    let relevant_in_top_k: usize = indexed[..k]
-        .iter()
-        .filter(|(_, l)| *l > 0.5)
-        .count();
+    let relevant_in_top_k: usize = indexed[..k].iter().filter(|(_, l)| *l > 0.5).count();
     relevant_in_top_k as f64 / k as f64
 }
 
+/// Computes normalized discounted cumulative gain at k.
+#[must_use]
 pub fn ndcg(scores: &[f64], labels: &[f64], k: usize) -> f64 {
     let k = k.min(scores.len());
     let mut indexed: Vec<(f64, f64)> = scores
@@ -149,6 +159,8 @@ pub fn ndcg(scores: &[f64], labels: &[f64], k: usize) -> f64 {
     }
 }
 
+/// Computes mean absolute percentage error (MAPE).
+#[must_use]
 pub fn mean_absolute_percentage_error(pred: &[f64], target: &[f64]) -> f64 {
     let mut sum = 0.0;
     let mut count = 0;
@@ -165,6 +177,8 @@ pub fn mean_absolute_percentage_error(pred: &[f64], target: &[f64]) -> f64 {
     }
 }
 
+/// Computes median absolute error.
+#[must_use]
 pub fn median_absolute_error(pred: &[f64], target: &[f64]) -> f64 {
     let mut errors: Vec<f64> = pred
         .iter()
@@ -176,13 +190,15 @@ pub fn median_absolute_error(pred: &[f64], target: &[f64]) -> f64 {
     if n == 0 {
         return 0.0;
     }
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         (errors[n / 2 - 1] + errors[n / 2]) / 2.0
     } else {
         errors[n / 2]
     }
 }
 
+/// Computes maximum absolute error across all samples.
+#[must_use]
 pub fn max_error(pred: &[f64], target: &[f64]) -> f64 {
     pred.iter()
         .zip(target.iter())
@@ -190,6 +206,8 @@ pub fn max_error(pred: &[f64], target: &[f64]) -> f64 {
         .fold(0.0, f64::max)
 }
 
+/// Computes Tweedie deviance loss for the given power parameter.
+#[must_use]
 pub fn tweedie_deviance(pred: &[f64], target: &[f64], power: f64) -> f64 {
     let mut dev = 0.0;
     for (p, t) in pred.iter().zip(target.iter()) {
@@ -203,15 +221,26 @@ pub fn tweedie_deviance(pred: &[f64], target: &[f64], power: f64) -> f64 {
     dev / target.len() as f64
 }
 
+/// Per-class confusion matrix counts.
 #[derive(Debug, Clone)]
 pub struct ConfusionMatrixResult {
+    /// True positive counts per class.
     pub tp: Vec<usize>,
+    /// False positive counts per class.
     pub fp: Vec<usize>,
+    /// False negative counts per class.
     pub fn_: Vec<usize>,
+    /// True negative counts per class.
     pub tn: Vec<usize>,
 }
 
-pub fn confusion_matrix_detailed(pred: &[f64], target: &[f64], num_classes: usize) -> ConfusionMatrixResult {
+/// Computes per-class TP/FP/FN/TN counts for multi-class classification.
+#[must_use]
+pub fn confusion_matrix_detailed(
+    pred: &[f64],
+    target: &[f64],
+    num_classes: usize,
+) -> ConfusionMatrixResult {
     let mut tp = vec![0usize; num_classes];
     let mut fp = vec![0usize; num_classes];
     let mut fn_ = vec![0usize; num_classes];
@@ -246,7 +275,10 @@ mod tests {
         let pred = vec![1.0, 1.0, 0.0, 0.0];
         let target = vec![1.0, 1.0, 0.0, 1.0];
         let mcc = matthews_correlation(&pred, &target);
-        assert!((mcc - 2.0 / 3.0_f64.sqrt()).abs() < 0.01 || (mcc - 0.577).abs() < 0.01, "mcc={mcc}");
+        assert!(
+            (mcc - 2.0 / 3.0_f64.sqrt()).abs() < 0.01 || (mcc - 0.577).abs() < 0.01,
+            "mcc={mcc}"
+        );
     }
 
     #[test]

@@ -24,9 +24,9 @@ pub fn covariance_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
             }
         }
     }
-    for i in 0..p {
-        for j in 0..p {
-            cov[i][j] /= (n - 1) as f64;
+    for (_i, row) in cov.iter_mut().enumerate().take(p) {
+        for (_j, val) in row.iter_mut().enumerate().take(p) {
+            *val /= (n - 1) as f64;
         }
     }
     cov
@@ -149,8 +149,8 @@ pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
     for i in 0..n {
         for j in 0..=i {
             let mut sum = 0.0;
-            for k in 0..j {
-                sum += l[i][k] * l[j][k];
+            for (k, l_ik) in l[i].iter().take(j).enumerate() {
+                sum += *l_ik * l[j][k];
             }
             let diag = matrix[i][i] - sum;
             if diag <= 0.0 {
@@ -170,11 +170,13 @@ pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
     }
     // A^{-1} = (L^{-1})^T L^{-1}
     let mut result = vec![vec![0.0; n]; n];
-    for i in 0..n {
-        for j in 0..n {
-            for k in 0..n {
-                result[i][j] += linv[k][i] * linv[k][j];
+    for (i, _) in linv.iter().enumerate().take(n) {
+        for (j, _) in linv.iter().enumerate().take(n) {
+            let mut sum = 0.0;
+            for (_k, linv_k) in linv.iter().enumerate().take(n) {
+                sum += linv_k[i] * linv_k[j];
             }
+            result[i][j] = sum;
         }
     }
     Some(result)

@@ -16,7 +16,7 @@ impl Rng {
         self.state ^= self.state >> 12;
         self.state ^= self.state << 25;
         self.state ^= self.state >> 27;
-        let result = self.state.wrapping_mul(0x2545F4914F6CDD1D);
+        self.state = self.state.wrapping_mul(0x2545F4914F6CDD1D);
         self.state
     }
 
