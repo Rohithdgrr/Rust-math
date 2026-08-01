@@ -352,16 +352,27 @@ impl ConfidenceIntervals {
     }
 
     fn critical_z(alpha: f64) -> f64 {
-        // Approximate critical z-value
+        if alpha <= 0.0 {
+            return f64::INFINITY;
+        }
+        if alpha >= 1.0 {
+            return 0.0;
+        }
+
+        // Approximate inverse survival function for standard normal.
         let normal_cdf = |x: f64| -> f64 {
             0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
         };
+        let target = 1.0 - alpha;
 
         let mut low = 0.0;
-        let mut high = 5.0;
-        for _ in 0..50 {
+        let mut high = 1.0;
+        while normal_cdf(high) < target && high < 1e6 {
+            high *= 2.0;
+        }
+        for _ in 0..80 {
             let mid = (low + high) / 2.0;
-            if 1.0 - normal_cdf(mid) < alpha {
+            if normal_cdf(mid) < target {
                 low = mid;
             } else {
                 high = mid;
@@ -381,17 +392,28 @@ impl ConfidenceIntervals {
     }
 
     fn critical_chi2(alpha: f64, df: usize) -> f64 {
+        if alpha <= 0.0 {
+            return f64::INFINITY;
+        }
+        if alpha >= 1.0 {
+            return 0.0;
+        }
+
         // Approximate chi-squared critical value
         let gamma = crate::distributions::Gamma {
             shape: df as f64 / 2.0,
             rate: 0.5,
         };
+        let target = 1.0 - alpha;
 
         let mut low = 0.0;
-        let mut high = df as f64 * 3.0;
-        for _ in 0..50 {
+        let mut high = (df as f64).max(1.0);
+        while gamma.cdf(high) < target && high < 1e12 {
+            high *= 2.0;
+        }
+        for _ in 0..80 {
             let mid = (low + high) / 2.0;
-            if 1.0 - gamma.cdf(mid) < alpha {
+            if gamma.cdf(mid) < target {
                 low = mid;
             } else {
                 high = mid;
