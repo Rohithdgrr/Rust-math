@@ -134,33 +134,58 @@ pub fn mc_integrate(
     samples: usize,
     rng: &mut Rng,
 ) -> (f64, f64) {
-    let n = samples as f64;
-    let (mut sum, mut sumsq) = (0.0, 0.0);
-    for _ in 0..samples {
-        let y = f(a + (b - a) * rng.uniform());
-        sum += y;
-        sumsq += y * y;
+    if samples == 0 {
+        return (0.0, 0.0);
     }
-    let m = sum / n;
-    let var = (sumsq / n - m * m).max(0.0);
+
+    let mut mean = 0.0;
+    let mut m2 = 0.0;
+    for i in 1..=samples {
+        let y = f(a + (b - a) * rng.uniform());
+        let delta = y - mean;
+        mean += delta / i as f64;
+        let delta2 = y - mean;
+        m2 += delta * delta2;
+    }
+    let n = samples as f64;
+    let var = if samples > 1 { m2 / (n - 1.0) } else { 0.0 };
     let scale = b - a;
-    (m * scale, (var / n).sqrt() * scale)
+    (mean * scale, (var / n).sqrt() * scale)
 }
 
 /// One step of a Markov chain: next state from row `state` of the
 /// transition matrix (rows must sum to 1).
 #[inline]
-pub fn markov_step(transition: &[&[f64]], state: usize, rng: &mut Rng) -> usize {
-    let row = transition[state];
-    let u = rng.uniform();
+pub fn markov_step(transition: &[&[f64]], state: usize, rng: &mut Rng) -> Result<usize, MathError> {
+    let row = transition.get(state).ok_or(MathError::OutOfRange)?;
+    if row.is_empty() {
+        return Err(MathError::InvalidArgument(
+            "transition row must not be empty",
+        ));
+    }
+
+    let mut sum = 0.0;
+    for &p in *row {
+        if !p.is_finite() || p < 0.0 {
+            return Err(MathError::InvalidArgument(
+                "transition probabilities must be finite and non-negative",
+            ));
+        }
+        sum += p;
+    }
+    if !sum.is_finite() || (sum - 1.0).abs() > 1e-9 {
+        return Err(MathError::InvalidArgument("transition row must sum to 1"));
+    }
+
+    let u = rng.uniform() * sum;
     let mut acc = 0.0;
     for (i, &p) in row.iter().enumerate() {
         acc += p;
         if u <= acc {
-            return i;
+            return Ok(i);
         }
     }
-    row.len() - 1
+    Ok(row.len() - 1)
 }
 
 /// Distribution after `steps` transitions from `start` (power iteration).
@@ -203,9 +228,15 @@ mod tests {
         let mut rng = Rng::new(3);
         let mut state = 0usize;
         for _ in 0..200 {
-            state = markov_step(t, state, &mut rng);
+            state = markov_step(t, state, &mut rng).unwrap();
         }
         // After burn-in, mostly state 0 (stationary mass 5/6).
         assert_eq!(state, 0);
+    }
+
+    #[test]
+    fn markov_step_validates_row() {
+        let mut rng = Rng::new(1);
+        assert!(markov_step(&[&[0.2, 0.2]], 0, &mut rng).is_err());
     }
 }

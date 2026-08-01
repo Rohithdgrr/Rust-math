@@ -58,6 +58,7 @@ impl MLE {
     pub fn general(
         log_likelihood: impl Fn(&[f64]) -> f64,
         initial_params: &[f64],
+        rng: &mut crate::rng::Rng,
         _tolerance: f64,
     ) -> Vec<f64> {
         let mut params = initial_params.to_vec();
@@ -72,7 +73,7 @@ impl MLE {
                     mu: 0.0,
                     sigma: 0.01,
                 }
-                .sample(&mut crate::rng::Rng::new(42));
+                .sample(rng);
             }
 
             let ll = log_likelihood(&new_params);
