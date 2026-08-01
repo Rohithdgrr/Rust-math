@@ -51,17 +51,64 @@ pub fn erfc(x: f64) -> f64 {
 
 #[must_use]
 pub fn lower_gamma(s: f64, x: f64) -> f64 {
-    if x < 0.0 {
+    if x < 0.0 || s <= 0.0 || !s.is_finite() || !x.is_finite() {
         return 0.0;
     }
-    let n = 200;
-    let mut sum = 1.0 / s;
-    let mut term = 1.0 / s;
-    for k in 1..=n {
-        term *= x / (s + k as f64);
-        sum += term;
+    if x == 0.0 {
+        return 0.0;
     }
-    sum * x.powf(s) * (-x).exp()
+
+    const EPS: f64 = 1e-14;
+    const MAX_ITERS: usize = 10_000;
+    const FPMIN: f64 = 1e-300;
+
+    let gln = ln_gamma(s);
+    if x < s + 1.0 {
+        // Series for P(s, x), then scale by Γ(s).
+        let mut ap = s;
+        let mut sum = 1.0 / s;
+        let mut delta = sum;
+        for _ in 0..MAX_ITERS {
+            ap += 1.0;
+            delta *= x / ap;
+            sum += delta;
+            if delta.abs() <= sum.abs() * EPS {
+                break;
+            }
+        }
+        let p = sum * (s * x.ln() - x - gln).exp();
+        p * gln.exp()
+    } else {
+        // Continued fraction for Q(s, x), then use γ(s,x) = Γ(s) * (1 - Q(s,x)).
+        let mut b = x + 1.0 - s;
+        let mut c = 1.0 / FPMIN;
+        let mut d = 1.0 / b.max(FPMIN);
+        let mut h = d;
+
+        for i in 1..=MAX_ITERS {
+            let i_f = i as f64;
+            let an = -i_f * (i_f - s);
+            b += 2.0;
+            d = an * d + b;
+            if d.abs() < FPMIN {
+                d = FPMIN;
+            }
+            c = b + an / c;
+            if c.abs() < FPMIN {
+                c = FPMIN;
+            }
+            d = 1.0 / d;
+            let delta = d * c;
+            h *= delta;
+            if (delta - 1.0).abs() < EPS {
+                break;
+            }
+        }
+
+        let q = (s * x.ln() - x - gln).exp() * h;
+        let p = (1.0 - q).clamp(0.0, 1.0);
+        p * gln.exp()
+    }
 }
 
 #[must_use]
@@ -128,5 +175,13 @@ mod tests {
         let lg = ln_gamma(200.0);
         assert!(lg.is_finite());
         assert!((lg - 857.933_669_825_857_5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn lower_gamma_matches_gamma_for_large_x() {
+        let s = 5.0;
+        let lg = lower_gamma(s, 100.0);
+        let g = gamma_fn(s);
+        assert!((lg - g).abs() / g < 1e-10);
     }
 }

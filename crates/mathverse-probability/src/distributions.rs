@@ -525,16 +525,28 @@ impl Distribution for Hypergeometric {
 }
 impl DiscreteDist for Hypergeometric {
     fn pmf(&self, x: i64) -> f64 {
-        if x < 0 || x as u64 > self.k || x as u64 > self.n_draws {
+        if x < 0 {
             return 0.0;
         }
         let x = x as u64;
-        let k_choose_x = mathverse_core::algorithms::binomial(self.k, x) as f64;
+
+        let min_x = self.n_draws.saturating_sub(self.n - self.k);
+        let max_x = self.k.min(self.n_draws);
+        if x < min_x || x > max_x {
+            return 0.0;
+        }
+
         let n_minus_k = self.n - self.k;
-        let n_minus_k_choose =
-            mathverse_core::algorithms::binomial(n_minus_k, self.n_draws - x) as f64;
-        let n_choose = mathverse_core::algorithms::binomial(self.n, self.n_draws) as f64;
-        (k_choose_x * n_minus_k_choose) / n_choose
+        let ln_num = ln_gamma(self.k as f64 + 1.0)
+            - ln_gamma(x as f64 + 1.0)
+            - ln_gamma((self.k - x) as f64 + 1.0)
+            + ln_gamma(n_minus_k as f64 + 1.0)
+            - ln_gamma((self.n_draws - x) as f64 + 1.0)
+            - ln_gamma((n_minus_k - self.n_draws + x) as f64 + 1.0);
+        let ln_den = ln_gamma(self.n as f64 + 1.0)
+            - ln_gamma(self.n_draws as f64 + 1.0)
+            - ln_gamma((self.n - self.n_draws) as f64 + 1.0);
+        (ln_num - ln_den).exp()
     }
     fn cdf(&self, k: i64) -> f64 {
         (0..=k).map(|i| self.pmf(i)).sum()
@@ -846,17 +858,73 @@ impl BetaFunc for (f64, f64) {
             0.0
         } else if x == 1.0 {
             1.0
+        } else if !(a > 0.0 && b > 0.0) {
+            f64::NAN
         } else {
-            let mut sum = 0.0;
-            let mut term = 1.0 / a;
-            for n in 0..100 {
-                sum += term;
-                term *= (a + n as f64) * x / (a + b + n as f64);
-                if term.abs() < 1e-15 * sum.abs() {
-                    break;
+            const MAX_ITERS: usize = 200;
+            const EPS: f64 = 3.0e-14;
+            const FPMIN: f64 = 1.0e-300;
+
+            fn betacf(a: f64, b: f64, x: f64) -> f64 {
+                const MAX_ITERS: usize = 200;
+                const EPS: f64 = 3.0e-14;
+                const FPMIN: f64 = 1.0e-300;
+
+                let qab = a + b;
+                let qap = a + 1.0;
+                let qam = a - 1.0;
+                let mut c = 1.0;
+                let mut d = 1.0 - qab * x / qap;
+                if d.abs() < FPMIN {
+                    d = FPMIN;
                 }
+                d = 1.0 / d;
+                let mut h = d;
+
+                for m in 1..=MAX_ITERS {
+                    let m2 = 2.0 * m as f64;
+                    let mut aa = m as f64 * (b - m as f64) * x / ((qam + m2) * (a + m2));
+                    d = 1.0 + aa * d;
+                    if d.abs() < FPMIN {
+                        d = FPMIN;
+                    }
+                    c = 1.0 + aa / c;
+                    if c.abs() < FPMIN {
+                        c = FPMIN;
+                    }
+                    d = 1.0 / d;
+                    h *= d * c;
+
+                    aa = -(a + m as f64) * (qab + m as f64) * x / ((a + m2) * (qap + m2));
+                    d = 1.0 + aa * d;
+                    if d.abs() < FPMIN {
+                        d = FPMIN;
+                    }
+                    c = 1.0 + aa / c;
+                    if c.abs() < FPMIN {
+                        c = FPMIN;
+                    }
+                    d = 1.0 / d;
+                    let delta = d * c;
+                    h *= delta;
+
+                    if (delta - 1.0).abs() < EPS {
+                        break;
+                    }
+                }
+
+                h
             }
-            sum * x.powf(a) * (1.0 - x).powf(b - 1.0) / (a, b).beta()
+
+            let ln_bt =
+                ln_gamma(a + b) - ln_gamma(a) - ln_gamma(b) + a * x.ln() + b * (1.0 - x).ln();
+            let bt = ln_bt.exp();
+            let threshold = (a + 1.0) / (a + b + 2.0);
+            if x < threshold {
+                bt * betacf(a, b, x) / a
+            } else {
+                1.0 - bt * betacf(b, a, 1.0 - x) / b
+            }
         }
     }
 }
@@ -906,6 +974,28 @@ mod tests {
         let t = StudentsT { nu: 1.0 };
         assert!((t.pdf(0.0) - 1.0 / core::f64::consts::PI).abs() < 1e-12);
         assert!((t.cdf(0.0) - 0.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn hypergeometric_large_parameters_stay_finite() {
+        let h = Hypergeometric {
+            n: 70,
+            k: 35,
+            n_draws: 35,
+        };
+        assert!(h.pmf(17).is_finite());
+        assert!(h.pmf(17) > 0.0);
+    }
+
+    #[test]
+    fn beta_cdf_tail_is_well_behaved() {
+        let b = Beta {
+            alpha: 20.0,
+            beta: 5.0,
+        };
+        let cdf = b.cdf(0.999);
+        assert!(cdf.is_finite());
+        assert!((0.0..=1.0).contains(&cdf));
     }
 
     #[test]
