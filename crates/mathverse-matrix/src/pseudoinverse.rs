@@ -252,7 +252,7 @@ mod tests {
         let m = Matrix::from_rows(&[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
         let pinv = Pseudoinverse::compute(&m, 1e-10).unwrap();
         let should_be_identity = m.mul(&pinv).unwrap();
-        let identity = Matrix::identity(2);
+        let _identity = Matrix::identity(2);
         
         for i in 0..2 {
             for j in 0..2 {

@@ -253,7 +253,7 @@ impl AutoDiff {
 
     /// Derivative of determinant: d(det(A))/dA.
     pub fn determinant_derivative(a: &Matrix) -> MathResult<Matrix> {
-        let n = a.rows;
+        let _n = a.rows;
         let det = a.det()?;
         let adj = a.inverse()?.scale(det);
         
@@ -285,7 +285,7 @@ pub struct GradientOptimization;
 impl GradientOptimization {
     /// Gradient descent for scalar function.
     pub fn gradient_descent(
-        f: impl Fn(&[f64]) -> f64,
+        _f: impl Fn(&[f64]) -> f64,
         grad: impl Fn(&[f64]) -> Vec<f64>,
         x0: &[f64],
         learning_rate: f64,
@@ -315,7 +315,7 @@ impl GradientOptimization {
 
     /// Newton's method for optimization.
     pub fn newton_method(
-        f: impl Fn(&[f64]) -> f64,
+        _f: impl Fn(&[f64]) -> f64,
         grad: impl Fn(&[f64]) -> Vec<f64>,
         hess: impl Fn(&[f64]) -> Matrix,
         x0: &[f64],
@@ -349,7 +349,7 @@ impl GradientOptimization {
 
     /// BFGS optimization (simplified).
     pub fn bfgs(
-        f: impl Fn(&[f64]) -> f64,
+        _f: impl Fn(&[f64]) -> f64,
         grad: impl Fn(&[f64]) -> Vec<f64>,
         x0: &[f64],
         max_iterations: usize,
@@ -449,7 +449,7 @@ impl MatrixDifferential {
 
     /// Chain rule for matrix functions.
     pub fn chain_rule(
-        outer: impl Fn(&Matrix) -> Matrix,
+        _outer: impl Fn(&Matrix) -> Matrix,
         outer_derivative: impl Fn(&Matrix, &Matrix) -> MathResult<Matrix>,
         inner: impl Fn(&[f64]) -> Matrix,
         inner_derivative: impl Fn(&[f64]) -> Vec<f64>,

@@ -20,7 +20,7 @@ impl SchurDecompositionImpl {
             return Err(MathError::DimensionMismatch);
         }
         
-        let n = m.rows;
+        let _n = m.rows;
         let mut h = Self::hessenberg(m)?;
         let mut q = Self::hessenberg_q(m)?;
         

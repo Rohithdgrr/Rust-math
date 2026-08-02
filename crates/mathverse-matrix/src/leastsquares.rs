@@ -63,7 +63,7 @@ impl LeastSquares {
 
     /// Solve using normal equations: A^T A x = A^T b.
     pub fn normal_equations(m: &Matrix, b: &mathverse_vector::Vector) -> MathResult<LeastSquaresResult> {
-        let (m_rows, m_cols) = (m.rows, m.cols);
+        let (m_rows, _m_cols) = (m.rows, m.cols);
         
         if b.len() != m_rows {
             return Err(MathError::DimensionMismatch);
@@ -91,7 +91,7 @@ impl LeastSquares {
 
     /// Solve using SVD (handles rank-deficient matrices).
     pub fn svd_solve(m: &Matrix, b: &mathverse_vector::Vector, tolerance: f64) -> MathResult<LeastSquaresResult> {
-        let (m_rows, m_cols) = (m.rows, m.cols);
+        let (m_rows, _m_cols) = (m.rows, m.cols);
         
         if b.len() != m_rows {
             return Err(MathError::DimensionMismatch);

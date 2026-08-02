@@ -257,7 +257,7 @@ impl TensorOperations {
         }
         
         let mut result = Vec::new();
-        let mut idx = 0;
+        let _idx = 0;
         
         // Simplified: assume 2D tensor for now
         if shape.len() == 2 {

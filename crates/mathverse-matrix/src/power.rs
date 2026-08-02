@@ -202,7 +202,7 @@ impl MatrixPolynomial {
         let mut result = Matrix::identity(n).scale(coefficients[0]);
         let mut power = Matrix::identity(n);
         
-        for (i, &coeff) in coefficients.iter().enumerate().skip(1) {
+        for (_i, &coeff) in coefficients.iter().enumerate().skip(1) {
             power = power.mul(m)?;
             result = result.add(&power.scale(coeff))?;
         }

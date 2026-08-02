@@ -35,7 +35,7 @@ impl PolarDecompositionImpl {
             return Err(MathError::DimensionMismatch);
         }
         
-        let n = m.rows;
+        let _n = m.rows;
         let mut x = m.clone();
         let mut x_inv = m.inverse()?;
         
@@ -322,7 +322,7 @@ mod tests {
         
         // Check orthogonality
         let nt_n = nearest.transpose().mul(&nearest).unwrap();
-        let identity = Matrix::identity(2);
+        let _identity = Matrix::identity(2);
         
         for i in 0..2 {
             for j in 0..2 {

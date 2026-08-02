@@ -269,8 +269,8 @@ pub struct EigenvalueSensitivity;
 impl EigenvalueSensitivity {
     /// Condition number of eigenvalue: κ = ||y|| * ||x|| / |y^T x|.
     pub fn eigenvalue_condition(
-        m: &Matrix,
-        eigenvalue: f64,
+        _m: &Matrix,
+        _eigenvalue: f64,
         eigenvector: &[f64],
         left_eigenvector: &[f64],
     ) -> f64 {
@@ -290,7 +290,7 @@ impl EigenvalueSensitivity {
     }
 
     /// Pseudospectrum: set of eigenvalues of A + E for ||E|| < epsilon.
-    pub fn pseudospectrum_radius(m: &Matrix, epsilon: f64) -> f64 {
+    pub fn pseudospectrum_radius(_m: &Matrix, epsilon: f64) -> f64 {
         // Simplified: return epsilon as radius
         epsilon
     }

@@ -260,7 +260,7 @@ impl BunchKaufman {
         Ok((l, a, pivots))
     }
     
-    fn apply_2x2_pivot(a: &mut Matrix, l: &mut Matrix, k: usize, pivots: &mut Vec<usize>) {
+    fn apply_2x2_pivot(a: &mut Matrix, l: &mut Matrix, k: usize, _pivots: &mut Vec<usize>) {
         let n = a.rows;
         let d11 = a.get(k, k);
         let d22 = a.get(k + 1, k + 1);

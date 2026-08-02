@@ -227,7 +227,7 @@ impl LyapunovEquation {
 
     /// Solve discrete Lyapunov equation: AXA^T - X + Q = 0.
     pub fn solve_discrete(a: &Matrix, q: &Matrix) -> MathResult<Matrix> {
-        let n = a.rows;
+        let _n = a.rows;
         
         // Use iterative method
         let mut x = q.clone();

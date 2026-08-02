@@ -47,6 +47,7 @@ impl MatrixExponential {
     }
 
     /// Padé approximation for matrix exponential.
+    #[allow(dead_code)]
     fn pade_approx(m: &Matrix) -> MathResult<Matrix> {
         let n = m.rows;
         

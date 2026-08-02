@@ -168,9 +168,9 @@ impl TridiagonalMatrix {
         }
         
         let n = self.n;
-        let mut c = self.upper_diag.clone();
+        let c = self.upper_diag.clone();
         let mut d = self.main_diag.clone();
-        let mut e = self.lower_diag.clone();
+        let e = self.lower_diag.clone();
         let mut b_vec = b.data.clone();
         
         // Forward elimination
@@ -348,7 +348,7 @@ impl BandedOperations {
         let n = t.n;
         let mut l = vec![0.0; n - 1];
         let mut u_main = t.main_diag.clone();
-        let mut u_upper = t.upper_diag.clone();
+        let u_upper = t.upper_diag.clone();
         
         for i in 0..(n - 1) {
             if u_main[i].abs() < 1e-15 {

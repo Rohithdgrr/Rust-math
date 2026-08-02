@@ -92,7 +92,7 @@ impl ConjugateGradient {
         
         let mut x = mathverse_vector::Vector::new(vec![0.0; n]);
         let mut r = b.clone();
-        let mut z = mathverse_vector::Vector::new(
+        let z = mathverse_vector::Vector::new(
             r.data.iter().zip(m_inv.iter()).map(|(&r, &m)| r * m).collect()
         );
         let mut p = z.clone();
@@ -125,7 +125,6 @@ impl ConjugateGradient {
             p = z_new.add(&p.scale(beta));
             
             r = r_new;
-            z = z_new;
             rz_old = rz_new;
         }
         

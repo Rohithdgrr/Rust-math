@@ -277,7 +277,7 @@ impl GeneralizedEigenSensitivity {
     pub fn condition_number(
         a: &Matrix,
         b: &Matrix,
-        eigenvalue: f64,
+        _eigenvalue: f64,
         eigenvector: &[f64],
         left_eigenvector: &[f64],
     ) -> f64 {
