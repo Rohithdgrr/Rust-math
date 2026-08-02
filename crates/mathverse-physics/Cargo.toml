@@ -11,7 +11,7 @@ repository = "https://github.com/mathverse/mathverse"
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
 mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
-mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.1.0" }
+mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.2.0" }
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
 mathverse-units = { path = "../mathverse-units", version = "0.1.0" }
 

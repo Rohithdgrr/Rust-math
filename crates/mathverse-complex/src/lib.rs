@@ -90,6 +90,16 @@ impl Complex {
     }
     /// `self^p = e^(p·ln self)`, principal branch.
     pub fn pow(&self, p: Complex) -> Complex {
+        if self.is_zero() {
+            // 0^p: zero for Re(p) > 0, infinite for Re(p) < 0, undefined otherwise
+            return if p.re > 0.0 {
+                Complex::zero()
+            } else if p.re < 0.0 {
+                Complex::new(f64::INFINITY, 0.0)
+            } else {
+                Complex::new(f64::NAN, f64::NAN)
+            };
+        }
         (p * self.ln()).exp()
     }
     /// `self^p` for real exponent.
@@ -140,13 +150,13 @@ impl Complex {
     /// Inverse cosine.
     pub fn acos(&self) -> Complex {
         let s = *self;
-        Complex::i() * (s + Complex::i() * (Complex::real(1.0) - s * s).sqrt()).ln()
+        -Complex::i() * (s + Complex::i() * (Complex::real(1.0) - s * s).sqrt()).ln()
     }
     /// Inverse tangent.
     pub fn atan(&self) -> Complex {
         let s = *self;
         let i = Complex::i();
-        (i * (Complex::real(1.0) - i * s) / (Complex::real(1.0) + i * s)).ln() / (Complex::real(2.0) * i)
+        (i / Complex::real(2.0)) * ((Complex::real(1.0) - i * s) / (Complex::real(1.0) + i * s)).ln()
     }
     /// Base-10 logarithm.
     pub fn log10(&self) -> Complex {
@@ -350,6 +360,31 @@ mod tests {
     }
 
     #[test]
+    fn inverse_trig_special_values() {
+        // acos(0) = π/2, atan(1) = π/4, asin(1) = π/2 (regression: sign/branch bugs)
+        let acos0 = Complex::zero().acos();
+        assert!((acos0.re - core::f64::consts::FRAC_PI_2).abs() < 1e-12);
+        assert!(acos0.im.abs() < 1e-12);
+
+        let atan1 = Complex::one().atan();
+        assert!((atan1.re - core::f64::consts::FRAC_PI_4).abs() < 1e-12);
+        assert!(atan1.im.abs() < 1e-12);
+
+        let asin1 = Complex::one().asin();
+        assert!((asin1.re - core::f64::consts::FRAC_PI_2).abs() < 1e-12);
+        assert!(asin1.im.abs() < 1e-12);
+
+        // acos(cos z) = z round trip off the real axis
+        let z = Complex::new(0.7, 0.4);
+        let round = z.cos().acos();
+        assert!((round - z).norm() < 1e-10);
+
+        // atan(tan z) = z round trip
+        let round2 = z.tan().atan();
+        assert!((round2 - z).norm() < 1e-10);
+    }
+
+    #[test]
     fn logarithms() {
         let z = Complex::new(10.0, 0.0);
         let log10 = z.log10();
@@ -389,7 +424,7 @@ mod tests {
         let z = Complex::new(3.0, 4.0);
         let s = z.signum();
         assert!((s.norm() - 1.0).abs() < 1e-10);
-        assert!((s * z.norm() - z).norm() < 1e-10);
+        assert!((s * z.norm().into() - z).norm() < 1e-10);
         
         assert_eq!(Complex::zero().signum(), Complex::zero());
     }

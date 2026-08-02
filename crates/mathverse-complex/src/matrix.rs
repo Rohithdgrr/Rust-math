@@ -167,11 +167,28 @@ impl ComplexMatrix {
             }
             _ => {
                 // Use LU decomposition for larger matrices
-                let (l, u, _) = self.lu_decomposition().unwrap();
+                let (_, u, pivot) = self.lu_decomposition().unwrap();
                 let mut det = Complex::one();
                 
                 for i in 0..self.rows {
-                    det = det * l.get(i, i) * u.get(i, i);
+                    det = det * u.get(i, i);
+                }
+                
+                // Sign from permutation parity: (-1)^(n - #cycles)
+                let mut visited = vec![false; self.rows];
+                let mut cycles = 0;
+                for i in 0..self.rows {
+                    if !visited[i] {
+                        cycles += 1;
+                        let mut j = i;
+                        while !visited[j] {
+                            visited[j] = true;
+                            j = pivot[j];
+                        }
+                    }
+                }
+                if (self.rows - cycles) % 2 == 1 {
+                    det = -det;
                 }
                 
                 det
@@ -368,11 +385,19 @@ impl ComplexMatrix {
         result
     }
 
-    /// Matrix exponential e^A using Taylor series.
+    /// Matrix exponential e^A using Taylor series with scaling-and-squaring:
+    /// compute e^(A/2^k) then square k times.
     pub fn exp(&self, iterations: usize) -> ComplexMatrix {
         if self.rows != self.cols {
             panic!("Matrix must be square");
         }
+        
+        let norm = self.frobenius_norm();
+        let mut scale_pow = 0;
+        if norm > 1.0 {
+            scale_pow = norm.log2().ceil() as usize;
+        }
+        let scaled = self.scale(Complex::real(1.0 / 2.0_f64.powi(scale_pow as i32)));
         
         let mut result = ComplexMatrix::identity(self.rows);
         let mut term = ComplexMatrix::identity(self.rows);
@@ -380,18 +405,25 @@ impl ComplexMatrix {
         
         for n in 1..=iterations {
             factorial *= n as f64;
-            term = term.mul(self);
+            term = term.mul(&scaled);
             
             for i in 0..term.data.len() {
                 result.data[i] = result.data[i] + term.data[i] / Complex::real(factorial);
             }
         }
         
+        for _ in 0..scale_pow {
+            result = result.mul(&result);
+        }
+        
         result
     }
 
-    /// Matrix logarithm ln(A) using Taylor series.
-    pub fn ln(&self, iterations: usize) -> ComplexMatrix {
+    /// Matrix logarithm ln(A) using Taylor series around identity.
+    /// Returns `None` if the series cannot converge, i.e. if any eigenvalue
+    /// of A is outside the disk |λ - 1| < 1 (checked via a Frobenius-norm
+    /// bound on A - I, which is conservative but safe).
+    pub fn ln(&self, iterations: usize) -> Option<ComplexMatrix> {
         if self.rows != self.cols {
             panic!("Matrix must be square");
         }
@@ -399,11 +431,16 @@ impl ComplexMatrix {
         let identity = ComplexMatrix::identity(self.rows);
         let a_minus_i = self.sub(&identity);
         
+        // ||A - I||_F >= spectral radius of (A - I); series needs it < 1
+        if a_minus_i.frobenius_norm() >= 1.0 {
+            return None;
+        }
+        
         let mut result = ComplexMatrix::zeros(self.rows, self.cols);
         let mut term = a_minus_i.clone();
         
         for n in 1..=iterations {
-            let sign = if n % 2 == 0 { Complex::one() } else { -Complex::one() };
+            let sign = if n % 2 == 0 { -Complex::one() } else { Complex::one() };
             let scalar = sign / Complex::real(n as f64);
             
             for i in 0..result.data.len() {
@@ -413,7 +450,7 @@ impl ComplexMatrix {
             term = term.mul(&a_minus_i);
         }
         
-        result
+        Some(result)
     }
 }
 
@@ -562,5 +599,90 @@ mod tests {
         assert_eq!(m2.get(0, 1), Complex::real(2.0));
         assert_eq!(m2.get(1, 0), Complex::zero());
         assert_eq!(m2.get(1, 1), Complex::real(1.0));
+    }
+
+    #[test]
+    fn test_determinant_permutation_sign() {
+        // 4x4 permutation matrix swapping rows 0/1: det must be -1
+        // (regression: LU path ignored pivot parity)
+        let mut m = ComplexMatrix::identity(4);
+        for j in 0..4 {
+            let t = m.get(0, j);
+            m.set(0, j, m.get(1, j));
+            m.set(1, j, t);
+        }
+        let det = m.determinant();
+        assert!((det.re + 1.0).abs() < 1e-12);
+        assert!(det.im.abs() < 1e-12);
+
+        // 4x4 diag(1,2,3,4) with rows 0/1 swapped: det = -24
+        let mut m2 = ComplexMatrix::new(4, 4);
+        m2.set(0, 0, Complex::real(1.0));
+        m2.set(1, 1, Complex::real(2.0));
+        m2.set(2, 2, Complex::real(3.0));
+        m2.set(3, 3, Complex::real(4.0));
+        for j in 0..4 {
+            let t = m2.get(0, j);
+            m2.set(0, j, m2.get(1, j));
+            m2.set(1, j, t);
+        }
+        let det2 = m2.determinant();
+        assert!((det2.re + 24.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_matrix_exp() {
+        // exp(0) = I
+        let zero = ComplexMatrix::new(2, 2);
+        let e0 = zero.exp(20);
+        assert!((e0.get(0, 0) - Complex::one()).norm() < 1e-10);
+        assert!((e0.get(1, 1) - Complex::one()).norm() < 1e-10);
+
+        // exp([[0,1],[0,0]]) = [[1,1],[0,1]]
+        let mut m = ComplexMatrix::new(2, 2);
+        m.set(0, 1, Complex::one());
+        let em = m.exp(20);
+        assert!((em.get(0, 0) - Complex::one()).norm() < 1e-10);
+        assert!((em.get(0, 1) - Complex::one()).norm() < 1e-10);
+        assert!((em.get(1, 0) - Complex::zero()).norm() < 1e-10);
+        assert!((em.get(1, 1) - Complex::one()).norm() < 1e-10);
+
+        // exp of large-norm matrix needs scaling-and-squaring: exp(diag(10,10)) = diag(e^10, e^10)
+        let mut big = ComplexMatrix::new(2, 2);
+        big.set(0, 0, Complex::real(10.0));
+        big.set(1, 1, Complex::real(10.0));
+        let ebig = big.exp(30);
+        let e10 = 10.0_f64.exp();
+        assert!((ebig.get(0, 0).re - e10).abs() < 1e-6 * e10);
+        assert!((ebig.get(1, 1).re - e10).abs() < 1e-6 * e10);
+        assert!((ebig.get(0, 1) - Complex::zero()).norm() < 1e-6 * e10);
+    }
+
+    #[test]
+    fn test_matrix_ln() {
+        // ln(I) = 0
+        let i = ComplexMatrix::identity(2);
+        let ln_i = i.ln(20).unwrap();
+        assert!((ln_i.get(0, 0) - Complex::zero()).norm() < 1e-10);
+
+        // exp(ln(A)) = A for A near identity
+        let mut a = ComplexMatrix::new(2, 2);
+        a.set(0, 0, Complex::real(1.2));
+        a.set(0, 1, Complex::real(0.1));
+        a.set(1, 0, Complex::real(-0.2));
+        a.set(1, 1, Complex::real(0.8));
+        let ln_a = a.ln(40).unwrap();
+        let round = ln_a.exp(40);
+        for i in 0..2 {
+            for j in 0..2 {
+                assert!((round.get(i, j) - a.get(i, j)).norm() < 1e-8);
+            }
+        }
+
+        // ln(10·I) diverges: must return None (regression: silently returned garbage)
+        let mut big = ComplexMatrix::new(2, 2);
+        big.set(0, 0, Complex::real(10.0));
+        big.set(1, 1, Complex::real(10.0));
+        assert!(big.ln(20).is_none());
     }
 }

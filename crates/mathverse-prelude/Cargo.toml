@@ -12,7 +12,7 @@ rust-version = "1.87"
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
 mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
-mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.1.0" }
+mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.2.0" }
 mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
 mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
 mathverse-linear-algebra = { path = "../mathverse-linear-algebra", version = "0.1.0" }

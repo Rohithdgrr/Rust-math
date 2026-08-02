@@ -33,7 +33,7 @@ impl ComplexAnalysis {
         let derivative = Self::nth_derivative(&g, z0, order - 1, h);
         
         // Divide by factorial
-        let factorial: f64 = (1..=order - 1).product::<usize>() as f64;
+        let factorial: f64 = (1..=order - 1).map(|x| x as f64).product();
         derivative / Complex::real(factorial)
     }
 
@@ -60,10 +60,10 @@ impl ComplexAnalysis {
 
         // Use finite differences for higher derivatives
         let mut result = Complex::zero();
-        let sign: f64 = if n % 2 == 0 { 1.0 } else { -1.0 };
         
         for k in 0..=n {
             let coeff = Self::binomial_coefficient(n, k) as f64;
+            let sign: f64 = if (n - k) % 2 == 0 { 1.0 } else { -1.0 };
             let z_k = z + Complex::new((k as f64 - n as f64 / 2.0) * h, 0.0);
             let term = f(z_k) * Complex::real(coeff * sign);
             result = result + term;
@@ -101,7 +101,8 @@ impl ComplexAnalysis {
         for k in 0..n {
             let theta = k as f64 * h;
             let z = z0 + Complex::polar(radius, theta);
-            let dz = Complex::polar(radius * h, theta + h / 2.0);
+            // dz = i·r·e^(iθ)·dθ, i.e. angle is θ + π/2 (same θ as z)
+            let dz = Complex::polar(radius * h, theta + std::f64::consts::FRAC_PI_2);
             result = result + f(z) * dz;
         }
         
@@ -131,7 +132,7 @@ impl ComplexAnalysis {
         let integrand = |z: Complex| f(z) / (z - z0).powf((n + 1) as f64);
         let integral = Self::contour_integral_circle(&integrand, z0, radius, contour_n);
         
-        let factorial: f64 = (1..=n).product::<usize>() as f64;
+        let factorial: f64 = (1..=n).map(|x| x as f64).product();
         integral * Complex::real(factorial) / Complex::new(0.0, 2.0 * std::f64::consts::PI)
     }
 
@@ -198,8 +199,7 @@ impl ComplexAnalysis {
 
     /// Inverse Möbius transformation.
     pub fn mobius_inverse(w: Complex, a: Complex, b: Complex, c: Complex, d: Complex) -> Complex {
-        let determinant = a * d - b * c;
-        (d * w - b) / (determinant - c * w)
+        (d * w - b) / (a - c * w)
     }
 
     /// Schwarz-Christoffel mapping (simplified for polygon).
@@ -237,7 +237,7 @@ impl ComplexAnalysis {
         (integral.im / (2.0 * std::f64::consts::PI)).round()
     }
 
-    /// Rouché's theorem test: if |f(z)| > |g(z)| on contour C,
+    /// Rouché's theorem test: if |f(z)| > |g(z)| for every z on contour C,
     /// then f and f+g have same number of zeros inside C.
     pub fn rouches_theorem(
         f: &dyn Fn(Complex) -> Complex,
@@ -246,7 +246,8 @@ impl ComplexAnalysis {
         radius: f64,
         n: usize,
     ) -> bool {
-        let mut max_f: f64 = 0.0;
+        // Sufficient sampled check: min |f| > max |g| on the contour
+        let mut min_f: f64 = f64::INFINITY;
         let mut max_g: f64 = 0.0;
         
         for k in 0..n {
@@ -256,11 +257,11 @@ impl ComplexAnalysis {
             let f_val = f(z).norm();
             let g_val = g(z).norm();
             
-            max_f = max_f.max(f_val);
+            min_f = min_f.min(f_val);
             max_g = max_g.max(g_val);
         }
         
-        max_f > max_g
+        min_f > max_g
     }
 }
 
@@ -318,5 +319,66 @@ mod tests {
         let z = Complex::new(1.0, 1.0);
         
         assert!(ComplexAnalysis::is_analytic(&f, z, 1e-6));
+    }
+
+    #[test]
+    fn test_contour_integral_z_dz_is_zero() {
+        // ∮ z dz around unit circle = 0 (regression: dz was missing the i·e^(iθ) factor)
+        let f = |z: Complex| z;
+        let result = ComplexAnalysis::contour_integral_circle(&f, Complex::zero(), 1.0, 1000);
+        assert!(result.norm() < 1e-10);
+    }
+
+    #[test]
+    fn test_contour_integral_1_over_z() {
+        // ∮ 1/z dz around unit circle = 2πi
+        let f = |z: Complex| Complex::one() / z;
+        let result = ComplexAnalysis::contour_integral_circle(&f, Complex::zero(), 1.0, 1000);
+        let expected = Complex::new(0.0, 2.0 * std::f64::consts::PI);
+        assert!((result - expected).norm() < 1e-8);
+    }
+
+    #[test]
+    fn test_cauchy_integral_formula_quadratic() {
+        // f(z) = z² at z0 = 1 should give 1
+        let f = |z: Complex| z * z;
+        let result = ComplexAnalysis::cauchy_integral_formula(&f, Complex::real(1.0), 0.5, 200);
+        assert!((result.re - 1.0).abs() < 1e-6);
+        assert!(result.im.abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_nth_derivative_second() {
+        // d²/dz² z³ = 6z; at z=1 that's 6 (regression: term signs were wrong)
+        let f = |z: Complex| z * z * z;
+        let deriv = ComplexAnalysis::nth_derivative(&f, Complex::real(1.0), 2, 0.01);
+        assert!((deriv.re - 6.0).abs() < 1e-6);
+        assert!(deriv.im.abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_mobius_inverse_round_trip() {
+        // Non-unit determinant: (2z+1)/(3z+5), det = 2·5 - 1·3 = 7
+        let a = Complex::real(2.0);
+        let b = Complex::real(1.0);
+        let c = Complex::real(3.0);
+        let d = Complex::real(5.0);
+
+        let z = Complex::new(1.0, 1.0);
+        let w = ComplexAnalysis::mobius_transform(z, a, b, c, d);
+        let back = ComplexAnalysis::mobius_inverse(w, a, b, c, d);
+        assert!((back - z).norm() < 1e-12);
+    }
+
+    #[test]
+    fn test_rouches_theorem() {
+        // |z| > 0.5 on unit circle: true
+        let f = |z: Complex| z;
+        let g = |_z: Complex| Complex::real(0.5);
+        assert!(ComplexAnalysis::rouches_theorem(&f, &g, Complex::zero(), 1.0, 100));
+
+        // |z| < 2 on unit circle: false (regression: max-vs-max check gave a false positive)
+        let h = |_z: Complex| Complex::real(2.0);
+        assert!(!ComplexAnalysis::rouches_theorem(&f, &h, Complex::zero(), 1.0, 100));
     }
 }
