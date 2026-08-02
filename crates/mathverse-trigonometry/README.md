@@ -1,6 +1,6 @@
 # mathverse-trigonometry
 
-> Complete trigonometry toolkit — circular, hyperbolic, and inverse functions, plus identities, laws, special functions, and coordinate conversions. Generic over `Real`, works with `f32` and `f64`.
+> Complete trigonometry toolkit — circular, hyperbolic, and inverse functions, plus identities, laws, special functions, coordinate conversions, batched evaluation, and exact special-angle values. Generic over `Real`, works with `f32` and `f64`, and `no_std`-compatible via the `libm` feature.
 
 [![MIT/Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE)
 
@@ -13,8 +13,10 @@
 - **Coordinate systems** — polar/cartesian, spherical (physics + math), cylindrical
 - **Trigonometric identities** — double/half angle, sum/difference, product-to-sum, power reduction
 - **Geometric laws** — law of sines, law of cosines, Heron's formula, haversine distance
-- **Special functions** — sinc, versine family, Gudermannian, Chebyshev polynomials, sin/cos powers
+- **Batched operations** (`batched`) — map/sum `sin`/`cos` over slices, additive synthesis, no allocation
+- **Exact special angles** (`exact`) — closed-form `sin`/`cos`/`tan` for multiples of 30°/45°
 - Generic over `Real` trait — zero-cost `f32`/`f64` support
+- **`no_std`** — disable `std` and enable `libm` for embedded targets
 
 ## Module Overview
 
@@ -25,6 +27,8 @@
 | `identities` | Trigonometric identities & formulas | `sin_cos`, `sin_double`, `cos_double`, `tan_double`, `sin_half`, `cos_half`, `tan_half`, `sin_sum`, `sin_diff`, `cos_sum`, `cos_diff`, `tan_sum`, `tan_diff`, `sin_squared`, `cos_squared`, `tan_squared` + product-to-sum / sum-to-product |
 | `laws` | Triangle & spherical geometry laws | `law_of_sines_side`, `law_of_sines_angle`, `law_of_cosines_side`, `law_of_cosines_angle`, `heron`, `triangle_area_sas`, `triangle_area_base_height`, `bearing`, `haversine_distance` |
 | `special` | Special trigonometric functions | `sinc`, `sinc_unnorm`, `versine`, `coversine`, `vercosine`, `covercosine`, `haversine`, `havercosine`, `hacoversine`, `hacovercosine`, `exsecant`, `excosecant`, `gudermannian`, `gudermannian_inv`, `gudermannian_alt`, `chebyshev_first`, `chebyshev_second`, `sin_power`, `cos_power` |
+| `batched` | Slice-based batch trig (DSP/audio/graphics) | `map_sin`, `map_cos`, `map_sin_cos`, `sin_inplace`, `sum_sin`, `sum_cos`, `sum_sin_cos`, `accumulate_sine` |
+| `exact` | Exact values for special angles | `sin_exact_deg`, `cos_exact_deg`, `tan_exact_deg`, `sin_exact_radians`, `cos_exact_radians`, `tan_exact_radians`, `ExactValue` |
 
 ## Installation
 
@@ -38,6 +42,13 @@ Or add via workspace:
 ```toml
 [dependencies]
 mathverse-trigonometry.workspace = true
+```
+
+`std` is the default feature. For embedded / `no_std` targets:
+
+```toml
+[dependencies]
+mathverse-trigonometry = { path = "../mathverse-trigonometry", default-features = false, features = ["libm"] }
 ```
 
 ## Quick Start
@@ -225,13 +236,69 @@ assert!((sinc(1.0)).abs() < 1e-12);          // sinc(1) = 0
 assert!((haversine(std::f64::consts::PI) - 1.0).abs() < 1e-12);
 ```
 
+---
+
+### Batched Operations (`batched`)
+
+Slice-based helpers for DSP, audio synthesis, and graphics tight loops. Functions
+that take an output slice return `true`/`false` on length mismatch (leaving the
+output untouched), so no allocation is required in `no_std` contexts.
+
+| Function | Behavior |
+|---|---|
+| `map_sin(xs, out)` / `map_cos(xs, out)` | `out[i] = sin(xs[i])` / `cos(xs[i])` |
+| `map_sin_cos(xs, sin_out, cos_out)` | `(sin(xᵢ), cos(xᵢ))` in one pass via `sin_cos()` |
+| `sin_inplace(xs)` | Replace each element with its sine |
+| `sum_sin(xs)` / `sum_cos(xs)` | `Σ sin(xᵢ)` / `Σ cos(xᵢ)` |
+| `sum_sin_cos(xs)` | `(Σ sin(xᵢ), Σ cos(xᵢ))` in one pass |
+| `accumulate_sine(freq, phases, amps, out)` | Additive synthesis: `out[i] = Σₖ amps[k]·sin(freq·i + phases[k])` |
+
+```rust
+use mathverse_trigonometry::batched::{map_sin_cos, accumulate_sine};
+
+let xs = [0.0f64, std::f64::consts::FRAC_PI_2];
+let mut s = [0.0; 2];
+let mut c = [0.0; 2];
+assert!(map_sin_cos(&xs, &mut s, &mut c)); // s = [0, 1], c = [1, 0]
+
+// Additive synthesis: 440 Hz + 880 Hz partials
+let mut out = [0.0f64; 48];
+assert!(accumulate_sine(0.1, &[0.0, 0.0], &[1.0, 0.5], &mut out));
+```
+
+---
+
+### Exact Special Angles (`exact`)
+
+Closed-form values for angles that are multiples of 30° or 45° (multiples of
+`π/6` or `π/4`); all other angles return `None`. Values are represented by
+`ExactValue` — integers, halves, and `c·√r / d` — so they render symbolically
+(`"√3/2"`) and convert exactly via `to_f64()`.
+
+| Function | Returns |
+|---|---|
+| `sin_exact_deg(deg)` / `cos_exact_deg(deg)` / `tan_exact_deg(deg)` | Exact value for multiples of 30°/45° |
+| `sin_exact_radians(rad)` / `cos_exact_radians(rad)` / `tan_exact_radians(rad)` | Radian variants (any `Real`) |
+
+`tan_exact_deg(90)` and `tan_exact_deg(270)` return `None` (undefined).
+
+```rust
+use mathverse_trigonometry::{sin_exact_deg, cos_exact_deg, ExactValue};
+
+assert_eq!(sin_exact_deg(30), Some(ExactValue::Half(1)));        // 1/2
+assert_eq!(sin_exact_deg(30).unwrap().to_string(), "1/2");
+assert_eq!(cos_exact_deg(45), Some(ExactValue::Root { coeff: 1, radicand: 2, denom: 2 }));
+assert_eq!(cos_exact_deg(45).unwrap().to_string(), "√2/2");
+assert_eq!(sin_exact_deg(15), None);                              // not a special angle
+```
+
 ## Future Scope
 
 - [ ] Inverse trig identities (arcsum, arcdiff)
 - [ ] Angle addition for hyperbolic functions
 - [ ] Spherical trigonometry (napier's rules, spherical excess)
-- [ ] `no_std` support with feature flag
-- [ ] SIMD-optimized batch trig evaluations
+- [ ] SIMD-vectorized batch evaluations (scalar `batched` module exists)
+- [ ] Exact values for additional angles (e.g. 15°, 18°) and hyperbolic functions
 - [ ] Compile-time angle evaluation via `const fn`
 
 ## License

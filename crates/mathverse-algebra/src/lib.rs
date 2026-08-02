@@ -35,6 +35,8 @@
 //! | [`symmetric`] | Elementary symmetric polynomials, Newton's identities |
 //! | [`compose`] | Polynomial composition `f(g(x))` |
 //! | [`exponents`] | Exponent, logarithm, and radical identity verifiers |
+//! | [`solvability`] | Solvability-by-radicals classification (Galois flavored) |
+//! | [`latex`] | LaTeX rendering of polynomials and solutions |
 //!
 //! ## Error Handling
 //!
@@ -102,12 +104,20 @@ pub mod exponents;
 pub mod factor;
 pub mod identities;
 pub mod interpolate;
+pub mod latex;
 pub mod polynomial;
 pub mod rational;
 pub mod roots;
 pub mod sequences;
+pub mod solvability;
 pub mod symmetric;
 pub mod systems;
 
+pub use latex::{equation_solution_latex, factors_latex, polynomial_latex, roots_latex};
 pub use polynomial::Polynomial;
 pub use roots::{solve_cubic, solve_linear, solve_quadratic, solve_quartic};
+pub use solvability::{
+    degree, divide_by_linear, eisenstein_irreducible, integer_root, is_antipalindromic,
+    is_binomial, is_cyclotomic, is_palindromic, reduce_reciprocal, solvable_by_radicals,
+    Solvability,
+};

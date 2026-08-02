@@ -1,10 +1,9 @@
 //! Coordinate conversions: polar/cartesian, spherical, angle normalization, turns/grads.
 
 use mathverse_core::traits::Real;
-use crate::util::map_real as f;
 
 fn atan2_f<T: Real>(y: T, x: T) -> T {
-    T::from_f64(y.to_f64().atan2(x.to_f64()))
+    y.atan2(x)
 }
 
 // ---------------------------------------------------------------------------
@@ -13,14 +12,16 @@ fn atan2_f<T: Real>(y: T, x: T) -> T {
 
 /// Wrap angle in radians to `[-π, π)`.
 pub fn wrap_angle<T: Real>(x: T) -> T {
-    f(x, |r| {
-        let pi = core::f64::consts::PI;
-        let tau = core::f64::consts::TAU;
-        let v = r % tau;
-        if v >= pi { v - tau }
-        else if v < -pi { v + tau }
-        else { v }
-    })
+    let pi = T::from_f64(core::f64::consts::PI);
+    let tau = T::from_f64(core::f64::consts::TAU);
+    let v = x % tau;
+    if v >= pi {
+        v - tau
+    } else if v < -pi {
+        v + tau
+    } else {
+        v
+    }
 }
 
 /// Wrap angle in radians to `[-π, π)` (const fn for f64).
@@ -37,11 +38,13 @@ pub const fn wrap_angle_f64(x: f64) -> f64 {
 
 /// Wrap angle in radians to `[0, 2π)`.
 pub fn wrap_angle_positive<T: Real>(x: T) -> T {
-    f(x, |r| {
-        let tau = core::f64::consts::TAU;
-        let v = r % tau;
-        if v < 0.0 { v + tau } else { v }
-    })
+    let tau = T::from_f64(core::f64::consts::TAU);
+    let v = x % tau;
+    if v < T::zero() {
+        v + tau
+    } else {
+        v
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -88,7 +91,7 @@ pub fn grad_to_rad<T: Real>(grads: T) -> T {
 
 /// Polar to Cartesian: `(r, θ)` → `(x, y)`.
 pub fn polar_to_cartesian<T: Real>(r: T, theta: T) -> (T, T) {
-    (r * f(theta, f64::cos), r * f(theta, f64::sin))
+    (r * theta.cos(), r * theta.sin())
 }
 
 /// Cartesian to polar: `(x, y)` → `(r, θ)`.
@@ -115,10 +118,10 @@ pub fn phase<T: Real>(x: T, y: T) -> T {
 /// Spherical to Cartesian (physics convention).
 /// `r` = radius, `theta` = polar angle from z-axis, `phi` = azimuthal angle in xy-plane.
 pub fn spherical_to_cartesian<T: Real>(r: T, theta: T, phi: T) -> (T, T, T) {
-    let st = f(theta, f64::sin);
-    let ct = f(theta, f64::cos);
-    let cp = f(phi, f64::cos);
-    let sp = f(phi, f64::sin);
+    let st = theta.sin();
+    let ct = theta.cos();
+    let cp = phi.cos();
+    let sp = phi.sin();
     (r * st * cp, r * st * sp, r * ct)
 }
 
@@ -136,10 +139,10 @@ pub fn cartesian_to_spherical<T: Real>(x: T, y: T, z: T) -> (T, T, T) {
 
 /// Spherical to Cartesian (math convention: θ = polar from y-axis).
 pub fn spherical_to_cartesian_math<T: Real>(r: T, theta: T, phi: T) -> (T, T, T) {
-    let st = f(theta, f64::sin);
-    let ct = f(theta, f64::cos);
-    let cp = f(phi, f64::cos);
-    let sp = f(phi, f64::sin);
+    let st = theta.sin();
+    let ct = theta.cos();
+    let cp = phi.cos();
+    let sp = phi.sin();
     (r * st * sp, r * ct, r * st * cp)
 }
 
@@ -161,7 +164,7 @@ pub fn cartesian_to_spherical_math<T: Real>(x: T, y: T, z: T) -> (T, T, T) {
 
 /// Cylindrical to Cartesian: `(r, θ, z)` → `(x, y, z)`.
 pub fn cylindrical_to_cartesian<T: Real>(r: T, theta: T, z: T) -> (T, T, T) {
-    (r * f(theta, f64::cos), r * f(theta, f64::sin), z)
+    (r * theta.cos(), r * theta.sin(), z)
 }
 
 /// Cartesian to Cylindrical: `(x, y, z)` → `(r, θ, z)`.

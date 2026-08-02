@@ -24,10 +24,12 @@ Complete feature inventory by crate. Each feature maps to a public API item in t
 ## mathverse-algebra
 
 - Polynomial representation and operations
-- Equation solving (linear, quadratic, cubic)
+- Equation solving (linear, quadratic, cubic, quartic)
 - Factorization
 - Simplification
 - Rational expressions
+- Solvability-by-radicals classification (Galois-flavored)
+- LaTeX rendering of polynomials and solutions
 
 ## mathverse-trigonometry
 
@@ -35,6 +37,9 @@ Complete feature inventory by crate. Each feature maps to a public API item in t
 - Hyperbolic functions
 - Inverse functions
 - Angle conversions (degrees/radians/gradians)
+- Trig identities, triangle laws, special functions
+- Batched slice evaluation (DSP/audio) and exact special-angle values
+- `no_std` / `libm` support
 
 ## mathverse-geometry
 

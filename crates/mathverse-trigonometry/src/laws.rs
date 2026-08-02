@@ -1,12 +1,11 @@
 //! Geometric laws: law of sines, law of cosines, Heron's formula.
 
 use mathverse_core::traits::Real;
-use crate::util::map_real as f;
 
 /// Law of sines: a/sin(A) = b/sin(B) = c/sin(C).
 /// Given angle A and opposite side a, compute side b opposite angle B.
 pub fn law_of_sines_side<T: Real>(a: T, angle_a: T, angle_b: T) -> T {
-    a * f(angle_b, f64::sin) / f(angle_a, f64::sin)
+    a * angle_b.sin() / angle_a.sin()
 }
 
 /// Law of sines: given sides a and b and angle A, compute angle B.
@@ -14,8 +13,8 @@ pub fn law_of_sines_side<T: Real>(a: T, angle_a: T, angle_b: T) -> T {
 /// Note: This returns only the principal value. For the ambiguous SSA case,
 /// use `law_of_sines_angle_both` to get both possible angles.
 pub fn law_of_sines_angle<T: Real>(a: T, b: T, angle_a: T) -> T {
-    let sin_b = b * f(angle_a, f64::sin) / a;
-    f(sin_b, f64::asin)
+    let sin_b = b * angle_a.sin() / a;
+    sin_b.asin()
 }
 
 /// Law of sines: given sides a and b and angle A, compute both possible angles B.
@@ -30,16 +29,16 @@ pub fn law_of_sines_angle<T: Real>(a: T, b: T, angle_a: T) -> T {
 /// - angle_a is acute (less than π/2)
 /// - sin_b < 1 (so both B and π-B are valid)
 pub fn law_of_sines_angle_both<T: Real>(a: T, b: T, angle_a: T) -> (T, Option<T>) {
-    let sin_b = b * f(angle_a, f64::sin) / a;
+    let sin_b = b * angle_a.sin() / a;
     let sin_b_f64 = sin_b.to_f64();
-    
+
     // No solution if sin_b > 1 or sin_b < -1
     if sin_b_f64.abs() > 1.0 {
         return (T::from_f64(f64::NAN), None);
     }
-    
+
     // Primary angle (acute or right)
-    let angle_b = f(sin_b, f64::asin);
+    let angle_b = sin_b.asin();
     
     // Check for ambiguous case: two solutions exist when:
     // 1. sin_b < 1 (not a right triangle)
@@ -63,7 +62,7 @@ pub fn law_of_sines_angle_both<T: Real>(a: T, b: T, angle_a: T) -> (T, Option<T>
 /// Given sides a, b and included angle C, compute opposite side c.
 /// Returns NaN for geometrically impossible inputs (e.g., when the computed c² < 0).
 pub fn law_of_cosines_side<T: Real>(a: T, b: T, angle_c: T) -> T {
-    let c2 = a * a + b * b - T::from_f64(2.0) * a * b * f(angle_c, f64::cos);
+    let c2 = a * a + b * b - T::from_f64(2.0) * a * b * angle_c.cos();
     if c2 < T::zero() {
         T::from_f64(f64::NAN)
     } else {
@@ -76,7 +75,7 @@ pub fn law_of_cosines_side<T: Real>(a: T, b: T, angle_c: T) -> T {
 pub fn law_of_cosines_angle<T: Real>(a: T, b: T, c: T) -> T {
     let cos_c = (a * a + b * b - c * c) / (T::from_f64(2.0) * a * b);
     let cos_c = cos_c.max(-T::one()).min(T::one());
-    f(cos_c, f64::acos)
+    cos_c.acos()
 }
 
 /// Heron's formula: area of a triangle from three sides.
@@ -93,7 +92,7 @@ pub fn heron<T: Real>(a: T, b: T, c: T) -> T {
 
 /// Area of a triangle from two sides and included angle: ½ab·sin(C).
 pub fn triangle_area_sas<T: Real>(a: T, b: T, angle_c: T) -> T {
-    T::from_f64(0.5) * a * b * f(angle_c, f64::sin)
+    T::from_f64(0.5) * a * b * angle_c.sin()
 }
 
 /// Area of a triangle from base and height.
@@ -105,10 +104,9 @@ pub fn triangle_area_base_height<T: Real>(base: T, height: T) -> T {
 /// Returns angle in radians clockwise from north.
 pub fn bearing<T: Real>(lat1: T, lon1: T, lat2: T, lon2: T) -> T {
     let dlon = lon2 - lon1;
-    let y = f(dlon, f64::sin) * f(lat2, f64::cos);
-    let x = f(lat1, f64::cos) * f(lat2, f64::sin)
-        - f(lat1, f64::sin) * f(lat2, f64::cos) * f(dlon, f64::cos);
-    f(y, |yv| x.to_f64().atan2(yv))
+    let y = dlon.sin() * lat2.cos();
+    let x = lat1.cos() * lat2.sin() - lat1.sin() * lat2.cos() * dlon.cos();
+    y.atan2(x)
 }
 
 /// Haversine distance between two points on a sphere (lat/lon in radians).
@@ -116,8 +114,9 @@ pub fn bearing<T: Real>(lat1: T, lon1: T, lat2: T, lon2: T) -> T {
 pub fn haversine_distance<T: Real>(lat1: T, lon1: T, lat2: T, lon2: T, radius: T) -> T {
     let dlat = lat2 - lat1;
     let dlon = lon2 - lon1;
-    let a = f(dlat / T::from_f64(2.0), f64::sin).powi(2)
-        + f(lat1, f64::cos) * f(lat2, f64::cos) * f(dlon / T::from_f64(2.0), f64::sin).powi(2);
+    let dlat2 = dlat / T::from_f64(2.0);
+    let dlon2 = dlon / T::from_f64(2.0);
+    let a = dlat2.sin().powi(2) + lat1.cos() * lat2.cos() * dlon2.sin().powi(2);
     let c = T::from_f64(2.0) * a.sqrt().atan2((T::one() - a).sqrt());
     radius * c
 }
@@ -202,21 +201,21 @@ mod tests {
 
     #[test]
     fn invalid_triangle_tests() {
-        // Test law_of_cosines_side with impossible triangle
-        // Sides 1, 1 with included angle π should give c² = 1 + 1 - 2*1*1*(-1) = 4
-        // But with angle > π, c² can become negative
-        let invalid_side = law_of_cosines_side(1.0f64, 1.0f64, core::f64::consts::PI);
-        assert!(invalid_side.is_nan());
-        
+        // Law of cosines: c² = a² + b² - 2ab·cos(C) is always ≥ (a-b)² for
+        // real inputs, so the side is always defined. At C = π it degenerates
+        // to a straight line: c = a + b = 2.
+        let side = law_of_cosines_side(1.0f64, 1.0f64, core::f64::consts::PI);
+        assert!((side - 2.0).abs() < EPS);
+
         // Test heron with invalid triangle (violates triangle inequality)
         // a=1, b=1, c=3: cannot form a triangle
         let invalid_area = heron(1.0f64, 1.0f64, 3.0f64);
         assert!(invalid_area.is_nan());
-        
+
         // Another invalid case: a=2, b=3, c=10
         let invalid_area2 = heron(2.0f64, 3.0f64, 10.0f64);
         assert!(invalid_area2.is_nan());
-        
+
         // Valid triangle should still work
         let valid_area = heron(3.0f64, 4.0f64, 5.0f64);
         assert!((valid_area - 6.0).abs() < EPS);

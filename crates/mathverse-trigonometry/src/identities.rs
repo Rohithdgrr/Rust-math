@@ -1,7 +1,6 @@
 //! Trigonometric identities: double/half angle, sum/difference, product-to-sum, power-reduction.
 
 use mathverse_core::traits::Real;
-use crate::util::map_real as f;
 
 // ---------------------------------------------------------------------------
 // Double angle formulas
@@ -9,20 +8,20 @@ use crate::util::map_real as f;
 
 /// sin(2x) = 2 sin(x) cos(x).
 pub fn sin_double<T: Real>(x: T) -> T {
-    let s = f(x, f64::sin);
-    let c = f(x, f64::cos);
+    let s = x.sin();
+    let c = x.cos();
     s * T::from_f64(2.0) * c
 }
 
 /// cos(2x) = cos²(x) - sin²(x) = 2cos²(x) - 1 = 1 - 2sin²(x).
 pub fn cos_double<T: Real>(x: T) -> T {
-    let c = f(x, f64::cos);
+    let c = x.cos();
     c * c * T::from_f64(2.0) - T::one()
 }
 
 /// tan(2x) = 2tan(x) / (1 - tan²(x)).
 pub fn tan_double<T: Real>(x: T) -> T {
-    let t = f(x, f64::tan);
+    let t = x.tan();
     let t2 = t * t;
     T::from_f64(2.0) * t / (T::one() - t2)
 }
@@ -33,31 +32,43 @@ pub fn tan_double<T: Real>(x: T) -> T {
 
 /// sin(x/2) = ±√((1 - cos(x)) / 2). Uses the sign of sin(x/2).
 pub fn sin_half<T: Real>(x: T) -> T {
-    let c = f(x, f64::cos);
+    let c = x.cos();
     let val = ((T::one() - c) / T::from_f64(2.0)).sqrt();
     // Sign follows sin(x/2), not signum(x)
     let half_x = x / T::from_f64(2.0);
-    let exact = f(half_x, f64::sin);
-    if exact < T::zero() { -val } else { val }
+    let exact = half_x.sin();
+    if exact < T::zero() {
+        -val
+    } else {
+        val
+    }
 }
 
 /// cos(x/2) = ±√((1 + cos(x)) / 2). Uses the sign of cos(x/2).
 pub fn cos_half<T: Real>(x: T) -> T {
-    let c = f(x, f64::cos);
+    let c = x.cos();
     let val = ((T::one() + c) / T::from_f64(2.0)).sqrt();
     // Sign follows cos(x/2), not always non-negative
     let half_x = x / T::from_f64(2.0);
-    let exact = f(half_x, f64::cos);
-    if exact < T::zero() { -val } else { val }
+    let exact = half_x.cos();
+    if exact < T::zero() {
+        -val
+    } else {
+        val
+    }
 }
 
 /// tan(x/2) = sin(x) / (1 + cos(x)) = (1 - cos(x)) / sin(x).
 pub fn tan_half<T: Real>(x: T) -> T {
-    let s = f(x, f64::sin);
-    let c = f(x, f64::cos);
+    let s = x.sin();
+    let c = x.cos();
     if s == T::zero() {
         // x is multiple of π: tan(x/2) = 0 for even multiples, ±inf for odd
-        if c == T::one() { T::zero() } else { T::from_f64(1.0) / T::zero() }
+        if c == T::one() {
+            T::zero()
+        } else {
+            T::one() / T::zero()
+        }
     } else {
         (T::one() - c) / s
     }
@@ -97,15 +108,15 @@ pub fn cos_diff<T: Real>(a: T, b: T) -> T {
 
 /// tan(a + b) = (tan(a) + tan(b)) / (1 - tan(a)tan(b)).
 pub fn tan_sum<T: Real>(a: T, b: T) -> T {
-    let ta = f(a, f64::tan);
-    let tb = f(b, f64::tan);
+    let ta = a.tan();
+    let tb = b.tan();
     (ta + tb) / (T::one() - ta * tb)
 }
 
 /// tan(a - b) = (tan(a) - tan(b)) / (1 + tan(a)tan(b)).
 pub fn tan_diff<T: Real>(a: T, b: T) -> T {
-    let ta = f(a, f64::tan);
-    let tb = f(b, f64::tan);
+    let ta = a.tan();
+    let tb = b.tan();
     (ta - tb) / (T::one() + ta * tb)
 }
 
@@ -136,28 +147,28 @@ pub fn sin_cos_product<T: Real>(a: T, b: T) -> T {
 pub fn sin_sum_to_product<T: Real>(a: T, b: T) -> T {
     let half_sum = (a + b) / T::from_f64(2.0);
     let half_diff = (a - b) / T::from_f64(2.0);
-    T::from_f64(2.0) * f(half_sum, f64::sin) * f(half_diff, f64::cos)
+    T::from_f64(2.0) * half_sum.sin() * half_diff.cos()
 }
 
 /// sin(a) - sin(b) = 2 cos((a+b)/2) sin((a-b)/2).
 pub fn sin_diff_to_product<T: Real>(a: T, b: T) -> T {
     let half_sum = (a + b) / T::from_f64(2.0);
     let half_diff = (a - b) / T::from_f64(2.0);
-    T::from_f64(2.0) * f(half_sum, f64::cos) * f(half_diff, f64::sin)
+    T::from_f64(2.0) * half_sum.cos() * half_diff.sin()
 }
 
 /// cos(a) + cos(b) = 2 cos((a+b)/2) cos((a-b)/2).
 pub fn cos_sum_to_product<T: Real>(a: T, b: T) -> T {
     let half_sum = (a + b) / T::from_f64(2.0);
     let half_diff = (a - b) / T::from_f64(2.0);
-    T::from_f64(2.0) * f(half_sum, f64::cos) * f(half_diff, f64::cos)
+    T::from_f64(2.0) * half_sum.cos() * half_diff.cos()
 }
 
 /// cos(a) - cos(b) = -2 sin((a+b)/2) sin((a-b)/2).
 pub fn cos_diff_to_product<T: Real>(a: T, b: T) -> T {
     let half_sum = (a + b) / T::from_f64(2.0);
     let half_diff = (a - b) / T::from_f64(2.0);
-    -T::from_f64(2.0) * f(half_sum, f64::sin) * f(half_diff, f64::sin)
+    -T::from_f64(2.0) * half_sum.sin() * half_diff.sin()
 }
 
 // ---------------------------------------------------------------------------
@@ -186,9 +197,7 @@ pub fn tan_squared<T: Real>(x: T) -> T {
 
 /// Compute (sin(x), cos(x)) simultaneously (more efficient).
 pub fn sin_cos<T: Real>(x: T) -> (T, T) {
-    let r = x.to_f64();
-    let (s, c) = r.sin_cos();
-    (T::from_f64(s), T::from_f64(c))
+    x.sin_cos()
 }
 
 #[cfg(test)]

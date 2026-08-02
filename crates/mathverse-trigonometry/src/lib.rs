@@ -1,21 +1,40 @@
 //! Trigonometry: circular and hyperbolic functions (and inverses),
 //! generic over [`Real`]. Arguments are radians; `*_deg` variants take degrees.
 //!
-//! Computation happens in `f64` internally (via [`Real::to_f64`]) so `f32`
-//! inputs get `f32` results with no precision loss.
+//! Computation uses the [`Real`] trait, so `f32` and `f64` inputs compute in
+//! their native precision. The crate is `no_std`-compatible: disable `std`
+//! and enable `libm` to use software floating point (see the `Cargo.toml`
+//! feature flags).
 //!
 //! Asymptotes (e.g. `tan(π/2)`, `cot(0)`) return `±inf` like std.
+//!
+//! | Module | Description |
+//! |---|---|
+//! | [`conversions`] | Angle normalization, turns/grads, coordinate systems |
+//! | [`identities`] | Double/half angle, sum/difference, product-to-sum |
+//! | [`laws`] | Law of sines/cosines, Heron's formula, bearing, haversine |
+//! | [`special`] | sinc, versine family, Gudermannian, Chebyshev |
+//! | [`batched`] | Slice-based batch trigonometry |
+//! | [`exact`] | Exact values for special angles |
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+pub mod batched;
 pub mod conversions;
+pub mod exact;
 pub mod identities;
 pub mod laws;
 pub mod special;
-mod util;
 
 use mathverse_core::traits::Real;
 
+pub use batched::{
+    accumulate_sine, map_cos, map_sin, map_sin_cos, sin_inplace, sum_cos, sum_sin, sum_sin_cos,
+};
 pub use conversions::{wrap_angle, wrap_angle_positive, wrap_angle_f64, rad_to_grad, grad_to_rad,
     turns_to_radians, turns_to_radians_f64, radians_to_turns, radians_to_turns_f64};
+pub use exact::{cos_exact_deg, cos_exact_radians, sin_exact_deg, sin_exact_radians, tan_exact_deg,
+    tan_exact_radians, ExactValue};
 pub use identities::{sin_cos, sin_double, cos_double, tan_double, sin_half, cos_half, tan_half,
     sin_sum, sin_diff, cos_sum, cos_diff, tan_sum, tan_diff,
     sin_sin_product, cos_cos_product, sin_cos_product,
@@ -30,137 +49,130 @@ pub use special::{sinc, sinc_unnorm, versine, coversine, vercosine, covercosine,
 
 pub use mathverse_core::ops::{deg_to_grad, deg_to_rad, grad_to_deg, rad_to_deg};
 
-// Use the centralized map_real utility
-use crate::util::map_real as f;
-
 /// Sine.
 pub fn sin<T: Real>(x: T) -> T {
-    f(x, f64::sin)
+    x.sin()
 }
 /// Cosine.
 pub fn cos<T: Real>(x: T) -> T {
-    f(x, f64::cos)
+    x.cos()
 }
 /// Tangent.
 pub fn tan<T: Real>(x: T) -> T {
-    f(x, f64::tan)
+    x.tan()
 }
 /// Cotangent `cos/sin` (1/tan loses precision near asymptotes).
 pub fn cot<T: Real>(x: T) -> T {
-    f(x, |r| r.cos() / r.sin())
+    x.cos() / x.sin()
 }
 /// Secant `1/cos`.
 pub fn sec<T: Real>(x: T) -> T {
-    f(x, |r| 1.0 / r.cos())
+    T::one() / x.cos()
 }
 /// Cosecant `1/sin`.
 pub fn csc<T: Real>(x: T) -> T {
-    f(x, |r| 1.0 / r.sin())
+    T::one() / x.sin()
 }
 
 /// Hyperbolic sine.
 pub fn sinh<T: Real>(x: T) -> T {
-    f(x, f64::sinh)
+    x.sinh()
 }
 /// Hyperbolic cosine.
 pub fn cosh<T: Real>(x: T) -> T {
-    f(x, f64::cosh)
+    x.cosh()
 }
 /// Hyperbolic tangent.
 pub fn tanh<T: Real>(x: T) -> T {
-    f(x, f64::tanh)
+    x.tanh()
 }
 /// Hyperbolic cotangent.
 pub fn coth<T: Real>(x: T) -> T {
-    f(x, |r| r.cosh() / r.sinh())
+    x.cosh() / x.sinh()
 }
 /// Hyperbolic secant.
 pub fn sech<T: Real>(x: T) -> T {
-    f(x, |r| 1.0 / r.cosh())
+    T::one() / x.cosh()
 }
 /// Hyperbolic cosecant.
 pub fn csch<T: Real>(x: T) -> T {
-    f(x, |r| 1.0 / r.sinh())
+    T::one() / x.sinh()
 }
 
 /// Arc sine.
 pub fn asin<T: Real>(x: T) -> T {
-    f(x, f64::asin)
+    x.asin()
 }
 /// Arc cosine.
 pub fn acos<T: Real>(x: T) -> T {
-    f(x, f64::acos)
+    x.acos()
 }
 /// Arc tangent.
 pub fn atan<T: Real>(x: T) -> T {
-    f(x, f64::atan)
+    x.atan()
 }
 /// Four-quadrant arc tangent: angle of the point `(y, x)`.
 pub fn atan2<T: Real>(y: T, x: T) -> T {
-    f(y, |ry| ry.atan2(x.to_f64()))
+    y.atan2(x)
 }
 /// Arc cotangent: `π/2 - atan(x)` (valid for all x).
 pub fn acot<T: Real>(x: T) -> T {
-    f(x, |r| core::f64::consts::FRAC_PI_2 - r.atan())
+    T::from_f64(core::f64::consts::FRAC_PI_2) - x.atan()
 }
 /// Arc secant: `acos(1/x)`. Domain: |x| >= 1.
 pub fn asec<T: Real>(x: T) -> T {
-    let r = x.to_f64();
-    if r.abs() < 1.0 {
+    if x.abs() < T::one() {
         return T::from_f64(f64::NAN);
     }
-    f(x, |r| (1.0 / r).acos())
+    (T::one() / x).acos()
 }
 /// Arc secant with domain checking: returns `None` for |x| < 1.
 pub fn asec_checked<T: Real>(x: T) -> Option<T> {
-    let r = x.to_f64();
-    if r.abs() < 1.0 {
+    if x.abs() < T::one() {
         None
     } else {
-        Some(T::from_f64((1.0 / r).acos()))
+        Some((T::one() / x).acos())
     }
 }
 /// Arc cosecant: `asin(1/x)`. Domain: |x| >= 1.
 pub fn acsc<T: Real>(x: T) -> T {
-    let r = x.to_f64();
-    if r.abs() < 1.0 {
+    if x.abs() < T::one() {
         return T::from_f64(f64::NAN);
     }
-    f(x, |r| (1.0 / r).asin())
+    (T::one() / x).asin()
 }
 /// Arc cosecant with domain checking: returns `None` for |x| < 1.
 pub fn acsc_checked<T: Real>(x: T) -> Option<T> {
-    let r = x.to_f64();
-    if r.abs() < 1.0 {
+    if x.abs() < T::one() {
         None
     } else {
-        Some(T::from_f64((1.0 / r).asin()))
+        Some((T::one() / x).asin())
     }
 }
 
 /// Inverse hyperbolic sine.
 pub fn asinh<T: Real>(x: T) -> T {
-    f(x, f64::asinh)
+    x.asinh()
 }
 /// Inverse hyperbolic cosine (|x| >= 1).
 pub fn acosh<T: Real>(x: T) -> T {
-    f(x, f64::acosh)
+    x.acosh()
 }
 /// Inverse hyperbolic tangent (|x| < 1).
 pub fn atanh<T: Real>(x: T) -> T {
-    f(x, f64::atanh)
+    x.atanh()
 }
 /// Inverse hyperbolic cotangent.
 pub fn acoth<T: Real>(x: T) -> T {
-    f(x, |r| (1.0 / r).atanh())
+    (T::one() / x).atanh()
 }
 /// Inverse hyperbolic secant.
 pub fn asech<T: Real>(x: T) -> T {
-    f(x, |r| (1.0 / r).acosh())
+    (T::one() / x).acosh()
 }
 /// Inverse hyperbolic cosecant.
 pub fn acsch<T: Real>(x: T) -> T {
-    f(x, |r| (1.0 / r).asinh())
+    (T::one() / x).asinh()
 }
 
 // ---------------------------------------------------------------------------
@@ -333,7 +345,7 @@ mod tests {
         assert!(!asec(1.0).is_nan());
         assert!(!asec(2.0).is_nan());
         assert!(!asec(-1.0).is_nan());
-        
+
         // Test acsc domain: |x| >= 1
         assert!(acsc(0.5).is_nan());
         assert!(acsc(0.0).is_nan());
@@ -349,22 +361,22 @@ mod tests {
         assert!(asec_checked(0.5).is_none());
         assert!(asec_checked(0.0).is_none());
         assert!(asec_checked(-0.5).is_none());
-        
+
         // Test asec_checked returns Some for valid domain
         assert!(asec_checked(1.0).is_some());
         assert!(asec_checked(2.0).is_some());
         assert!(asec_checked(-1.0).is_some());
-        
+
         // Test acsc_checked returns None for invalid domain
         assert!(acsc_checked(0.5).is_none());
         assert!(acsc_checked(0.0).is_none());
         assert!(acsc_checked(-0.5).is_none());
-        
+
         // Test acsc_checked returns Some for valid domain
         assert!(acsc_checked(1.0).is_some());
         assert!(acsc_checked(2.0).is_some());
         assert!(acsc_checked(-1.0).is_some());
-        
+
         // Verify checked variants match regular variants for valid inputs
         assert!((asec_checked(2.0).unwrap() - asec(2.0)).abs() < 1e-12);
         assert!((acsc_checked(2.0).unwrap() - acsc(2.0)).abs() < 1e-12);
@@ -376,17 +388,17 @@ mod tests {
         assert!(sin(f64::NAN).is_nan());
         assert!(cos(f64::NAN).is_nan());
         assert!(tan(f64::NAN).is_nan());
-        
+
         // Test Inf propagation
         assert!(sin(f64::INFINITY).is_nan());
         assert!(cos(f64::INFINITY).is_nan());
         assert!(tan(f64::INFINITY).is_nan());
-        
+
         // Test tan at asymptotes (should return ±inf)
         let pi_half = core::f64::consts::FRAC_PI_2;
         assert!(tan(pi_half).is_infinite());
         assert!(tan(-pi_half).is_infinite());
-        
+
         // Test cot at 0 (should return ±inf)
         assert!(cot(0.0).is_infinite());
     }

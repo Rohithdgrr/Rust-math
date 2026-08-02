@@ -38,6 +38,8 @@
 | `symmetric` | `elementary_symmetric`, `power_sum_to_elementary`, `is_symmetric` |
 | `compose` | `compose(f, g)` — polynomial composition f(g(x)) |
 | `determinant` | `det2`, `det3`, `inverse2`, `inverse3`, `cramer2`, `cramer3` |
+| `solvability` | Solvability-by-radicals classification — `solvable_by_radicals`, `degree`, `integer_root`, `eisenstein_irreducible`, palindromic/reciprocal helpers |
+| `latex` | LaTeX rendering — `polynomial_latex`, `roots_latex`, `equation_solution_latex`, `factors_latex` |
 | `exponents` | `power_of_power`, `product_of_powers`, `quotient_of_powers`, `negative_exponent`, `fractional_exponent` |
 | `systems` | `solve_2x2`, `solve_3x3` — Gaussian elimination with partial pivoting |
 

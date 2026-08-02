@@ -15,6 +15,14 @@
 //! | 4 | [`solve_quartic`] | Ferrari's method |
 //! | >4 | `solve` returns `[]` | — |
 //!
+//! **Closed-form solving stops at degree 4.** For degree ≥ 5 there is no
+//! general formula (Abel–Ruffini); use numerical root finding from
+//! `mathverse-numerical` (or [`solvability`](crate::solvability) to check
+//! whether a *specific* quintic is still solvable by radicals).
+//!
+//! For exactness/rounding of solutions you can render results as LaTeX with
+//! [`latex`](crate::latex).
+//!
 //! ## Examples
 //!
 //! ```rust

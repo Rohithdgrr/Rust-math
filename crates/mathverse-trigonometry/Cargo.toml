@@ -11,7 +11,12 @@ categories = ["science", "mathematics"]
 readme = "README.md"
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0", default-features = false }
+
+[features]
+default = ["std"]
+std = ["mathverse-core/std"]
+libm = ["mathverse-core/libm"]
 
 [lints]
 workspace = true
