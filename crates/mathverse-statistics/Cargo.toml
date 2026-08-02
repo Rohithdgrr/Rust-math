@@ -10,7 +10,6 @@ keywords = ["math", "statistics", "regression", "hypothesis-testing", "descripti
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
 
 [features]
 default = ["std"]

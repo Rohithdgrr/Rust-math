@@ -1,7 +1,7 @@
 //! Descriptive statistics: central tendency, dispersion, shape, percentiles,
 //! quantiles, weighted and robust means, correlation, and linear regression.
 
-use mathverse_core::error::{MathError, MathResult};
+use crate::error::{MathError, MathResult};
 
 /// Arithmetic mean: sum(x) / n.
 /// Returns NaN for empty input.
@@ -37,10 +37,7 @@ pub fn variance_sample(xs: &[f64]) -> f64 {
         return f64::NAN;
     }
     let m = mean(xs);
-    xs.iter()
-        .map(|x| (x - m).powi(2))
-        .sum::<f64>()
-        / (xs.len() - 1) as f64
+    xs.iter().map(|x| (x - m).powi(2)).sum::<f64>() / (xs.len() - 1) as f64
 }
 
 /// Population variance (n denominator).
@@ -212,7 +209,9 @@ pub fn weighted_mean(xs: &[f64], weights: &[f64]) -> MathResult<f64> {
 /// ```
 pub fn geometric_mean(xs: &[f64]) -> MathResult<f64> {
     if xs.is_empty() {
-        return Err(MathError::InvalidArgument("geometric_mean requires non-empty input"));
+        return Err(MathError::InvalidArgument(
+            "geometric_mean requires non-empty input",
+        ));
     }
     let log_sum: f64 = xs.iter().map(|x| x.ln()).sum();
     Ok((log_sum / xs.len() as f64).exp())
@@ -233,7 +232,9 @@ pub fn geometric_mean(xs: &[f64]) -> MathResult<f64> {
 /// ```
 pub fn harmonic_mean(xs: &[f64]) -> MathResult<f64> {
     if xs.is_empty() {
-        return Err(MathError::InvalidArgument("harmonic_mean requires non-empty input"));
+        return Err(MathError::InvalidArgument(
+            "harmonic_mean requires non-empty input",
+        ));
     }
     let sum: f64 = xs.iter().map(|x| 1.0 / x).sum();
     Ok(xs.len() as f64 / sum)
@@ -399,7 +400,9 @@ pub fn mode(xs: &[f64]) -> Option<f64> {
     for &x in xs {
         // Normalize -0.0 to 0.0 so they are counted together
         let normalized = if x == 0.0 { 0.0 } else { x };
-        let e = counts.entry(normalized.to_bits()).or_insert((normalized, 0));
+        let e = counts
+            .entry(normalized.to_bits())
+            .or_insert((normalized, 0));
         e.1 += 1;
     }
     counts
@@ -442,7 +445,7 @@ pub fn quartiles(xs: &[f64]) -> (f64, f64, f64) {
 ///
 /// let xs = [1.0, 2.0, 3.0, 4.0];
 /// let ys = [2.0, 4.0, 6.0, 8.0];
-/// assert!((covariance(&xs, &ys).unwrap() - 5.0).abs() < 1e-12);
+/// assert!((covariance(&xs, &ys).unwrap() - 2.5).abs() < 1e-12);
 /// ```
 pub fn covariance(xs: &[f64], ys: &[f64]) -> MathResult<f64> {
     if xs.len() != ys.len() {
@@ -453,7 +456,8 @@ pub fn covariance(xs: &[f64], ys: &[f64]) -> MathResult<f64> {
         .iter()
         .zip(ys)
         .map(|(x, y)| (x - mx) * (y - my))
-        .sum::<f64>() / xs.len() as f64;
+        .sum::<f64>()
+        / xs.len() as f64;
     Ok(cov)
 }
 
@@ -542,8 +546,9 @@ pub fn linear_regression(xs: &[f64], ys: &[f64]) -> MathResult<(f64, f64, f64)> 
 #[must_use]
 #[inline]
 pub fn mean_ci(xs: &[f64], z: f64) -> (f64, f64) {
-    let se = std_dev_sample(xs) / (xs.len() as f64).sqrt();
-    (mean(xs) - z * se, mean(xs) + z * se)
+    let se = standard_error(xs);
+    let m = mean(xs);
+    (m - z * se, m + z * se)
 }
 
 /// Two-sample z statistic: (m1 - m2) / sqrt(v1/n1 + v2/n2).
@@ -706,12 +711,18 @@ mod tests {
     fn weighted_mean_test() {
         let xs = [1.0, 2.0, 3.0];
         let w = [3.0, 2.0, 1.0];
-        assert!((weighted_mean(&xs, &w).unwrap() - (1.0 * 3.0 + 2.0 * 2.0 + 3.0 * 1.0) / 6.0).abs() < 1e-12);
+        assert!(
+            (weighted_mean(&xs, &w).unwrap() - (1.0 * 3.0 + 2.0 * 2.0 + 3.0 * 1.0) / 6.0).abs()
+                < 1e-12
+        );
     }
 
     #[test]
     fn weighted_mean_dim_mismatch() {
-        assert_eq!(weighted_mean(&[1.0, 2.0], &[1.0]), Err(MathError::DimensionMismatch));
+        assert_eq!(
+            weighted_mean(&[1.0, 2.0], &[1.0]),
+            Err(MathError::DimensionMismatch)
+        );
     }
 
     #[test]
@@ -723,12 +734,22 @@ mod tests {
 
     #[test]
     fn geometric_empty() {
-        assert_eq!(geometric_mean(&[]), Err(MathError::InvalidArgument("geometric_mean requires non-empty input")));
+        assert_eq!(
+            geometric_mean(&[]),
+            Err(MathError::InvalidArgument(
+                "geometric_mean requires non-empty input"
+            ))
+        );
     }
 
     #[test]
     fn harmonic_empty() {
-        assert_eq!(harmonic_mean(&[]), Err(MathError::InvalidArgument("harmonic_mean requires non-empty input")));
+        assert_eq!(
+            harmonic_mean(&[]),
+            Err(MathError::InvalidArgument(
+                "harmonic_mean requires non-empty input"
+            ))
+        );
     }
 
     #[test]
@@ -739,7 +760,10 @@ mod tests {
 
     #[test]
     fn trimmed_mean_invalid_trim() {
-        assert_eq!(trimmed_mean(&[1.0, 2.0], 0.6), Err(MathError::InvalidArgument("trim must be in [0, 0.5)")));
+        assert_eq!(
+            trimmed_mean(&[1.0, 2.0], 0.6),
+            Err(MathError::InvalidArgument("trim must be in [0, 0.5)"))
+        );
     }
 
     #[test]
@@ -784,19 +808,26 @@ mod tests {
 
     #[test]
     fn linear_regression_dim_mismatch() {
-        assert_eq!(linear_regression(&[1.0, 2.0], &[3.0]), Err(MathError::DimensionMismatch));
+        assert_eq!(
+            linear_regression(&[1.0, 2.0], &[3.0]),
+            Err(MathError::DimensionMismatch)
+        );
     }
 
     #[test]
     fn covariance_test() {
         let xs = [1.0, 2.0, 3.0, 4.0];
         let ys = [2.0, 4.0, 6.0, 8.0];
-        assert!((covariance(&xs, &ys).unwrap() - 5.0).abs() < 1e-12);
+        // population covariance: sum((x-mx)(y-my)) / n
+        assert!((covariance(&xs, &ys).unwrap() - 2.5).abs() < 1e-12);
     }
 
     #[test]
     fn covariance_dim_mismatch() {
-        assert_eq!(covariance(&[1.0, 2.0], &[3.0]), Err(MathError::DimensionMismatch));
+        assert_eq!(
+            covariance(&[1.0, 2.0], &[3.0]),
+            Err(MathError::DimensionMismatch)
+        );
     }
 
     #[test]
@@ -808,7 +839,10 @@ mod tests {
 
     #[test]
     fn pearson_dim_mismatch() {
-        assert_eq!(pearson(&[1.0, 2.0], &[3.0]), Err(MathError::DimensionMismatch));
+        assert_eq!(
+            pearson(&[1.0, 2.0], &[3.0]),
+            Err(MathError::DimensionMismatch)
+        );
     }
 
     #[test]

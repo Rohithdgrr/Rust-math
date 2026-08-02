@@ -1,6 +1,6 @@
 //! Multivariate statistics: covariance matrix, correlation matrix, PCA, Mahalanobis distance.
 
-use mathverse_core::error::{MathError, MathResult};
+use crate::error::{MathError, MathResult};
 
 /// Covariance matrix from data (rows = observations, cols = variables).
 /// Returns a `p × p` matrix (row-major).
@@ -32,7 +32,9 @@ pub fn covariance_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
     }
     // Check for jagged data
     if !data.iter().all(|row| row.len() == p) {
-        return Err(MathError::InvalidArgument("data must be rectangular (jagged input)"));
+        return Err(MathError::InvalidArgument(
+            "data must be rectangular (jagged input)",
+        ));
     }
     let mut means = vec![0.0; p];
     for row in data.iter() {
@@ -67,7 +69,7 @@ pub fn covariance_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
 /// use mathverse_statistics::correlation_matrix;
 ///
 /// let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[2.0, 4.0], &[3.0, 6.0]];
-/// let corr = correlation_matrix(&data);
+/// let corr = correlation_matrix(&data).unwrap();
 /// assert!((corr[0][1] - 1.0).abs() < 1e-10);
 /// ```
 #[must_use]
@@ -129,7 +131,9 @@ pub fn pca(data: &[&[f64]]) -> MathResult<PCA> {
     }
     // Check for jagged data
     if !data.iter().all(|row| row.len() == p) {
-        return Err(MathError::InvalidArgument("data must be rectangular (jagged input)"));
+        return Err(MathError::InvalidArgument(
+            "data must be rectangular (jagged input)",
+        ));
     }
     let mut means = vec![0.0; p];
     for row in data.iter() {
@@ -180,7 +184,9 @@ pub fn pca_transform(data: &[&[f64]], components: &[Vec<f64>], means: &[f64]) ->
             components
                 .iter()
                 .map(|comp| {
-                    row.iter().zip(comp).zip(means)
+                    row.iter()
+                        .zip(comp)
+                        .zip(means)
                         .map(|((x, c), m)| (x - m) * c)
                         .sum()
                 })
@@ -234,7 +240,11 @@ pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> MathResult<Vec<Vec<f64>>> {
             if diag <= 1e-12 {
                 return Err(MathError::Singular);
             }
-            l[i][j] = if i == j { diag.sqrt() } else { (matrix[i][j] - sum) / l[j][j] };
+            l[i][j] = if i == j {
+                diag.sqrt()
+            } else {
+                (matrix[i][j] - sum) / l[j][j]
+            };
         }
     }
     let mut linv = vec![vec![0.0; n]; n];
@@ -269,7 +279,7 @@ pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> MathResult<Vec<Vec<f64>>> {
 /// ```
 /// use mathverse_statistics::precision_matrix;
 ///
-/// let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]];
+/// let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 1.0], &[2.0, 3.0]];
 /// let prec = precision_matrix(&data).unwrap();
 /// assert_eq!(prec.len(), 2);
 /// ```
@@ -336,8 +346,11 @@ mod tests {
     #[test]
     fn pca_test() {
         let data: Vec<&[f64]> = vec![
-            &[1.0, 2.0], &[2.0, 4.0], &[3.0, 6.0],
-            &[4.0, 8.0], &[5.0, 10.0],
+            &[1.0, 2.0],
+            &[2.0, 4.0],
+            &[3.0, 6.0],
+            &[4.0, 8.0],
+            &[5.0, 10.0],
         ];
         let result = pca(&data).unwrap();
         assert!(!result.components.is_empty());
@@ -357,8 +370,14 @@ mod tests {
         let a = vec![vec![4.0, 2.0], vec![2.0, 3.0]];
         let inv = cholesky_inverse(&a).unwrap();
         let prod = vec![
-            vec![a[0][0] * inv[0][0] + a[0][1] * inv[1][0], a[0][0] * inv[0][1] + a[0][1] * inv[1][1]],
-            vec![a[1][0] * inv[0][0] + a[1][1] * inv[1][0], a[1][0] * inv[0][1] + a[1][1] * inv[1][1]],
+            vec![
+                a[0][0] * inv[0][0] + a[0][1] * inv[1][0],
+                a[0][0] * inv[0][1] + a[0][1] * inv[1][1],
+            ],
+            vec![
+                a[1][0] * inv[0][0] + a[1][1] * inv[1][0],
+                a[1][0] * inv[0][1] + a[1][1] * inv[1][1],
+            ],
         ];
         assert!((prod[0][0] - 1.0).abs() < 1e-10);
         assert!(prod[0][1].abs() < 1e-10);
@@ -374,7 +393,7 @@ mod tests {
 
     #[test]
     fn precision_matrix_test() {
-        let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]];
+        let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 1.0], &[2.0, 3.0]];
         let prec = precision_matrix(&data).unwrap();
         assert_eq!(prec.len(), 2);
     }

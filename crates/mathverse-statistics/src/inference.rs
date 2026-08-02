@@ -2,7 +2,6 @@
 
 use crate::descriptive::{mean, std_dev_sample};
 use crate::distributions::{normal_ppf, student_t_cdf};
-use mathverse_core::error::MathResult;
 
 /// Bootstrap confidence interval for a statistic.
 /// Returns `(lower, upper)` bounds of the CI.
@@ -41,7 +40,9 @@ struct XorShift64 {
 
 impl XorShift64 {
     fn new(seed: u64) -> Self {
-        Self { state: seed.wrapping_add(1) }
+        Self {
+            state: seed.wrapping_add(1),
+        }
     }
 
     fn next(&mut self) -> u64 {
@@ -193,7 +194,7 @@ pub const fn bonferroni(alpha: f64, m: usize) -> f64 {
 /// ```
 /// use mathverse_statistics::sidak;
 ///
-/// assert!(sidak(0.05, 1) < 0.05);
+/// assert!((sidak(0.05, 1) - 0.05).abs() < 1e-15);
 /// ```
 #[must_use]
 #[inline]
@@ -216,11 +217,7 @@ pub fn sidak(alpha: f64, m: usize) -> f64 {
 #[must_use]
 pub fn holm_bonferroni(pvalues: &[f64]) -> Vec<f64> {
     let m = pvalues.len();
-    let mut indexed: Vec<(usize, f64)> = pvalues
-        .iter()
-        .copied()
-        .enumerate()
-        .collect();
+    let mut indexed: Vec<(usize, f64)> = pvalues.iter().copied().enumerate().collect();
     indexed.sort_by(|a, b| a.1.total_cmp(&b.1));
     let mut adjusted = vec![0.0; m];
     for (rank, &(_, p)) in indexed.iter().enumerate() {
@@ -254,11 +251,7 @@ pub fn holm_bonferroni(pvalues: &[f64]) -> Vec<f64> {
 #[must_use]
 pub fn benjamini_hochberg(pvalues: &[f64]) -> Vec<f64> {
     let m = pvalues.len();
-    let mut indexed: Vec<(usize, f64)> = pvalues
-        .iter()
-        .copied()
-        .enumerate()
-        .collect();
+    let mut indexed: Vec<(usize, f64)> = pvalues.iter().copied().enumerate().collect();
     indexed.sort_by(|a, b| a.1.total_cmp(&b.1));
     let mut adjusted = vec![0.0; m];
     for (rank, &(_, p)) in indexed.iter().enumerate() {

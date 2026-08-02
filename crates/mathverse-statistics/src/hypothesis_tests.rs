@@ -1,12 +1,13 @@
 //! Hypothesis tests: t-test, Welch's t-test, paired t-test, chi-squared, F-test,
 //! binomial test, Mann-Whitney U, Wilcoxon signed-rank.
 
-use crate::distributions::{normal_cdf, student_t_cdf, chi_squared_cdf, f_cdf};
-use crate::descriptive::{mean, variance_sample, std_dev_sample};
-use mathverse_core::error::{MathError, MathResult};
+use crate::descriptive::{mean, std_dev_sample, variance_sample};
+use crate::distributions::{chi_squared_cdf, f_cdf, normal_cdf, student_t_cdf};
+use crate::error::{MathError, MathResult};
 
 /// Two-sample t-test (equal variance).
 /// Returns (t-statistic, two-tailed p-value).
+#[must_use]
 pub fn t_test_two_sample(a: &[f64], b: &[f64]) -> (f64, f64) {
     let (ma, mb) = (mean(a), mean(b));
     let (va, vb) = (variance_sample(a), variance_sample(b));
@@ -22,6 +23,7 @@ pub fn t_test_two_sample(a: &[f64], b: &[f64]) -> (f64, f64) {
 
 /// Welch's t-test (unequal variance).
 /// Returns (t-statistic, approximate df, two-tailed p-value).
+#[must_use]
 pub fn welch_t_test(a: &[f64], b: &[f64]) -> (f64, f64, f64) {
     let (ma, mb) = (mean(a), mean(b));
     let (va, vb) = (variance_sample(a), variance_sample(b));
@@ -59,6 +61,7 @@ pub fn paired_t_test(a: &[f64], b: &[f64]) -> MathResult<(f64, f64)> {
 
 /// One-sample t-test: test if mean equals `mu0`.
 /// Returns (t-statistic, two-tailed p-value).
+#[must_use]
 pub fn one_sample_t_test(xs: &[f64], mu0: f64) -> (f64, f64) {
     let m = mean(xs);
     let s = std_dev_sample(xs);
@@ -71,6 +74,7 @@ pub fn one_sample_t_test(xs: &[f64], mu0: f64) -> (f64, f64) {
 
 /// Two-sample F-test for equal variances.
 /// Returns (F-statistic, two-tailed p-value).
+#[must_use]
 pub fn f_test_variance(a: &[f64], b: &[f64]) -> (f64, f64) {
     let va = variance_sample(a);
     let vb = variance_sample(b);
@@ -81,9 +85,10 @@ pub fn f_test_variance(a: &[f64], b: &[f64]) -> (f64, f64) {
     (f, p)
 }
 
-/// One-way ANOVA with p-value.
+/// One-way ANOVA F statistic: `(SSB/(k-1)) / (SSW/(N-k))`.
 /// Returns (F-statistic, two-tailed p-value).
-pub fn anova_with_p(groups: &[&[f64]]) -> (f64, f64) {
+#[must_use]
+pub fn one_way_anova(groups: &[&[f64]]) -> (f64, f64) {
     let k = groups.len();
     let n: usize = groups.iter().map(|g| g.len()).sum();
     let all: Vec<f64> = groups.iter().flat_map(|g| g.iter().copied()).collect();
@@ -100,11 +105,6 @@ pub fn anova_with_p(groups: &[&[f64]]) -> (f64, f64) {
     (f, p)
 }
 
-/// One-way ANOVA F statistic: `(SSB/(k-1)) / (SSW/(N-k))`.
-pub fn one_way_anova(groups: &[&[f64]]) -> (f64, f64) {
-    anova_with_p(groups)
-}
-
 /// Chi-squared goodness-of-fit test.
 /// Returns (χ² statistic, p-value). `observed` and `expected` must have same length.
 ///
@@ -117,9 +117,13 @@ pub fn chi_squared_gof(observed: &[f64], expected: &[f64]) -> MathResult<(f64, f
         return Err(MathError::DimensionMismatch);
     }
     if expected.iter().any(|&e| e <= 0.0) {
-        return Err(MathError::InvalidArgument("expected values must be positive"));
+        return Err(MathError::InvalidArgument(
+            "expected values must be positive",
+        ));
     }
-    let chi2: f64 = observed.iter().zip(expected)
+    let chi2: f64 = observed
+        .iter()
+        .zip(expected)
         .map(|(o, e)| (o - e).powi(2) / e)
         .sum();
     let df = observed.len() as f64 - 1.0;
@@ -144,7 +148,9 @@ pub fn chi_squared_independence(table: &[&[f64]]) -> MathResult<(f64, f64, f64)>
     }
     // Check for jagged table
     if !table.iter().all(|row| row.len() == cols) {
-        return Err(MathError::InvalidArgument("table must be rectangular (jagged input)"));
+        return Err(MathError::InvalidArgument(
+            "table must be rectangular (jagged input)",
+        ));
     }
     let n: f64 = table.iter().flat_map(|r| r.iter()).sum();
     if n == 0.0 {
@@ -159,7 +165,9 @@ pub fn chi_squared_independence(table: &[&[f64]]) -> MathResult<(f64, f64, f64)>
         for j in 0..cols {
             let expected = row_totals[i] * col_totals[j] / n;
             if expected <= 0.0 {
-                return Err(MathError::InvalidArgument("expected cell values must be positive"));
+                return Err(MathError::InvalidArgument(
+                    "expected cell values must be positive",
+                ));
             }
             chi2 += (table[i][j] - expected).powi(2) / expected;
         }
@@ -171,6 +179,7 @@ pub fn chi_squared_independence(table: &[&[f64]]) -> MathResult<(f64, f64, f64)>
 
 /// Binomial test: probability of `k` or more extreme successes in `n` trials with probability `p0`.
 /// Returns (two-tailed p-value).
+#[must_use]
 pub fn binomial_test(k: u64, n: u64, p0: f64) -> f64 {
     use crate::distributions::binomial_pmf;
     let observed_pmf = binomial_pmf(k, n, p0);
@@ -185,12 +194,17 @@ pub fn binomial_test(k: u64, n: u64, p0: f64) -> f64 {
 
 /// Mann-Whitney U test (two-sample, non-parametric).
 /// Returns (U statistic, approximate two-tailed p-value).
+#[must_use]
 pub fn mann_whitney_u(a: &[f64], b: &[f64]) -> (f64, f64) {
     let n1 = a.len() as f64;
     let n2 = b.len() as f64;
     let mut all: Vec<(f64, usize)> = Vec::new();
-    for &x in a { all.push((x, 0)); }
-    for &x in b { all.push((x, 1)); }
+    for &x in a {
+        all.push((x, 0));
+    }
+    for &x in b {
+        all.push((x, 1));
+    }
     all.sort_by(|a, b| a.0.total_cmp(&b.0));
     // Assign ranks (handle ties with average rank)
     let mut ranks = vec![0.0; all.len()];
@@ -206,7 +220,12 @@ pub fn mann_whitney_u(a: &[f64], b: &[f64]) -> (f64, f64) {
         }
         i = j;
     }
-    let r1: f64 = ranks.iter().zip(&all).filter(|(_, (_, g))| *g == 0).map(|(r, _)| r).sum();
+    let r1: f64 = ranks
+        .iter()
+        .zip(&all)
+        .filter(|(_, (_, g))| *g == 0)
+        .map(|(r, _)| r)
+        .sum();
     let u1 = r1 - n1 * (n1 + 1.0) / 2.0;
     let u2 = n1 * n2 - u1;
     let u = u1.min(u2);
@@ -229,7 +248,8 @@ pub fn wilcoxon_signed_rank(a: &[f64], b: &[f64]) -> MathResult<(f64, f64)> {
         return Err(MathError::DimensionMismatch);
     }
     let diffs: Vec<f64> = a.iter().zip(b).map(|(x, y)| x - y).collect();
-    let non_zero: Vec<(f64, usize)> = diffs.iter()
+    let non_zero: Vec<(f64, usize)> = diffs
+        .iter()
         .enumerate()
         .filter(|(_, d)| d.abs() > 1e-15)
         .map(|(i, &d)| (d, i))

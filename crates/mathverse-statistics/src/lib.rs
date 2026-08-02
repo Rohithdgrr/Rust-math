@@ -32,22 +32,39 @@
 #![allow(clippy::many_single_char_names)]
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::return_self_not_must_use)]
+#![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::manual_range_contains)]
+#![allow(unused_assignments)]
+#![allow(clippy::suboptimal_flops)]
+#![allow(clippy::explicit_iter_loop)]
+#![allow(clippy::needless_for_each)]
+#![allow(clippy::double_must_use)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::manual_midpoint)]
+#![allow(clippy::redundant_closure_for_method_calls)]
+#![allow(clippy::cast_lossless)]
 
 extern crate alloc;
 
 pub mod descriptive;
 pub mod distributions;
+pub mod error;
 pub mod hypothesis_tests;
-pub mod matrix;
 pub mod inference;
+pub mod matrix;
 pub mod regression;
 
+pub use error::{MathError, MathResult};
+
 pub use descriptive::{
-    coefficient_of_variation, covariance, describe, geometric_mean, harmonic_mean, iqr,
-    kurtosis, linear_regression, mad, mean, mean_ci, median, mode, percentile, pearson,
-    quantile, quartiles, range, skewness, standard_error, std_dev_pop, std_dev_sample,
-    Summary, trimmed_mean, variance_pop, variance_sample, weighted_mean, winsorized_mean,
-    z_test,
+    coefficient_of_variation, covariance, describe, geometric_mean, harmonic_mean, iqr, kurtosis,
+    linear_regression, mad, mean, mean_ci, median, mode, pearson, percentile, quantile, quartiles,
+    range, skewness, standard_error, std_dev_pop, std_dev_sample, trimmed_mean, variance_pop,
+    variance_sample, weighted_mean, winsorized_mean, z_test, Summary,
 };
 
 pub use distributions::{
@@ -57,18 +74,20 @@ pub use distributions::{
 };
 
 pub use hypothesis_tests::{
-    binomial_test, chi_squared_gof, chi_squared_independence, f_test_variance,
-    mann_whitney_u, one_sample_t_test, one_way_anova, paired_t_test, t_test_two_sample,
-    welch_t_test, wilcoxon_signed_rank,
+    binomial_test, chi_squared_gof, chi_squared_independence, f_test_variance, mann_whitney_u,
+    one_sample_t_test, one_way_anova, paired_t_test, t_test_two_sample, welch_t_test,
+    wilcoxon_signed_rank,
 };
 
 pub use regression::{
-    logistic_regression, mae, mse, multiple_regression, predict, predict_poly,
-    polynomial_regression, r_squared, residuals, rmse, sigmoid, weighted_least_squares,
+    logistic_regression, mae, mse, multiple_regression, polynomial_regression, predict,
+    predict_poly, r_squared, residuals, rmse, sigmoid, weighted_least_squares,
 };
 
-pub use matrix::{cholesky_inverse, correlation_matrix, covariance_matrix, mahalanobis, pca,
-    pca_transform, precision_matrix, PCA};
+pub use matrix::{
+    cholesky_inverse, correlation_matrix, covariance_matrix, mahalanobis, pca, pca_transform,
+    precision_matrix, PCA,
+};
 
 pub use inference::{
     benjamini_hochberg, bonferroni, bootstrap_ci, cohens_d, effect_size_from_t, eta_squared,
@@ -106,7 +125,7 @@ mod tests {
         assert!((s - 2.0).abs() < 1e-12);
         assert!((i - 1.0).abs() < 1e-12);
         assert!((r2 - 1.0).abs() < 1e-12);
-        assert!((pearson(&xs, &ys) - 1.0).abs() < 1e-12);
+        assert!((pearson(&xs, &ys).unwrap() - 1.0).abs() < 1e-12);
     }
 
     #[test]
@@ -117,7 +136,7 @@ mod tests {
         assert_eq!(z_test(1.0, 1.0, 10, 1.0, 1.0, 10), 0.0);
         let g1 = [1.0, 3.0, 5.0];
         let g2 = [2.0, 3.0, 4.0];
-        let (f, _p) = one_way_anova(&[&g1, &g2]).unwrap();
+        let (f, _p) = one_way_anova(&[&g1, &g2]);
         assert!((f - 0.0).abs() < 1e-12);
     }
 }

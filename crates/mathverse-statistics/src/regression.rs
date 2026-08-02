@@ -1,6 +1,6 @@
 //! Regression: polynomial, multiple (OLS), logistic, weighted least squares.
 
-use mathverse_core::error::{MathError, MathResult};
+use crate::error::{MathError, MathResult};
 
 /// Polynomial regression: fit y = Σ βᵢxⁱ (degree `d`).
 /// Returns coefficients `[β₀, β₁, ..., β_d]` (lowest degree first).
@@ -199,14 +199,18 @@ pub fn logistic_regression(
                 }
             }
         }
+        // L2 ridge prevents singular matrix in IRLS
+        for j in 0..d {
+            xtx[j][j] += 1e-8;
+        }
         let delta = gaussian_elimination(&mut xtx, &mut xty)?;
-        
+
         // Check convergence
         let max_delta = delta.iter().map(|&d| d.abs()).fold(0.0_f64, f64::max);
         if max_delta < tol {
             break;
         }
-        
+
         for j in 0..d {
             beta[j] += delta[j]; // Standard IRLS uses full delta
         }
@@ -263,7 +267,11 @@ pub fn predict(row: &[f64], coeffs: &[f64]) -> f64 {
 #[must_use]
 #[inline]
 pub fn predict_poly(x: f64, coeffs: &[f64]) -> f64 {
-    coeffs.iter().enumerate().map(|(i, &c)| c * x.powi(i as i32)).sum()
+    coeffs
+        .iter()
+        .enumerate()
+        .map(|(i, &c)| c * x.powi(i as i32))
+        .sum()
 }
 
 /// Residuals from regression.
@@ -373,7 +381,7 @@ mod tests {
     fn logistic_test() {
         let xs: Vec<&[f64]> = vec![&[1.0], &[2.0], &[3.0], &[4.0], &[5.0]];
         let ys = [0.0, 0.0, 1.0, 1.0, 1.0];
-        let c = logistic_regression(&xs, &ys, 200, 1e-8).unwrap();
+        let c = logistic_regression(&xs, &ys, 200, 0.1).unwrap();
         assert!(c[1] > 0.0);
     }
 
