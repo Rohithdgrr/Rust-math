@@ -366,7 +366,11 @@ mod tests {
         let b = Matrix::from_rows(&[&[5.0, 6.0], &[7.0, 8.0]]).unwrap();
         
         let comm = MatrixPower::commutator(&a, &b).unwrap();
-        assert!(comm.get(0, 0).abs() < 1e-10); // Should be zero for 2x2
+        // [A,B] = AB - BA = [[-4, -12],[12, 4]]
+        assert!((comm.get(0, 0) - (-4.0)).abs() < 1e-10);
+        assert!((comm.get(0, 1) - (-12.0)).abs() < 1e-10);
+        assert!((comm.get(1, 0) - 12.0).abs() < 1e-10);
+        assert!((comm.get(1, 1) - 4.0).abs() < 1e-10);
     }
 
     #[test]

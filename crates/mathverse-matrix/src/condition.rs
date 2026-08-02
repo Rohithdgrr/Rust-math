@@ -169,8 +169,9 @@ impl SensitivityAnalysis {
         
         let norm_x = MatrixNorms::vector_p_norm(&x.data, 2.0);
         let norm_b = MatrixNorms::vector_p_norm(&b.data, 2.0);
+        let norm_a = MatrixNorms::spectral(m)?;
         
-        let relative_error_x = cond * (delta_a + delta_b);
+        let relative_error_x = cond * (delta_a / norm_a + delta_b / norm_b);
         let absolute_error_x = relative_error_x * norm_x;
         
         Ok((relative_error_x, absolute_error_x))

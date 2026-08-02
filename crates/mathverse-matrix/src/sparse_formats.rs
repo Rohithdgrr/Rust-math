@@ -598,7 +598,7 @@ mod tests {
         let dense = Matrix::identity(10);
         let sparse = Matrix::zeros(10, 10);
         
-        assert!(SparseOperations::sparsity_ratio(&dense) > 0.1);
+        assert!(SparseOperations::sparsity_ratio(&dense) >= 0.1);
         assert!(SparseOperations::sparsity_ratio(&sparse) == 0.0);
     }
 

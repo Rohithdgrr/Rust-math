@@ -185,7 +185,7 @@ mod tests {
     fn test_frobenius_norm() {
         let m = test_matrix();
         let norm = MatrixNorms::frobenius(&m);
-        let expected = (1.0 + 4.0 + 9.0 + 16.0).sqrt();
+        let expected = (1.0_f64 + 4.0 + 9.0 + 16.0).sqrt();
         assert!((norm - expected).abs() < 1e-10);
     }
 
@@ -193,7 +193,7 @@ mod tests {
     fn test_l1_norm() {
         let m = test_matrix();
         let norm = MatrixNorms::l1(&m);
-        let expected = (1.0 + 3.0).max(2.0 + 4.0);
+        let expected = (1.0_f64 + 3.0).max(2.0 + 4.0);
         assert!((norm - expected).abs() < 1e-10);
     }
 
@@ -201,7 +201,7 @@ mod tests {
     fn test_linf_norm() {
         let m = test_matrix();
         let norm = MatrixNorms::linf(&m);
-        let expected = (1.0 + 2.0).max(3.0 + 4.0);
+        let expected = (1.0_f64 + 2.0).max(3.0 + 4.0);
         assert!((norm - expected).abs() < 1e-10);
     }
 

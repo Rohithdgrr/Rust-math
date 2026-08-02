@@ -139,7 +139,7 @@ impl GeneralEigen {
         
         for (j, &lambda) in eigenvalues.iter().enumerate() {
             // Solve (A - lambda*I) * v = 0 using inverse iteration
-            let shifted = m.sub(&Matrix::identity(n).scale(lambda))?;
+            let shifted = m.sub(&Matrix::identity(n).scale(lambda + 1e-12))?;
             
             // Start with random vector
             let mut v = vec![1.0; n];

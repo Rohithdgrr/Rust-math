@@ -22,8 +22,8 @@ impl Pseudoinverse {
         
         // A⁺ = V Σ⁺ Uᵀ
         let sigma_plus_mat = Matrix::diagonal(&sigma_plus);
-        let vt_sigma = sigma_plus_mat.mul(&svd.vt)?;
-        let pinv = svd.u.transpose().mul(&vt_sigma)?;
+        let v_sigma = svd.vt.transpose().mul(&sigma_plus_mat)?;
+        let pinv = v_sigma.mul(&svd.u.transpose())?;
         
         Ok(pinv)
     }

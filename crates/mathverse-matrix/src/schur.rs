@@ -178,11 +178,13 @@ impl SchurApplications {
                     sum += t.get(i, k) * exp_t.get(k, j);
                 }
                 let a_ii = t.get(i, i);
-                let a_jj = t.get(i, i);
+                let a_jj = t.get(j, j);
                 if (a_ii - a_jj).abs() > 1e-15 {
                     exp_t.set(i, j, (exp_t.get(i, i) - exp_t.get(j, j)) / (a_ii - a_jj) + sum / (a_ii - a_jj));
                 } else {
-                    exp_t.set(i, j, exp_t.get(i, i) + sum);
+                    // Degenerate case: equal diagonal elements
+                    // Use exp(λ) * t[i][j] which is exact for 2x2 blocks
+                    exp_t.set(i, j, exp_t.get(i, i) * t.get(i, j));
                 }
             }
         }
@@ -284,7 +286,7 @@ mod tests {
         let schur = SchurDecompositionImpl::compute(&m).unwrap();
         
         // Verify A = Q T Q^T
-        let reconstructed = schur.q.mul(&schur.t)?.mul(&schur.q.transpose())?;
+        let reconstructed = schur.q.mul(&schur.t).unwrap().mul(&schur.q.transpose()).unwrap();
         
         for i in 0..2 {
             for j in 0..2 {

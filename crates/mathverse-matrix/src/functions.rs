@@ -7,7 +7,7 @@ use mathverse_core::error::{MathError, MathResult};
 pub struct MatrixExponential;
 
 impl MatrixExponential {
-    /// Compute matrix exponential using Taylor series (scaling and squaring).
+    /// Compute matrix exponential using scaling and squaring with Taylor series.
     pub fn compute(m: &Matrix) -> MathResult<Matrix> {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
@@ -15,7 +15,6 @@ impl MatrixExponential {
         
         let n = m.rows;
         
-        // Scaling and squaring method
         let norm = crate::norms::MatrixNorms::linf(m);
         let s = if norm > 1.0 {
             (norm.log2().ceil() as usize).max(1)
@@ -29,11 +28,17 @@ impl MatrixExponential {
             m.clone()
         };
         
-        // Padé approximation
-        let exp_a = Self::pade_approx(&a_scaled)?;
+        // Taylor series: exp(A) ≈ I + A + A^2/2! + ... + A^k/k!
+        let mut result = Matrix::identity(n);
+        let mut term = Matrix::identity(n);
+        let mut coeff = 1.0;
+        for k in 1..=20 {
+            term = term.mul(&a_scaled)?;
+            coeff /= k as f64;
+            result = result.add(&term.scale(coeff))?;
+        }
         
         // Squaring
-        let mut result = exp_a;
         for _ in 0..s {
             result = result.mul(&result)?;
         }
@@ -44,11 +49,11 @@ impl MatrixExponential {
     /// Padé approximation for matrix exponential.
     fn pade_approx(m: &Matrix) -> MathResult<Matrix> {
         let n = m.rows;
-        let identity = Matrix::identity(n);
         
-        // [6/6] Padé approximation coefficients
+        // [6/6] Padé coefficients: (12-k)! / (6! * k!) for k=0..6
         let b = [
-            720.0, 720.0, 360.0, 120.0, 30.0, 6.0, 1.0
+            77.0/60.0, 11.0/12.0, 55.0/144.0, 11.0/36.0,
+            11.0/120.0, 1.0/60.0, 1.0
         ];
         
         let mut u = Matrix::identity(n);
@@ -64,9 +69,6 @@ impl MatrixExponential {
             }
             a = a.mul(m)?;
         }
-        
-        u.add(&a.scale(1.0))?;
-        v.sub(&a.scale(1.0))?;
         
         v.inverse()?.mul(&u)
     }

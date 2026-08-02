@@ -238,7 +238,6 @@ impl RankRevealing {
         let (m_rows, m_cols) = (m.rows, m.cols);
         let mut a = m.clone();
         let mut pivots: Vec<usize> = (0..m_cols).collect();
-        let mut rank = 0;
         
         for k in 0..m_cols.min(m_rows) {
             // Find column with maximum norm
@@ -298,8 +297,6 @@ impl RankRevealing {
                     }
                 }
             }
-            
-            rank += 1;
         }
         
         Ok((a, pivots))
