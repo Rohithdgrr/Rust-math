@@ -10,6 +10,8 @@ Complete feature inventory by crate. Each feature maps to a public API item in t
 - Generic operations shared across domains
 - Precision utilities (epsilon, tolerance, rounding)
 - Common algorithms
+- `no_std` support via `libm` feature (`default-features = false, features = ["libm"]`)
+- Const-generic fixed-size numeric arrays (`Array<T, N>`) for embedded/no-std use
 
 ## mathverse-arithmetic
 

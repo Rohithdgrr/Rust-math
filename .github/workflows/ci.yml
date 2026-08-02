@@ -51,3 +51,35 @@ jobs:
       - run: cargo doc --workspace --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
+
+  no-std:
+    name: no_std build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7em-none-eabihf
+      - uses: Swatinem/rust-cache@v2
+      - name: Check core with libm on a bare-metal target
+        run: |
+          cargo check -p mathverse-core --no-default-features --features libm \
+            --target thumbv7em-none-eabihf
+      - name: Check core with libm on the host (no std)
+        run: cargo check -p mathverse-core --no-default-features --features libm
+      - name: Confirm no_std without libm is a compile error
+        run: |
+          if cargo check -p mathverse-core --no-default-features 2>/dev/null; then
+            echo "::error::expected a compile error without the libm feature"
+            exit 1
+          fi
+          echo "compile_error! guard works as intended"
+
+  msrv:
+    name: MSRV (Rust 1.87)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --workspace

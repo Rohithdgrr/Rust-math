@@ -39,6 +39,7 @@ compile_error!(
 );
 
 pub mod algorithms;
+pub mod arrays;
 pub mod constants;
 pub mod error;
 pub mod integer;

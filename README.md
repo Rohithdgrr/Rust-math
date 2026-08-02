@@ -60,6 +60,7 @@ Mission: become for Rust what NumPy, SciPy, SymPy, scikit-learn utilities, OpenC
 - [docs/PHASEWISE-PLAN.md](docs/PHASEWISE-PLAN.md) — phase-by-phase execution plan
 - [docs/ROADMAP.md](docs/ROADMAP.md) — phases, releases, developer experience
 - [docs/API-GUIDELINES.md](docs/API-GUIDELINES.md) — API conventions, errors, docs & test standards
+- [docs/MSRV.md](docs/MSRV.md) — Minimum Supported Rust Version policy (currently Rust 1.87)
 
 ## Quick Start
 

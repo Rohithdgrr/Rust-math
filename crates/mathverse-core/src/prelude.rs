@@ -5,6 +5,7 @@
 //! assert_eq!(gcd(48, 18), 6);
 //! ```
 
+pub use crate::arrays::Array;
 pub use crate::integer::{
     bell_number, bezout_coefficients, binomial, catalan_number, checked_binomial,
     checked_factorial, chinese_remainder, digit_count, digit_count_base, digit_sum,
