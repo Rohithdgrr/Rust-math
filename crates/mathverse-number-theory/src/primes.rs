@@ -45,6 +45,7 @@ pub fn goldbach(n: u64) -> Option<(u64, u64)> {
 
 pub fn mersenne_prime(p: u64) -> Option<u64> {
     if !is_prime(p) { return None; }
+    if p >= 64 { return None; } // 2^p - 1 overflows u64
     let m = (1u64 << p) - 1;
     if is_prime(m) { Some(m) } else { None }
 }
@@ -87,5 +88,16 @@ mod tests {
         let t = twin_primes(20);
         assert!(t.contains(&(3, 5)));
         assert!(t.contains(&(5, 7)));
+    }
+
+    #[test]
+    fn mersenne_test() {
+        assert_eq!(mersenne_prime(2), Some(3));       // 2^2-1=3
+        assert_eq!(mersenne_prime(3), Some(7));       // 2^3-1=7
+        assert_eq!(mersenne_prime(5), Some(31));      // 2^5-1=31
+        assert_eq!(mersenne_prime(7), Some(127));     // 2^7-1=127
+        assert_eq!(mersenne_prime(11), None);         // 2047=23*89
+        assert_eq!(mersenne_prime(64), None);         // overflow guard
+        assert_eq!(mersenne_prime(1), None);          // 1 is not prime
     }
 }

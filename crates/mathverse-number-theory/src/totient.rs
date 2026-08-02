@@ -25,7 +25,7 @@ pub fn carmichael(n: u64) -> u64 {
         let p = factors[i];
         let mut pk = 1u64;
         while i < factors.len() && factors[i] == p { pk *= p; i += 1; }
-        let cp = if p == 2 && pk >= 8 { pk / 2 } else { pk - pk / p };
+        let cp = if p == 2 && pk >= 8 { pk / 4 } else { pk - pk / p };
         lambda = lcm(lambda, cp);
     }
     lambda

@@ -30,21 +30,24 @@ pub fn quadratic_reciprocity(p: u64, q: u64) -> i64 {
 
 pub fn pell_fundamental(d: u64) -> Option<(u64, u64)> {
     let sqrt_d = (d as f64).sqrt();
-    let cf = sqrt_d.floor() as u64;
-    if cf * cf == d { return None; }
-    let mut a0 = cf;
+    let a0 = sqrt_d.floor() as u64;
+    if a0 * a0 == d { return None; }
     let mut m = 0u64;
     let mut dd = 1u64;
     let mut a = a0;
-    let (mut num, mut den) = (1u64, 0u64);
-    for _ in 0..1000 {
+    let (mut h_prev, mut h_prev2) = (1u128, 0u128);
+    let (mut k_prev, mut k_prev2) = (0u128, 1u128);
+    for _ in 0..10000 {
+        let h_n = a as u128 * h_prev + h_prev2;
+        let k_n = a as u128 * k_prev + k_prev2;
+        if k_n > 0 && h_n * h_n as u128 == d as u128 * k_n * k_n + 1 {
+            return Some((h_n as u64, k_n as u64));
+        }
         m = dd * a - m;
         dd = (d - m * m) / dd;
         a = (a0 + m) / dd;
-        let old_num = num;
-        num = a * num + den;
-        den = old_num;
-        if num * num - d * den * den == 1 { return Some((num, den)); }
+        h_prev2 = h_prev; h_prev = h_n;
+        k_prev2 = k_prev; k_prev = k_n;
     }
     None
 }

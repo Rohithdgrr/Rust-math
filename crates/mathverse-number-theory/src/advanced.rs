@@ -45,11 +45,33 @@ pub fn highly_composite(limit: u64) -> Vec<u64> {
 }
 
 pub fn perfect_power(n: u64) -> Option<(u64, u32)> {
-    for b in 2..=((n as f64).sqrt() as u64) {
-        let mut p = b;
-        let mut e = 1u32;
-        while p < n { p *= b; e += 1; }
-        if p == n { return Some((b, e)); }
+    if n <= 3 { return None; }
+    // Iterate over exponents e from 2..=63, find integer eth root.
+    for e in 2u32..=63 {
+        // Binary search for b such that b^e == n
+        let mut lo = 2u64;
+        let mut hi = {
+            // upper bound: 2^(ceil(64/e))
+            let mut h = 1u64;
+            let bits = (64u64 + e as u64 - 1) / e as u64;
+            for _ in 0..bits { h = h.saturating_mul(2); }
+            h.min(n)
+        };
+        while lo <= hi {
+            let mid = lo + (hi - lo) / 2;
+            // Compute mid^e, bail on overflow
+            let mut pow = 1u64;
+            let mut overflow = false;
+            for _ in 0..e {
+                match pow.checked_mul(mid) {
+                    Some(v) => pow = v,
+                    None => { overflow = true; break; }
+                }
+            }
+            if overflow || pow > n { hi = mid - 1; }
+            else if pow < n { lo = mid + 1; }
+            else { return Some((mid, e)); }
+        }
     }
     None
 }
@@ -79,5 +101,12 @@ mod tests {
         assert_eq!(perfect_power(8), Some((2, 3)));
         assert_eq!(perfect_power(9), Some((3, 2)));
         assert_eq!(perfect_power(7), None);
+    }
+
+    #[test]
+    fn perfect_power_overflow() {
+        // Should not panic even for very large n
+        assert_eq!(perfect_power(u64::MAX), None);
+        assert_eq!(perfect_power(u64::MAX - 1), None);
     }
 }

@@ -17,9 +17,17 @@ pub fn mod_inverse(a: u64, m: u64) -> Option<u64> {
     if r0 != 1 { None } else { Some(t0.rem_euclid(m as i128) as u64) }
 }
 
-pub fn mod_add(a: u64, b: u64, m: u64) -> u64 { (a + b) % m }
+pub fn mod_add(a: u64, b: u64, m: u64) -> u64 {
+    let (ra, rb) = (a % m, b % m);
+    // Both ra and rb are < m, so ra + rb <= 2*(m-1) which fits in u64.
+    let sum = ra + rb;
+    if sum >= m { sum - m } else { sum }
+}
 
-pub fn mod_sub(a: u64, b: u64, m: u64) -> u64 { (a + m - b % m) % m }
+pub fn mod_sub(a: u64, b: u64, m: u64) -> u64 {
+    let (ra, rb) = (a % m, b % m);
+    if ra >= rb { ra - rb } else { m - (rb - ra) }
+}
 
 pub fn mod_mul(a: u64, b: u64, m: u64) -> u64 { (a as u128 * b as u128 % m as u128) as u64 }
 
@@ -82,5 +90,19 @@ mod tests {
         assert_eq!(mod_add(5, 7, 3), 0);
         assert_eq!(mod_sub(2, 5, 7), 4);
         assert_eq!(mod_mul(3, 4, 5), 2);
+    }
+
+    #[test]
+    fn mod_add_overflow() {
+        assert_eq!(mod_add(u64::MAX, 1, 100), (u64::MAX % 100 + 1) % 100);
+        assert_eq!(mod_add(u64::MAX, u64::MAX, 7), (u64::MAX % 7 * 2) % 7);
+        assert_eq!(mod_add(0, 0, 1), 0);
+    }
+
+    #[test]
+    fn mod_sub_underflow() {
+        assert_eq!(mod_sub(0, 1, 7), 6);
+        assert_eq!(mod_sub(3, 5, 7), 5);
+        assert_eq!(mod_sub(u64::MAX, 0, 99), u64::MAX % 99);
     }
 }

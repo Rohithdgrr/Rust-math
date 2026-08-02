@@ -49,8 +49,17 @@ pub fn sigma_k(n: u64, k: u32) -> u64 {
         let p = factors[i];
         let mut count = 0;
         while i < factors.len() && factors[i] == p { count += 1; i += 1; }
-        let pk = p.pow(count);
-        result *= (pk.pow(k + 1) - 1) / (pk - 1);
+        // sigma_k(p^a) = 1 + p^k + p^{2k} + ... + p^{a*k}
+        //              = (p^{k*(a+1)} - 1) / (p^k - 1)
+        // Use geometric series sum to avoid overflow where possible.
+        let p_k = p.pow(k);
+        let mut term = 1u64;
+        let mut p_pow = 1u64; // p^{j*k} for j=0..count
+        for _ in 0..count {
+            p_pow = p_pow.saturating_mul(p_k);
+            term = term.saturating_add(p_pow);
+        }
+        result = result.saturating_mul(term);
     }
     result
 }
@@ -75,9 +84,9 @@ pub fn liouville(n: u64) -> i64 {
 
 pub fn is_perfect_number(n: u64) -> bool { divisor_sum(n) == 2 * n }
 
-pub fn is_abundant(n: u64) -> bool { divisor_sum(n) > n }
+pub fn is_abundant(n: u64) -> bool { divisor_sum(n) > 2 * n }
 
-pub fn is_deficient(n: u64) -> bool { divisor_sum(n) < n }
+pub fn is_deficient(n: u64) -> bool { divisor_sum(n) < 2 * n }
 
 #[cfg(test)]
 mod tests {
@@ -93,6 +102,10 @@ mod tests {
     #[test]
     fn sigma_test() {
         assert_eq!(sigma_k(12, 1), 28);
+        assert_eq!(sigma_k(6, 1), 12);
+        assert_eq!(sigma_k(1, 1), 1);
+        // sigma_2(12) = 1^2 + 2^2 + 3^2 + 4^2 + 6^2 + 12^2 = 210
+        assert_eq!(sigma_k(12, 2), 210);
     }
 
     #[test]
@@ -106,5 +119,22 @@ mod tests {
     fn perfect() {
         assert!(is_perfect_number(6));
         assert!(is_perfect_number(28));
+    }
+
+    #[test]
+    fn abundant_test() {
+        assert!(is_abundant(12));   // sigma(12)=28 > 24
+        assert!(is_abundant(18));   // sigma(18)=39 > 36
+        assert!(!is_abundant(4));   // sigma(4)=7 < 8
+        assert!(!is_abundant(6));   // sigma(6)=12 = 12 (perfect, not abundant)
+        assert!(!is_abundant(1));   // sigma(1)=1 < 2
+    }
+
+    #[test]
+    fn deficient_test() {
+        assert!(is_deficient(4));   // sigma(4)=7 < 8
+        assert!(is_deficient(1));   // sigma(1)=1 < 2
+        assert!(!is_deficient(6));  // sigma(6)=12 = 12 (perfect, not deficient)
+        assert!(!is_deficient(12)); // sigma(12)=28 > 24
     }
 }
