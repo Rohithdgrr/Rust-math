@@ -380,7 +380,7 @@ impl BezierCurve {
             let d = p0.distance_to(p3);
             let chord = d;
             let poly = p0.distance_to(p1) + p1.distance_to(p2) + p2.distance_to(p3);
-            if chord - poly < 1e-6 || depth > 10 {
+            if (poly - chord).abs() < 1e-6 || depth > 10 {
                 return (chord + poly) / 2.0;
             }
             let m01 = Point2::new(

@@ -137,12 +137,11 @@ fn do_simplex(simplex: &mut Vec<Point2>, dir: &mut Point2) -> bool {
             let ab = Point2::new(b.x - a.x, b.y - a.y);
             let ac = Point2::new(c.x - a.x, c.y - a.y);
             let ao = Point2::new(-a.x, -a.y);
-            let _abp = Point2::new(-ab.y, ab.x);
-            let acp = Point2::new(ab.y, -ab.x); // actually -ac.y, ac.x but simplified
-            let _ = acp;
+            let abp = Point2::new(-ab.y, ab.x);
+            let acp = Point2::new(ac.y, -ac.x);
             if cross_z(ab, ao) > 0.0 {
-                if cross_z(ab, Point2::new(c.x - a.x, c.y - a.y)) <= 0.0 {
-                    *dir = Point2::new(-ab.y, ab.x);
+                if cross_z(ab, ac) <= 0.0 {
+                    *dir = abp;
                     simplex.truncate(2);
                 } else {
                     *dir = Point2::new(ab.y, -ab.x);
@@ -150,7 +149,7 @@ fn do_simplex(simplex: &mut Vec<Point2>, dir: &mut Point2) -> bool {
                     simplex.push(a);
                 }
             } else if cross_z(ac, ao) > 0.0 {
-                *dir = Point2::new(ac.y, -ac.x);
+                *dir = acp;
                 simplex.clear();
                 simplex.push(a);
                 simplex.push(c);
@@ -164,6 +163,70 @@ fn do_simplex(simplex: &mut Vec<Point2>, dir: &mut Point2) -> bool {
             false
         }
         _ => false,
+    }
+}
+
+fn closest_point_on_simplex(simplex: &[Point2]) -> Point2 {
+    match simplex.len() {
+        1 => simplex[0],
+        2 => {
+            let a = simplex[0];
+            let b = simplex[1];
+            let ab = Point2::new(b.x - a.x, b.y - a.y);
+            let t = -dot2(a, ab) / dot2(ab, ab);
+            let t = t.clamp(0.0, 1.0);
+            Point2::new(a.x + t * ab.x, a.y + t * ab.y)
+        }
+        3 => {
+            let a = simplex[0];
+            let b = simplex[1];
+            let c = simplex[2];
+            let ab = Point2::new(b.x - a.x, b.y - a.y);
+            let ac = Point2::new(c.x - a.x, c.y - a.y);
+            let ao = Point2::new(-a.x, -a.y);
+            let d1 = dot2(ab, ao);
+            let d2 = dot2(ac, ao);
+            if d1 <= 0.0 && d2 <= 0.0 {
+                return a;
+            }
+            let bo = Point2::new(-b.x, -b.y);
+            let d3 = dot2(ab, bo);
+            let d4 = dot2(ac, bo);
+            if d3 >= 0.0 && d4 <= d3 {
+                return b;
+            }
+            let vc = d1 * d4 - d3 * d2;
+            if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
+                let v = d1 / (d1 - d3);
+                return Point2::new(a.x + v * ab.x, a.y + v * ab.y);
+            }
+            let bo2 = Point2::new(-c.x, -c.y);
+            let d5 = dot2(ab, bo2);
+            let d6 = dot2(ac, bo2);
+            let vb = d5 * d2 - d1 * d6;
+            if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
+                let w = d2 / (d2 - d6);
+                return Point2::new(a.x + w * ac.x, a.y + w * ac.y);
+            }
+            let va = d3 * d6 - d5 * d4;
+            if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
+                let denom = (d4 - d3) + (d5 - d6);
+                let u = (d4 - d3) / denom;
+                let w = (d5 - d6) / denom;
+                return Point2::new(
+                    a.x + u * ab.x + w * ac.x,
+                    a.y + u * ab.y + w * ac.y,
+                );
+            }
+            let denom = va + vb + vc;
+            let u = vb / denom;
+            let w = vc / denom;
+            Point2::new(
+                a.x + u * ab.x + w * ac.x,
+                a.y + u * ab.y + w * ac.y,
+            )
+        }
+        _ => Point2::new(0.0, 0.0),
     }
 }
 
@@ -194,15 +257,9 @@ pub fn gjk_distance(a: &[Point2], b: &[Point2]) -> f64 {
             break;
         }
     }
-    // Approximate: distance from origin to simplex
-    let mut min_d = f64::INFINITY;
-    for s in &simplex {
-        let d = (s.x * s.x + s.y * s.y).sqrt();
-        if d < min_d {
-            min_d = d;
-        }
-    }
-    min_d
+    // Distance from origin to closest point on simplex
+    let cp = closest_point_on_simplex(&simplex);
+    (cp.x * cp.x + cp.y * cp.y).sqrt()
 }
 
 #[cfg(test)]

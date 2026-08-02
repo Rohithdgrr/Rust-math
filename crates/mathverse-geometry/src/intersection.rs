@@ -125,7 +125,10 @@ pub fn circle_intersects_polygon(circ: Circle, poly: &Polygon) -> bool {
 // ---------------------------------------------------------------------------
 
 /// Separating Axis Theorem: do two convex polygons overlap?
+/// Panics if either polygon is concave (SAT is only valid for convex polygons).
 pub fn polygons_intersect(poly_a: &Polygon, poly_b: &Polygon) -> bool {
+    assert!(is_convex(poly_a), "polygons_intersect requires convex polygons (SAT)");
+    assert!(is_convex(poly_b), "polygons_intersect requires convex polygons (SAT)");
     let axes_a = sat_axes(&poly_a.points);
     let axes_b = sat_axes(&poly_b.points);
     for axis in axes_a.iter().chain(axes_b.iter()) {

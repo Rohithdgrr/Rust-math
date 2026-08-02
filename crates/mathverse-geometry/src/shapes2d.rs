@@ -146,6 +146,17 @@ impl Rectangle {
             && self.y < other.y + other.height
             && other.y < self.y + self.height
     }
+    /// Rotate by `angle` radians about the centroid, returning the resulting `Polygon`.
+    pub fn rotated_polygon(&self, angle: f64) -> Polygon {
+        let c = self.centroid();
+        let corners = [
+            Point2::new(self.x, self.y),
+            Point2::new(self.x + self.width, self.y),
+            Point2::new(self.x + self.width, self.y + self.height),
+            Point2::new(self.x, self.y + self.height),
+        ];
+        Polygon::new(corners.iter().map(|p| p.rotate_around(angle, c)).collect())
+    }
 }
 
 /// Polygon from an ordered vertex list (not closed; the last vertex joins the first).

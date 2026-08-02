@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-geometry"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "MathVerse geometry: 2D/3D shapes, area, volume, transforms, distances, intersections"
 license = "MIT OR Apache-2.0"

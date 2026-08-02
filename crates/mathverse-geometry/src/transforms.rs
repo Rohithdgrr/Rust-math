@@ -77,14 +77,7 @@ impl Transform2D for Rectangle {
     }
     fn rotate(self, angle: f64) -> Self {
         let c = self.centroid();
-        let corners = [
-            Point2::new(self.x, self.y),
-            Point2::new(self.x + self.width, self.y),
-            Point2::new(self.x + self.width, self.y + self.height),
-            Point2::new(self.x, self.y + self.height),
-        ];
-        let _rotated: Vec<Point2> = corners.iter().map(|p| p.rotate_around(angle, c)).collect();
-        self
+        self.rotate_around(angle, c)
     }
     fn rotate_around(self, angle: f64, center: Point2) -> Self {
         let c = self.centroid();
