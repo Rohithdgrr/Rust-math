@@ -185,7 +185,7 @@ mod tests {
             vec![2.0, 4.0, 20.0],
             vec![3.0, 6.0, 30.0],
         ];
-        let (idx, red) = correlation_filter(&x, 0.99);
+        let (idx, _red) = correlation_filter(&x, 0.99);
         assert!(idx.len() < 3);
     }
 

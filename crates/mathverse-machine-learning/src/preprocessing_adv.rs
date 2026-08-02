@@ -337,7 +337,7 @@ mod tests {
             vec![3.0, 30.0],
             vec![4.0, 40.0],
         ];
-        let (scaled, medians, iqrs) = robust_scale(&x);
+        let (scaled, _medians, iqrs) = robust_scale(&x);
         assert_eq!(scaled.len(), 4);
         assert!(iqrs[0] > 0.0);
         assert!((scaled[0][0] + 1.0).abs() < 1.0);

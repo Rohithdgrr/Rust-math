@@ -137,7 +137,7 @@ mod tests {
     #[test]
     fn min_max_test() {
         let mut x = vec![vec![0.0, 10.0], vec![5.0, 20.0], vec![10.0, 30.0]];
-        min_max(&mut x);
+        let _ = min_max(&mut x);
         assert!((x[0][0] - 0.0).abs() < 1e-10);
         assert!((x[2][0] - 1.0).abs() < 1e-10);
         assert!((x[0][1] - 0.0).abs() < 1e-10);

@@ -610,9 +610,6 @@ version = "0.1.0"
 [[package]]
 name = "mathverse-statistics"
 version = "0.1.0"
-dependencies = [
- "mathverse-core",
-]
 
 [[package]]
 name = "mathverse-symbolic"

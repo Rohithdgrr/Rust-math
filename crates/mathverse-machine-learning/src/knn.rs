@@ -21,7 +21,9 @@ pub fn classify(
         dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
         let mut counts = std::collections::HashMap::new();
         for &(_, label) in dists.iter().take(k) {
-            *counts.entry(label.to_bits()).or_insert(0) += 1;
+            // Normalize -0.0 to 0.0 to avoid hash key collision
+            let normalized = if label == 0.0 { 0.0 } else { label };
+            *counts.entry(normalized.to_bits()).or_insert(0) += 1;
         }
         let best = counts
             .iter()

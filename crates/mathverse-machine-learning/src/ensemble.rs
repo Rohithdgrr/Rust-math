@@ -46,13 +46,15 @@ impl VotingClassifier {
                 let mut votes = std::collections::HashMap::new();
                 for (preds, &w) in all_preds.iter().zip(&self.weights) {
                     let p = preds[i];
-                    *votes.entry((p * 1000.0).round() as i64).or_insert(0.0) += w;
+                    // Normalize -0.0 to 0.0 to avoid hash key collision
+                    let normalized = if p == 0.0 { 0.0 } else { p };
+                    *votes.entry(normalized.to_bits()).or_insert(0.0) += w;
                 }
                 let best = votes
                     .iter()
                     .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
                     .unwrap();
-                *best.0 as f64 / 1000.0
+                f64::from_bits(*best.0)
             })
             .collect()
     }

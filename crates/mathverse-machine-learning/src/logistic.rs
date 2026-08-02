@@ -11,6 +11,8 @@ pub struct LogisticResult {
     pub intercept: f64,
     /// Number of iterations performed before convergence.
     pub n_iters: usize,
+    /// L2 regularization parameter used.
+    pub c: f64,
 }
 
 /// Sigmoid function.
@@ -23,8 +25,9 @@ fn sigmoid(x: f64) -> f64 {
     }
 }
 
-/// Fit logistic regression via gradient descent.
+/// Fit logistic regression via gradient descent with L2 regularization.
 /// `x`: \[n_samples × n_features\], `y`: \[n_samples\] binary labels (0 or 1).
+/// `c`: Inverse regularization strength (smaller = stronger regularization). Use `f64::INFINITY` for no regularization.
 #[must_use]
 pub fn fit(
     x: &[Vec<f64>],
@@ -32,11 +35,14 @@ pub fn fit(
     lr: f64,
     max_iters: usize,
     tol: f64,
+    c: f64,
 ) -> MathResult<LogisticResult> {
     let n = y.len();
     let p = x[0].len();
     let mut coef = vec![0.0; p];
     let mut intercept = 0.0;
+    let inv_c = if c.is_infinite() { 0.0 } else { 1.0 / c };
+
     for iter in 0..max_iters {
         let mut grad_coef = vec![0.0; p];
         let mut grad_intercept = 0.0;
@@ -53,7 +59,8 @@ pub fn fit(
         intercept -= lr * grad_intercept / n as f64;
         for j in 0..p {
             let old = coef[j];
-            coef[j] -= lr * grad_coef[j] / n as f64;
+            // L2 regularization: gradient += inv_c * coef[j]
+            coef[j] -= lr * (grad_coef[j] / n as f64 + inv_c * coef[j]);
             let change = (coef[j] - old).abs();
             if change > max_change {
                 max_change = change;
@@ -64,6 +71,7 @@ pub fn fit(
                 coefficients: coef,
                 intercept,
                 n_iters: iter + 1,
+                c,
             });
         }
     }
@@ -71,6 +79,7 @@ pub fn fit(
         coefficients: coef,
         intercept,
         n_iters: max_iters,
+        c,
     })
 }
 
@@ -133,7 +142,7 @@ mod tests {
     #[test]
     fn fit_converges() {
         let (x, y) = separable_data();
-        let r = fit(&x, &y, 0.1, 1000, 1e-8).unwrap();
+        let r = fit(&x, &y, 0.1, 1000, 1e-8, f64::INFINITY).unwrap();
         assert!(r.coefficients[0] > 0.5); // positive weight
         let preds = predict(&x, &r.coefficients, r.intercept);
         let correct = preds
@@ -145,9 +154,18 @@ mod tests {
     }
 
     #[test]
+    fn fit_with_regularization() {
+        let (x, y) = separable_data();
+        let r = fit(&x, &y, 0.1, 1000, 1e-8, 1.0).unwrap();
+        // With regularization, coefficient should be smaller than without
+        let r_no_reg = fit(&x, &y, 0.1, 1000, 1e-8, f64::INFINITY).unwrap();
+        assert!(r.coefficients[0].abs() < r_no_reg.coefficients[0].abs());
+    }
+
+    #[test]
     fn predict_proba_range() {
         let (x, y) = separable_data();
-        let r = fit(&x, &y, 0.1, 500, 1e-6).unwrap();
+        let r = fit(&x, &y, 0.1, 500, 1e-6, f64::INFINITY).unwrap();
         let probs = predict_proba(&x, &r.coefficients, r.intercept);
         assert!(probs.iter().all(|p| *p >= 0.0 && *p <= 1.0));
     }

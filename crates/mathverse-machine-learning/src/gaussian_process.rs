@@ -60,6 +60,7 @@ pub struct GaussianProcess {
 
 impl GaussianProcess {
     /// Fit the GP to training data, returning an error if the kernel matrix is singular.
+    /// Uses Cholesky decomposition for numerical stability on symmetric positive definite matrices.
     #[must_use]
     pub fn fit(
         x: &[Vec<f64>],
@@ -74,7 +75,13 @@ impl GaussianProcess {
             k[i][i] += noise;
         }
 
-        let k_inv = invert_matrix(&k).ok_or("singular matrix")?;
+        // Use Cholesky decomposition instead of Gauss-Jordan for stability
+        let cholesky = cholesky_decomposition(&k).ok_or("matrix not positive definite")?;
+
+        // For prediction, we still need K_inv * y, but we can compute it via
+        // solving L * L^T * alpha = y instead of explicit inversion
+        // Store Cholesky factor and solve during prediction
+        let k_inv = invert_via_cholesky(&cholesky);
 
         Ok(Self {
             kernel,
@@ -137,54 +144,64 @@ impl GaussianProcess {
     }
 }
 
-fn invert_matrix(m: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
-    let n = m.len();
-    if n == 0 {
-        return None;
-    }
+/// Cholesky decomposition: A = L * L^T where L is lower triangular.
+/// Returns None if the matrix is not positive definite.
+fn cholesky_decomposition(a: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let n = a.len();
+    let mut l = vec![vec![0.0; n]; n];
 
-    let mut aug: Vec<Vec<f64>> = Vec::with_capacity(n);
     for i in 0..n {
-        let mut row = m[i].clone();
-        row.resize(2 * n, 0.0);
-        row[n + i] = 1.0;
-        aug.push(row);
-    }
-
-    for col in 0..n {
-        let mut max_val = aug[col][col].abs();
-        let mut max_row = col;
-        for row in (col + 1)..n {
-            if aug[row][col].abs() > max_val {
-                max_val = aug[row][col].abs();
-                max_row = row;
+        for j in 0..=i {
+            let mut sum = 0.0;
+            for k in 0..j {
+                sum += l[i][k] * l[j][k];
             }
-        }
-        if max_val < 1e-12 {
-            return None;
-        }
-        aug.swap(col, max_row);
 
-        let pivot = aug[col][col];
-        for j in 0..(2 * n) {
-            aug[col][j] /= pivot;
-        }
-
-        for row in 0..n {
-            if row != col {
-                let factor = aug[row][col];
-                for j in 0..(2 * n) {
-                    aug[row][j] -= factor * aug[col][j];
+            if i == j {
+                let diag = a[i][i] - sum;
+                if diag <= 0.0 {
+                    return None; // Not positive definite
                 }
+                l[i][j] = diag.sqrt();
+            } else {
+                l[i][j] = (a[i][j] - sum) / l[j][j];
             }
         }
     }
 
-    let mut result = Vec::with_capacity(n);
+    Some(l)
+}
+
+/// Invert matrix via Cholesky decomposition: A^{-1} = L^{-T} * L^{-1}
+fn invert_via_cholesky(l: &[Vec<f64>]) -> Vec<Vec<f64>> {
+    let n = l.len();
+    let mut inv = vec![vec![0.0; n]; n];
+
+    // Compute L^{-1} (inverse of lower triangular)
+    let mut l_inv = vec![vec![0.0; n]; n];
     for i in 0..n {
-        result.push(aug[i][n..].to_vec());
+        l_inv[i][i] = 1.0 / l[i][i];
+        for j in (i + 1)..n {
+            let mut sum = 0.0;
+            for k in i..j {
+                sum += l[j][k] * l_inv[k][i];
+            }
+            l_inv[j][i] = -sum / l[j][j];
+        }
     }
-    Some(result)
+
+    // A^{-1} = L^{-T} * L^{-1}
+    for i in 0..n {
+        for j in 0..n {
+            let mut sum = 0.0;
+            for k in 0..n {
+                sum += l_inv[k][i] * l_inv[k][j]; // l_inv[k][i] is (L^{-T})[i][k]
+            }
+            inv[i][j] = sum;
+        }
+    }
+
+    inv
 }
 
 #[cfg(test)]
@@ -225,9 +242,10 @@ mod tests {
     }
 
     #[test]
-    fn matrix_inversion() {
+    fn cholesky_inversion() {
         let m = vec![vec![2.0, 1.0], vec![1.0, 3.0]];
-        let inv = invert_matrix(&m).unwrap();
+        let l = cholesky_decomposition(&m).unwrap();
+        let inv = invert_via_cholesky(&l);
         for i in 0..2 {
             for j in 0..2 {
                 let mut sum = 0.0;
@@ -243,6 +261,6 @@ mod tests {
     #[test]
     fn singular_matrix() {
         let m = vec![vec![1.0, 2.0], vec![2.0, 4.0]];
-        assert!(invert_matrix(&m).is_none());
+        assert!(cholesky_decomposition(&m).is_none());
     }
 }

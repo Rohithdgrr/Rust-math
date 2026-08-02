@@ -61,7 +61,20 @@ impl PCA {
 
         // Compute covariance matrix (delegates to mathverse-statistics)
         let centered_refs: Vec<&[f64]> = centered.iter().map(|r| r.as_slice()).collect();
-        let cov = mathverse_statistics::covariance_matrix(&centered_refs);
+        let cov = mathverse_statistics::covariance_matrix(&centered_refs).unwrap_or_else(|_| {
+            // Fallback: compute covariance manually
+            let mut c = vec![vec![0.0; p]; p];
+            for i in 0..p {
+                for j in 0..p {
+                    let mut sum = 0.0;
+                    for row in &centered {
+                        sum += row[i] * row[j];
+                    }
+                    c[i][j] = sum / n as f64;
+                }
+            }
+            c
+        });
 
         // Power iteration to find top eigenvectors
         self.components = Vec::new();
@@ -144,6 +157,8 @@ pub struct KernelPCA {
     pub alphas: Vec<Vec<f64>>,
     /// Eigenvalues of the centered kernel matrix.
     pub eigenvalues: Vec<f64>,
+    /// Column means of the centered kernel matrix (for transform).
+    _col_means: Vec<f64>,
 }
 
 impl KernelPCA {
@@ -157,6 +172,7 @@ impl KernelPCA {
             support: Vec::new(),
             alphas: Vec::new(),
             eigenvalues: Vec::new(),
+            _col_means: Vec::new(),
         }
     }
 
@@ -191,6 +207,9 @@ impl KernelPCA {
                 k[i][j] -= row_mean[i] + row_mean[j] - grand_mean;
             }
         }
+
+        // Store column means for transform on new data
+        self._col_means = k.iter().map(|row| row.iter().sum::<f64>() / n as f64).collect();
 
         // Power iteration for top eigenvectors
         self.alphas = Vec::new();
@@ -231,12 +250,53 @@ impl KernelPCA {
             }
         }
 
-        // Transform
+        // Transform training data
         (0..n)
             .map(|i| {
                 self.alphas
                     .iter()
                     .map(|alpha| alpha.iter().enumerate().map(|(j, &a)| a * k[i][j]).sum())
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// Transform new data points using the fitted model.
+    /// Requires training data to have been fitted first.
+    #[must_use]
+    pub fn transform(&self, x: &[Vec<f64>]) -> Vec<Vec<f64>> {
+        let n_train = self.support.len();
+        let n_test = x.len();
+
+        // Compute kernel matrix between test and training data
+        let mut k_test = vec![vec![0.0; n_train]; n_test];
+        for i in 0..n_test {
+            for j in 0..n_train {
+                k_test[i][j] = self.kernel(&x[i], &self.support[j]);
+            }
+        }
+
+        // Center the test kernel matrix using training statistics
+        // K_test_centered[i][j] = K_test[i][j] - mean_j(K_train[:,j])
+        // where mean_j is the mean of column j of K_train
+        for i in 0..n_test {
+            for j in 0..n_train {
+                k_test[i][j] -= self._col_means[j];
+            }
+        }
+
+        // Project onto eigenvectors
+        (0..n_test)
+            .map(|i| {
+                self.alphas
+                    .iter()
+                    .map(|alpha| {
+                        alpha
+                            .iter()
+                            .enumerate()
+                            .map(|(j, &a)| a * k_test[i][j])
+                            .sum()
+                    })
                     .collect()
             })
             .collect()
@@ -287,5 +347,28 @@ mod tests {
         let reduced = kpca.fit_transform(&x);
         assert_eq!(reduced.len(), 6);
         assert_eq!(reduced[0].len(), 1);
+    }
+
+    #[test]
+    fn kernel_pca_transform_test() {
+        let x_train: Vec<Vec<f64>> = vec![
+            vec![1.0, 0.0],
+            vec![0.0, 1.0],
+            vec![-1.0, 0.0],
+            vec![0.0, -1.0],
+        ];
+        let x_test: Vec<Vec<f64>> = vec![
+            vec![0.5, 0.5],
+            vec![-0.5, -0.5],
+        ];
+        
+        let mut kpca = KernelPCA::new(1, 0.5);
+        let train_reduced = kpca.fit_transform(&x_train);
+        let test_reduced = kpca.transform(&x_test);
+        
+        assert_eq!(train_reduced.len(), 4);
+        assert_eq!(test_reduced.len(), 2);
+        assert_eq!(train_reduced[0].len(), 1);
+        assert_eq!(test_reduced[0].len(), 1);
     }
 }

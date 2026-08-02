@@ -6,6 +6,7 @@ type SplitResult = (Vec<Vec<f64>>, Vec<f64>, Vec<Vec<f64>>, Vec<f64>);
 enum Node {
     Leaf {
         prediction: f64,
+        class_counts: std::collections::HashMap<u64, usize>,
     },
     Split {
         feature: usize,
@@ -29,7 +30,10 @@ impl DecisionTree {
     #[inline]
     pub fn new(max_depth: usize, min_samples_split: usize) -> Self {
         Self {
-            root: Node::Leaf { prediction: 0.0 },
+            root: Node::Leaf {
+                prediction: 0.0,
+                class_counts: std::collections::HashMap::new(),
+            },
             max_depth,
             min_samples_split,
         }
@@ -52,12 +56,17 @@ impl DecisionTree {
     pub fn predict_proba(&self, x: &[Vec<f64>], classes: &[f64]) -> Vec<Vec<f64>> {
         x.iter()
             .map(|row| {
-                let leaf_vals = collect_leaf_values(&self.root, row);
-                let total = leaf_vals.len() as f64;
+                let class_counts = collect_leaf_counts(&self.root, row);
+                let total: usize = class_counts.values().sum();
+                if total == 0 {
+                    // Return uniform distribution if no samples
+                    return vec![1.0 / classes.len() as f64; classes.len()];
+                }
                 classes
                     .iter()
                     .map(|&c| {
-                        leaf_vals.iter().filter(|&&v| (v - c).abs() < 1e-10).count() as f64 / total
+                        let count = class_counts.get(&c.to_bits()).copied().unwrap_or(0);
+                        count as f64 / total as f64
                     })
                     .collect()
             })
@@ -73,13 +82,19 @@ fn build_tree(
     min_samples: usize,
 ) -> Node {
     if y.is_empty() {
-        return Node::Leaf { prediction: 0.0 };
+        return Node::Leaf {
+            prediction: 0.0,
+            class_counts: std::collections::HashMap::new(),
+        };
     }
     // All same class or depth limit or too few samples
     let all_same = y.windows(2).all(|w| (w[0] - w[1]).abs() < 1e-10);
     if all_same || depth >= max_depth || y.len() < min_samples {
+        let prediction = majority_class(y);
+        let class_counts = get_class_counts(y);
         return Node::Leaf {
-            prediction: majority_class(y),
+            prediction,
+            class_counts,
         };
     }
     // Find best split
@@ -94,8 +109,11 @@ fn build_tree(
             right: Box::new(right),
         }
     } else {
+        let prediction = majority_class(y);
+        let class_counts = get_class_counts(y);
         Node::Leaf {
-            prediction: majority_class(y),
+            prediction,
+            class_counts,
         }
     }
 }
@@ -158,6 +176,14 @@ fn majority_class(y: &[f64]) -> f64 {
         .unwrap_or(0.0)
 }
 
+fn get_class_counts(y: &[f64]) -> std::collections::HashMap<u64, usize> {
+    let mut counts = std::collections::HashMap::new();
+    for &yi in y {
+        *counts.entry(yi.to_bits()).or_insert(0usize) += 1;
+    }
+    counts
+}
+
 fn split_data(x: &[Vec<f64>], y: &[f64], feature: usize, threshold: f64) -> SplitResult {
     let mut lx = Vec::new();
     let mut ly = Vec::new();
@@ -177,7 +203,7 @@ fn split_data(x: &[Vec<f64>], y: &[f64], feature: usize, threshold: f64) -> Spli
 
 fn predict_one(node: &Node, x: &[f64]) -> f64 {
     match node {
-        Node::Leaf { prediction } => *prediction,
+        Node::Leaf { prediction, .. } => *prediction,
         Node::Split {
             feature,
             threshold,
@@ -193,9 +219,9 @@ fn predict_one(node: &Node, x: &[f64]) -> f64 {
     }
 }
 
-fn collect_leaf_values(node: &Node, x: &[f64]) -> Vec<f64> {
+fn collect_leaf_counts<'a>(node: &'a Node, x: &[f64]) -> &'a std::collections::HashMap<u64, usize> {
     match node {
-        Node::Leaf { prediction } => vec![*prediction],
+        Node::Leaf { class_counts, .. } => class_counts,
         Node::Split {
             feature,
             threshold,
@@ -203,9 +229,9 @@ fn collect_leaf_values(node: &Node, x: &[f64]) -> Vec<f64> {
             right,
         } => {
             if x[*feature] <= *threshold {
-                collect_leaf_values(left, x)
+                collect_leaf_counts(left, x)
             } else {
-                collect_leaf_values(right, x)
+                collect_leaf_counts(right, x)
             }
         }
     }
@@ -253,5 +279,29 @@ mod tests {
         let mut tree = DecisionTree::new(5, 2);
         tree.fit(&x, &y);
         assert_eq!(tree.predict(&x), vec![1.0, 1.0]);
+    }
+
+    #[test]
+    fn test_predict_proba() {
+        let x = vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]];
+        let y = vec![0.0, 0.0, 1.0, 1.0];
+        let mut tree = DecisionTree::new(5, 2);
+        tree.fit(&x, &y);
+        let classes = vec![0.0, 1.0];
+        let probas = tree.predict_proba(&x, &classes);
+        
+        // Check that probabilities sum to 1 for each sample
+        for proba in &probas {
+            let sum: f64 = proba.iter().sum();
+            assert!((sum - 1.0).abs() < 1e-10);
+        }
+        
+        // First two samples should be class 0 with high probability
+        assert!(probas[0][0] > 0.5);
+        assert!(probas[1][0] > 0.5);
+        
+        // Last two samples should be class 1 with high probability
+        assert!(probas[2][1] > 0.5);
+        assert!(probas[3][1] > 0.5);
     }
 }

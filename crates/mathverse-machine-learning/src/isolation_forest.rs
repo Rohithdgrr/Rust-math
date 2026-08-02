@@ -139,13 +139,21 @@ impl IsolationTree {
 }
 
 /// Average path length of unsuccessful search in BST.
+/// Uses harmonic number H(n-1) = sum_{i=1}^{n-1} 1/i
 #[must_use]
 #[inline]
 fn c_factor(n: usize) -> f64 {
     if n <= 1 {
         return 0.0;
     }
-    2.0 * ((n as f64 - 1.0).ln()) - 2.0 * (n as f64 - 1.0) / n as f64 + 1.0
+    if n == 2 {
+        return 1.0;
+    }
+    
+    // Compute harmonic number H(n-1)
+    let harmonic: f64 = (1..n).map(|i| 1.0 / i as f64).sum();
+    
+    2.0 * harmonic - 2.0 * (n as f64 - 1.0) / n as f64
 }
 
 impl IsolationForest {
@@ -217,7 +225,7 @@ mod tests {
 
     #[test]
     fn isolation_forest_test() {
-        let mut normal: Vec<Vec<f64>> = (0..100).map(|i| vec![i as f64, i as f64 * 2.0]).collect();
+        let normal: Vec<Vec<f64>> = (0..100).map(|i| vec![i as f64, i as f64 * 2.0]).collect();
         let anomaly = vec![vec![1000.0, 2000.0]];
         let mut x = normal.clone();
         x.extend(anomaly.clone());
@@ -236,5 +244,19 @@ mod tests {
         forest.fit(&x);
         let pred = forest.predict(&x);
         assert_eq!(pred.len(), 3);
+    }
+
+    #[test]
+    fn test_c_factor_harmonic_number() {
+        // Test that c_factor uses harmonic number correctly
+        // For n=256, harmonic number should give ~10.25, not 10.09
+        let c_256 = c_factor(256);
+        let expected_approx = 10.25;
+        assert!((c_256 - expected_approx).abs() < 0.2, "c_factor(256) should be close to {expected_approx}, got {c_256}");
+        
+        // For n=4, should be ~2.17, not 1.70
+        let c_4 = c_factor(4);
+        let expected_4 = 2.17;
+        assert!((c_4 - expected_4).abs() < 0.2, "c_factor(4) should be close to {expected_4}, got {c_4}");
     }
 }

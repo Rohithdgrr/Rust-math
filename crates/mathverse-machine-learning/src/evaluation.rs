@@ -54,12 +54,13 @@ pub fn stratified_k_fold(y: &[f64], k: usize, seed: u64) -> Vec<(Vec<usize>, Vec
         indices.swap(i, j);
     }
 
-    // Group by class
-    let mut class_groups: std::collections::HashMap<i64, Vec<usize>> =
+    // Group by class using f64::to_bits to avoid quantization issues
+    let mut class_groups: std::collections::HashMap<u64, Vec<usize>> =
         std::collections::HashMap::new();
     for &idx in &indices {
-        let class = (y[idx] * 1000.0).round() as i64;
-        class_groups.entry(class).or_default().push(idx);
+        // Normalize -0.0 to 0.0 to avoid hash key collision
+        let normalized = if y[idx] == 0.0 { 0.0 } else { y[idx] };
+        class_groups.entry(normalized.to_bits()).or_default().push(idx);
     }
 
     // Distribute into folds
@@ -147,7 +148,6 @@ where
 
     for _ in 0..n_bootstrap {
         let mut train_indices = Vec::with_capacity(n);
-        let mut test_indices = Vec::with_capacity(n);
 
         for _ in 0..n {
             rng_state = rng_state
@@ -157,13 +157,13 @@ where
             train_indices.push(idx);
         }
 
-        let mut seen = std::collections::HashSet::new();
+        // Out-of-bag samples: indices that never appear in the bootstrap sample
+        let mut in_bag = std::collections::HashSet::new();
         for &idx in &train_indices {
-            if !seen.contains(&idx) {
-                seen.insert(idx);
-                test_indices.push(idx);
-            }
+            in_bag.insert(idx);
         }
+        
+        let test_indices: Vec<usize> = (0..n).filter(|i| !in_bag.contains(i)).collect();
 
         if test_indices.is_empty() {
             continue;
@@ -259,5 +259,24 @@ mod tests {
         let (mean, std) = bootstrap_score(&x, &y, 10, 42, simple_predict);
         assert!(mean < 0.0);
         assert!(std >= 0.0);
+    }
+
+    #[test]
+    fn test_bootstrap_uses_out_of_bag() {
+        // Test that bootstrap uses out-of-bag samples correctly
+        let x: Vec<Vec<f64>> = (0..10).map(|i| vec![i as f64]).collect();
+        let y: Vec<f64> = (0..10).map(|i| i as f64).collect();
+        
+        // Count how many times we get non-empty test sets
+        let mut non_empty_count = 0;
+        for _ in 0..20 {
+            let (mean, _std) = bootstrap_score(&x, &y, 10, 42, simple_predict);
+            if !mean.is_nan() {
+                non_empty_count += 1;
+            }
+        }
+        
+        // Most iterations should have non-empty out-of-bag samples
+        assert!(non_empty_count > 5, "Bootstrap should frequently have out-of-bag samples");
     }
 }

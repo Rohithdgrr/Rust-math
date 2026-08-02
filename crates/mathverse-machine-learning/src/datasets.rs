@@ -116,15 +116,16 @@ pub fn make_moons(n_samples: usize, noise: f64, seed: u64) -> (Vec<Vec<f64>>, Ve
     for i in 0..n_samples {
         let class = i % 2;
         let t = rng.next_f64() * std::f64::consts::PI;
+        // Generate interleaving crescents by offsetting the second moon
         let x0 = if class == 0 {
             t.cos() + noise * rng.next_normal()
         } else {
-            (t + std::f64::consts::PI).cos() + noise * rng.next_normal()
+            (1.0 - t.cos()) + noise * rng.next_normal()
         };
         let x1 = if class == 0 {
             t.sin() + noise * rng.next_normal()
         } else {
-            (t + std::f64::consts::PI).sin() + noise * rng.next_normal()
+            (0.5 - t.sin()) + noise * rng.next_normal()
         };
         x.push(vec![x0, x1]);
         y.push(class as f64);

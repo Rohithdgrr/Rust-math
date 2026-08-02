@@ -97,7 +97,7 @@ impl SVM {
         Self::new(c, Kernel::RBF { gamma }, 1e-3, 1000)
     }
 
-    /// Fit SVM using simplified SMO.
+    /// Fit SVM using improved SMO with better pair selection.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         let n = x.len();
         self.alpha = vec![0.0; n];
@@ -105,16 +105,15 @@ impl SVM {
 
         for _ in 0..self.max_iters {
             let mut num_changed = 0;
+            
+            // First pass: examine all examples
             for i in 0..n {
                 let ei = self.predict_single(x, y, i) - y[i];
                 if (y[i] * ei < -self.tol && self.alpha[i] < self.c)
                     || (y[i] * ei > self.tol && self.alpha[i] > 0.0)
                 {
-                    let j = if i + 1 < n {
-                        i + 1
-                    } else {
-                        i.wrapping_sub(1) % n
-                    };
+                    // Find j that maximizes |ei - ej|
+                    let j = self.find_best_j(x, y, i, ei);
                     let ej = self.predict_single(x, y, j) - y[j];
                     let ai_old = self.alpha[i];
                     let aj_old = self.alpha[j];
@@ -166,6 +165,72 @@ impl SVM {
                     num_changed += 1;
                 }
             }
+            
+            // Second pass: examine only non-bound alphas
+            if num_changed == 0 {
+                let non_bound: Vec<usize> = (0..n)
+                    .filter(|&i| self.alpha[i] > 0.0 && self.alpha[i] < self.c)
+                    .collect();
+                
+                for i in non_bound {
+                    let ei = self.predict_single(x, y, i) - y[i];
+                    if (y[i] * ei < -self.tol && self.alpha[i] < self.c)
+                        || (y[i] * ei > self.tol && self.alpha[i] > 0.0)
+                    {
+                        let j = self.find_best_j(x, y, i, ei);
+                        let ej = self.predict_single(x, y, j) - y[j];
+                        let ai_old = self.alpha[i];
+                        let aj_old = self.alpha[j];
+
+                        let (l, h) = if y[i] != y[j] {
+                            (
+                                0.0_f64.max(self.alpha[j] - self.alpha[i]),
+                                self.c.min(self.c + self.alpha[j] - self.alpha[i]),
+                            )
+                        } else {
+                            (
+                                0.0_f64.max(self.alpha[i] + self.alpha[j] - self.c),
+                                self.c.min(self.alpha[i] + self.alpha[j]),
+                            )
+                        };
+                        if (l - h).abs() < 1e-10 {
+                            continue;
+                        }
+
+                        let eta = 2.0 * self.kernel.compute(&x[i], &x[j])
+                            - self.kernel.compute(&x[i], &x[i])
+                            - self.kernel.compute(&x[j], &x[j]);
+                        if eta >= 0.0 {
+                            continue;
+                        }
+
+                        self.alpha[j] = aj_old - y[j] * (ei - ej) / eta;
+                        self.alpha[j] = self.alpha[j].clamp(l, h);
+                        if (self.alpha[j] - aj_old).abs() < 1e-5 {
+                            continue;
+                        }
+
+                        self.alpha[i] = ai_old + y[i] * y[j] * (aj_old - self.alpha[j]);
+                        let b1 = self.bias
+                            - ei
+                            - y[i] * (self.alpha[i] - ai_old) * self.kernel.compute(&x[i], &x[i])
+                            - y[j] * (self.alpha[j] - aj_old) * self.kernel.compute(&x[i], &x[j]);
+                        let b2 = self.bias
+                            - ej
+                            - y[i] * (self.alpha[i] - ai_old) * self.kernel.compute(&x[i], &x[j])
+                            - y[j] * (self.alpha[j] - aj_old) * self.kernel.compute(&x[j], &x[j]);
+                        self.bias = if self.alpha[i] > 0.0 && self.alpha[i] < self.c {
+                            b1
+                        } else if self.alpha[j] > 0.0 && self.alpha[j] < self.c {
+                            b2
+                        } else {
+                            (b1 + b2) / 2.0
+                        };
+                        num_changed += 1;
+                    }
+                }
+            }
+            
             if num_changed == 0 {
                 break;
             }
@@ -179,6 +244,26 @@ impl SVM {
                 self.support_alpha.push(self.alpha[i]);
             }
         }
+    }
+    
+    /// Find the best j to pair with i by maximizing |ei - ej|
+    fn find_best_j(&self, x: &[Vec<f64>], y: &[f64], i: usize, ei: f64) -> usize {
+        let mut best_j = 0;
+        let mut max_diff = 0.0;
+        
+        for j in 0..x.len() {
+            if j == i {
+                continue;
+            }
+            let ej = self.predict_single(x, y, j) - y[j];
+            let diff = (ei - ej).abs();
+            if diff > max_diff {
+                max_diff = diff;
+                best_j = j;
+            }
+        }
+        
+        best_j
     }
 
     fn predict_single(&self, x: &[Vec<f64>], y: &[f64], i: usize) -> f64 {
