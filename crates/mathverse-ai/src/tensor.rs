@@ -27,6 +27,17 @@ impl fmt::Display for Tensor {
     }
 }
 
+/// Advance an xorshift64 state; return uniform in [0, 1).
+fn xorshift(state: &mut u64) -> f64 {
+    let mut x = *state;
+    if x == 0 { x = 0xDEAD_BEEF_CAFE_1234; }
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+    *state = x;
+    (x as f64) / (u64::MAX as f64).max(1e-30)
+}
+
 impl Tensor {
     // -----------------------------------------------------------------------
     // Constructors
@@ -73,16 +84,23 @@ impl Tensor {
         Self { shape: vec![], data: vec![val] }
     }
 
-    /// 1-D range: [start, stop) with step.
+    /// 1-D range: [start, stop) with step. Negative steps are supported.
     pub fn arange(start: f64, stop: f64, step: f64) -> MathResult<Self> {
-        if step <= 0.0 {
-            return Err(MathError::InvalidArgument("arange: step must be positive"));
+        if step == 0.0 {
+            return Err(MathError::InvalidArgument("arange: step must be non-zero"));
         }
         let mut data = Vec::new();
         let mut v = start;
-        while v < stop {
-            data.push(v);
-            v += step;
+        if step > 0.0 {
+            while v < stop {
+                data.push(v);
+                v += step;
+            }
+        } else {
+            while v > stop {
+                data.push(v);
+                v += step;
+            }
         }
         Ok(Self { shape: vec![data.len()], data })
     }
@@ -111,12 +129,9 @@ impl Tensor {
             S.with(|s| {
                 let mut x = s.get();
                 if x == 0 { x = 0xDEAD_BEEF_CAFE_1234; }
-                x ^= x << 13;
-                x ^= x >> 7;
-                x ^= x << 17;
+                let u1 = xorshift(&mut x);
+                let u2 = xorshift(&mut x);
                 s.set(x);
-                let u1 = (x as f64) / (u64::MAX as f64).max(1e-30);
-                let u2 = ((x >> 32) as f64) / (u64::MAX as f64).max(1e-30);
                 (-2.0 * u1.max(1e-30).ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
             })
         }).collect();
@@ -129,11 +144,8 @@ impl Tensor {
         let mut state = if seed == 0 { 0xDEAD_BEEF_CAFE_1234 } else { seed };
         let numel: usize = shape.iter().product();
         let data: Vec<f64> = (0..numel).map(|_| {
-            state ^= state << 13;
-            state ^= state >> 7;
-            state ^= state << 17;
-            let u1 = (state as f64) / (u64::MAX as f64).max(1e-30);
-            let u2 = ((state >> 32) as f64) / (u64::MAX as f64).max(1e-30);
+            let u1 = xorshift(&mut state);
+            let u2 = xorshift(&mut state);
             (-2.0 * u1.max(1e-30).ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
         }).collect();
         Self { shape: shape.to_vec(), data }
@@ -169,7 +181,10 @@ impl Tensor {
         }
         let strides = self.strides();
         let mut flat = 0;
-        for (c, s) in coords.iter().zip(&strides) {
+        for (i, (c, s)) in coords.iter().zip(&strides).enumerate() {
+            if *c >= self.shape[i] {
+                return Err(MathError::OutOfRange);
+            }
             flat += c * s;
         }
         Ok(flat)
@@ -199,6 +214,7 @@ impl Tensor {
 
     /// Get element at flat index.
     pub fn get_flat(&self, idx: usize) -> f64 {
+        assert!(idx < self.data.len(), "get_flat: index {idx} out of bounds (len {})", self.data.len());
         self.data[idx]
     }
 
@@ -211,6 +227,7 @@ impl Tensor {
 
     /// Set element at flat index.
     pub fn set_flat(&mut self, idx: usize, val: f64) {
+        assert!(idx < self.data.len(), "set_flat: index {idx} out of bounds (len {})", self.data.len());
         self.data[idx] = val;
     }
 
@@ -1034,6 +1051,23 @@ mod tests {
         let t = Tensor::linspace(0.0, 1.0, 5);
         assert_eq!(t.shape, vec![5]);
         assert!((t.data[2] - 0.5).abs() < E);
+
+        let t = Tensor::arange(5.0, 0.0, -1.0).unwrap();
+        assert_eq!(t.data, vec![5.0, 4.0, 3.0, 2.0, 1.0]);
+        assert!(Tensor::arange(0.0, 1.0, 0.0).is_err());
+    }
+
+    #[test]
+    fn randn_is_standard_normal() {
+        // Box-Muller regression: ~99.9% of a standard normal is within [-3.5, 3.5],
+        // and sample variance must be ~1 (the broken u2 range gave |x| < ~1.3e-9).
+        let t = Tensor::randn_seeded(&[200_000], 12345);
+        let n = t.numel() as f64;
+        let mean: f64 = t.data.iter().sum::<f64>() / n;
+        let var: f64 = t.data.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n;
+        assert!((mean.abs()) < 0.02, "mean {mean} deviates from 0");
+        assert!((var - 1.0).abs() < 0.05, "variance {var} deviates from 1");
+        assert!(t.data.iter().any(|x| x.abs() > 1.0), "no samples beyond 1 sigma");
     }
 
     #[test]

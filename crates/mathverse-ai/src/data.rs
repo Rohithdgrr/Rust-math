@@ -1,6 +1,7 @@
 //! Data loading utilities: DataLoader with batching and shuffling.
 
 use crate::tensor::Tensor;
+use mathverse_core::error::{MathError, MathResult};
 
 /// A mini-batch of inputs and targets.
 pub struct Batch {
@@ -104,7 +105,14 @@ impl Iterator for DataLoader {
 /// Train/test split: returns (x_train, x_test, y_train, y_test).
 ///
 /// `test_ratio` should be in `[0.0, 1.0]`. This function is deterministic given `seed`.
-pub fn train_test_split(x: &Tensor, y: &Tensor, test_ratio: f64, seed: u64) -> (Tensor, Tensor, Tensor, Tensor) {
+///
+/// # Errors
+///
+/// Returns `MathError::DimensionMismatch` if `x` and `y` have different
+/// numbers of samples, or if `test_ratio` is outside `[0.0, 1.0]`.
+pub fn train_test_split(x: &Tensor, y: &Tensor, test_ratio: f64, seed: u64) -> MathResult<(Tensor, Tensor, Tensor, Tensor)> {
+    if x.shape[0] != y.shape[0] { return Err(MathError::DimensionMismatch); }
+    if !(0.0..=1.0).contains(&test_ratio) { return Err(MathError::InvalidArgument("train_test_split: test_ratio must be in [0.0, 1.0]")); }
     let n = x.shape[0];
     let test_size = (n as f64 * test_ratio) as usize;
     let train_size = n - test_size;
@@ -150,7 +158,7 @@ pub fn train_test_split(x: &Tensor, y: &Tensor, test_ratio: f64, seed: u64) -> (
     let x_test = Tensor { shape: x_shape, data: x_test_data };
     let y_test = Tensor { shape: y_shape, data: y_test_data };
 
-    (x_train, x_test, y_train, y_test)
+    Ok((x_train, x_test, y_train, y_test))
 }
 
 #[cfg(test)]
@@ -171,9 +179,11 @@ mod tests {
     fn train_test_split_test() {
         let x = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
         let y = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
-        let (x_tr, x_te, _y_tr, _y_te) = train_test_split(&x, &y, 0.2, 42);
+        let (x_tr, x_te, _y_tr, _y_te) = train_test_split(&x, &y, 0.2, 42).unwrap();
         assert_eq!(x_tr.shape[0], 8);
         assert_eq!(x_te.shape[0], 2);
+        let mismatched = Tensor::arange(0.0, 5.0, 1.0).unwrap().reshape(&[5, 1]).unwrap();
+        assert!(train_test_split(&x, &mismatched, 0.2, 42).is_err());
     }
 }
 

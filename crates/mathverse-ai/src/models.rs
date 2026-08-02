@@ -79,12 +79,12 @@ impl Sequential {
     }
 
     /// Forward pass through all layers.
-    pub fn forward(&self, x: &Tensor, training: bool) -> MathResult<Tensor> {
+    pub fn forward(&mut self, x: &Tensor, training: bool) -> MathResult<Tensor> {
         let mut out = x.clone();
-        for layer in &self.layers {
+        for layer in &mut self.layers {
             match layer {
                 Layer::Linear(l) => out = l.forward(&out)?,
-                Layer::LayerNorm(l) => out = l.forward(&out),
+                Layer::LayerNorm(l) => out = l.forward(&out)?,
                 Layer::Dropout(d) => out = d.forward(&out, training),
                 Layer::Activation(act) => {
                     out = match act {
@@ -177,6 +177,7 @@ pub struct TransformerBlock {
 impl TransformerBlock {
     /// Create a transformer block with random-initialized parameters.
     pub fn new(d_model: usize, num_heads: usize, d_ff: usize) -> Self {
+        assert!(d_model % num_heads == 0, "TransformerBlock: d_model ({d_model}) must be divisible by num_heads ({num_heads})");
         let _d_k = d_model / num_heads;
         Self {
             attn_wq: Tensor::randn(&[d_model, d_model]).mul_scalar((2.0 / d_model as f64).sqrt()),
@@ -195,7 +196,7 @@ impl TransformerBlock {
     /// Forward pass with optional attention mask.
     pub fn forward(&self, x: &Tensor, mask: Option<&Tensor>) -> MathResult<Tensor> {
         // Self-attention with residual
-        let normed = self.ln1.forward(x);
+        let normed = self.ln1.forward(x)?;
         let attn_out = crate::attention::multi_head_attention(
             &normed, &self.attn_wq, &self.attn_wk, &self.attn_wv, &self.attn_wo,
             self.num_heads, mask,
@@ -203,7 +204,7 @@ impl TransformerBlock {
         let h = x.add(&attn_out)?;
 
         // Feed-forward with residual
-        let normed2 = self.ln2.forward(&h);
+        let normed2 = self.ln2.forward(&h)?;
         let ff_out = self.ff_w1.forward(&normed2)?;
         let ff_out = crate::activations::gelu(&ff_out);
         let ff_out = self.ff_w2.forward(&ff_out)?;
@@ -217,7 +218,7 @@ mod tests {
 
     #[test]
     fn sequential_test() {
-        let model = Sequential::new()
+        let mut model = Sequential::new()
             .add_linear(4, 8)
             .add_activation(Activation::ReLU)
             .add_linear(8, 2);

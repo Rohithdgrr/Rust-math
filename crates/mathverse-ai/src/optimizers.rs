@@ -87,8 +87,8 @@ impl Adam {
         }
     }
 
-    /// Reset internal moment estimates and step counter.
-    pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
+    /// Zero moment buffers in place (keeps allocations).
+    pub fn zero_grad(&mut self) { self.t = 0; self.m.iter_mut().for_each(|x| *x = 0.0); self.v.iter_mut().for_each(|x| *x = 0.0); }
 }
 
 /// AdamW optimizer (decoupled weight decay).
@@ -140,8 +140,8 @@ impl AdamW {
         }
     }
 
-    /// Reset internal moment estimates and step counter.
-    pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
+    /// Zero moment buffers in place (keeps allocations).
+    pub fn zero_grad(&mut self) { self.t = 0; self.m.iter_mut().for_each(|x| *x = 0.0); self.v.iter_mut().for_each(|x| *x = 0.0); }
 }
 
 // ---------------------------------------------------------------------------
@@ -243,7 +243,7 @@ impl RMSprop {
     }
 
     /// Reset running averages and momentum state.
-    pub fn zero_grad(&mut self) { self.avg_sq.clear(); self.velocity.clear(); self.initialized = false; }
+    pub fn zero_grad(&mut self) { self.avg_sq.iter_mut().for_each(|x| *x = 0.0); self.velocity.iter_mut().for_each(|x| *x = 0.0); }
 }
 
 /// Lion optimizer (EvoLved Sign Momentum).
@@ -283,7 +283,7 @@ impl Lion {
     }
 
     /// Reset internal momentum state.
-    pub fn zero_grad(&mut self) { self.m.clear(); self.initialized = false; }
+    pub fn zero_grad(&mut self) { self.m.iter_mut().for_each(|x| *x = 0.0); }
 }
 
 /// AdaGrad optimizer.
@@ -321,7 +321,7 @@ impl AdaGrad {
     }
 
     /// Reset accumulated squared gradients.
-    pub fn zero_grad(&mut self) { self.sum_sq.clear(); self.initialized = false; }
+    pub fn zero_grad(&mut self) { self.sum_sq.iter_mut().for_each(|x| *x = 0.0); }
 }
 
 /// AdaDelta optimizer.
@@ -365,7 +365,7 @@ impl AdaDelta {
     }
 
     /// Reset running averages.
-    pub fn zero_grad(&mut self) { self.avg_sq.clear(); self.avg_dx.clear(); self.initialized = false; }
+    pub fn zero_grad(&mut self) { self.avg_sq.iter_mut().for_each(|x| *x = 0.0); self.avg_dx.iter_mut().for_each(|x| *x = 0.0); }
 }
 
 /// Nadam optimizer (Nesterov-accelerated Adam).
@@ -417,8 +417,8 @@ impl Nadam {
         }
     }
 
-    /// Reset internal moment estimates and step counter.
-    pub fn zero_grad(&mut self) { self.t = 0; self.m.clear(); self.v.clear(); self.initialized = false; }
+    /// Zero moment buffers in place (keeps allocations).
+    pub fn zero_grad(&mut self) { self.t = 0; self.m.iter_mut().for_each(|x| *x = 0.0); self.v.iter_mut().for_each(|x| *x = 0.0); }
 }
 
 #[cfg(test)]

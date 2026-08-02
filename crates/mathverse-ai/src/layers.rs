@@ -74,9 +74,16 @@ impl LayerNorm {
     }
 
     /// Forward: normalize over last dimension, then affine.
-    pub fn forward(&self, x: &Tensor) -> Tensor {
+    ///
+    /// # Errors
+    ///
+    /// Returns `MathError::DimensionMismatch` if the last dimension of `x`
+    /// does not equal `normalized_shape`.
+    pub fn forward(&self, x: &Tensor) -> MathResult<Tensor> {
+        if x.shape.is_empty() { return Err(mathverse_core::error::MathError::DimensionMismatch); }
         let nd = x.shape.len();
         let d = self.normalized_shape;
+        if x.shape[nd - 1] != d { return Err(mathverse_core::error::MathError::DimensionMismatch); }
         let outer: usize = x.shape[..nd - 1].iter().product();
         let mut out = vec![0.0; x.numel()];
         for i in 0..outer {
@@ -87,10 +94,10 @@ impl LayerNorm {
             let inv = 1.0 / (var + self.eps).sqrt();
             for j in 0..d {
                 let norm = (x.data[start + j] - mu) * inv;
-                out[start + j] = self.gamma.data[j] * norm + self.beta.data[j];
+                out[start + j] = norm * self.gamma.data[j] + self.beta.data[j];
             }
         }
-        Tensor { shape: x.shape.clone(), data: out }
+        Ok(Tensor { shape: x.shape.clone(), data: out })
     }
 }
 
@@ -168,25 +175,31 @@ pub struct Dropout {
     pub p: f64,
     /// Seed for the dropout mask RNG.
     pub seed: u64,
+    /// Advancing RNG state. Produces a different mask every forward call.
+    state: u64,
 }
 
 impl Dropout {
     /// Create a dropout layer.
-    pub fn new(p: f64) -> Self { Self { p, seed: 0x1234_5678 } }
+    pub fn new(p: f64) -> Self { Self { p, seed: 0x1234_5678, state: 0x1234_5678 } }
 
     /// Create a dropout layer with a specific seed.
-    pub fn with_seed(p: f64, seed: u64) -> Self { Self { p, seed } }
+    pub fn with_seed(p: f64, seed: u64) -> Self { Self { p, seed, state: seed } }
+
+    /// Reset the dropout mask RNG to its seed.
+    pub fn reset(&mut self) { self.state = self.seed; }
 
     /// Forward: randomly zero out elements with probability p, scale by 1/(1-p).
-    pub fn forward(&self, x: &Tensor, training: bool) -> Tensor {
+    pub fn forward(&mut self, x: &Tensor, training: bool) -> Tensor {
         if !training || self.p == 0.0 { return x.clone(); }
         let scale = 1.0 / (1.0 - self.p);
-        let mut state = self.seed;
+        let mut state = self.state;
         let data: Vec<f64> = x.data.iter().map(|&v| {
             state ^= state << 13; state ^= state >> 7; state ^= state << 17;
             let u = (state as f64) / (u64::MAX as f64);
             if u < self.p { 0.0 } else { v * scale }
         }).collect();
+        self.state = state;
         Tensor { shape: x.shape.clone(), data }
     }
 }
@@ -336,9 +349,10 @@ mod tests {
     fn layer_norm_test() {
         let ln = LayerNorm::new(4, 1e-5);
         let x = Tensor::new(&[2, 4], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
-        let out = ln.forward(&x);
+        let out = ln.forward(&x).unwrap();
         let m: f64 = (0..4).map(|j| out.data[j]).sum::<f64>() / 4.0;
         assert!(m.abs() < 1e-5);
+        assert!(ln.forward(&Tensor::zeros(&[2, 3])).is_err());
     }
 
     #[test]
@@ -359,8 +373,14 @@ mod tests {
 
     #[test]
     fn dropout_test() {
-        let drop = Dropout::new(0.0);
+        let mut drop = Dropout::with_seed(0.5, 42);
         let x = Tensor::ones(&[10]);
+        let out1 = drop.forward(&x, true);
+        let out2 = drop.forward(&x, true);
+        assert_ne!(out1.data, out2.data, "dropout masks must differ across forward passes");
+        drop.reset();
+        let out3 = drop.forward(&x, true);
+        assert_eq!(out1.data, out3.data, "reset must reproduce the first mask");
         let out = drop.forward(&x, false);
         assert_eq!(out, x);
     }
