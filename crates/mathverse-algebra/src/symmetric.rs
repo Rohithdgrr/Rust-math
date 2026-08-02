@@ -1,7 +1,5 @@
 //! Elementary symmetric polynomials and Newton's identities.
 
-const TOL: f64 = 1e-12;
-
 /// Compute the elementary symmetric polynomials `e₁, e₂, …, eₙ` from a list
 /// of variables `x₁, x₂, …, xₙ`.
 ///
@@ -17,6 +15,7 @@ const TOL: f64 = 1e-12;
 /// // e_2 of [1, 2, 3] = 1·2 + 1·3 + 2·3 = 11
 /// assert_eq!(elementary_symmetric(&[1.0, 2.0, 3.0], 2), 11.0);
 /// ```
+#[must_use]
 pub fn elementary_symmetric(values: &[f64], k: usize) -> f64 {
     if k == 0 {
         return 1.0;
@@ -41,6 +40,7 @@ pub fn elementary_symmetric(values: &[f64], k: usize) -> f64 {
 /// # use mathverse_algebra::symmetric::power_sum;
 /// assert_eq!(power_sum(&[1.0, 2.0, 3.0], 2), 14.0); // 1 + 4 + 9
 /// ```
+#[must_use]
 pub fn power_sum(values: &[f64], k: usize) -> f64 {
     values.iter().map(|v| v.powi(k as i32)).sum()
 }
@@ -58,6 +58,7 @@ pub fn power_sum(values: &[f64], k: usize) -> f64 {
 /// assert!((e[2] - 11.0).abs() < 1e-9); // e2 = 11
 /// assert!((e[3] - 6.0).abs() < 1e-9); // e3 = 6
 
+#[must_use]
 pub fn newtons_identities(power_sums: &[f64]) -> Vec<f64> {
     let n = power_sums.len();
     let mut e = vec![0.0; n + 1];
@@ -65,7 +66,8 @@ pub fn newtons_identities(power_sums: &[f64]) -> Vec<f64> {
     for k in 1..=n {
         let mut s = 0.0;
         for i in 1..=k {
-            s += e[k - i] * power_sums[i - 1];
+            let sign = if (i - 1) % 2 == 0 { 1.0 } else { -1.0 };
+            s += sign * e[k - i] * power_sums[i - 1];
         }
         e[k] = s / k as f64;
     }

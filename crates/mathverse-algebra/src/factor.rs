@@ -2,9 +2,7 @@
 //! division, GCD (Euclidean algorithm), and rational-root candidates.
 
 use crate::polynomial::Polynomial;
-
-/// Tolerance for coefficient comparisons.
-const TOL: f64 = 1e-12;
+use crate::{AlgebraError, Result, TOL};
 
 /// Synthetic division of `coeffs` (lowest-degree first) by `(x - c)`.
 ///
@@ -13,11 +11,12 @@ const TOL: f64 = 1e-12;
 ///
 /// ```
 /// # use mathverse_algebra::factor::synthetic_division;
-/// // Divide x² - 5x + 6 by (x - 2) → quotient x - 3, remainder 0
+/// // Divide x^2 - 5x + 6 by (x - 2) -> quotient x - 3, remainder 0
 /// let (q, r) = synthetic_division(&[6.0, -5.0, 1.0], 2.0);
 /// assert!((q[0] - (-3.0)).abs() < 1e-12 && (q[1] - 1.0).abs() < 1e-12);
 /// assert!(r.abs() < 1e-12);
 /// ```
+#[must_use]
 pub fn synthetic_division(coeffs: &[f64], c: f64) -> (Vec<f64>, f64) {
     if coeffs.is_empty() {
         return (vec![], 0.0);
@@ -32,21 +31,24 @@ pub fn synthetic_division(coeffs: &[f64], c: f64) -> (Vec<f64>, f64) {
     (result, remainder)
 }
 
-/// Polynomial long division: `dividend ÷ divisor`.
+/// Polynomial long division: `dividend / divisor`.
 ///
 /// Both are lowest-degree-first coefficient slices. Returns
 /// `(quotient, remainder)` where `deg(remainder) < deg(divisor)`.
 ///
+/// # Errors
+/// Returns [`AlgebraError::DivisionByZero`] if the divisor is the zero polynomial.
+///
 /// ```
 /// # use mathverse_algebra::factor::divide;
-/// // (x³ - 2x² - 5x + 6) ÷ (x - 3) = x² + x - 2, remainder 0
-/// let (q, r) = divide(&[6.0, -5.0, -2.0, 1.0], &[-3.0, 1.0]);
+/// // (x^3 - 2x^2 - 5x + 6) / (x - 3) = x^2 + x - 2, remainder 0
+/// let (q, r) = divide(&[6.0, -5.0, -2.0, 1.0], &[-3.0, 1.0]).unwrap();
 /// assert!((q[0] - (-2.0)).abs() < 1e-12);
 /// assert!(r.iter().all(|v| v.abs() < 1e-12));
 /// ```
-pub fn divide(dividend: &[f64], divisor: &[f64]) -> (Vec<f64>, Vec<f64>) {
+pub fn divide(dividend: &[f64], divisor: &[f64]) -> Result<(Vec<f64>, Vec<f64>)> {
     if divisor.is_empty() || divisor.iter().all(|&c| c.abs() < TOL) {
-        panic!("division by zero polynomial");
+        return Err(AlgebraError::DivisionByZero);
     }
     let d_deg = divisor.len().saturating_sub(1);
     let d_lead = divisor[d_deg];
@@ -54,7 +56,7 @@ pub fn divide(dividend: &[f64], divisor: &[f64]) -> (Vec<f64>, Vec<f64>) {
     let mut rem: Vec<f64> = dividend.to_vec();
     let mut quot = vec![0.0; dividend.len().saturating_sub(d_deg).max(1)];
 
-    while rem.len() >= divisor.len() && rem.len() > 1 {
+    while rem.len() >= divisor.len() {
         let shift = rem.len() - divisor.len();
         let coeff = rem[rem.len() - 1] / d_lead;
         if shift < quot.len() {
@@ -69,35 +71,33 @@ pub fn divide(dividend: &[f64], divisor: &[f64]) -> (Vec<f64>, Vec<f64>) {
         while rem.len() > 1 && rem.last().map(|v| v.abs()).unwrap_or(0.0) < TOL {
             rem.pop();
         }
+        if rem.last().map(|v| v.abs()).unwrap_or(0.0) < TOL {
+            rem = vec![0.0];
+            break;
+        }
     }
 
     while quot.len() > 1 && quot.last().map(|v| v.abs()).unwrap_or(0.0) < TOL {
         quot.pop();
     }
-    (quot, rem)
+    Ok((quot, rem))
 }
 
 /// Greatest common divisor of two polynomials via the Euclidean algorithm.
 ///
 /// Returns the GCD as a monic polynomial.
-///
-/// ```
-/// # use mathverse_algebra::factor::polynomial_gcd;
-/// # use mathverse_algebra::Polynomial;
-/// // gcd(x²-1, x-1) = x-1
-/// let a = Polynomial::from_coeffs(&[-1.0, 0.0, 1.0]);
-/// let b = Polynomial::from_coeffs(&[-1.0, 1.0]);
-/// let g = polynomial_gcd(&a, &b);
-/// assert!((g.coeffs()[0] - (-1.0)).abs() < 1e-12);
-/// assert!((g.coeffs()[1] - 1.0).abs() < 1e-12);
-/// ```
+#[must_use]
 pub fn polynomial_gcd(a: &Polynomial, b: &Polynomial) -> Polynomial {
     let mut a = a.coeffs().to_vec();
     let mut b = b.coeffs().to_vec();
     while b.len() > 1 || (b.len() == 1 && b[0].abs() > TOL) {
-        let (_, r) = divide(&a, &b);
-        a = b;
-        b = r;
+        match divide(&a, &b) {
+            Ok((_, r)) => {
+                a = b;
+                b = r;
+            }
+            Err(_) => break,
+        }
     }
     make_monic(a)
 }
@@ -112,18 +112,11 @@ fn make_monic(coeffs: Vec<f64>) -> Polynomial {
     Polynomial::from_coeffs(&normalized)
 }
 
-/// Rational root candidates for `aₙxⁿ + … + a₀` with integer-like coefficients.
+/// Rational root candidates for `a_n x^n + ... + a_0` with integer-like coefficients.
 ///
 /// Uses the Rational Root Theorem: if `p/q` (in lowest terms) is a root,
-/// then `p | a₀` and `q | aₙ`. Returns unique candidates sorted.
-///
-/// ```
-/// # use mathverse_algebra::factor::rational_root_candidates;
-/// // x² - 5x + 6 → candidates ±1, ±2, ±3, ±6
-/// let c = rational_root_candidates(&[6.0, -5.0, 1.0]);
-/// assert!(c.contains(&2.0));
-/// assert!(c.contains(&3.0));
-/// ```
+/// then `p | a_0` and `q | a_n`. Returns unique candidates sorted.
+#[must_use]
 pub fn rational_root_candidates(coeffs: &[f64]) -> Vec<f64> {
     if coeffs.len() < 2 {
         return vec![];
@@ -170,14 +163,15 @@ fn divisors(n: f64) -> Vec<u64> {
     divs
 }
 
-/// Remainder Theorem: the remainder of `f(x) ÷ (x - a)` is `f(a)`.
+/// Remainder Theorem: the remainder of `f(x) / (x - a)` is `f(a)`.
 ///
 /// ```
 /// # use mathverse_algebra::factor::remainder_theorem;
 /// # use mathverse_algebra::Polynomial;
-/// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]); // x² - 5x + 6
+/// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]); // x^2 - 5x + 6
 /// assert!((remainder_theorem(&p, 2.0)).abs() < 1e-12);
 /// ```
+#[must_use]
 pub fn remainder_theorem(p: &Polynomial, a: f64) -> f64 {
     p.eval(a)
 }
@@ -187,10 +181,11 @@ pub fn remainder_theorem(p: &Polynomial, a: f64) -> f64 {
 /// ```
 /// # use mathverse_algebra::factor::factor_theorem;
 /// # use mathverse_algebra::Polynomial;
-/// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]); // x² - 5x + 6 = (x-2)(x-3)
+/// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]); // x^2 - 5x + 6 = (x-2)(x-3)
 /// assert!(factor_theorem(&p, 2.0));
 /// assert!(!factor_theorem(&p, 0.0));
 /// ```
+#[must_use]
 pub fn factor_theorem(p: &Polynomial, a: f64) -> bool {
     p.eval(a).abs() < TOL
 }
@@ -202,11 +197,12 @@ pub fn factor_theorem(p: &Polynomial, a: f64) -> bool {
 /// ```
 /// # use mathverse_algebra::factor::common_factor;
 /// # use mathverse_algebra::Polynomial;
-/// let p = Polynomial::from_coeffs(&[4.0, 6.0, 2.0]); // 2x² + 6x + 4 = 2(x² + 3x + 2)
+/// let p = Polynomial::from_coeffs(&[4.0, 6.0, 2.0]); // 2x^2 + 6x + 4 = 2(x^2 + 3x + 2)
 /// let (g, q) = common_factor(&p);
 /// assert!((g - 2.0).abs() < 1e-12);
 /// assert!((q.coeffs()[0] - 2.0).abs() < 1e-12);
 /// ```
+#[must_use]
 pub fn common_factor(p: &Polynomial) -> (f64, Polynomial) {
     let coeffs = p.coeffs();
     let nonzero: Vec<f64> = coeffs.iter().copied().filter(|c| c.abs() > TOL).collect();
@@ -250,7 +246,7 @@ mod tests {
 
     #[test]
     fn synth_div_exact() {
-        let (q, r) = synthetic_division(&[6.0, -5.0, 1.0], 2.0); // (x-2)(x-3) ÷ (x-2)
+        let (q, r) = synthetic_division(&[6.0, -5.0, 1.0], 2.0);
         assert!(approx(q[0], -3.0));
         assert!(approx(q[1], 1.0));
         assert!(r.abs() < 1e-12);
@@ -258,13 +254,13 @@ mod tests {
 
     #[test]
     fn synth_div_remainder() {
-        let (_, r) = synthetic_division(&[6.0, -5.0, 1.0], 1.0); // f(1) = 2
+        let (_, r) = synthetic_division(&[6.0, -5.0, 1.0], 1.0);
         assert!(approx(r, 2.0));
     }
 
     #[test]
     fn long_division() {
-        let (q, r) = divide(&[6.0, -5.0, -2.0, 1.0], &[-3.0, 1.0]); // ÷ (x-3)
+        let (q, r) = divide(&[6.0, -5.0, -2.0, 1.0], &[-3.0, 1.0]).unwrap();
         assert!(approx(q[0], -2.0));
         assert!(approx(q[1], 1.0));
         assert!(approx(q[2], 1.0));
@@ -272,8 +268,16 @@ mod tests {
     }
 
     #[test]
+    fn long_division_by_zero() {
+        assert_eq!(
+            divide(&[1.0, 2.0], &[0.0]),
+            Err(AlgebraError::DivisionByZero)
+        );
+    }
+
+    #[test]
     fn gcd_poly() {
-        let a = Polynomial::from_coeffs(&[-1.0, 0.0, 1.0]); // x²-1
+        let a = Polynomial::from_coeffs(&[-1.0, 0.0, 1.0]); // x^2-1
         let b = Polynomial::from_coeffs(&[-1.0, 1.0]); // x-1
         let g = polynomial_gcd(&a, &b);
         assert!(approx(g.coeffs()[0], -1.0));

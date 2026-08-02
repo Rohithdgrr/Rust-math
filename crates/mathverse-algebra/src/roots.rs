@@ -4,21 +4,21 @@
 //! coefficient slices **lowest-degree first** (matching [`Polynomial`](crate::Polynomial)).
 
 use crate::polynomial::Polynomial;
-
-/// Tolerance for treating a coefficient as zero.
-const TOL: f64 = 1e-12;
+use crate::TOL;
 
 /// Dispatch solver based on polynomial degree.
 ///
 /// Returns the real roots of `coeffs` (lowest-degree first). Degree 0/1
-/// return `[]` / one root; degrees 2–4 use the closed-form solvers;
+/// return `[]` / one root; degrees 2-4 use the closed-form solvers;
 /// degree > 4 returns `[]`.
+#[must_use]
 pub fn solve(coeffs: &[f64]) -> Vec<f64> {
     let p = Polynomial::from_coeffs(coeffs);
     solve_polynomial(&p)
 }
 
 /// Dispatch solver for a [`Polynomial`].
+#[must_use]
 pub fn solve_polynomial(p: &Polynomial) -> Vec<f64> {
     let c = p.coeffs();
     let n = c.len().saturating_sub(1);
@@ -34,7 +34,9 @@ pub fn solve_polynomial(p: &Polynomial) -> Vec<f64> {
     }
 }
 
-/// Solve `ax + b = 0`. Returns `Some(root)` when `a ≠ 0`, else `None`.
+/// Solve `ax + b = 0`. Returns `Some(root)` when `a != 0`, else `None`.
+#[inline]
+#[must_use]
 pub fn solve_linear(a: f64, b: f64) -> Option<f64> {
     if a.abs() < TOL {
         None
@@ -43,12 +45,15 @@ pub fn solve_linear(a: f64, b: f64) -> Option<f64> {
     }
 }
 
-/// Discriminant of `ax² + bx + c`: `b² − 4ac`.
+/// Discriminant of `ax^2 + bx + c`: `b^2 - 4ac`.
+#[inline]
+#[must_use]
 pub fn quadratic_discriminant(a: f64, b: f64, c: f64) -> f64 {
     b * b - 4.0 * a * c
 }
 
-/// Solve `ax² + bx + c = 0`, returning real roots (0, 1, or 2 values).
+/// Solve `ax^2 + bx + c = 0`, returning real roots (0, 1, or 2 values).
+#[must_use]
 pub fn solve_quadratic(a: f64, b: f64, c: f64) -> Vec<f64> {
     if a.abs() < TOL {
         return solve_linear(b, c).into_iter().collect();
@@ -66,7 +71,9 @@ pub fn solve_quadratic(a: f64, b: f64, c: f64) -> Vec<f64> {
     roots
 }
 
-/// Discriminant of the cubic `ax³ + bx² + cx + d`.
+/// Discriminant of the cubic `ax^3 + bx^2 + cx + d`.
+#[inline]
+#[must_use]
 pub fn cubic_discriminant(a: f64, b: f64, c: f64, d: f64) -> f64 {
     18.0 * a * b * c * d
         - 4.0 * b * b * b * d
@@ -75,10 +82,11 @@ pub fn cubic_discriminant(a: f64, b: f64, c: f64, d: f64) -> f64 {
         - 27.0 * a * a * d * d
 }
 
-/// Solve `ax³ + bx² + cx + d = 0` using Cardano's method.
+/// Solve `ax^3 + bx^2 + cx + d = 0` using Cardano's method.
 ///
 /// Returns real roots (1 or 3). The *casus irreducibilis* (three real roots,
 /// discriminant < 0) is handled via the trigonometric form.
+#[must_use]
 pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
     if a.abs() < TOL {
         return solve_quadratic(b, c, d);
@@ -86,7 +94,7 @@ pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
     let bn = b / a;
     let cn = c / a;
     let dn = d / a;
-    // Depressed cubic: t³ + pt + q = 0 where x = t - b/(3a)
+    // Depressed cubic: t^3 + pt + q = 0 where x = t - b/(3a)
     let p = cn - bn * bn / 3.0;
     let q = (2.0 * bn * bn * bn - 9.0 * bn * cn + 27.0 * dn) / 27.0;
     let disc = (q * q / 4.0) + (p * p * p / 27.0);
@@ -109,7 +117,7 @@ pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
             vec![shift + u - v / 3.0, shift + 2.0 * u]
         }
     } else {
-        // Three real roots — trigonometric form.
+        // Three real roots -- trigonometric form.
         let r = (-p * p * p / 27.0).sqrt();
         let phi = (-q / (2.0 * r)).clamp(-1.0, 1.0).acos();
         let m = 2.0 * r.cbrt();
@@ -122,7 +130,9 @@ pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
     }
 }
 
-/// Discriminant of the quartic `ax⁴ + bx³ + cx² + dx + e`.
+/// Discriminant of the quartic `ax^4 + bx^3 + cx^2 + dx + e`.
+#[inline]
+#[must_use]
 pub fn quartic_discriminant(a: f64, b: f64, c: f64, d: f64, e: f64) -> f64 {
     256.0 * a * a * a * e * e * e
         - 192.0 * a * a * b * d * e * e
@@ -142,64 +152,64 @@ pub fn quartic_discriminant(a: f64, b: f64, c: f64, d: f64, e: f64) -> f64 {
         + b * b * c * c * d * d
 }
 
-/// Solve `ax⁴ + bx³ + cx² + dx + e = 0` via Ferrari's method.
+/// Solve `ax^4 + bx^3 + cx^2 + dx + e = 0` via Ferrari's method.
 ///
 /// Returns real roots (0, 2, or 4).
+#[must_use]
 pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
     if a.abs() < TOL {
         return solve_cubic(b, c, d, e);
     }
-    // Normalize: x⁴ + Bx³ + Cx² + Dx + E = 0
+    // Normalize: x^4 + Bx^3 + Cx^2 + Dx + E = 0
     let b = b / a;
     let c = c / a;
     let d = d / a;
     let e = e / a;
 
-    // Depressed quartic: y⁴ + py² + qy + r = 0, x = y - B/4
+    // Depressed quartic: y^4 + py^2 + qy + r = 0, x = y - B/4
     let p = c - 3.0 * b * b / 8.0;
     let q = d - b * c / 2.0 + b * b * b / 8.0;
     let r = e - b * d / 4.0 + b * b * c / 16.0 - 3.0 * b * b * b * b / 256.0;
     let shift = -b / 4.0;
 
-    // Resolvent cubic: z³ - (p²/8) z - r = 0 ... using the standard form
-    // m³ - (p/2)m² - r m + (rp/2 - q²/8) = 0 is more stable; use Ferrari's.
-    // We solve the resolvent cubic for m:
-    // m³ - (p/2) m² - r m + (rp/2 - q²/8) = 0
-    let rc = solve_cubic(1.0, -p / 2.0, -r, r * p / 2.0 - q * q / 8.0);
-    // Pick the largest real root (most stable for Ferrari).
-    let m = rc.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    // Resolvent cubic: u^3 + 2pu^2 + (p^2 - 4r)u - q^2 = 0
+    let rc = solve_cubic(1.0, 2.0 * p, p * p - 4.0 * r, -q * q);
 
     let mut roots = Vec::new();
 
-    // Factor the quartic into two quadratics.
-    let disc1 = m * m - 4.0 * r;
-    if disc1 >= -TOL {
-        let sq = if disc1 < 0.0 { 0.0 } else { disc1.sqrt() };
-        let a1 = m;
-        let b1 = q / 2.0;
-        // (y² + a1)(y² + b1 y + ...) — use the standard Ferrari split.
-        let q2 = q / 2.0;
-        let sqrt_m = if m < 0.0 && m.abs() < TOL { 0.0 } else { m };
-        // Quadratic 1: y² + (q/(2√m)) y + (m/2 - p/2 - q/(2√m)) -- only valid m>0
-        if m.abs() > TOL {
-            let coeff = q / (2.0 * m);
-            let const1 = m / 2.0 - p / 2.0 - coeff;
-            let c1 = m / 2.0 - p / 2.0 + coeff;
-            let r1 = solve_quadratic(1.0, coeff, const1);
-            let r2 = solve_quadratic(1.0, -coeff, c1);
-            roots.extend(r1);
-            roots.extend(r2);
-        } else {
-            // m ≈ 0: depressed quartic y⁴ + py² + qy + r = 0 with resolvent m=0
-            // Fall back to solving the biquadratic-like form.
-            let r1 = solve_quadratic(1.0, q.sqrt(), p);
-            let r2 = solve_quadratic(1.0, -q.sqrt(), p);
-            roots.extend(r1);
-            roots.extend(r2);
+    for &u in &rc {
+        if u < -TOL {
+            continue;
         }
+        let u = u.max(0.0);
+        if u < TOL {
+            // Biquadratic: y^4 + py^2 + r ~ 0, solve z^2 + pz + r = 0 with z = y^2
+            if q.abs() < TOL {
+                let zs = solve_quadratic(1.0, p, r);
+                for &z in &zs {
+                    if z >= -TOL {
+                        let y = z.max(0.0).sqrt();
+                        roots.push(y);
+                        if y > TOL {
+                            roots.push(-y);
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        // Ferrari factoring: y^4 + py^2 + qy + r = (y^2 + ay + b)(y^2 - ay + c)
+        let a_coeff = u.sqrt();
+        let b_coeff = (p + u - q / a_coeff) / 2.0;
+        let c_coeff = (p + u + q / a_coeff) / 2.0;
+
+        roots.extend(solve_quadratic(1.0, a_coeff, b_coeff));
+        roots.extend(solve_quadratic(1.0, -a_coeff, c_coeff));
+        break;
     }
 
-    // Apply the shift and deduplicate.
+    // Apply shift and deduplicate.
     let mut real_roots: Vec<f64> = roots.iter().map(|&y| shift + y).collect();
     real_roots.sort_by(|x, y| x.partial_cmp(y).unwrap());
     real_roots.dedup_by(|x, y| (*x - *y).abs() < TOL);
@@ -210,32 +220,43 @@ pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
 // Vieta's formulas
 // ---------------------------------------------------------------------------
 
-/// Sum of roots of `ax² + bx + c`: `−b/a`.
+/// Sum of roots of `ax^2 + bx + c`: `-b/a`.
+#[inline]
+#[must_use]
 pub fn vieta_quadratic_sum(a: f64, b: f64) -> f64 {
     -b / a
 }
 
-/// Product of roots of `ax² + bx + c`: `c/a`.
+/// Product of roots of `ax^2 + bx + c`: `c/a`.
+#[inline]
+#[must_use]
 pub fn vieta_quadratic_product(a: f64, c: f64) -> f64 {
     c / a
 }
 
-/// Sum of roots of `ax³ + bx² + cx + d`: `−b/a`.
+/// Sum of roots of `ax^3 + bx^2 + cx + d`: `-b/a`.
+#[inline]
+#[must_use]
 pub fn vieta_cubic_sum(a: f64, b: f64) -> f64 {
     -b / a
 }
 
-/// Sum of pairwise products of roots of `ax³ + bx² + cx + d`: `c/a`.
+/// Sum of pairwise products of roots of `ax^3 + bx^2 + cx + d`: `c/a`.
+#[inline]
+#[must_use]
 pub fn vieta_cubic_pairwise(a: f64, c: f64) -> f64 {
     c / a
 }
 
-/// Product of roots of `ax³ + bx² + cx + d`: `−d/a`.
+/// Product of roots of `ax^3 + bx^2 + cx + d`: `-d/a`.
+#[inline]
+#[must_use]
 pub fn vieta_cubic_product(a: f64, d: f64) -> f64 {
     -d / a
 }
 
-/// Sum of roots of degree-`n` polynomial `aₙxⁿ + … + a₀`: `−aₙ₋₁/aₙ`.
+/// Sum of roots of degree-`n` polynomial `a_n x^n + ... + a_0`: `-a_{n-1}/a_n`.
+#[must_use]
 pub fn vieta_sum(coeffs: &[f64]) -> f64 {
     let n = coeffs.len().saturating_sub(1);
     if n == 0 {
@@ -244,7 +265,8 @@ pub fn vieta_sum(coeffs: &[f64]) -> f64 {
     -coeffs[n - 1] / coeffs[n]
 }
 
-/// Product of roots of degree-`n` polynomial: `(−1)ⁿ · a₀/aₙ`.
+/// Product of roots of degree-`n` polynomial: `(-1)^n * a_0/a_n`.
+#[must_use]
 pub fn vieta_product(coeffs: &[f64]) -> f64 {
     let n = coeffs.len().saturating_sub(1);
     if n == 0 {
@@ -270,34 +292,34 @@ mod tests {
 
     #[test]
     fn quadratic_two_roots() {
-        let r = solve_quadratic(1.0, -5.0, 6.0); // (x-2)(x-3)
+        let r = solve_quadratic(1.0, -5.0, 6.0);
         assert_eq!(r.len(), 2);
         assert!(approx(r[0], 2.0) && approx(r[1], 3.0));
     }
 
     #[test]
     fn quadratic_one_root() {
-        let r = solve_quadratic(1.0, -4.0, 4.0); // (x-2)²
+        let r = solve_quadratic(1.0, -4.0, 4.0);
         assert_eq!(r.len(), 1);
         assert!(approx(r[0], 2.0));
     }
 
     #[test]
     fn quadratic_no_real() {
-        let r = solve_quadratic(1.0, 0.0, 1.0); // x² + 1
+        let r = solve_quadratic(1.0, 0.0, 1.0);
         assert!(r.is_empty());
     }
 
     #[test]
     fn cubic_one_root() {
-        let r = solve_cubic(1.0, 0.0, 0.0, -8.0); // x³ - 8
+        let r = solve_cubic(1.0, 0.0, 0.0, -8.0);
         assert_eq!(r.len(), 1);
         assert!(approx(r[0], 2.0));
     }
 
     #[test]
     fn cubic_three_roots() {
-        let r = solve_cubic(1.0, -6.0, 11.0, -6.0); // (x-1)(x-2)(x-3)
+        let r = solve_cubic(1.0, -6.0, 11.0, -6.0);
         assert_eq!(r.len(), 3);
         assert!(approx(r[0], 1.0));
         assert!(approx(r[1], 2.0));
@@ -306,7 +328,7 @@ mod tests {
 
     #[test]
     fn quartic_four_roots() {
-        let r = solve_quartic(1.0, -10.0, 35.0, -50.0, 24.0); // (x-1)(x-2)(x-3)(x-4)
+        let r = solve_quartic(1.0, -10.0, 35.0, -50.0, 24.0);
         assert_eq!(r.len(), 4);
         for (i, &v) in r.iter().enumerate() {
             assert!(approx(v, (i + 1) as f64));
@@ -315,7 +337,7 @@ mod tests {
 
     #[test]
     fn quartic_biquadratic() {
-        let r = solve_quartic(1.0, 0.0, -5.0, 0.0, 4.0); // x⁴ - 5x² + 4 = (x²-1)(x²-4)
+        let r = solve_quartic(1.0, 0.0, -5.0, 0.0, 4.0);
         assert_eq!(r.len(), 4);
         assert!(approx(r[0], -2.0));
         assert!(approx(r[1], -1.0));
@@ -326,19 +348,17 @@ mod tests {
     #[test]
     fn discriminants() {
         assert!(approx(quadratic_discriminant(1.0, 0.0, 1.0), -4.0));
-        assert!(approx(cubic_discriminant(1.0, -6.0, 11.0, -6.0), 4.0)); // 3 distinct real roots
+        assert!(approx(cubic_discriminant(1.0, -6.0, 11.0, -6.0), 4.0));
     }
 
     #[test]
     fn vieta_quadratic() {
-        // x² - 5x + 6 = 0, roots 2 and 3
         assert!(approx(vieta_quadratic_sum(1.0, -5.0), 5.0));
         assert!(approx(vieta_quadratic_product(1.0, 6.0), 6.0));
     }
 
     #[test]
     fn vieta_cubic() {
-        // x³ - 6x² + 11x - 6, roots 1,2,3
         assert!(approx(vieta_cubic_sum(1.0, -6.0), 6.0));
         assert!(approx(vieta_cubic_pairwise(1.0, 11.0), 11.0));
         assert!(approx(vieta_cubic_product(1.0, -6.0), 6.0));
@@ -346,15 +366,14 @@ mod tests {
 
     #[test]
     fn vieta_general() {
-        // x³ - 6x² + 11x - 6
         let coeffs = &[-6.0, 11.0, -6.0, 1.0];
-        assert!(approx(vieta_sum(&coeffs), 6.0));
-        assert!(approx(vieta_product(&coeffs), 6.0));
+        assert!(approx(vieta_sum(coeffs), 6.0));
+        assert!(approx(vieta_product(coeffs), 6.0));
     }
 
     #[test]
     fn solve_dispatch() {
-        let r = solve(&[6.0, -5.0, 1.0]); // x² - 5x + 6
+        let r = solve(&[6.0, -5.0, 1.0]);
         assert_eq!(r.len(), 2);
         assert!(approx(r[0], 2.0));
         assert!(approx(r[1], 3.0));

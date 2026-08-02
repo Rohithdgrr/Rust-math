@@ -15,11 +15,13 @@ use mathverse_core::algorithms::binomial;
 /// assert_eq!(t[2], vec![1, 2, 1]);
 /// assert_eq!(t[4], vec![1, 4, 6, 4, 1]);
 /// ```
+#[must_use]
 pub fn pascal_triangle(n: usize) -> Vec<Vec<u64>> {
     (0..=n).map(|k| (0..=k).map(|j| binomial(k as u64, j as u64) as u64).collect()).collect()
 }
 
 /// Binomial coefficient `C(n, k)` as `f64`.
+#[must_use]
 pub fn binomial_coeff(n: u64, k: u64) -> f64 {
     binomial(n, k) as f64
 }
@@ -32,6 +34,7 @@ pub fn binomial_coeff(n: u64, k: u64) -> f64 {
 /// let sum: f64 = terms.iter().sum();
 /// assert!((sum - 27.0).abs() < 1e-12);
 /// ```
+#[must_use]
 pub fn binomial_expand(a: f64, b: f64, n: usize) -> Vec<f64> {
     (0..=n)
         .map(|k| {
@@ -42,36 +45,43 @@ pub fn binomial_expand(a: f64, b: f64, n: usize) -> Vec<f64> {
 }
 
 /// `(a + b)² = a² + 2ab + b²` — returns the expanded value.
+#[must_use]
 pub fn square_of_sum(a: f64, b: f64) -> f64 {
     a * a + 2.0 * a * b + b * b
 }
 
 /// `(a - b)² = a² - 2ab + b²` — returns the expanded value.
+#[must_use]
 pub fn square_of_difference(a: f64, b: f64) -> f64 {
     a * a - 2.0 * a * b + b * b
 }
 
 /// `a² - b² = (a - b)(a + b)` — returns the two factors `(a - b, a + b)`.
+#[must_use]
 pub fn difference_of_squares(a: f64, b: f64) -> (f64, f64) {
     (a - b, a + b)
 }
 
 /// `(a + b)³ = a³ + 3a²b + 3ab² + b³` — returns the expanded value.
+#[must_use]
 pub fn cube_of_sum(a: f64, b: f64) -> f64 {
     a.powi(3) + 3.0 * a * a * b + 3.0 * a * b * b + b.powi(3)
 }
 
 /// `(a - b)³ = a³ - 3a²b + 3ab² - b³` — returns the expanded value.
+#[must_use]
 pub fn cube_of_difference(a: f64, b: f64) -> f64 {
     a.powi(3) - 3.0 * a * a * b + 3.0 * a * b * b - b.powi(3)
 }
 
 /// `a³ + b³ = (a + b)(a² - ab + b²)` — returns the evaluated numeric result.
+#[must_use]
 pub fn sum_of_cubes(a: f64, b: f64) -> f64 {
     a.powi(3) + b.powi(3)
 }
 
 /// `a³ - b³ = (a - b)(a² + ab + b²)` — returns the evaluated numeric result.
+#[must_use]
 pub fn difference_of_cubes(a: f64, b: f64) -> f64 {
     a.powi(3) - b.powi(3)
 }
@@ -79,6 +89,7 @@ pub fn difference_of_cubes(a: f64, b: f64) -> f64 {
 /// `aⁿ + bⁿ` factorization for odd `n`: returns `(a + b, remaining_factor)`.
 ///
 /// For even `n`, returns `None` since `aⁿ + bⁿ` is not factorable over the reals.
+#[must_use]
 pub fn sum_of_nth_powers(a: f64, b: f64, n: usize) -> Option<(f64, f64)> {
     if n % 2 == 0 {
         return None;
@@ -92,6 +103,7 @@ pub fn sum_of_nth_powers(a: f64, b: f64, n: usize) -> Option<(f64, f64)> {
 ///
 /// Returns `Some((p, q, r, s))` such that `a = pr`, `c = qs`, `b = ps + qr`.
 /// Returns `None` if no integer-like factorization exists.
+#[must_use]
 pub fn factor_quadratic(a: f64, b: f64, c: f64) -> Option<(f64, f64, f64, f64)> {
     let a_pairs = factor_pairs(a);
     let c_pairs = factor_pairs(c);

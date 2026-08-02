@@ -12,6 +12,7 @@ use crate::polynomial::Polynomial;
 /// let p = lagrange(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]); // y = x^2
 /// assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
 /// ```
+#[must_use]
 pub fn lagrange(xi: &[f64], yi: &[f64]) -> Polynomial {
     assert_eq!(xi.len(), yi.len(), "xi and yi must have the same length");
     let n = xi.len();
@@ -40,6 +41,7 @@ pub fn lagrange(xi: &[f64], yi: &[f64]) -> Polynomial {
 /// let p = newton(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]);
 /// assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
 /// ```
+#[must_use]
 pub fn newton(xi: &[f64], yi: &[f64]) -> Polynomial {
     assert_eq!(xi.len(), yi.len());
     let n = xi.len();
