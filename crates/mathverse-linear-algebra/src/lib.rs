@@ -6,10 +6,7 @@ pub mod inverse;
 pub mod rank;
 pub mod least_squares;
 
-pub use decomposition::*;
-pub use solve::*;
-pub use norm::*;
-pub use eigen::*;
-pub use inverse::*;
-pub use rank::*;
-pub use least_squares::*;
+// Selective re-exports to avoid ambiguity
+pub use decomposition::{lu_decompose, qr_decompose, cholesky, eigenvalue_2x2, power_iteration, Complex};
+pub use solve::{solve_qr, solve_2x2, solve_3x3, solve_gauss, ls_solve, residual_norm};
+pub use norm::{norm_1, norm_inf, norm_frobenius, norm_2, singular_values, condition_number, matrix_norm};
