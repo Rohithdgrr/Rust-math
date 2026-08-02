@@ -5,19 +5,35 @@ use mathverse_core::error::{MathError, MathResult};
 /// Covariance matrix from data (rows = observations, cols = variables).
 /// Returns a `p × p` matrix (row-major).
 ///
+/// # Errors
+///
+/// Returns [`MathError::InvalidArgument`] if data is empty, has jagged rows, or has fewer than 2 observations.
+///
 /// # Examples
 ///
 /// ```
 /// use mathverse_statistics::covariance_matrix;
 ///
 /// let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]];
-/// let cov = covariance_matrix(&data);
+/// let cov = covariance_matrix(&data).unwrap();
 /// assert_eq!(cov.len(), 2);
 /// ```
-#[must_use]
-pub fn covariance_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
+pub fn covariance_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
     let n = data.len();
+    if n < 2 {
+        return Err(MathError::InvalidArgument("need at least 2 observations"));
+    }
+    if n == 0 {
+        return Err(MathError::InvalidArgument("data must not be empty"));
+    }
     let p = data[0].len();
+    if p == 0 {
+        return Err(MathError::InvalidArgument("variables must not be empty"));
+    }
+    // Check for jagged data
+    if !data.iter().all(|row| row.len() == p) {
+        return Err(MathError::InvalidArgument("data must be rectangular (jagged input)"));
+    }
     let mut means = vec![0.0; p];
     for row in data.iter() {
         for j in 0..p {
@@ -40,7 +56,7 @@ pub fn covariance_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
             *val /= (n - 1) as f64;
         }
     }
-    cov
+    Ok(cov)
 }
 
 /// Correlation matrix from data.
@@ -55,8 +71,8 @@ pub fn covariance_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
 /// assert!((corr[0][1] - 1.0).abs() < 1e-10);
 /// ```
 #[must_use]
-pub fn correlation_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
-    let cov = covariance_matrix(data);
+pub fn correlation_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
+    let cov = covariance_matrix(data)?;
     let p = cov.len();
     let mut corr = vec![vec![0.0; p]; p];
     for i in 0..p {
@@ -69,7 +85,7 @@ pub fn correlation_matrix(data: &[&[f64]]) -> Vec<Vec<f64>> {
             }
         }
     }
-    corr
+    Ok(corr)
 }
 
 /// PCA result.
@@ -86,6 +102,10 @@ pub struct PCA {
 /// Perform PCA on data (rows = observations, cols = variables).
 /// Returns the top `min(n, p)` components.
 ///
+/// # Errors
+///
+/// Returns [`MathError::InvalidArgument`] if data is empty or jagged.
+///
 /// # Examples
 ///
 /// ```
@@ -95,13 +115,22 @@ pub struct PCA {
 ///     &[1.0, 2.0], &[2.0, 4.0], &[3.0, 6.0],
 ///     &[4.0, 8.0], &[5.0, 10.0],
 /// ];
-/// let result = pca(&data);
+/// let result = pca(&data).unwrap();
 /// assert!(result.explained_variance[0] > 0.0);
 /// ```
-#[must_use]
-pub fn pca(data: &[&[f64]]) -> PCA {
+pub fn pca(data: &[&[f64]]) -> MathResult<PCA> {
     let n = data.len();
+    if n == 0 {
+        return Err(MathError::InvalidArgument("data must not be empty"));
+    }
     let p = data[0].len();
+    if p == 0 {
+        return Err(MathError::InvalidArgument("variables must not be empty"));
+    }
+    // Check for jagged data
+    if !data.iter().all(|row| row.len() == p) {
+        return Err(MathError::InvalidArgument("data must be rectangular (jagged input)"));
+    }
     let mut means = vec![0.0; p];
     for row in data.iter() {
         for j in 0..p {
@@ -116,7 +145,7 @@ pub fn pca(data: &[&[f64]]) -> PCA {
         .map(|row| row.iter().zip(&means).map(|(x, m)| x - m).collect())
         .collect();
 
-    let cov = covariance_matrix(&centered.iter().map(|r| r.as_slice()).collect::<Vec<_>>());
+    let cov = covariance_matrix(&centered.iter().map(|r| r.as_slice()).collect::<Vec<_>>())?;
 
     let k = p.min(n);
     let mut components = Vec::new();
@@ -136,11 +165,11 @@ pub fn pca(data: &[&[f64]]) -> PCA {
     let total: f64 = explained_variance.iter().sum();
     let explained_variance_ratio = explained_variance.iter().map(|v| *v / total).collect();
 
-    PCA {
+    Ok(PCA {
         components,
         explained_variance,
         explained_variance_ratio,
-    }
+    })
 }
 
 /// Transform data using PCA components.
@@ -202,7 +231,7 @@ pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> MathResult<Vec<Vec<f64>>> {
                 sum += *l_ik * l[j][k];
             }
             let diag = matrix[i][i] - sum;
-            if diag <= 0.0 {
+            if diag <= 1e-12 {
                 return Err(MathError::Singular);
             }
             l[i][j] = if i == j { diag.sqrt() } else { (matrix[i][j] - sum) / l[j][j] };
@@ -245,7 +274,7 @@ pub fn cholesky_inverse(matrix: &[Vec<f64>]) -> MathResult<Vec<Vec<f64>>> {
 /// assert_eq!(prec.len(), 2);
 /// ```
 pub fn precision_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
-    let cov = covariance_matrix(data);
+    let cov = covariance_matrix(data)?;
     cholesky_inverse(&cov)
 }
 
@@ -289,7 +318,7 @@ mod tests {
     #[test]
     fn covariance_matrix_test() {
         let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]];
-        let cov = covariance_matrix(&data);
+        let cov = covariance_matrix(&data).unwrap();
         assert_eq!(cov.len(), 2);
         assert_eq!(cov[0].len(), 2);
         assert!((cov[0][0] - cov[1][1]).abs() < 1e-10);
@@ -299,7 +328,7 @@ mod tests {
     #[test]
     fn correlation_matrix_test() {
         let data: Vec<&[f64]> = vec![&[1.0, 2.0], &[2.0, 4.0], &[3.0, 6.0]];
-        let corr = correlation_matrix(&data);
+        let corr = correlation_matrix(&data).unwrap();
         assert!((corr[0][1] - 1.0).abs() < 1e-10);
         assert!((corr[0][0] - 1.0).abs() < 1e-10);
     }
@@ -310,7 +339,7 @@ mod tests {
             &[1.0, 2.0], &[2.0, 4.0], &[3.0, 6.0],
             &[4.0, 8.0], &[5.0, 10.0],
         ];
-        let result = pca(&data);
+        let result = pca(&data).unwrap();
         assert!(!result.components.is_empty());
         assert!(result.explained_variance[0] > 0.0);
         assert!(result.explained_variance_ratio[0] > 0.9);

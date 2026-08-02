@@ -295,7 +295,7 @@ use mathverse_statistics::{logistic_regression, sigmoid};
 
 let xs: Vec<&[f64]> = vec![&[1.0], &[2.0], &[3.0], &[4.0], &[5.0]];
 let ys = [0.0, 0.0, 1.0, 1.0, 1.0];
-let coeffs = logistic_regression(&xs, &ys, 200, 0.1);
+let coeffs = logistic_regression(&xs, &ys, 200, 1e-8).unwrap();
 let prob = sigmoid(coeffs[0] + coeffs[1] * 3.5); // P(y=1 | x=3.5)
 ```
 
@@ -413,8 +413,8 @@ println!("Need n={} per group", n); // ≈ 26
 use mathverse_statistics::bootstrap_ci;
 
 let data = [1.0, 2.0, 3.0, 4.0, 5.0];
-let (lo, hi) = bootstrap_ci(&data, |d| mean(d), 1000, 0.05);
-// 95% CI for the mean
+let (lo, hi) = bootstrap_ci(&data, |d| mean(d), 1000, 0.05, 42);
+// 95% CI for the mean (seed=42 for reproducibility)
 ```
 
 ---

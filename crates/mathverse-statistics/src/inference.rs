@@ -13,18 +13,19 @@ use mathverse_core::error::MathResult;
 /// use mathverse_statistics::bootstrap_ci;
 ///
 /// let data = [1.0, 2.0, 3.0, 4.0, 5.0];
-/// let (lo, hi) = bootstrap_ci(&data, |d| d.iter().sum::<f64>() / d.len() as f64, 1000, 0.05);
+/// let (lo, hi) = bootstrap_ci(&data, |d| d.iter().sum::<f64>() / d.len() as f64, 1000, 0.05, 42);
 /// assert!(lo < 3.0 && hi > 3.0);
 /// ```
 #[must_use]
-pub fn bootstrap_ci<F>(data: &[f64], stat_fn: F, n_boot: usize, alpha: f64) -> (f64, f64)
+pub fn bootstrap_ci<F>(data: &[f64], stat_fn: F, n_boot: usize, alpha: f64, seed: u64) -> (f64, f64)
 where
     F: Fn(&[f64]) -> f64,
 {
     let mut stats = Vec::with_capacity(n_boot);
     let n = data.len();
+    let mut rng = XorShift64::new(seed);
     for _ in 0..n_boot {
-        let sample: Vec<f64> = (0..n).map(|_| data[rand_index(n)]).collect();
+        let sample: Vec<f64> = (0..n).map(|_| data[rng.next() as usize % n]).collect();
         stats.push(stat_fn(&sample));
     }
     stats.sort_by(f64::total_cmp);
@@ -33,20 +34,24 @@ where
     (stats[lo_idx.min(n_boot - 1)], stats[hi_idx.min(n_boot - 1)])
 }
 
-/// Simple pseudo-random index (xorshift32, no external dependency).
-fn rand_index(n: usize) -> usize {
-    use core::cell::Cell;
-    thread_local! {
-        static STATE: Cell<u32> = const { Cell::new(0x1234_5678) };
+/// Simple xorshift64 PRNG for no_std compatibility.
+struct XorShift64 {
+    state: u64,
+}
+
+impl XorShift64 {
+    fn new(seed: u64) -> Self {
+        Self { state: seed.wrapping_add(1) }
     }
-    STATE.with(|s| {
-        let mut x = s.get();
+
+    fn next(&mut self) -> u64 {
+        let mut x = self.state;
         x ^= x << 13;
-        x ^= x >> 17;
-        x ^= x << 5;
-        s.set(x);
-        (x as usize) % n
-    })
+        x ^= x >> 7;
+        x ^= x << 17;
+        self.state = x;
+        x
+    }
 }
 
 /// Cohen's d: standardized mean difference.
@@ -433,7 +438,7 @@ mod tests {
     #[test]
     fn bootstrap_ci_test() {
         let data = [1.0, 2.0, 3.0, 4.0, 5.0];
-        let (lo, hi) = bootstrap_ci(&data, |d| mean(d), 1000, 0.05);
+        let (lo, hi) = bootstrap_ci(&data, |d| mean(d), 1000, 0.05, 42);
         assert!(lo < 3.0 && hi > 3.0);
     }
 }

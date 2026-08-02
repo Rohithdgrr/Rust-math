@@ -40,7 +40,7 @@ pub fn polynomial_regression(xs: &[f64], ys: &[f64], degree: usize) -> MathResul
             }
         }
     }
-    Ok(gaussian_elimination(&mut xtx, &mut xty))
+    gaussian_elimination(&mut xtx, &mut xty)
 }
 
 /// Multiple linear regression (OLS): y = Xβ + ε.
@@ -84,7 +84,7 @@ pub fn multiple_regression(xs: &[&[f64]], ys: &[f64]) -> MathResult<Vec<f64>> {
             }
         }
     }
-    Ok(gaussian_elimination(&mut xtx, &mut xty))
+    gaussian_elimination(&mut xtx, &mut xty)
 }
 
 /// Weighted least squares: y = Xβ + ε, Var(εᵢ) = σ²/wᵢ.
@@ -130,7 +130,7 @@ pub fn weighted_least_squares(xs: &[&[f64]], ys: &[f64], weights: &[f64]) -> Mat
             }
         }
     }
-    Ok(gaussian_elimination(&mut xtx, &mut xty))
+    gaussian_elimination(&mut xtx, &mut xty)
 }
 
 /// Logistic regression (binary): P(y=1) = sigmoid(Xβ).
@@ -148,14 +148,14 @@ pub fn weighted_least_squares(xs: &[&[f64]], ys: &[f64], weights: &[f64]) -> Mat
 ///
 /// let xs: Vec<&[f64]> = vec![&[1.0], &[2.0], &[3.0], &[4.0], &[5.0]];
 /// let ys = [0.0, 0.0, 1.0, 1.0, 1.0];
-/// let c = logistic_regression(&xs, &ys, 200, 0.1).unwrap();
+/// let c = logistic_regression(&xs, &ys, 200, 1e-8).unwrap();
 /// assert!(c[1] > 0.0); // positive coefficient
 /// ```
 pub fn logistic_regression(
     xs: &[&[f64]],
     ys: &[f64],
     max_iter: usize,
-    lr: f64,
+    tol: f64,
 ) -> MathResult<Vec<f64>> {
     if xs.is_empty() || ys.is_empty() {
         return Err(MathError::InvalidArgument("need at least one data point"));
@@ -199,9 +199,16 @@ pub fn logistic_regression(
                 }
             }
         }
-        let delta = gaussian_elimination(&mut xtx, &mut xty);
+        let delta = gaussian_elimination(&mut xtx, &mut xty)?;
+        
+        // Check convergence
+        let max_delta = delta.iter().map(|&d| d.abs()).fold(0.0_f64, f64::max);
+        if max_delta < tol {
+            break;
+        }
+        
         for j in 0..d {
-            beta[j] += lr * delta[j];
+            beta[j] += delta[j]; // Standard IRLS uses full delta
         }
     }
     Ok(beta)
@@ -303,7 +310,7 @@ pub fn mae(ys: &[f64], predicted: &[f64]) -> f64 {
 // Gaussian elimination with partial pivoting
 // ---------------------------------------------------------------------------
 
-fn gaussian_elimination(a: &mut [Vec<f64>], b: &mut [f64]) -> Vec<f64> {
+fn gaussian_elimination(a: &mut [Vec<f64>], b: &mut [f64]) -> MathResult<Vec<f64>> {
     let n = b.len();
     for i in 0..n {
         let max_row = (i..n)
@@ -312,8 +319,8 @@ fn gaussian_elimination(a: &mut [Vec<f64>], b: &mut [f64]) -> Vec<f64> {
         a.swap(i, max_row);
         b.swap(i, max_row);
         let pivot = a[i][i];
-        if pivot.abs() < 1e-30 {
-            continue;
+        if pivot.abs() < 1e-12 {
+            return Err(MathError::Singular);
         }
         for j in (i + 1)..n {
             let factor = a[j][i] / pivot;
@@ -329,7 +336,7 @@ fn gaussian_elimination(a: &mut [Vec<f64>], b: &mut [f64]) -> Vec<f64> {
         let sum: f64 = (i + 1..n).map(|j| a[i][j] * x[j]).sum();
         x[i] = (b[i] - sum) / a[i][i];
     }
-    x
+    Ok(x)
 }
 
 #[cfg(test)]
@@ -366,7 +373,7 @@ mod tests {
     fn logistic_test() {
         let xs: Vec<&[f64]> = vec![&[1.0], &[2.0], &[3.0], &[4.0], &[5.0]];
         let ys = [0.0, 0.0, 1.0, 1.0, 1.0];
-        let c = logistic_regression(&xs, &ys, 200, 0.1).unwrap();
+        let c = logistic_regression(&xs, &ys, 200, 1e-8).unwrap();
         assert!(c[1] > 0.0);
     }
 

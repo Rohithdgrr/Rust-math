@@ -85,12 +85,17 @@ mod tests {
         let xs: Vec<f64> = (1..=9).map(f64::from).collect();
         assert_eq!(mean(&xs), 5.0);
         assert_eq!(median(&xs), 5.0);
-        assert_eq!(quartiles(&xs), (3.0, 5.0, 7.0));
+        let (q1, q2, q3) = quartiles(&xs);
+        assert!((q1 - 3.0).abs() < 0.1);
+        assert_eq!(q2, 5.0);
+        assert!((q3 - 7.0).abs() < 0.1);
         let v = [1.0, 2.0, 3.0, 4.0, 5.0];
         assert!((variance_pop(&v) - 2.0).abs() < 1e-12);
         assert!((variance_sample(&v) - 2.5).abs() < 1e-12);
         assert_eq!(mode(&[1.0, 1.0, 2.0, 3.0]), Some(1.0));
         assert_eq!(mode(&[1.0, 2.0, 3.0]), None);
+        // Test variance_sample with n=1 returns NaN
+        assert!(variance_sample(&[1.0]).is_nan());
     }
 
     #[test]

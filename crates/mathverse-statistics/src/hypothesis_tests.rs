@@ -3,6 +3,7 @@
 
 use crate::distributions::{normal_cdf, student_t_cdf, chi_squared_cdf, f_cdf};
 use crate::descriptive::{mean, variance_sample, std_dev_sample};
+use mathverse_core::error::{MathError, MathResult};
 
 /// Two-sample t-test (equal variance).
 /// Returns (t-statistic, two-tailed p-value).
@@ -38,8 +39,14 @@ pub fn welch_t_test(a: &[f64], b: &[f64]) -> (f64, f64, f64) {
 
 /// Paired t-test.
 /// Returns (t-statistic, two-tailed p-value).
-pub fn paired_t_test(a: &[f64], b: &[f64]) -> (f64, f64) {
-    assert_eq!(a.len(), b.len());
+///
+/// # Errors
+///
+/// Returns [`MathError::DimensionMismatch`] if `a` and `b` differ in length.
+pub fn paired_t_test(a: &[f64], b: &[f64]) -> MathResult<(f64, f64)> {
+    if a.len() != b.len() {
+        return Err(MathError::DimensionMismatch);
+    }
     let diffs: Vec<f64> = a.iter().zip(b).map(|(x, y)| x - y).collect();
     let m = mean(&diffs);
     let s = std_dev_sample(&diffs);
@@ -47,7 +54,7 @@ pub fn paired_t_test(a: &[f64], b: &[f64]) -> (f64, f64) {
     let t = m / (s / n.sqrt());
     let df = n - 1.0;
     let p = 2.0 * (1.0 - student_t_cdf(t.abs(), df));
-    (t, p)
+    Ok((t, p))
 }
 
 /// One-sample t-test: test if mean equals `mu0`.
@@ -100,22 +107,49 @@ pub fn one_way_anova(groups: &[&[f64]]) -> (f64, f64) {
 
 /// Chi-squared goodness-of-fit test.
 /// Returns (χ² statistic, p-value). `observed` and `expected` must have same length.
-pub fn chi_squared_gof(observed: &[f64], expected: &[f64]) -> (f64, f64) {
-    assert_eq!(observed.len(), expected.len());
+///
+/// # Errors
+///
+/// Returns [`MathError::DimensionMismatch`] if `observed` and `expected` differ in length.
+/// Returns [`MathError::InvalidArgument`] if any expected value is zero.
+pub fn chi_squared_gof(observed: &[f64], expected: &[f64]) -> MathResult<(f64, f64)> {
+    if observed.len() != expected.len() {
+        return Err(MathError::DimensionMismatch);
+    }
+    if expected.iter().any(|&e| e <= 0.0) {
+        return Err(MathError::InvalidArgument("expected values must be positive"));
+    }
     let chi2: f64 = observed.iter().zip(expected)
         .map(|(o, e)| (o - e).powi(2) / e)
         .sum();
     let df = observed.len() as f64 - 1.0;
     let p = 1.0 - chi_squared_cdf(chi2, df);
-    (chi2, p)
+    Ok((chi2, p))
 }
 
 /// Chi-squared test of independence (contingency table).
 /// Returns (χ² statistic, p-value, degrees of freedom).
-pub fn chi_squared_independence(table: &[&[f64]]) -> (f64, f64, f64) {
+///
+/// # Errors
+///
+/// Returns [`MathError::InvalidArgument`] if the table is jagged or empty.
+pub fn chi_squared_independence(table: &[&[f64]]) -> MathResult<(f64, f64, f64)> {
     let rows = table.len();
+    if rows == 0 {
+        return Err(MathError::InvalidArgument("table must not be empty"));
+    }
     let cols = table[0].len();
+    if cols == 0 {
+        return Err(MathError::InvalidArgument("table must not be empty"));
+    }
+    // Check for jagged table
+    if !table.iter().all(|row| row.len() == cols) {
+        return Err(MathError::InvalidArgument("table must be rectangular (jagged input)"));
+    }
     let n: f64 = table.iter().flat_map(|r| r.iter()).sum();
+    if n == 0.0 {
+        return Err(MathError::InvalidArgument("table sum must be positive"));
+    }
     let row_totals: Vec<f64> = table.iter().map(|r| r.iter().sum()).collect();
     let col_totals: Vec<f64> = (0..cols)
         .map(|j| table.iter().map(|r| r[j]).sum())
@@ -124,12 +158,15 @@ pub fn chi_squared_independence(table: &[&[f64]]) -> (f64, f64, f64) {
     for i in 0..rows {
         for j in 0..cols {
             let expected = row_totals[i] * col_totals[j] / n;
+            if expected <= 0.0 {
+                return Err(MathError::InvalidArgument("expected cell values must be positive"));
+            }
             chi2 += (table[i][j] - expected).powi(2) / expected;
         }
     }
     let df = ((rows - 1) * (cols - 1)) as f64;
     let p = 1.0 - chi_squared_cdf(chi2, df);
-    (chi2, p, df)
+    Ok((chi2, p, df))
 }
 
 /// Binomial test: probability of `k` or more extreme successes in `n` trials with probability `p0`.
@@ -183,8 +220,14 @@ pub fn mann_whitney_u(a: &[f64], b: &[f64]) -> (f64, f64) {
 
 /// Wilcoxon signed-rank test (paired, non-parametric).
 /// Returns (W statistic, approximate two-tailed p-value).
-pub fn wilcoxon_signed_rank(a: &[f64], b: &[f64]) -> (f64, f64) {
-    assert_eq!(a.len(), b.len());
+///
+/// # Errors
+///
+/// Returns [`MathError::DimensionMismatch`] if `a` and `b` differ in length.
+pub fn wilcoxon_signed_rank(a: &[f64], b: &[f64]) -> MathResult<(f64, f64)> {
+    if a.len() != b.len() {
+        return Err(MathError::DimensionMismatch);
+    }
     let diffs: Vec<f64> = a.iter().zip(b).map(|(x, y)| x - y).collect();
     let non_zero: Vec<(f64, usize)> = diffs.iter()
         .enumerate()
@@ -192,7 +235,7 @@ pub fn wilcoxon_signed_rank(a: &[f64], b: &[f64]) -> (f64, f64) {
         .map(|(i, &d)| (d, i))
         .collect();
     if non_zero.is_empty() {
-        return (0.0, 1.0);
+        return Ok((0.0, 1.0));
     }
     let mut ranked: Vec<(f64, f64)> = non_zero.iter().map(|(d, _)| (*d, d.abs())).collect();
     ranked.sort_by(|a, b| a.1.total_cmp(&b.1));
@@ -224,8 +267,8 @@ pub fn wilcoxon_signed_rank(a: &[f64], b: &[f64]) -> (f64, f64) {
     let mu = n * (n + 1.0) / 4.0;
     let sigma = (n * (n + 1.0) * (2.0 * n + 1.0) / 24.0).sqrt();
     let z = (w - mu) / sigma;
-    let p = 2.0 * normal_cdf(z.abs()) - 1.0;
-    (w, p.max(0.0))
+    let p = 2.0 * (1.0 - normal_cdf(z.abs()));
+    Ok((w, p.max(0.0)))
 }
 
 #[cfg(test)]
@@ -255,7 +298,7 @@ mod tests {
     fn paired_t_test_test() {
         let a = [1.0, 2.0, 3.0, 4.0, 5.0];
         let b = [1.1, 2.2, 3.3, 4.4, 5.6];
-        let (t, p) = paired_t_test(&a, &b);
+        let (t, p) = paired_t_test(&a, &b).unwrap();
         assert!(t < 0.0); // b > a on average, so t = mean(a-b)/se < 0
         assert!(p < 0.05);
     }
@@ -264,7 +307,7 @@ mod tests {
     fn chi_squared_gof_test() {
         let observed = [20.0, 30.0, 50.0];
         let expected = [25.0, 25.0, 50.0];
-        let (chi2, p) = chi_squared_gof(&observed, &expected);
+        let (chi2, p) = chi_squared_gof(&observed, &expected).unwrap();
         assert!(chi2 > 0.0);
         assert!(p > 0.0);
     }

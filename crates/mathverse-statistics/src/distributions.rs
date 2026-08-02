@@ -3,6 +3,8 @@
 
 use std::f64::consts::{PI, SQRT_2};
 
+const TAU: f64 = 2.0 * PI;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -128,12 +130,18 @@ fn beta_inc(a: f64, b: f64, x: f64) -> f64 {
 }
 
 pub fn student_t_pdf(t: f64, df: f64) -> f64 {
+    if df <= 0.0 {
+        return f64::NAN;
+    }
     let dt = df + 1.0;
     let coeff = (gamma_ln(dt / 2.0) - gamma_ln(df / 2.0) - 0.5 * (df * PI).ln()).exp();
     coeff * (1.0 + t * t / df).powf(-dt / 2.0)
 }
 
 pub fn student_t_cdf(t: f64, df: f64) -> f64 {
+    if df <= 0.0 {
+        return f64::NAN;
+    }
     let x = df / (df + t * t);
     let ib = beta_inc(df / 2.0, 0.5, x);
     if t >= 0.0 {
@@ -162,13 +170,13 @@ pub fn student_t_ppf(p: f64, df: f64) -> f64 {
 }
 
 pub fn chi_squared_pdf(x: f64, k: f64) -> f64 {
-    if x <= 0.0 { return 0.0; }
+    if x <= 0.0 || k <= 0.0 { return 0.0; }
     let half_k = k / 2.0;
-    ((half_k - 1.0) * x.ln() - x / 2.0 - half_k.ln() - gamma_ln(half_k)).exp()
+    ((half_k - 1.0) * x.ln() - x / 2.0 - half_k * 2.0_f64.ln() - gamma_ln(half_k)).exp()
 }
 
 pub fn chi_squared_cdf(x: f64, k: f64) -> f64 {
-    if x <= 0.0 { return 0.0; }
+    if x <= 0.0 || k <= 0.0 { return 0.0; }
     incomplete_gamma_regularized(k / 2.0, x / 2.0)
 }
 
@@ -186,9 +194,9 @@ pub fn chi_squared_ppf(p: f64, k: f64) -> f64 {
 }
 
 pub fn f_pdf(x: f64, d1: f64, d2: f64) -> f64 {
-    if x <= 0.0 { return 0.0; }
-    let ln = (d1 / 2.0).ln() * d1 / 2.0 + (d2 / 2.0).ln() * d2 / 2.0
-        - gamma_ln(d1 / 2.0) - gamma_ln(d2 / 2.0)
+    if x <= 0.0 || d1 <= 0.0 || d2 <= 0.0 { return 0.0; }
+    let ln = d1.ln() * d1 / 2.0 + d2.ln() * d2 / 2.0
+        + gamma_ln((d1 + d2) / 2.0) - gamma_ln(d1 / 2.0) - gamma_ln(d2 / 2.0)
         + (d1 / 2.0 - 1.0) * x.ln()
         - (d1 * x + d2).ln() * (d1 + d2) / 2.0;
     ln.exp()
@@ -368,12 +376,6 @@ fn binomial_coeff(n: u64, k: u64) -> f64 {
     result
 }
 
-// ---------------------------------------------------------------------------
-// TAU
-// ---------------------------------------------------------------------------
-
-const TAU: f64 = 2.0 * PI;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -403,8 +405,43 @@ mod tests {
     }
 
     #[test]
+    fn chi_squared_pdf_formula_test() {
+        // Test the corrected formula - for k=2, should be exp(-x/2)/2
+        let x = 1.0;
+        let k = 2.0;
+        let pdf = chi_squared_pdf(x, k);
+        let expected = (-x / 2.0).exp() / 2.0;
+        assert!((pdf - expected).abs() < 1e-10);
+    }
+
+    #[test]
+    fn chi_squared_pdf_invalid_k() {
+        // Test validation for invalid k
+        assert_eq!(chi_squared_pdf(1.0, 0.0), 0.0);
+        assert_eq!(chi_squared_pdf(1.0, -1.0), 0.0);
+    }
+
+    #[test]
     fn f_dist_test() {
         assert!((FDist::cdf(0.0, 5.0, 10.0)).abs() < EPS);
+    }
+
+    #[test]
+    fn f_pdf_formula_test() {
+        // Test the corrected formula - should be around 0.375 for F(4,4) at x=1
+        let x = 1.0;
+        let d1 = 4.0;
+        let d2 = 4.0;
+        let pdf = f_pdf(x, d1, d2);
+        assert!((pdf - 0.375).abs() < 0.1);
+    }
+
+    #[test]
+    fn f_pdf_invalid_params() {
+        // Test validation for invalid parameters
+        assert_eq!(f_pdf(1.0, 0.0, 4.0), 0.0);
+        assert_eq!(f_pdf(1.0, 4.0, 0.0), 0.0);
+        assert_eq!(f_pdf(1.0, -1.0, 4.0), 0.0);
     }
 
     #[test]

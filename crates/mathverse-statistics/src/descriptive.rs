@@ -20,7 +20,7 @@ pub fn mean(xs: &[f64]) -> f64 {
 }
 
 /// Sample variance (n - 1 denominator).
-/// Returns 0.0 when n <= 1.
+/// Returns NaN when n <= 1 (mathematically undefined).
 ///
 /// # Examples
 ///
@@ -33,11 +33,14 @@ pub fn mean(xs: &[f64]) -> f64 {
 #[must_use]
 #[inline]
 pub fn variance_sample(xs: &[f64]) -> f64 {
+    if xs.len() <= 1 {
+        return f64::NAN;
+    }
     let m = mean(xs);
     xs.iter()
         .map(|x| (x - m).powi(2))
         .sum::<f64>()
-        / (xs.len() - 1).max(1) as f64
+        / (xs.len() - 1) as f64
 }
 
 /// Population variance (n denominator).
@@ -394,7 +397,9 @@ pub fn mode(xs: &[f64]) -> Option<f64> {
     use alloc::collections::BTreeMap;
     let mut counts: BTreeMap<u64, (f64, usize)> = BTreeMap::new();
     for &x in xs {
-        let e = counts.entry(x.to_bits()).or_insert((x, 0));
+        // Normalize -0.0 to 0.0 so they are counted together
+        let normalized = if x == 0.0 { 0.0 } else { x };
+        let e = counts.entry(normalized.to_bits()).or_insert((normalized, 0));
         e.1 += 1;
     }
     counts
@@ -404,7 +409,8 @@ pub fn mode(xs: &[f64]) -> Option<f64> {
         .map(|(v, _)| *v)
 }
 
-/// Quartiles by nearest-rank: (q1, median, q3).
+/// Quartiles by linear interpolation: (q1, median, q3).
+/// Consistent with the `percentile` function.
 ///
 /// # Examples
 ///
@@ -412,17 +418,18 @@ pub fn mode(xs: &[f64]) -> Option<f64> {
 /// use mathverse_statistics::quartiles;
 ///
 /// let data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
-/// assert_eq!(quartiles(&data), (3.0, 5.0, 7.0));
+/// let (q1, q2, q3) = quartiles(&data);
+/// assert!((q1 - 3.0).abs() < 0.1);
+/// assert_eq!(q2, 5.0);
+/// assert!((q3 - 7.0).abs() < 0.1);
 /// ```
 #[must_use]
 pub fn quartiles(xs: &[f64]) -> (f64, f64, f64) {
-    let mut v = xs.to_vec();
-    v.sort_by(|a, b| a.total_cmp(b));
-    let n = v.len();
-    (v[n / 4], median(&v), v[3 * n / 4])
+    (percentile(xs, 25.0), median(xs), percentile(xs, 75.0))
 }
 
-/// Sample covariance: sum((x_i - x_bar)(y_i - y_bar)) / n.
+/// Population covariance: sum((x_i - x_bar)(y_i - y_bar)) / n.
+/// Note: This uses the population formula (n denominator), not the sample formula (n-1).
 ///
 /// # Errors
 ///
