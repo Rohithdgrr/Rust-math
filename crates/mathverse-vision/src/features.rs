@@ -1,3 +1,5 @@
+//! Feature detection: Harris corner detector using Sobel gradients.
+
 use crate::Image;
 
 pub fn harris(img: &Image, _sigma: f64, k: f64) -> Image {

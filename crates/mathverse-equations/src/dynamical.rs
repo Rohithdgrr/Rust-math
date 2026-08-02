@@ -1,3 +1,6 @@
+//! Discrete dynamical systems: fixed-point iteration, cobweb, Lyapunov exponents, period detection.
+
+/// Fixed-point iteration: converges `x_{n+1} = g(x_n)`.
 pub fn fixed_point(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -> Option<f64> {
     let mut x = x0;
     for _ in 0..max_iter {

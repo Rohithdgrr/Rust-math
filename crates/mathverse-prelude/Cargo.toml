@@ -5,8 +5,8 @@ edition = "2021"
 authors = ["MathVerse Contributors"]
 description = "Comprehensive prelude for MathVerse - re-exports common items"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/mathverse/mathverse"
-rust-version = "1.87"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+rust-version.workspace = true
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
@@ -35,3 +35,7 @@ mathverse-equations = { path = "../mathverse-equations", version = "0.1.0" }
 mathverse-ai = { path = "../mathverse-ai", version = "0.1.0" }
 mathverse-machine-learning = { path = "../mathverse-machine-learning", version = "0.1.0" }
 mathverse-vision = { path = "../mathverse-vision", version = "0.1.0" }
+mathverse-graphics = { path = "../mathverse-graphics", version = "0.1.0" }
+
+[lints]
+workspace = true

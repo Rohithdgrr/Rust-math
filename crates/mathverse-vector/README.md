@@ -256,7 +256,7 @@ assert!((std_dev(&data) - 2.0).abs() < 1e-10);
 
 // Perfect correlation
 let a = vec![1.0, 2.0, 3.0, 4.0];
-let b = vec![2.0, 4.0, 6.0, 8.0]);
+let b = vec![2.0, 4.0, 6.0, 8.0];
 assert!((correlation(&a, &b) - 1.0).abs() < 1e-10);
 ```
 

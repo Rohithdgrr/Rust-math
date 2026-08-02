@@ -1,3 +1,5 @@
+//! Counting functions: combinations, permutations, falling/rising factorials.
+
 use mathverse_core::algorithms::binomial;
 
 pub fn combinations(n: u64, k: u64) -> u128 {

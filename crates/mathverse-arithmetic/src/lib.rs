@@ -1,4 +1,5 @@
-//! Arithmetic: percentage, powers, roots, modulus, absolute value.
+//! Arithmetic: percentage, powers, roots, modulus, absolute value,
+//! rounding modes, financial TVM, and checked/saturating operations.
 //!
 //! Addition, subtraction, multiplication, division, logarithms,
 //! exponentials and rounding live in `mathverse-core` (traits + [`ops`] +
@@ -13,8 +14,22 @@ pub use mathverse_core::ops::{
 pub use mathverse_core::precision::{almost_eq, almost_eq_rel, round_to, significant_figures};
 
 pub mod percentage;
+pub mod rounding;
+pub mod finance;
+pub mod checked_ops;
 
 pub use percentage::{Percentage, ProfitLoss};
+pub use rounding::{round_with_mode, round_to_with_mode, round_ties_even, quantize, RoundingMode};
+pub use finance::{
+    future_value, present_value, annuity_future_value, annuity_present_value,
+    perpetuity_present_value, growing_perpetuity, periods_to_reach, rate_for_target,
+    continuous_compound, rule_of_72, rule_of_693,
+};
+pub use checked_ops::{
+    checked_add, checked_sub, checked_mul, checked_div,
+    saturating_add, saturating_sub, saturating_mul,
+    approx_eq, approx_eq_rel, inverse_lerp, remap,
+};
 
 /// `x` scaled by a percentage: `percentage(200, 10)` = 20.
 pub fn percentage<T: Real>(x: T, percent: T) -> T {

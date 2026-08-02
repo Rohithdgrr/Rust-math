@@ -1,3 +1,6 @@
+//! Linear programming via the simplex method.
+
+/// Solves `max c^T x` subject to `Ax ≤ b, x ≥ 0`.
 pub fn simplex(c: &[f64], a: &[Vec<f64>], b: &[f64]) -> Option<(f64, Vec<f64>)> {
     let m = b.len();
     let n = c.len();

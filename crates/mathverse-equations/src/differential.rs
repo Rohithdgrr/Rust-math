@@ -1,3 +1,6 @@
+//! ODE solvers: Euler method, classical Runge-Kutta (RK4), system variants.
+
+/// Euler's method for scalar ODEs `y' = f(t, y)`.
 pub fn euler(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f64) -> Vec<(f64, f64)> {
     assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let mut result = vec![(t0, y0)];

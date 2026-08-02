@@ -2,6 +2,7 @@
 name = "mathverse-machine-learning"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Classical machine learning: regression, classification, clustering, ensembles, SVM, XGBoost, Gaussian Process, pipelines"
 repository = "https://github.com/Rohithdgrr/Rust-math"
@@ -12,6 +13,9 @@ categories = ["algorithms", "science"]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
 
+
+[lints]
+workspace = true
 [features]
 default = ["std"]
 std = []

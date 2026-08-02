@@ -1,3 +1,6 @@
+//! Euler's totient, Carmichael function, primitive roots, multiplicative order.
+
+/// Euler's totient function φ(n): count of integers 1..n coprime to n.
 pub fn euler_totient(mut n: u64) -> u64 {
     let mut result = n;
     let mut d = 2u64;

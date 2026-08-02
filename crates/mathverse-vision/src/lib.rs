@@ -1,3 +1,17 @@
+//! # mathverse-vision
+//!
+//! Computer vision primitives for the MathVerse ecosystem.
+//!
+//! Provides:
+//! - **Camera**: pinhole camera model with projection and unprojection
+//! - **Epipolar**: fundamental/essential matrix estimation, epipolar lines
+//! - **Features**: corner detection (Harris), feature matching
+//! - **Optical flow**: Lucas-Kanade sparse flow estimation
+//! - **Homography**: homography estimation and RANSAC
+//!
+//! The [`Image`] type is a simple single-channel `f64` grayscale image with
+//! basic convolution and Gaussian blur support.
+
 pub mod camera;
 pub mod epipolar;
 pub mod features;

@@ -1,3 +1,6 @@
+//! Primality testing, sieve of Eratosthenes, twin primes, Goldbach, Mersenne primes.
+
+/// Tests whether `n` is prime using trial division.
 pub fn is_prime(n: u64) -> bool {
     if n < 2 { return false; }
     if n < 4 { return true; }

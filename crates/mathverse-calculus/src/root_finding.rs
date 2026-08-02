@@ -1,4 +1,8 @@
 //! Root finding algorithms for solving f(x) = 0.
+//!
+//! For the full suite of root-finding methods (Brent, Muller, Householder, etc.),
+//! see [`mathverse_numerical::root`]. The methods here are tightly integrated
+//! with the calculus crate's automatic differentiation for `newton_raphson_auto`.
 
 use mathverse_core::error::{MathError, MathResult};
 use crate::derivative::derivative;

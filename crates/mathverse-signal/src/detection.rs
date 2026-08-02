@@ -1,3 +1,5 @@
+//! Signal detection: envelope follower, threshold crossing, peak detection.
+
 pub fn envelope(x: &[f64]) -> Vec<f64> {
     let mut env = Vec::with_capacity(x.len());
     let mut state = 0.0;

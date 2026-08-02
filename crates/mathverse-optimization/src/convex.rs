@@ -1,3 +1,6 @@
+//! Convex analysis: convexity check, convex hull, simplex projection, box constraints.
+
+/// Checks if a 1D function is convex on `[a, b]` by sampling.
 pub fn is_convex_1d(f: &dyn Fn(f64) -> f64, a: f64, b: f64, steps: usize) -> bool {
     let dx = (b - a) / steps as f64;
     let (mut f_prev, mut f_curr) = (f(a), f(a + dx));

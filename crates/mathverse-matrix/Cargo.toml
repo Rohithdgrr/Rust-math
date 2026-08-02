@@ -2,6 +2,7 @@
 name = "mathverse-matrix"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 description = "MathVerse dense and sparse matrices: ops, LU/QR/SVD/Cholesky, eigen, solve"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
@@ -16,3 +17,6 @@ parallel = []
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+
+[lints]
+workspace = true

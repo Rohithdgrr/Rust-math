@@ -1,8 +1,19 @@
+/// L1 (Manhattan) norm: sum of absolute values.
 pub fn l1(v: &[f64]) -> f64 { v.iter().map(|x| x.abs()).sum() }
+
+/// L2 (Euclidean) norm: square root of sum of squares.
 pub fn l2(v: &[f64]) -> f64 { v.iter().map(|x| x*x).sum::<f64>().sqrt() }
+
+/// Lp norm: `(sum(|x|^p))^(1/p)`.
 pub fn lp(v: &[f64], p: f64) -> f64 { v.iter().map(|x| x.abs().powf(p)).sum::<f64>().powf(1.0/p) }
+
+/// L∞ (Chebyshev) norm: maximum absolute value.
 pub fn linf(v: &[f64]) -> f64 { v.iter().map(|x| x.abs()).fold(0.0, f64::max) }
+
+/// L0 "norm": count of non-zero elements.
 pub fn l0(v: &[f64]) -> usize { v.iter().filter(|&&x| x != 0.0).count() }
+
+/// L-∞ (minimum) norm: minimum absolute value.
 pub fn l_neg_inf(v: &[f64]) -> f64 { v.iter().map(|x| x.abs()).fold(f64::INFINITY, f64::min) }
 
 #[cfg(test)]

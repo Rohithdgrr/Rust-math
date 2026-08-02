@@ -2,16 +2,20 @@
 name = "mathverse-symbolic"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 authors = ["MathVerse Contributors"]
 description = "Symbolic computation with expression trees, derivatives, and LaTeX"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/mathverse/mathverse"
+repository = "https://github.com/Rohithdgrr/Rust-math"
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
 mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
-thiserror = "1.0"
+thiserror = "2"
 
+
+[lints]
+workspace = true
 [dev-dependencies]
 approx = "0.5"

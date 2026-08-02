@@ -1,3 +1,5 @@
+//! Hough transform for line detection in binary edge images.
+
 pub fn hough_line_accumulator(edges: &[(usize, usize)], width: usize, height: usize) -> Vec<Vec<usize>> {
     let max_r = ((width * width + height * height) as f64).sqrt() as usize;
     let n_theta = 180;

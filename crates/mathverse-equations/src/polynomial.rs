@@ -1,3 +1,6 @@
+//! Polynomial root finders: linear, quadratic, cubic (Cardano), quartic (Ferrari).
+
+/// Solves `ax + b = 0`. Returns an empty vec if `a ≈ 0`.
 pub fn solve_linear(a: f64, b: f64) -> Vec<f64> {
     if a.abs() < 1e-15 {
         // 0x + b = 0: no unique solution.

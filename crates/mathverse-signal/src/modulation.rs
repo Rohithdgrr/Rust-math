@@ -1,3 +1,5 @@
+//! Amplitude modulation (AM), frequency modulation (FM), phase modulation (PM).
+
 pub fn amplitude_modulate(carrier: &[f64], modulating: &[f64], depth: f64) -> Vec<f64> {
     let n = carrier.len().min(modulating.len());
     (0..n).map(|i| carrier[i] * (1.0 + depth * modulating[i])).collect()

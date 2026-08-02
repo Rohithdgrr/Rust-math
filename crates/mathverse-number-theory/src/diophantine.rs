@@ -1,3 +1,6 @@
+//! Extended GCD, linear Diophantine equations, Pell equation, square-free test.
+
+/// Extended Euclidean algorithm: returns (gcd, x, y) such that `ax + by = gcd`.
 pub fn extended_gcd(a: i64, b: i64) -> (i64, i64, i64) {
     if a == 0 { return (b, 0, 1); }
     let (g, x, y) = extended_gcd(b % a, a);

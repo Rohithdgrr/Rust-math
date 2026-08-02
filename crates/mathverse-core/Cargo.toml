@@ -2,7 +2,7 @@
 name = "mathverse-core"
 version = "0.1.1"
 edition = "2021"
-rust-version = "1.87"
+rust-version.workspace = true
 description = "MathVerse core: numeric traits, errors, constants, precision utilities, generic operations, common algorithms"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
@@ -12,6 +12,10 @@ categories = ["science", "mathematics"]
 [features]
 default = ["std"]
 std = []
+libm = ["dep:libm"]
+
+[dependencies]
+libm = { version = "0.2", optional = true }
 
 [dev-dependencies]
 proptest = "1"
@@ -20,3 +24,6 @@ criterion = { version = "0.5", features = ["html_reports"] }
 [[bench]]
 name = "mathverse_bench"
 harness = false
+
+[lints]
+workspace = true

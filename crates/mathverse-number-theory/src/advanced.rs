@@ -1,3 +1,6 @@
+//! Advanced: next/prev prime, prime factorization, radical, perfect powers, highly composite numbers.
+
+/// Returns the smallest prime greater than `n`.
 pub fn next_prime(n: u64) -> u64 {
     let mut p = n + 1;
     while !crate::primes::is_prime(p) { p += 1; }

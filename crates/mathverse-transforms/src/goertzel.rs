@@ -1,3 +1,5 @@
+//! Goertzel algorithm for single-frequency tone detection.
+
 pub fn goertzel(x: &[f64], k: usize) -> Option<(f64, f64)> {
     let n = x.len();
     if n == 0 || k >= n { return None; }

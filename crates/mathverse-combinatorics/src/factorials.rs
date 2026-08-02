@@ -1,3 +1,6 @@
+//! Factorial variants: standard, double, super, hyper, primorial, subfactorial, tetration.
+
+/// Computes `n!` (factorial).
 pub fn factorial(n: u64) -> u128 {
     (1..=n as u128).product()
 }

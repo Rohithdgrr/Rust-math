@@ -1,3 +1,6 @@
+//! Continued fractions: Euclidean algorithm, convergents, golden ratio, e, π.
+
+/// Computes the simple continued fraction of `n/d`.
 pub fn continued_fraction(n: u64, d: u64) -> Vec<u64> {
     let mut result = Vec::new();
     let (mut a, mut b) = (n, d);

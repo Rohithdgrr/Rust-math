@@ -1,3 +1,6 @@
+//! Legendre/Jacobi symbols, Tonelli-Shanks square root mod p, quadratic residues.
+
+/// Legendre symbol (a/p). Returns 1 if a is a quadratic residue, -1 if not, 0 if p|a.
 pub fn legendre(a: u64, p: u64) -> i64 {
     if p == 2 { return if a % 2 == 0 { 0 } else { 1 }; }
     let ls = crate::modular::mod_pow(a, (p - 1) / 2, p);

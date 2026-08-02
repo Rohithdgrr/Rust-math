@@ -62,6 +62,9 @@ pub fn penalty_method(f: &dyn Fn(&[f64]) -> f64, g: &[Box<dyn Fn(&[f64]) -> f64>
     x
 }
 
+//! Constrained optimization: Lagrangian, penalty method, augmented Lagrangian, projected gradient.
+
+/// Augmented Lagrangian method for equality-constrained minimization.
 pub fn augmented_lagrangian(f: &dyn Fn(&[f64]) -> f64, g: &[Box<dyn Fn(&[f64]) -> f64>], x0: &[f64], mu: f64, tol: f64, max_outer: usize) -> Vec<f64> {
     let n = x0.len();
     let m = g.len();

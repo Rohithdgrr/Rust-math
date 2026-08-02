@@ -1,3 +1,6 @@
+//! Inclusion-exclusion principle, birthday problem, coupon collector, pigeonhole.
+
+/// Inclusion-exclusion for two sets: `|A ∪ B| = |A| + |B| - |A ∩ B|`.
 pub fn inclusion_exclusion_2(a: u128, b: u128, ab: u128) -> u128 {
     a + b - ab
 }

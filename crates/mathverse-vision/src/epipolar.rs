@@ -1,3 +1,5 @@
+//! Epipolar geometry: fundamental matrix, epipolar line computation.
+
 #[derive(Debug, Clone)]
 pub struct Fundamental(pub [[f64; 3]; 3]);
 

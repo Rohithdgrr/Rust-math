@@ -1,3 +1,6 @@
+//! Pinhole camera model: projection, unprojection, intrinsic parameters.
+
+/// Pinhole camera with focal lengths `fx`, `fy` and principal point `(cx, cy)`.
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
     pub fx: f64,

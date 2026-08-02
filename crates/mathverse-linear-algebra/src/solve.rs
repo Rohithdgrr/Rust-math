@@ -1,3 +1,5 @@
+//! Linear system solvers: LU-based, QR-based, Gaussian, least-squares.
+
 pub fn solve_lu(l: &[Vec<f64>], u: &[Vec<f64>], perm: &[usize], b: &[f64]) -> Vec<f64> {
     let n = b.len();
     

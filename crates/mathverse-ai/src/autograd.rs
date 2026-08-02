@@ -6,6 +6,32 @@
 use crate::tensor::Tensor;
 use std::cell::RefCell;
 
+/// Assert two shapes match, panicking with a clear message if not.
+macro_rules! assert_shape {
+    ($a:expr, $b:expr) => {
+        debug_assert_eq!(
+            $a.shape,
+            $b.shape,
+            "shape mismatch: lhs {:?} vs rhs {:?}",
+            $a.shape,
+            $b.shape
+        );
+    };
+}
+
+/// Assert a matmul dimension match, panicking with a clear message if not.
+macro_rules! assert_matmul {
+    ($a:expr, $b:expr) => {
+        debug_assert_eq!(
+            $a.shape[1],
+            $b.shape[0],
+            "matmul dimension mismatch: lhs cols {} vs rhs rows {}",
+            $a.shape[1],
+            $b.shape[0]
+        );
+    };
+}
+
 thread_local! {
     static GRAPH: RefCell<Vec<GraphEntry>> = const { RefCell::new(Vec::new()) };
     static GRAD_REGISTRY: RefCell<Vec<Option<Tensor>>> = RefCell::new(Vec::new());
@@ -51,7 +77,9 @@ impl GradTensor {
 
     /// Create a leaf tensor from data + shape.
     pub fn from_data(shape: &[usize], data: Vec<f64>) -> Self {
-        Self::new(Tensor::from_vec(shape, data).unwrap())
+        let t = Tensor::from_vec(shape, data);
+        debug_assert!(t.is_some(), "from_vec failed for shape {:?}", shape);
+        Self::new(t.unwrap())
     }
 
     /// Zero the gradient.
@@ -60,6 +88,7 @@ impl GradTensor {
 
 /// Add two GradTensors (tracked).
 pub fn add(a: &GradTensor, b: &GradTensor) -> GradTensor {
+    assert_shape!(a.tensor, b.tensor);
     let out = a.tensor.add(&b.tensor).unwrap();
     let out_id = GRAPH.with(|g| {
         let mut g = g.borrow_mut();
@@ -78,6 +107,7 @@ pub fn add(a: &GradTensor, b: &GradTensor) -> GradTensor {
 
 /// Multiply two GradTensors (tracked).
 pub fn mul(a: &GradTensor, b: &GradTensor) -> GradTensor {
+    assert_shape!(a.tensor, b.tensor);
     let out = a.tensor.mul(&b.tensor).unwrap();
     let out_id = GRAPH.with(|g| {
         let mut g = g.borrow_mut();
@@ -96,6 +126,7 @@ pub fn mul(a: &GradTensor, b: &GradTensor) -> GradTensor {
 
 /// Matrix multiply (tracked).
 pub fn matmul(a: &GradTensor, b: &GradTensor) -> GradTensor {
+    assert_matmul!(a.tensor, b.tensor);
     let out = a.tensor.matmul(&b.tensor).unwrap();
     let out_id = GRAPH.with(|g| {
         let mut g = g.borrow_mut();
@@ -151,6 +182,7 @@ pub fn sum(a: &GradTensor) -> GradTensor {
 
 /// MSE loss (tracked).
 pub fn mse_loss(pred: &GradTensor, target: &GradTensor) -> GradTensor {
+    assert_shape!(pred.tensor, target.tensor);
     let val = crate::losses::mse(&pred.tensor, &target.tensor).unwrap();
     let out = Tensor::scalar(val);
     let out_id = GRAPH.with(|g| {
@@ -202,6 +234,8 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                                 GraphEntry::Tensor(t) => t.clone(),
                                 _ => Tensor::zeros(&[1]),
                             };
+                            assert_shape!(grad_out, a);
+                            assert_shape!(grad_out, b);
                             vec![grad_out.mul(&a).unwrap(), grad_out.mul(&b).unwrap()]
                         }
                         // matmul backward
@@ -216,6 +250,8 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                             };
                             let bt = b.transpose().unwrap();
                             let at = a.transpose().unwrap();
+                            assert_matmul!(grad_out, bt);
+                            assert_matmul!(at, grad_out);
                             vec![grad_out.matmul(&bt).unwrap(), at.matmul(&grad_out).unwrap()]
                         }
                         // relu backward
@@ -225,6 +261,7 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                                 _ => Tensor::zeros(&[1]),
                             };
                             let mask = crate::activations::relu_grad(&input);
+                            assert_shape!(grad_out, mask);
                             vec![grad_out.mul(&mask).unwrap()]
                         }
                         // sum backward: broadcast gradient to input shape
@@ -245,6 +282,7 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                                 GraphEntry::Tensor(t) => t.clone(),
                                 _ => Tensor::zeros(&[1]),
                             };
+                            assert_shape!(pred, target);
                             let g = crate::losses::mse_grad(&pred, &target).unwrap();
                             vec![g, Tensor::zeros(&target.shape)]
                         }
@@ -253,7 +291,10 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                     for (j, &input_id) in inputs.iter().enumerate() {
                         if j < input_grads.len() {
                             grads[input_id] = Some(match &grads[input_id] {
-                                Some(existing) => existing.add(&input_grads[j]).unwrap(),
+                                Some(existing) => {
+                                    assert_shape!(existing, &input_grads[j]);
+                                    existing.add(&input_grads[j]).unwrap()
+                                }
                                 None => input_grads[j].clone(),
                             });
                         }

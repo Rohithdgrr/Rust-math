@@ -1,3 +1,5 @@
+//! Radon transform for tomographic reconstruction.
+
 pub fn radon_transform(image: &[Vec<f64>], n_angles: usize, n_offsets: usize) -> Vec<Vec<f64>> {
     let (h, w) = (image.len(), image[0].len());
     let max_offset = ((h * h + w * w) as f64).sqrt() as usize;

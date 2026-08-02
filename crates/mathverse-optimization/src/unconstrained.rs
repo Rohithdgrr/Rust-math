@@ -30,6 +30,9 @@ pub fn newton_min(f: &dyn Fn(&[f64]) -> f64, grad: &dyn Fn(&[f64]) -> Vec<f64>, 
     x
 }
 
+//! Unconstrained optimization: Newton's method, BFGS, conjugate gradient.
+
+/// BFGS quasi-Newton optimizer.
 pub fn bfgs(grad: &dyn Fn(&[f64]) -> Vec<f64>, x0: &[f64], tol: f64, max_iters: usize) -> Vec<f64> {
     let n = x0.len();
     let mut x = x0.to_vec();

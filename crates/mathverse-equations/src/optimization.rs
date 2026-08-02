@@ -28,6 +28,9 @@ pub fn fibonacci_search(f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64
     (l + r) / 2.0
 }
 
+//! Scalar minimizers: Fibonacci search, golden section, ternary search, Brent's method.
+
+/// Golden-section search for a scalar minimum in `[a, b]`.
 pub fn golden_section(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
     let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
     let (mut l, mut r) = (a, b);

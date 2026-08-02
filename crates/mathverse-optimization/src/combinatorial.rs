@@ -1,3 +1,6 @@
+//! Combinatorial optimizers: simulated annealing, genetic algorithm, particle swarm.
+
+/// Simulated annealing with exponential cooling schedule.
 pub fn simulated_annealing(f: &dyn Fn(&[f64]) -> f64, bounds: &[(f64, f64)], t0: f64, t_min: f64, step: f64, iters_per_t: usize, seed: u64) -> Vec<f64> {
     let mut rng = seed;
     let mut next_rng = || { rng ^= rng << 13; rng ^= rng >> 7; rng ^= rng << 17; rng };

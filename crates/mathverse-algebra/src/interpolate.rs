@@ -1,65 +1,134 @@
-//! Polynomial interpolation: Lagrange and Newton's divided differences.
+//! # Interpolation
+//!
+//! Lagrange and Newton polynomial interpolation from data points.
+//!
+//! ## Examples
+//!
+//! ```rust
+/// use mathverse_algebra::interpolate::{lagrange, newton};
+///
+/// // Points (0,1), (1,3), (2,7) → p(x) = x^2 + 2x + 1
+/// let xs = [0.0, 1.0, 2.0];
+/// let ys = [1.0, 3.0, 7.0];
+/// assert!((lagrange(&xs, &ys)(2.0) - 7.0).abs() < 1e-10);
+/// assert!((newton(&xs, &ys)(2.0) - 7.0).abs() < 1e-10);
+/// ```
 
 use crate::polynomial::Polynomial;
 
-/// Lagrange interpolation: find the unique degree-(n-1) polynomial passing
-/// through n points `(xi, yi)`.
+/// Lagrange interpolation.
 ///
-/// Returns a [`Polynomial`] in coefficient form.
+/// Returns a [`Polynomial`] that passes through every `(xs[i], ys[i])`.
 ///
-/// ```
-/// # use mathverse_algebra::interpolate::lagrange;
-/// let p = lagrange(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]); // y = x^2
-/// assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::interpolate::lagrange;
+///
+/// // (0,1), (1,2), (2,5)
+/// let xs = [0.0, 1.0, 2.0];
+/// let ys = [1.0, 2.0, 5.0];
+/// let p = lagrange(&xs, &ys);
+/// assert!((p.eval(0.0) - 1.0).abs() < 1e-10);
+/// assert!((p.eval(1.0) - 2.0).abs() < 1e-10);
+/// assert!((p.eval(2.0) - 5.0).abs() < 1e-10);
 /// ```
 #[must_use]
-pub fn lagrange(xi: &[f64], yi: &[f64]) -> Polynomial {
-    assert_eq!(xi.len(), yi.len(), "xi and yi must have the same length");
-    let n = xi.len();
+pub fn lagrange(xs: &[f64], ys: &[f64]) -> Polynomial {
+    let n = xs.len();
     let mut result = Polynomial::constant(0.0);
     for i in 0..n {
-        let mut term = Polynomial::constant(yi[i]);
+        let mut basis = Polynomial::constant(1.0);
         for j in 0..n {
             if i == j {
                 continue;
             }
-            let denom = xi[i] - xi[j];
-            let factor = Polynomial::from_coeffs(&[-xi[j] / denom, 1.0 / denom]);
-            term = term * factor;
+            let basis_factor = Polynomial::from_coeffs(&[-xs[j], 1.0]);
+            basis = basis * basis_factor * Polynomial::constant(1.0 / (xs[i] - xs[j]));
         }
-        result = result + term;
+        result = result + basis * Polynomial::constant(ys[i]);
     }
     result
 }
 
-/// Newton's divided differences interpolation.
+/// Divided differences table.
 ///
-/// Returns the interpolating polynomial.
+/// Returns a vector of divided differences `dd[k]` (the first row of each column),
+/// which are the Newton coefficients.
+#[must_use]
+pub fn divided_differences(xs: &[f64], ys: &[f64]) -> Vec<f64> {
+    let n = xs.len();
+    let mut dd: Vec<Vec<f64>> = (0..n).map(|i| vec![ys[i]]).collect();
+    for j in 1..n {
+        for i in 0..n - j {
+            let diff = dd[i + 1][j - 1] - dd[i][j - 1];
+            let denom = xs[i + j] - xs[i];
+            dd[i].push(if denom.abs() < crate::TOL { 0.0 } else { diff / denom });
+        }
+    }
+    dd.iter().map(|row| row[row.len() - 1]).collect()
+}
+
+/// Newton interpolation using divided differences.
 ///
-/// ```
-/// # use mathverse_algebra::interpolate::newton;
-/// let p = newton(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]);
-/// assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
+/// Returns a [`Polynomial`] that passes through every `(xs[i], ys[i])`.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::interpolate::newton;
+///
+/// let xs = [0.0, 1.0, 2.0];
+/// let ys = [1.0, 2.0, 5.0];
+/// let p = newton(&xs, &ys);
+/// assert!((p.eval(0.0) - 1.0).abs() < 1e-10);
 /// ```
 #[must_use]
-pub fn newton(xi: &[f64], yi: &[f64]) -> Polynomial {
-    assert_eq!(xi.len(), yi.len());
-    let n = xi.len();
-    let mut divided = yi.to_vec();
-    let mut coeffs = vec![divided[0]];
-    for j in 1..n {
-        for i in (j..n).rev() {
-            divided[i] = (divided[i] - divided[i - 1]) / (xi[i] - xi[i - j]);
-        }
-        coeffs.push(divided[j]);
-    }
-    let mut result = Polynomial::constant(coeffs[0]);
-    let mut product = Polynomial::constant(1.0);
+pub fn newton(xs: &[f64], ys: &[f64]) -> Polynomial {
+    let dd = divided_differences(xs, ys);
+    let n = xs.len();
+    let mut result = Polynomial::constant(dd[0]);
+    let mut basis = Polynomial::constant(1.0);
     for i in 1..n {
-        product = product * Polynomial::from_coeffs(&[-xi[i - 1], 1.0]);
-        result = result + product.clone() * Polynomial::constant(coeffs[i]);
+        basis = basis * Polynomial::from_coeffs(&[-xs[i - 1], 1.0]);
+        result = result + basis * Polynomial::constant(dd[i]);
     }
     result
+}
+
+/// Evaluate a Newton-form polynomial at a single point without constructing the full polynomial.
+///
+/// Uses the nested multiplication form directly from the divided-difference table.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::interpolate::evaluate_newton;
+///
+/// let xs = [0.0, 1.0, 2.0];
+/// let ys = [1.0, 2.0, 5.0];
+/// assert!((evaluate_newton(&xs, &ys, 1.5) - 4.25).abs() < 1e-10);
+/// ```
+#[must_use]
+pub fn evaluate_newton(xs: &[f64], ys: &[f64], x: f64) -> f64 {
+    let dd = divided_differences(xs, ys);
+    let n = xs.len();
+    let mut result = dd[n - 1];
+    for i in (0..n - 1).rev() {
+        result = dd[i] + (x - xs[i]) * result;
+    }
+    result
+}
+
+/// Vandermonde matrix (n×n) for interpolation nodes `xs`.
+///
+/// Row `i`, column `j` is `xs[i]^j`.
+#[must_use]
+pub fn vandermonde(xs: &[f64]) -> Vec<Vec<f64>> {
+    let n = xs.len();
+    (0..n)
+        .map(|i| (0..n).map(|j| xs[i].powi(j as i32)).collect())
+        .collect()
 }
 
 #[cfg(test)]
@@ -67,26 +136,43 @@ mod tests {
     use super::*;
 
     #[test]
-    fn lagrange_quadratic() {
-        let p = lagrange(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]);
-        assert!((p.eval(1.0) - 1.0).abs() < 1e-9);
-        assert!((p.eval(2.0) - 4.0).abs() < 1e-9);
-        assert!((p.eval(3.0) - 9.0).abs() < 1e-9);
-        assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
+    fn lagrange_test() {
+        let xs = [0.0, 1.0, 2.0];
+        let ys = [1.0, 3.0, 7.0];
+        let p = lagrange(&xs, &ys);
+        let err = (p.eval(0.5) - 2.25).abs();
+        assert!(err < 1e-10);
+        for i in 0..3 {
+            assert!((p.eval(xs[i]) - ys[i]).abs() < 1e-10);
+        }
     }
 
     #[test]
-    fn newton_quadratic() {
-        let p = newton(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]);
-        assert!((p.eval(1.0) - 1.0).abs() < 1e-9);
-        assert!((p.eval(2.0) - 4.0).abs() < 1e-9);
-        assert!((p.eval(3.0) - 9.0).abs() < 1e-9);
-        assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
+    fn newton_test() {
+        let xs = [0.0, 1.0, 2.0];
+        let ys = [1.0, 3.0, 7.0];
+        let p = newton(&xs, &ys);
+        for i in 0..3 {
+            assert!((p.eval(xs[i]) - ys[i]).abs() < 1e-10);
+        }
     }
 
     #[test]
-    fn lagrange_linear() {
-        let p = lagrange(&[0.0, 1.0], &[0.0, 1.0]);
-        assert!((p.eval(0.5) - 0.5).abs() < 1e-9);
+    fn evaluate_newton_test() {
+        let xs = [0.0, 1.0, 2.0];
+        let ys = [1.0, 3.0, 7.0];
+        let val = evaluate_newton(&xs, &ys, 0.5);
+        let p = newton(&xs, &ys);
+        assert!((val - p.eval(0.5)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn vandermonde_test() {
+        let xs = [0.0, 1.0, 2.0];
+        let v = vandermonde(&xs);
+        assert_eq!(v.len(), 3);
+        assert_eq!(v[0], vec![1.0, 0.0, 0.0]);
+        assert_eq!(v[1], vec![1.0, 1.0, 1.0]);
+        assert_eq!(v[2], vec![1.0, 2.0, 4.0]);
     }
 }

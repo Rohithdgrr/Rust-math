@@ -1,3 +1,5 @@
+//! Power spectral density via periodogram, frequency/amplitude/phase spectra.
+
 pub fn periodogram(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let mean: f64 = x.iter().sum::<f64>() / n as f64;

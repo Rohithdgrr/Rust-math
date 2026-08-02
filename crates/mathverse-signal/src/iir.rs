@@ -1,3 +1,5 @@
+//! IIR filter implementation using second-order sections (biquad) for stability.
+
 #[derive(Debug, Clone, Copy)]
 pub struct Biquad { pub b0: f64, pub b1: f64, pub b2: f64, pub a1: f64, pub a2: f64 }
 

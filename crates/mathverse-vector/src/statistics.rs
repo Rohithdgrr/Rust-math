@@ -1,13 +1,20 @@
+/// Arithmetic mean of a slice.
 pub fn mean(v: &[f64]) -> f64 { v.iter().sum::<f64>() / v.len() as f64 }
+
+/// Population variance of a slice.
 pub fn variance(v: &[f64]) -> f64 {
     let m = mean(v);
     v.iter().map(|x| (x - m).powi(2)).sum::<f64>() / v.len() as f64
 }
+/// Population standard deviation.
 pub fn std_dev(v: &[f64]) -> f64 { variance(v).sqrt() }
+
+/// Covariance of two equal-length slices.
 pub fn covariance(a: &[f64], b: &[f64]) -> f64 {
     let ma = mean(a); let mb = mean(b);
     a.iter().zip(b).map(|(x,y)| (x-ma)*(y-mb)).sum::<f64>() / a.len() as f64
 }
+/// Pearson correlation coefficient of two slices. Returns 0.0 if either has zero variance.
 pub fn correlation(a: &[f64], b: &[f64]) -> f64 {
     let c = covariance(a, b);
     let sa = std_dev(a); let sb = std_dev(b);

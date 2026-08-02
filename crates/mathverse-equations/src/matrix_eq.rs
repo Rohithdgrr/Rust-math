@@ -1,3 +1,6 @@
+//! Matrix equation solvers: Gaussian elimination, inverse, determinant, rank.
+
+/// Solves `Ax = b` using Gaussian elimination with partial pivoting.
 pub fn solve_gauss(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     let n = a.len();
     if n == 0 || a[0].len() != n || b.len() != n { return None; }

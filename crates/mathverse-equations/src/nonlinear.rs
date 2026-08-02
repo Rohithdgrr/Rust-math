@@ -1,3 +1,10 @@
+//! Nonlinear root finders: Newton, secant, bisection, Newton for systems.
+//!
+//! These are convenience wrappers with `impl Fn` signatures. For the full
+//! set of root-finding methods (Brent, Muller, Householder, etc.), see
+//! [`mathverse_numerical::root`].
+
+/// Newton's method with analytically provided derivative.
 pub fn newton(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -> Option<f64> {
     let mut x = x0;
     for _ in 0..max_iter {
@@ -10,6 +17,7 @@ pub fn newton(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f64, tol: f64
     None
 }
 
+/// Secant method (derivative-free Newton-like).
 pub fn secant(f: impl Fn(f64) -> f64, x0: f64, x1: f64, tol: f64, max_iter: usize) -> Option<f64> {
     let (mut a, mut b) = (x0, x1);
     for _ in 0..max_iter {
@@ -25,6 +33,7 @@ pub fn secant(f: impl Fn(f64) -> f64, x0: f64, x1: f64, tol: f64, max_iter: usiz
     None
 }
 
+/// Bisection method on a bracketing interval.
 pub fn bisection(f: impl Fn(f64) -> f64, a0: f64, b0: f64, tol: f64) -> Option<f64> {
     let (mut a, mut b) = (a0, b0);
     let mut fa = f(a);
@@ -39,6 +48,7 @@ pub fn bisection(f: impl Fn(f64) -> f64, a0: f64, b0: f64, tol: f64) -> Option<f
     Some((a + b) / 2.0)
 }
 
+/// Newton's method for a system of nonlinear equations.
 pub fn newton_system(f: &[impl Fn(&[f64]) -> f64], j: &impl Fn(&[f64]) -> Vec<Vec<f64>>, x0: &[f64], tol: f64, max_iter: usize) -> Option<Vec<f64>> {
     let n = x0.len();
     let mut x = x0.to_vec();
@@ -76,7 +86,6 @@ mod tests {
 
     #[test]
     fn newton_system_test() {
-        // Solve: x^2 + y^2 = 1, x - y = 0 => x = y = 1/sqrt(2)
         let f: Vec<Box<dyn Fn(&[f64]) -> f64>> = vec![
             Box::new(|x| x[0]*x[0] + x[1]*x[1] - 1.0),
             Box::new(|x| x[0] - x[1]),

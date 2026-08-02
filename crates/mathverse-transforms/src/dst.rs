@@ -1,3 +1,5 @@
+//! Discrete Sine Transform (Type I) and its inverse.
+
 pub fn dst1(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let scale = (2.0 / (n + 1) as f64).sqrt();

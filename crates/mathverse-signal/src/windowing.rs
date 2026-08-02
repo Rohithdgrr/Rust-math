@@ -1,3 +1,5 @@
+//! Window functions: Hamming, Hanning, Blackman, Blackman-Harris, Kaiser, rectangular.
+
 pub fn window_hamming(len: usize) -> Vec<f64> {
     if len <= 1 { return vec![1.0; len]; }
     (0..len).map(|i| { let n = i as f64 / (len - 1) as f64; 0.54 - 0.46 * (2.0 * core::f64::consts::PI * n).cos() }).collect()

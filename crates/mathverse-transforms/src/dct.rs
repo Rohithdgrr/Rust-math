@@ -1,3 +1,5 @@
+//! Discrete Cosine Transform (Type II) and its inverse.
+
 pub fn dct2(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     (0..n).map(|k| {

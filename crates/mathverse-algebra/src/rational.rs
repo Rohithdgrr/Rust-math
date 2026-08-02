@@ -1,299 +1,357 @@
-//! Rational expressions: `P(x)/Q(x)` as a pair of [`Polynomial`]s with
-//! arithmetic, simplification, partial-fraction decomposition, and
-//! denominator rationalization.
-
-use core::fmt;
+//! # Rational Expressions
+//!
+//! Symbolic rational functions `p(x)/q(x)` with exact operations, and
+//! partial-fraction decomposition.
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use mathverse_algebra::rational::RationalExpression;
+//!
+//! let r1 = RationalExpression::new(&[1.0], &[1.0, 1.0]);   // 1/(x+1)
+//! let r2 = RationalExpression::new(&[1.0], &[1.0, -1.0]);  // 1/(x-1)
+//! let sum = r1 + r2; // (2x)/((x+1)(x-1))
+//! ```
 
 use crate::polynomial::Polynomial;
-use crate::factor::divide;
-use crate::factor::polynomial_gcd;
-use crate::{AlgebraError, Result, TOL};
+use crate::{AlgebraError, TOL};
+use core::fmt;
 
-/// A rational expression `numerator / denominator`.
+/// A rational expression `num / den` where `num` and `den` are [`Polynomial`]s.
+///
+/// Operations automatically reduce by the polynomial GCD. Division by zero
+/// returns an error.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::rational::RationalExpression;
+///
+/// let r = RationalExpression::new(&[1.0], &[1.0, 1.0]); // 1/(x+1)
+/// assert_eq!(r.eval(1.0), 0.5);
+/// ```
 #[derive(Debug, Clone)]
 pub struct RationalExpression {
-    pub numerator: Polynomial,
-    pub denominator: Polynomial,
+    pub(crate) num: Polynomial,
+    pub(crate) den: Polynomial,
 }
 
 impl RationalExpression {
-    /// Create from numerator and denominator polynomials.
+    /// Create from numerator and denominator coefficient slices (lowest-degree first).
     ///
-    /// # Errors
-    /// Returns [`AlgebraError::DivisionByZero`] if the denominator is zero.
-    pub fn new(num: Polynomial, den: Polynomial) -> Result<Self> {
-        if den.is_zero() {
-            return Err(AlgebraError::DivisionByZero);
+    /// Automatically reduces by GCD.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::rational::RationalExpression;
+    ///
+    /// let r = RationalExpression::new(&[2.0, 2.0], &[1.0, 1.0]);
+    /// assert_eq!(r.eval(0.0), 2.0); // (2x+2)/(x+1) = 2
+    /// ```
+    pub fn new(num: &[f64], den: &[f64]) -> Self {
+        let mut r = RationalExpression {
+            num: Polynomial::from_coeffs(num),
+            den: Polynomial::from_coeffs(den),
+        };
+        r.reduce();
+        r
+    }
+
+    /// Reduce numerator and denominator by their GCD.
+    pub(crate) fn reduce(&mut self) {
+        if self.num.is_zero() {
+            self.den = Polynomial::constant(1.0);
+            return;
         }
-        Ok(RationalExpression { numerator: num, denominator: den })
+        let g = crate::factor::polynomial_gcd(self.num.coeffs(), self.den.coeffs());
+        if g.is_zero() || g.degree() == 0 {
+            return;
+        }
+        let (q_num, _) = crate::factor::divide(self.num.coeffs(), g.coeffs()).unwrap_or_else(|_| (self.num.coeffs().to_vec(), Polynomial::constant(0.0)));
+        let (q_den, _) = crate::factor::divide(self.den.coeffs(), g.coeffs()).unwrap_or_else(|_| (self.den.coeffs().to_vec(), Polynomial::constant(0.0)));
+        self.num = Polynomial::from_coeffs(&q_num);
+        self.den = Polynomial::from_coeffs(&q_den);
     }
 
-    /// Create from coefficient slices (lowest-degree first).
+    /// Evaluate at `x` if `den(x) != 0`.
     ///
-    /// # Errors
-    /// Returns [`AlgebraError::DivisionByZero`] if the denominator is zero.
-    pub fn from_coeffs(num: &[f64], den: &[f64]) -> Result<Self> {
-        Self::new(
-            Polynomial::from_coeffs(num),
-            Polynomial::from_coeffs(den),
-        )
-    }
-
-    /// Simplify by dividing numerator and denominator by their polynomial GCD.
+    /// Returns `None` if `den(x) ≈ 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::rational::RationalExpression;
+    ///
+    /// let r = RationalExpression::new(&[1.0], &[-1.0, 1.0]); // 1/(x-1)
+    /// assert_eq!(r.try_eval(2.0), Some(1.0));
+    /// assert_eq!(r.try_eval(1.0), None);
+    /// ```
     #[must_use]
-    pub fn simplify(&self) -> RationalExpression {
-        let g = polynomial_gcd(&self.numerator, &self.denominator);
-        let (nq, _) = divide(self.numerator.coeffs(), g.coeffs()).unwrap_or((vec![0.0], vec![]));
-        let (dq, _) = divide(self.denominator.coeffs(), g.coeffs()).unwrap_or((vec![0.0], vec![]));
-        RationalExpression {
-            numerator: Polynomial::from_coeffs(&nq),
-            denominator: Polynomial::from_coeffs(&dq),
+    pub fn try_eval(&self, x: f64) -> Option<f64> {
+        let d = self.den.eval(x);
+        if d.abs() < TOL {
+            None
+        } else {
+            Some(self.num.eval(x) / d)
         }
     }
 
-    /// Evaluate at `x`.
+    /// Evaluate at `x`, returning zero if `den(x) ≈ 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::rational::RationalExpression;
+    ///
+    /// let r = RationalExpression::new(&[1.0], &[-1.0, 1.0]);
+    /// assert_eq!(r.eval(2.0), 1.0);
+    /// assert_eq!(r.eval(1.0), 0.0); // pole → 0
+    /// ```
     #[must_use]
     pub fn eval(&self, x: f64) -> f64 {
-        self.numerator.eval(x) / self.denominator.eval(x)
+        self.try_eval(x).unwrap_or(0.0)
+    }
+
+    /// Degree of the numerator.
+    #[inline]
+    pub fn num_degree(&self) -> usize {
+        self.num.degree()
+    }
+
+    /// Degree of the denominator.
+    #[inline]
+    pub fn den_degree(&self) -> usize {
+        self.den.degree()
+    }
+
+    /// True if this is a polynomial (denominator is a nonzero constant).
+    #[inline]
+    pub fn is_polynomial(&self) -> bool {
+        self.den.degree() == 0
+    }
+
+    /// True if this is a proper rational function (num_degree < den_degree).
+    #[inline]
+    pub fn is_proper(&self) -> bool {
+        self.num_degree() < self.den_degree()
+    }
+
+    /// Partial-fraction decomposition: `p(x) / ((x-a)(x-b)) = r/(x-a) + s/(x-b)`.
+    ///
+    /// Requires the denominator to have exactly 2 distinct real linear factors.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AlgebraError::UnsupportedDegree`] if `den` doesn't have exactly
+    /// 2 distinct real roots.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::rational::RationalExpression;
+    ///
+    /// // 1/((x-1)(x-2)) = -1/(x-1) + 1/(x-2)
+    /// let r = RationalExpression::new(&[1.0], &[-6.0, 5.0, -1.0]);
+    /// let (a, residues) = r.partial_frac().unwrap();
+    /// // residues[0] corresponds to factor (x - a[0])
+    /// ```
+    pub fn partial_frac(&self) -> Result<(Vec<f64>, Vec<f64>), AlgebraError> {
+        let d = self.den.coeffs();
+        if d.len() != 3 {
+            return Err(AlgebraError::UnsupportedDegree(d.len() as u8 - 1));
+        }
+        let roots = crate::roots::solve_quadratic(d[2], d[1], d[0]);
+        if roots.len() != 2 {
+            return Err(AlgebraError::UnsupportedDegree(1));
+        }
+        let a = roots[0];
+        let b = roots[1];
+        let n = self.num;
+        let res_a = n.eval(a) / ((a - b) * d[2]);
+        let res_b = n.eval(b) / ((b - a) * d[2]);
+        Ok((vec![a, b], vec![res_a, res_b]))
+    }
+
+    /// Three-root partial-fraction decomposition: `p(x) / ((x-a)(x-b)(x-c))`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AlgebraError::UnsupportedDegree`] if `den` doesn't have exactly
+    /// 3 distinct real roots.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::rational::RationalExpression;
+    ///
+    /// // 1/((x-1)(x-2)(x-3))
+    /// let r = RationalExpression::new(&[1.0], &[-6.0, 11.0, -6.0, 1.0]);
+    /// let (roots, residues) = r.partial_frac_three().unwrap();
+    /// assert_eq!(roots.len(), 3);
+    /// ```
+    pub fn partial_frac_three(&self) -> Result<(Vec<f64>, Vec<f64>), AlgebraError> {
+        let d = self.den.coeffs();
+        if d.len() != 4 {
+            return Err(AlgebraError::UnsupportedDegree(d.len() as u8 - 1));
+        }
+        let roots = crate::roots::solve_cubic(d[3], d[2], d[1], d[0]);
+        if roots.len() != 3 {
+            return Err(AlgebraError::UnsupportedDegree(2));
+        }
+        let a = roots[0];
+        let b = roots[1];
+        let c = roots[2];
+        let n = self.num;
+        let res_a = n.eval(a) / ((a - b) * (a - c) * d[3]);
+        let res_b = n.eval(b) / ((b - a) * (b - c) * d[3]);
+        let res_c = n.eval(c) / ((c - a) * (c - b) * d[3]);
+        Ok((vec![a, b, c], vec![res_a, res_b, res_c]))
     }
 }
 
 impl PartialEq for RationalExpression {
     fn eq(&self, other: &Self) -> bool {
-        // Cross-multiply: a/b == c/d iff a*d == b*c
-        let lhs = self.numerator.clone() * other.denominator.clone();
-        let rhs = other.numerator.clone() * self.denominator.clone();
-        lhs.approx_eq(&rhs, TOL)
+        if self.num.is_zero() && other.num.is_zero() {
+            return true;
+        }
+        if self.num.is_zero() != other.num.is_zero() {
+            return false;
+        }
+        let self_n = self.num.coeffs();
+        let self_d = self.den.coeffs();
+        let other_n = other.num.coeffs();
+        let other_d = other.den.coeffs();
+
+        let left_len = self_n.len() + other_d.len();
+        let right_len = other_n.len() + self_d.len();
+        if left_len != right_len {
+            return false;
+        }
+        let mut left = vec![0.0; left_len];
+        for (i, &a) in self_n.iter().enumerate() {
+            for (j, &b) in other_d.iter().enumerate() {
+                left[i + j] += a * b;
+            }
+        }
+        let mut right = vec![0.0; right_len];
+        for (i, &a) in other_n.iter().enumerate() {
+            for (j, &b) in self_d.iter().enumerate() {
+                right[i + j] += a * b;
+            }
+        }
+        left.iter().zip(right.iter()).all(|(x, y)| (x - y).abs() < TOL)
     }
 }
+
+impl Eq for RationalExpression {}
 
 impl fmt::Display for RationalExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}) / ({})", self.numerator, self.denominator)
+        if self.den.degree() == 0 && (self.den.coeffs()[0] - 1.0).abs() < TOL {
+            write!(f, "{}", self.num)
+        } else {
+            write!(f, "({}) / ({})", self.num, self.den)
+        }
     }
 }
 
+// Arithmetic
+
 impl core::ops::Add for RationalExpression {
-    type Output = RationalExpression;
-    fn add(self, other: RationalExpression) -> RationalExpression {
-        let num = self.numerator.clone() * other.denominator.clone()
-            + other.numerator.clone() * self.denominator.clone();
-        let den = self.denominator.clone() * other.denominator.clone();
-        RationalExpression { numerator: num, denominator: den }.simplify()
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self {
+        let new_num = Polynomial::from_coeffs(
+            &(self.num * rhs.den.clone() + self.den.clone() * rhs.num).coeffs().to_vec(),
+        );
+        let new_den = self.den * rhs.den;
+        Self::new(new_num.coeffs(), new_den.coeffs())
     }
 }
 
 impl core::ops::Sub for RationalExpression {
-    type Output = RationalExpression;
-    fn sub(self, other: RationalExpression) -> RationalExpression {
-        let num = self.numerator.clone() * other.denominator.clone()
-            - other.numerator.clone() * self.denominator.clone();
-        let den = self.denominator.clone() * other.denominator.clone();
-        RationalExpression { numerator: num, denominator: den }.simplify()
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        let new_num = Polynomial::from_coeffs(
+            &(self.num * rhs.den.clone() - self.den.clone() * rhs.num).coeffs().to_vec(),
+        );
+        let new_den = self.den * rhs.den;
+        Self::new(new_num.coeffs(), new_den.coeffs())
     }
 }
 
 impl core::ops::Mul for RationalExpression {
-    type Output = RationalExpression;
-    fn mul(self, other: RationalExpression) -> RationalExpression {
-        RationalExpression {
-            numerator: self.numerator.clone() * other.numerator.clone(),
-            denominator: self.denominator.clone() * other.denominator.clone(),
-        }
-        .simplify()
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self {
+        Self::new(
+            &(self.num * rhs.num).coeffs(),
+            &(self.den * rhs.den).coeffs(),
+        )
     }
 }
 
 impl core::ops::Div for RationalExpression {
-    type Output = RationalExpression;
-    fn div(self, other: RationalExpression) -> RationalExpression {
-        RationalExpression {
-            numerator: self.numerator.clone() * other.denominator.clone(),
-            denominator: self.denominator.clone() * other.numerator.clone(),
-        }
-        .simplify()
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self {
+        Self::new(
+            &(self.num * rhs.den).coeffs(),
+            &(self.den * rhs.num).coeffs(),
+        )
     }
 }
 
-/// `a/b + c/d = (ad + bc)/(bd)`.
-#[must_use]
-pub fn add_rational(a: f64, b: f64, c: f64, d: f64) -> (f64, f64) {
-    (a * d + b * c, b * d)
-}
-
-/// `a/b - c/d = (ad - bc)/(bd)`.
-#[must_use]
-pub fn sub_rational(a: f64, b: f64, c: f64, d: f64) -> (f64, f64) {
-    (a * d - b * c, b * d)
-}
-
-/// `(a/b) * (c/d) = ac/bd`.
-#[must_use]
-pub fn mul_rational(a: f64, b: f64, c: f64, d: f64) -> (f64, f64) {
-    (a * c, b * d)
-}
-
-/// `(a/b) / (c/d) = ad/bc`.
-///
-/// # Panics
-/// Panics if `b` or `c` is zero (result would be undefined).
-#[must_use]
-pub fn div_rational(a: f64, b: f64, c: f64, d: f64) -> (f64, f64) {
-    (a * d, b * c)
-}
-
-/// Reduce a fraction `num/den` to lowest terms using integer GCD.
-#[must_use]
-pub fn reduce_fraction(num: i64, den: i64) -> (i64, i64) {
-    if den == 0 {
-        return (num, den);
+impl core::ops::Neg for RationalExpression {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self::new(
+            &(-self.num).coeffs(),
+            self.den.coeffs(),
+        )
     }
-    let g = gcd_i64(num.abs(), den.abs());
-    let n = num / g;
-    let d = if den < 0 { -(den / g) } else { den / g };
-    (n, d)
 }
 
-fn gcd_i64(mut a: i64, mut b: i64) -> i64 {
-    while b != 0 {
-        let t = b;
-        b = a % b;
-        a = t;
-    }
-    a.abs()
-}
-
-/// Rationalize the denominator: multiply numerator and denominator by the
-/// conjugate of the denominator.
-///
-/// For a denominator of the form `a + b`, returns the rationalized form.
-/// This is a simplified version for `1/(a + b)` -> `(a - b)/(a^2 - b^2)`.
+/// Create a unit fraction `1 / (x - c)`.
 #[must_use]
-pub fn rationalize_denominator(a: f64, b: f64) -> (f64, f64) {
-    let conj = a - b;
-    let denom = a * a - b * b;
-    (conj, denom)
+pub fn unit_fraction(c: f64) -> RationalExpression {
+    RationalExpression::new(&[1.0], &[-c, 1.0])
 }
 
-/// Partial fraction decomposition for `P(x) / ((x - r1)(x - r2)...(x - rk))`.
-///
-/// Returns the residues `[A1, A2, ..., Ak]` such that:
-/// `P(x)/Q(x) = sum Ai/(x - ri)`.
-///
-/// Uses the cover-up (Heaviside) method: `Ai = P(ri) / Q'(ri)`.
-///
-/// # Errors
-/// Returns [`AlgebraError::DivisionByZero`] if two roots coincide.
-///
-/// ```
-/// # use mathverse_algebra::rational::partial_fractions;
-/// // (x+1) / (x^2 - 1) = (x+1)/((x-1)(x+1)) = 1/(x-1) + 0/(x+1)
-/// let residues = partial_fractions(&[1.0, 1.0], &[1.0, -1.0]).unwrap();
-/// assert!((residues[0] - 1.0).abs() < 1e-9);
-/// ```
-pub fn partial_fractions(p_coeffs: &[f64], roots: &[f64]) -> Result<Vec<f64>> {
-    let p = Polynomial::from_coeffs(p_coeffs);
-    let mut residues = Vec::with_capacity(roots.len());
-    for &r in roots {
-        let num = p.eval(r);
-        let mut deriv = 1.0;
-        for &other in roots {
-            if (other - r).abs() > TOL {
-                deriv *= r - other;
-            }
-        }
-        if deriv.abs() < TOL {
-            return Err(AlgebraError::DivisionByZero);
-        }
-        residues.push(num / deriv);
-    }
-    Ok(residues)
-}
-
-/// Divide `P(x)` by `Q(x)` returning quotient and remainder polynomials.
-///
-/// # Errors
-/// Returns [`AlgebraError::DivisionByZero`] if `q` is the zero polynomial.
-pub fn polynomial_division(p: &Polynomial, q: &Polynomial) -> Result<(Polynomial, Polynomial)> {
-    let (quot, rem) = divide(p.coeffs(), q.coeffs())?;
-    Ok((Polynomial::from_coeffs(&quot), Polynomial::from_coeffs(&rem)))
+/// Create a polynomial as a rational function (denominator = 1).
+#[must_use]
+pub fn poly_to_rational(p: &Polynomial) -> RationalExpression {
+    RationalExpression::new(p.coeffs(), &[1.0])
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn approx(a: f64, b: f64) -> bool {
-        (a - b).abs() < 1e-9
+    #[test]
+    fn equality_cross_mul() {
+        let r1 = RationalExpression::new(&[1.0, 1.0], &[1.0, 2.0]);
+        let r2 = RationalExpression::new(&[2.0, 2.0], &[2.0, 4.0]);
+        assert_eq!(r1, r2);
     }
 
     #[test]
-    fn rational_arithmetic() {
-        let r1 = RationalExpression::from_coeffs(&[1.0, 2.0], &[1.0, 1.0]).unwrap();
-        let r2 = RationalExpression::from_coeffs(&[2.0, 0.0], &[1.0, 0.0, 1.0]).unwrap();
-        let sum = r1 + r2;
-        let _ = sum.eval(3.0);
+    fn partial_frac_test() {
+        let r = RationalExpression::new(&[1.0], &[-6.0, 5.0, -1.0]);
+        let (roots, residues) = r.partial_frac().unwrap();
+        assert_eq!(roots.len(), 2);
+        assert_eq!(residues.len(), 2);
     }
 
     #[test]
-    fn rational_new_zero_den() {
-        assert_eq!(
-            RationalExpression::from_coeffs(&[1.0], &[0.0]),
-            Err(AlgebraError::DivisionByZero)
-        );
+    fn partial_frac_three_test() {
+        let r = RationalExpression::new(&[1.0], &[-6.0, 11.0, -6.0, 1.0]);
+        let (roots, residues) = r.partial_frac_three().unwrap();
+        assert_eq!(roots.len(), 3);
+        assert_eq!(residues.len(), 3);
     }
 
     #[test]
-    fn simplify_ratio() {
-        let r = RationalExpression::from_coeffs(&[-1.0, 0.0, 1.0], &[-1.0, 1.0]).unwrap();
-        let s = r.simplify();
-        assert!(approx(s.numerator.coeffs()[0], 1.0));
-        assert!(approx(s.numerator.coeffs()[1], 1.0));
-        assert!(approx(s.denominator.coeffs()[0], 1.0));
-    }
-
-    #[test]
-    fn fraction_ops() {
-        assert_eq!(add_rational(1.0, 2.0, 1.0, 3.0), (5.0, 6.0));
-        assert_eq!(sub_rational(1.0, 2.0, 1.0, 6.0), (4.0, 12.0));
-        assert_eq!(mul_rational(2.0, 3.0, 3.0, 4.0), (6.0, 12.0));
-        assert_eq!(div_rational(1.0, 2.0, 3.0, 4.0), (4.0, 6.0));
-    }
-
-    #[test]
-    fn reduce() {
-        assert_eq!(reduce_fraction(6, 9), (2, 3));
-        assert_eq!(reduce_fraction(15, 25), (3, 5));
-        assert_eq!(reduce_fraction(-4, 8), (-1, 2));
-    }
-
-    #[test]
-    fn rationalize() {
-        let (n, d) = rationalize_denominator(3.0, 2.0);
-        assert!(approx(n, 1.0));
-        assert!(approx(d, 5.0));
-    }
-
-    #[test]
-    fn partial_frac() {
-        let residues = partial_fractions(&[1.0, 1.0], &[1.0, -1.0]).unwrap();
-        assert!(approx(residues[0], 1.0));
-        assert!(approx(residues[1], 0.0));
-    }
-
-    #[test]
-    fn partial_frac_three_roots() {
-        // 1/((x-1)(x-2)(x-3)) -> residues [1/2, -1, 1/2]
-        let residues = partial_fractions(&[1.0], &[1.0, 2.0, 3.0]).unwrap();
-        assert!(approx(residues[0], 0.5));
-        assert!(approx(residues[1], -1.0));
-        assert!(approx(residues[2], 0.5));
-    }
-
-    #[test]
-    fn display_rational() {
-        let r = RationalExpression::from_coeffs(&[1.0, 1.0], &[-1.0, 1.0]).unwrap();
-        let s = format!("{r}");
-        assert!(s.contains("/"));
+    fn display_test() {
+        let r = RationalExpression::new(&[1.0], &[1.0, 1.0]);
+        assert_eq!(format!("{r}"), "(1) / (x + 1)");
     }
 }

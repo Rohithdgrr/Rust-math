@@ -1,4 +1,34 @@
-//! `Polynomial` type: real-coefficient polynomials, lowest-degree-first.
+//! # Polynomial
+//!
+//! The core type for this crate: a polynomial with real (`f64`) coefficients,
+//! stored in **lowest-degree-first** order.
+//!
+//! ## Representation
+//!
+//! ```text
+//! coeffs = [a₀, a₁, a₂, ..., aₙ]
+//! p(x)  = a₀ + a₁x + a₂x² + ... + aₙxⁿ
+//! ```
+//!
+//! Leading zeros are automatically stripped, so the zero polynomial is `[0.0]`.
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use mathverse_algebra::Polynomial;
+//!
+//! // x^2 - 5x + 6
+//! let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
+//! assert_eq!(p.degree(), 2);
+//! assert_eq!(p.eval(2.0), 0.0);
+//!
+//! // Scalar operations
+//! let q = &p + 1.0;      // x^2 - 5x + 7
+//! let r = &p * 2.0;      // 2x^2 - 10x + 12
+//!
+//! // Display
+//! assert_eq!(format!("{p}"), "x^2 - 5x + 6");
+//! ```
 
 use core::fmt;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
@@ -7,6 +37,16 @@ use crate::TOL;
 
 /// Polynomial with real coefficients, stored **lowest degree first**:
 /// `coeffs[i]` is the coefficient of `x^i`. Leading zeros are stripped.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::Polynomial;
+///
+/// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]); // x^2 - 5x + 6
+/// assert_eq!(p.degree(), 2);
+/// assert_eq!(p.eval(3.0), 0.0);
+/// ```
 #[derive(Debug, Clone)]
 pub struct Polynomial {
     pub(crate) coeffs: Vec<f64>,
@@ -15,9 +55,13 @@ pub struct Polynomial {
 impl Polynomial {
     /// Build from coefficients, lowest degree first.
     ///
-    /// ```
-    /// # use mathverse_algebra::Polynomial;
-    /// // x^2 - 5x + 6
+    /// Leading zeros are stripped. The zero polynomial is `[0.0]`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
     /// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
     /// assert_eq!(p.degree(), 2);
     /// assert_eq!(p.eval(1.0), 2.0);
@@ -35,18 +79,37 @@ impl Polynomial {
     }
 
     /// Constant polynomial `c`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
+    /// let p = Polynomial::constant(5.0);
+    /// assert_eq!(p.degree(), 0);
+    /// assert_eq!(p.eval(100.0), 5.0);
+    /// ```
     #[inline]
     pub fn constant(c: f64) -> Self {
         Self::from_coeffs(&[c])
     }
 
     /// The polynomial `x`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
+    /// let x = Polynomial::x();
+    /// assert_eq!(x.eval(3.0), 3.0);
+    /// ```
     #[inline]
     pub fn x() -> Self {
         Polynomial { coeffs: vec![0.0, 1.0] }
     }
 
-    /// `degree` of the polynomial (0 for constants, including zero).
+    /// Degree of the polynomial (0 for constants, including zero).
     #[inline]
     pub fn degree(&self) -> usize {
         self.coeffs.len() - 1
@@ -59,12 +122,31 @@ impl Polynomial {
     }
 
     /// True if this is the zero polynomial.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
+    /// assert!(Polynomial::constant(0.0).is_zero());
+    /// assert!(!Polynomial::constant(1.0).is_zero());
+    /// ```
     #[inline]
     pub fn is_zero(&self) -> bool {
         self.coeffs.iter().all(|c| c.abs() < TOL)
     }
 
-    /// Evaluate at `x` (Horner's method, O(degree)).
+    /// Evaluate at `x` using Horner's method (O(degree)).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
+    /// let p = Polynomial::from_coeffs(&[1.0, -2.0, 1.0]); // (x-1)^2
+    /// assert_eq!(p.eval(1.0), 0.0);
+    /// assert_eq!(p.eval(3.0), 4.0);
+    /// ```
     #[inline]
     pub fn eval(&self, x: f64) -> f64 {
         self.coeffs.iter().rev().fold(0.0, |acc, &c| acc * x + c)
@@ -72,8 +154,11 @@ impl Polynomial {
 
     /// Derivative polynomial.
     ///
-    /// ```
-    /// # use mathverse_algebra::Polynomial;
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
     /// // d/dx (x^3 - 2x + 1) = 3x^2 - 2
     /// let p = Polynomial::from_coeffs(&[1.0, -2.0, 0.0, 1.0]);
     /// assert_eq!(p.derivative().coeffs(), &[-2.0, 0.0, 3.0]);
@@ -91,6 +176,16 @@ impl Polynomial {
     }
 
     /// Indefinite integral with zero constant term.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
+    /// let p = Polynomial::from_coeffs(&[-2.0, 2.0]); // 2x - 2
+    /// let i = p.integral(); // x^2 - 2x
+    /// assert_eq!(i.coeffs(), &[0.0, -2.0, 1.0]);
+    /// ```
     #[must_use]
     pub fn integral(&self) -> Polynomial {
         let mut c: Vec<f64> = vec![0.0];
@@ -100,8 +195,20 @@ impl Polynomial {
         Polynomial { coeffs: c }
     }
 
-    /// Real roots, numerically stable.
-    /// Degree > 4 returns `[]` (use [`solve_quartic`](crate::roots::solve_quartic)).
+    /// Real roots via closed-form solvers (degree ≤ 4).
+    ///
+    /// Returns an empty `Vec` for degree > 4 or constants.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
+    /// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]); // (x-2)(x-3)
+    /// let mut roots = p.roots();
+    /// roots.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    /// assert_eq!(roots, vec![2.0, 3.0]);
+    /// ```
     #[must_use]
     pub fn roots(&self) -> Vec<f64> {
         crate::roots::solve(&self.coeffs)
@@ -115,6 +222,19 @@ impl Polynomial {
     }
 
     /// Approximate equality with tolerance `tol`.
+    ///
+    /// Two polynomials are equal if they have the same degree and all
+    /// coefficients differ by less than `tol`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use mathverse_algebra::Polynomial;
+    ///
+    /// let a = Polynomial::from_coeffs(&[1.0, 2.0]);
+    /// let b = Polynomial::from_coeffs(&[1.0, 2.0 + 1e-15]);
+    /// assert!(a.approx_eq(&b, 1e-12));
+    /// ```
     #[must_use]
     pub fn approx_eq(&self, other: &Polynomial, tol: f64) -> bool {
         if self.degree() != other.degree() {

@@ -1,19 +1,57 @@
-//! Polynomials over `f64`, with evaluation, calculus, factorization,
-//! equation solving, and algebraic identities.
+//! # mathverse-algebra
 //!
-//! Module layout:
-//! - [`polynomial`]: `Polynomial` type and arithmetic
-//! - [`roots`]: linear/quadratic/cubic/quartic solvers, discriminants, Vieta
-//! - [`factor`]: synthetic division, polynomial GCD, rational-root candidates
-//! - [`identities`]: binomial theorem, Pascal's triangle, sum/difference of cubes
-//! - [`rational`]: rational expressions, partial fractions
-//! - [`sequences`]: arithmetic/geometric sequences and sums
-//! - [`interpolate`]: Lagrange and Newton interpolation
-//! - [`symmetric`]: elementary symmetric polynomials, Newton's identities
-//! - [`compose`]: polynomial composition
-//! - [`determinant`]: 2×2/3×3 determinants, inverses, Cramer's rule
-//! - [`exponents`]: exponent/log/radical identity helpers
-//! - [`systems`]: 2×2/3×3 linear systems
+//! A pure-Rust library for polynomial algebra: evaluation, calculus,
+//! factorization, equation solving, and algebraic identities.
+//!
+//! ## Quick Start
+//!
+//! ```rust
+//! use mathverse_algebra::Polynomial;
+//!
+//! // Create a polynomial: x^2 - 5x + 6
+//! let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
+//!
+//! // Evaluate at x = 3
+//! assert_eq!(p.eval(3.0), 0.0);
+//!
+//! // Find roots
+//! let roots = p.roots();
+//! assert_eq!(roots.len(), 2);
+//! ```
+//!
+//! ## Modules
+//!
+//! | Module | Description |
+//! |---|---|
+//! | [`polynomial`] | `Polynomial` type with arithmetic, evaluation, calculus |
+//! | [`roots`] | Linear, quadratic, cubic, quartic equation solvers |
+//! | [`factor`] | Synthetic division, polynomial GCD, rational-root theorem |
+//! | [`determinant`] | 2×2/3×3 determinants, inverses, Cramer's rule, rank, trace |
+//! | [`systems`] | 2×2/3×3 linear system solvers |
+//! | [`rational`] | Rational expressions, partial-fraction decomposition |
+//! | [`identities`] | Binomial theorem, Pascal's triangle, sum/difference of cubes |
+//! | [`sequences`] | Arithmetic/geometric sequences and series |
+//! | [`interpolate`] | Lagrange and Newton polynomial interpolation |
+//! | [`symmetric`] | Elementary symmetric polynomials, Newton's identities |
+//! | [`compose`] | Polynomial composition `f(g(x))` |
+//! | [`exponents`] | Exponent, logarithm, and radical identity verifiers |
+//!
+//! ## Error Handling
+//!
+//! All fallible operations return [`Result<T>`] with [`AlgebraError`]:
+//!
+//! - [`AlgebraError::DivisionByZero`] — division by zero polynomial
+//! - [`AlgebraError::Singular`] — singular matrix or system
+//! - [`AlgebraError::NoRealRoots`] — no real roots exist
+//! - [`AlgebraError::UnsupportedDegree`] — polynomial degree not supported
+//! - [`AlgebraError::DimensionMismatch`] — input length mismatch
+//!
+//! ## Conventions
+//!
+//! - Polynomials use **lowest-degree-first** coefficient order: `coeffs[i]` is the coefficient of `x^i`
+//! - A global tolerance of `TOL = 1e-12` is used for float comparisons
+//! - All functions are `#[must_use]` — unused return values produce a warning
+//! - `#![forbid(unsafe_code)]` — no unsafe code in the entire crate
 
 #![forbid(unsafe_code)]
 
@@ -23,6 +61,8 @@ use core::fmt;
 pub const TOL: f64 = 1e-12;
 
 /// Error type for algebraic operations.
+///
+/// All fallible operations in this crate return `Result<T, AlgebraError>`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AlgebraError {
     /// Division by a zero polynomial or zero denominator.

@@ -1,3 +1,5 @@
+//! Radix-2 Cooley-Tukey FFT using complex numbers.
+
 use mathverse_complex::Complex;
 
 pub fn fft(x: &[Complex]) -> mathverse_core::error::MathResult<Vec<Complex>> {

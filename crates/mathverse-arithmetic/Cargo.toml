@@ -2,6 +2,7 @@
 name = "mathverse-arithmetic"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 description = "MathVerse arithmetic: percentages, powers, roots, modulus, re-exports of core scalar ops"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
@@ -10,3 +11,6 @@ categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+
+[lints]
+workspace = true

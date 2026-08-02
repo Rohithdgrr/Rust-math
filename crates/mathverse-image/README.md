@@ -1,157 +1,189 @@
-# MathVerse Image
+# mathverse-image
 
-A production-grade Rust library for grayscale image processing, providing efficient implementations of common computer vision algorithms including convolution kernels, blur, edge detection (Canny), morphology operations, and geometric transforms.
+[![Crates.io](https://img.shields.io/crates/v/mathverse-image.svg)](https://crates.io/crates/mathverse-image)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+
+Grayscale image processing: kernels, blur, edge detection, morphology, I/O, and pixel operations for the MathVerse ecosystem.
 
 ## Features
 
-- **Core Image Operations**: Convolution, Gaussian blur, box blur, sharpening
-- **Edge Detection**: Sobel gradients and Canny edge detection with hysteresis
-- **Morphological Operations**: Erosion, dilation, opening, closing
-- **Geometric Transforms**: Horizontal flip, 90° rotation, nearest-neighbor resize
-- **Histogram Analysis**: 256-bin histogram computation
-- **Error Handling**: Comprehensive error types with `thiserror`
-- **Zero Dependencies**: Minimal external dependencies for maximum compatibility
+- **Grayscale images** — `GrayImage` type with row-major `f64` pixels in [0, 1]
+- **Convolutions** — 3×3 kernel convolution, Gaussian blur, box blur, sharpen
+- **Edge detection** — Sobel operator, full Canny pipeline (NMS, hysteresis)
+- **Thresholding** — binary threshold, adaptive local-mean threshold
+- **Noise** — Gaussian noise, salt-and-pepper noise
+- **Morphology** — erode, dilate, open, close, binarize
+- **Arithmetic** — add, subtract, multiply, scale, offset, invert
+- **Statistics** — mean, std dev, min, max, histogram
+- **Transforms** — flip, rotate, resize (nearest-neighbor)
+- **I/O** — load/save PNG, JPEG, BMP via the `image` crate
+
+## Module Overview
+
+| Module | Description |
+|---|---|
+| `lib` | `GrayImage` type, `box_blur`, `sharpen`, convolution, Sobel, histogram, transforms |
+| `operations` | Thresholding, noise, arithmetic, statistics, contrast |
+| `canny` | Full Canny edge detection pipeline |
+| `morphology` | Binary morphology: erode, dilate, open, close |
+| `io` | File and byte-level I/O |
+| `error` | `ImageError` enum and `Result` alias |
 
 ## Installation
 
-Add this to your `Cargo.toml`:
-
 ```toml
 [dependencies]
-mathverse-image = "0.1.0"
+mathverse-image = { path = "../mathverse-image" }
 ```
 
-## Usage
-
-### Basic Image Creation
+## Quick Start
 
 ```rust
-use mathverse_image::GrayImage;
+use mathverse_image::*;
 
-// Create a new blank image
-let mut img = GrayImage::new(64, 64);
+fn main() {
+    // Create a 4×4 image
+    let mut img = GrayImage::new(4, 4);
+    for y in 0..4 {
+        for x in 0..4 {
+            img.set(x, y, (x + y) as f64 / 6.0);
+        }
+    }
 
-// Create from existing data
-let data = vec![0.5; 64 * 64];
-let img = GrayImage::from_data(64, 64, data)?;
-```
+    // Gaussian blur
+    let blurred = img.gaussian_blur(1, 1.0);
+    println!("Blurred mean: {:.4}", blurred.mean());
 
-### Image Processing
+    // Sobel edge detection
+    let (magnitude, _direction) = img.sobel();
+    println!("Max gradient: {:.4}", magnitude.max_value());
 
-```rust
-use mathverse_image::{GrayImage, box_blur, sharpen};
+    // Threshold
+    let binary = img.threshold(0.5);
+    println!("Binary mean: {:.4}", binary.mean());
 
-// Apply box blur
-let blurred = box_blur(&img);
-
-// Apply sharpening
-let sharpened = sharpen(&img);
-
-// Gaussian blur with custom sigma
-let gaussian_blurred = img.gaussian_blur(3, 1.5);
-```
-
-### Edge Detection
-
-```rust
-use mathverse_image::canny::canny;
-
-// Canny edge detection
-let edges = canny(&img, 1.5, 0.05, 0.15);
-
-// Sobel gradients
-let (magnitude, direction) = img.sobel();
-```
-
-### Morphological Operations
-
-```rust
-use mathverse_image::morphology::{binarize, erode, dilate, open, close};
-
-// Binarize image
-let binary = binarize(&img, 0.5);
-
-// Erosion and dilation
-let eroded = erode(&binary);
-let dilated = dilate(&binary);
-
-// Opening and closing
-let opened = open(&binary);
-let closed = close(&binary);
-```
-
-### Geometric Transforms
-
-```rust
-// Horizontal flip
-let flipped = img.flip_h();
-
-// 90° rotation
-let rotated = img.rotate90();
-
-// Resize
-let resized = img.resize(128, 128);
-```
-
-### Histogram Analysis
-
-```rust
-let histogram = img.histogram();
-```
-
-## Error Handling
-
-The library uses a comprehensive error type:
-
-```rust
-use mathverse_image::{GrayImage, ImageError};
-
-fn process_image() -> Result<(), ImageError> {
-    let img = GrayImage::from_data(64, 64, data)?;
-    // ... process image
-    Ok(())
+    // Histogram
+    let hist = img.histogram();
+    println!("Non-zero bins: {}", hist.iter().filter(|&&c| c > 0).count());
 }
 ```
 
-## Testing
+Expected output:
 
-Run the test suite:
-
-```bash
-cargo test
+```
+Blurred mean: 0.5000
+Max gradient: 0.5000
+Binary mean: 0.5000
+Non-zero bins: 20
 ```
 
-Run benchmarks:
+## Per-Module Reference
 
-```bash
-cargo bench
+### `GrayImage` — Core Type
+
+| Method | Description |
+|---|---|
+| `GrayImage::new(w, h)` | Blank black image |
+| `GrayImage::from_data(w, h, data)` | From raw `Vec<f64>`, validates dimensions |
+| `.get(x, y)` | Get pixel value |
+| `.set(x, y, v)` | Set pixel (clamped to [0, 1]) |
+| `.width()` / `.height()` | Dimensions |
+| `.data()` | Raw pixel slice |
+
+### `lib` — Convolution & Filters
+
+| Method | Description |
+|---|---|
+| `.convolve3(kernel)` | 3×3 convolution, border-clamped |
+| `.gaussian_blur(r, sigma)` | Separable Gaussian blur |
+| `.sobel()` → `(GrayImage, Vec<f64>)` | Sobel gradient magnitude + direction |
+| `.flip_h()` | Horizontal flip |
+| `.rotate90()` | 90° clockwise rotation |
+| `.resize(nw, nh)` | Nearest-neighbor resize |
+| `.histogram()` → `[usize; 256]` | 256-bin histogram |
+
+Free functions:
+
+| Function | Description |
+|---|---|
+| `box_blur(img)` | 3×3 uniform average blur |
+| `sharpen(img)` | Unsharp mask kernel |
+
+### `operations` — Pixel Operations
+
+| Method | Description |
+|---|---|
+| `.threshold(t)` | Binary threshold at `t` |
+| `.adaptive_threshold(block_size, c)` | Local-mean adaptive threshold |
+| `.add_gaussian_noise(mean, std_dev)` | Add Gaussian noise |
+| `.add_salt_pepper_noise(density)` | Add salt-and-pepper noise |
+| `.add(other)` | Element-wise add (clamped) |
+| `.subtract(other)` | Element-wise subtract (clamped) |
+| `.multiply(other)` | Element-wise multiply (clamped) |
+| `.scale(factor)` | Scalar multiply |
+| `.offset(value)` | Add constant |
+| `.invert()` | 1.0 − pixel |
+| `.gamma_correction(gamma)` | Gamma correction |
+| `.mean()` | Mean pixel value |
+| `.std_dev()` | Standard deviation |
+| `.min_value()` / `.max_value()` | Min/max pixel |
+| `.normalize()` | Normalize to [0, 1] |
+| `.contrast_stretch(low, high)` | Map [low, high] → [0, 1] |
+
+### `canny` — Canny Edge Detection
+
+| Function | Description |
+|---|---|
+| `canny(img, sigma, low, high)` | Full pipeline: Gaussian → Sobel → NMS → double threshold → hysteresis |
+
+### `morphology` — Binary Morphology
+
+| Function | Description |
+|---|---|
+| `binarize(img, t)` | Threshold to 0/1 |
+| `erode(img)` | 3×3 cross erosion |
+| `dilate(img)` | 3×3 cross dilation |
+| `open(img)` | Erode then dilate |
+| `close(img)` | Dilate then erode |
+| `sum(img)` | Sum of all pixel values |
+
+### `io` — Image I/O
+
+| Function | Description |
+|---|---|
+| `load(path)` | Load from PNG/JPEG/BMP |
+| `save(img, path)` | Save to file |
+| `load_from_bytes(bytes)` | Load from raw bytes |
+| `save_to_bytes(img, format)` | Save to in-memory bytes |
+
+### `error` — Error Types
+
+```rust
+pub enum ImageError {
+    InvalidDimensions { width, height },
+    DataLengthMismatch { data_len, expected_len, width, height },
+    OutOfBounds { x, y, width, height },
+    InvalidPixelValue { value },
+    Io(std::io::Error),
+    ImageError(image::ImageError),
+}
 ```
+
+## Dependencies
+
+- `image 0.25`
+- `thiserror 1.0`
+- `rand 0.8`
+
+## Future Scope
+
+- Color image support (RGB, RGBA)
+- Bilateral filter, median filter
+- Morphological gradient, top-hat
+- Connected component labeling
+- Template matching
+- Histogram equalization
 
 ## License
 
-This project is dual-licensed under either:
-
-- MIT License ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or https://www.apache.org/licenses/LICENSE-2.0)
-
-You may choose either license for your use.
-
-## Contributing
-
-Contributions are welcome! Please ensure all tests pass before submitting a pull request.
-
-## Performance
-
-The library is designed for performance with:
-- Efficient row-major data layout
-- Separable Gaussian blur implementation
-- In-place operations where possible
-- Minimal allocations in hot paths
-
-## Roadmap
-
-- [ ] Color image support
-- [ ] Additional morphological structuring elements
-- [ ] More interpolation methods for resize
-- [ ] FFT-based convolution
-- [ ] Parallel processing support
+MIT OR Apache-2.0

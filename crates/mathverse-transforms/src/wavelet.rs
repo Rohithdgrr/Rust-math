@@ -1,3 +1,5 @@
+//! Haar discrete wavelet transform: forward and inverse, multi-level.
+
 pub fn haar_dwt(x: &[f64]) -> mathverse_core::error::MathResult<Vec<f64>> {
     if x.is_empty() || !x.len().is_multiple_of(2) {
         return Err(mathverse_core::error::MathError::InvalidArgument("haar_dwt: length must be even and nonzero"));

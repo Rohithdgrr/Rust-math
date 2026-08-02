@@ -2,6 +2,7 @@
 name = "mathverse-statistics"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 description = "MathVerse statistics: descriptive stats, distributions, hypothesis tests, regression, multivariate analysis, and inference"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
@@ -9,6 +10,11 @@ keywords = ["math", "statistics", "regression", "hypothesis-testing", "descripti
 categories = ["science", "mathematics"]
 
 [dependencies]
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+
+
+[lints]
+workspace = true
 
 [features]
 default = ["std"]

@@ -1,3 +1,6 @@
+//! Modular arithmetic: exponentiation, inverse, CRT, addition/subtraction/multiplication.
+
+/// Modular exponentiation: `base^exp mod m` using square-and-multiply.
 pub fn mod_pow(mut base: u64, mut exp: u64, m: u64) -> u64 {
     if m == 1 { return 0; }
     let mut result = 1u64;

@@ -1,3 +1,6 @@
+//! Prime factorization, divisors, divisor functions, Möbius function, perfect numbers.
+
+/// Returns the prime factors of `n` in non-decreasing order.
 pub fn prime_factors(mut n: u64) -> Vec<u64> {
     let mut out = Vec::new();
     while n.is_multiple_of(2) { out.push(2); n /= 2; }

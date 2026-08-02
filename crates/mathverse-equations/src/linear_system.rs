@@ -1,3 +1,6 @@
+//! Linear system solvers: 2×2, 3×3, Gaussian row reduction.
+
+/// Solves a 2×2 system `Ax = b` using Cramer's rule.
 pub fn solve_2x2(a: [[f64; 2]; 2], b: [f64; 2]) -> Option<[f64; 2]> {
     let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
     if det.abs() < 1e-15 { return None; }

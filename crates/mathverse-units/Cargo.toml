@@ -2,10 +2,11 @@
 name = "mathverse-units"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 authors = ["MathVerse Contributors"]
 description = "Compile-time dimensional analysis and units"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/mathverse/mathverse"
+repository = "https://github.com/Rohithdgrr/Rust-math"
 keywords = ["units", "dimensional-analysis", "physics", "si-units"]
 categories = ["science", "mathematics", "no-std"]
 
@@ -14,5 +15,8 @@ mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 typenum = "1.17"
 frunk = "0.4"
 
+
+[lints]
+workspace = true
 [dev-dependencies]
 approx = "0.5"

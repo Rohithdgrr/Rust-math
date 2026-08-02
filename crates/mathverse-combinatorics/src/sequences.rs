@@ -1,3 +1,6 @@
+//! Integer sequences: Fibonacci, Lucas, Catalan, Tribonacci, Tetranacci, Collatz.
+
+/// Computes the `n`th Fibonacci number (F(0)=0, F(1)=1).
 pub fn fibonacci(n: u64) -> u128 {
     let n = n as usize;
     if n == 0 { return 0; }

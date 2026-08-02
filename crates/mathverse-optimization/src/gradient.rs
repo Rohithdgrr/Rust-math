@@ -1,3 +1,6 @@
+//! Gradient-based optimizers: SGD, Adam, RMSProp, Adagrad, Nadam.
+
+/// Vanilla gradient descent with fixed learning rate.
 pub fn gradient_descent(grad: &dyn Fn(&[f64]) -> Vec<f64>, x0: &[f64], lr: f64, tol: f64, max_iters: usize) -> Vec<f64> {
     let mut x = x0.to_vec();
     for _ in 0..max_iters {

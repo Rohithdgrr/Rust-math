@@ -1,3 +1,5 @@
+//! Homography estimation and point warping.
+
 #[derive(Debug, Clone)]
 pub struct Homography(pub [f64; 9]);
 

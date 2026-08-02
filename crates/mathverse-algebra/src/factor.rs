@@ -1,312 +1,319 @@
-//! Polynomial factorization helpers: synthetic division, polynomial long
-//! division, GCD (Euclidean algorithm), and rational-root candidates.
+//! # Factor
+//!
+//! Polynomial factorization: synthetic division, GCD, remainder/factor theorem,
+//! and rational root candidates.
+//!
+//! All polynomials use **lowest-degree-first** coefficient order.
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use mathverse_algebra::factor::{synthetic_division, polynomial_gcd};
+//!
+//! // (x^3 - 6x^2 + 11x - 6) ÷ (x - 1) → quotient (x^2 - 5x + 6), remainder 0
+//! let div = synthetic_division(&[-6.0, 11.0, -6.0, 1.0], 1.0);
+//! assert_eq!(div.remainder, 0.0);
+//! ```
 
 use crate::polynomial::Polynomial;
-use crate::{AlgebraError, Result, TOL};
+use crate::roots::rational_root_candidates;
+use crate::{AlgebraError, TOL};
 
-/// Synthetic division of `coeffs` (lowest-degree first) by `(x - c)`.
+/// Synthetic division: divide the polynomial by `(x - c)`.
 ///
-/// Returns `(quotient_coeffs, remainder)`. The quotient has degree one less
-/// than the dividend.
+/// Returns `(quotient, remainder)` where the remainder is a scalar.
 ///
-/// ```
-/// # use mathverse_algebra::factor::synthetic_division;
-/// // Divide x^2 - 5x + 6 by (x - 2) -> quotient x - 3, remainder 0
-/// let (q, r) = synthetic_division(&[6.0, -5.0, 1.0], 2.0);
-/// assert!((q[0] - (-3.0)).abs() < 1e-12 && (q[1] - 1.0).abs() < 1e-12);
-/// assert!(r.abs() < 1e-12);
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::factor::synthetic_division;
+///
+/// // (x^2 - 4) ÷ (x - 2)
+/// let (q, r) = synthetic_division(&[-4.0, 0.0, 1.0], 2.0);
+/// assert_eq!(q, vec![2.0, 1.0]); // x + 2
+/// assert_eq!(r, 0.0);
 /// ```
 #[must_use]
 pub fn synthetic_division(coeffs: &[f64], c: f64) -> (Vec<f64>, f64) {
     if coeffs.is_empty() {
         return (vec![], 0.0);
     }
-    let mut result = vec![0.0; coeffs.len() - 1];
-    let mut carry = coeffs[coeffs.len() - 1];
-    for i in (0..result.len()).rev() {
-        result[i] = carry;
-        carry = carry * c + coeffs[i];
+    let mut result = Vec::with_capacity(coeffs.len());
+    let mut rem = 0.0;
+    for &coef in coeffs.iter().rev() {
+        let cur = rem * c + coef;
+        result.push(cur);
+        rem = cur;
     }
-    let remainder = carry;
-    (result, remainder)
+    result.pop();
+    result.reverse();
+    (result, rem)
 }
 
-/// Polynomial long division: `dividend / divisor`.
+/// Divide two polynomials: `p / q = (quotient, remainder)`.
 ///
-/// Both are lowest-degree-first coefficient slices. Returns
-/// `(quotient, remainder)` where `deg(remainder) < deg(divisor)`.
+/// Each coefficient slice is **lowest-degree first**.
 ///
 /// # Errors
-/// Returns [`AlgebraError::DivisionByZero`] if the divisor is the zero polynomial.
 ///
+/// Returns [`AlgebraError::DivisionByZero`] if `q` is the zero polynomial.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::factor::divide;
+///
+/// // (x^2 - 4) ÷ (x - 2) = x + 2
+/// let p = &[-4.0, 0.0, 1.0];
+/// let q = &[-2.0, 1.0];
+/// let (qo, r) = divide(p, q).unwrap();
+/// assert_eq!(qo, vec![2.0, 1.0]);
+/// assert_eq!(r.coeffs(), &[0.0]);
 /// ```
-/// # use mathverse_algebra::factor::divide;
-/// // (x^3 - 2x^2 - 5x + 6) / (x - 3) = x^2 + x - 2, remainder 0
-/// let (q, r) = divide(&[6.0, -5.0, -2.0, 1.0], &[-3.0, 1.0]).unwrap();
-/// assert!((q[0] - (-2.0)).abs() < 1e-12);
-/// assert!(r.iter().all(|v| v.abs() < 1e-12));
-/// ```
-pub fn divide(dividend: &[f64], divisor: &[f64]) -> Result<(Vec<f64>, Vec<f64>)> {
-    if divisor.is_empty() || divisor.iter().all(|&c| c.abs() < TOL) {
+pub fn divide(p: &[f64], q: &[f64]) -> Result<(Vec<f64>, Polynomial), AlgebraError> {
+    if q.iter().all(|&x| x.abs() < TOL) {
         return Err(AlgebraError::DivisionByZero);
     }
-    let d_deg = divisor.len().saturating_sub(1);
-    let d_lead = divisor[d_deg];
-
-    let mut rem: Vec<f64> = dividend.to_vec();
-    let mut quot = vec![0.0; dividend.len().saturating_sub(d_deg).max(1)];
-
-    while rem.len() >= divisor.len() {
-        let shift = rem.len() - divisor.len();
-        let coeff = rem[rem.len() - 1] / d_lead;
-        if shift < quot.len() {
-            quot[shift] = coeff;
-        }
-        for i in 0..divisor.len() {
-            let idx = shift + i;
-            if idx < rem.len() {
-                rem[idx] -= coeff * divisor[i];
-            }
-        }
-        while rem.len() > 1 && rem.last().map(|v| v.abs()).unwrap_or(0.0) < TOL {
-            rem.pop();
-        }
-        if rem.last().map(|v| v.abs()).unwrap_or(0.0) < TOL {
-            rem = vec![0.0];
-            break;
-        }
+    if p.len() < q.len() {
+        return Ok((vec![0.0], Polynomial::from_coeffs(p)));
     }
-
-    while quot.len() > 1 && quot.last().map(|v| v.abs()).unwrap_or(0.0) < TOL {
-        quot.pop();
-    }
-    Ok((quot, rem))
-}
-
-/// Greatest common divisor of two polynomials via the Euclidean algorithm.
-///
-/// Returns the GCD as a monic polynomial.
-#[must_use]
-pub fn polynomial_gcd(a: &Polynomial, b: &Polynomial) -> Polynomial {
-    let mut a = a.coeffs().to_vec();
-    let mut b = b.coeffs().to_vec();
-    while b.len() > 1 || (b.len() == 1 && b[0].abs() > TOL) {
-        match divide(&a, &b) {
-            Ok((_, r)) => {
-                a = b;
-                b = r;
-            }
-            Err(_) => break,
-        }
-    }
-    make_monic(a)
-}
-
-/// Make a polynomial monic (leading coefficient = 1).
-fn make_monic(coeffs: Vec<f64>) -> Polynomial {
-    if coeffs.is_empty() || coeffs.last().map(|c| c.abs()).unwrap_or(0.0) < TOL {
-        return Polynomial::constant(0.0);
-    }
-    let lead = coeffs[coeffs.len() - 1];
-    let normalized: Vec<f64> = coeffs.iter().map(|c| c / lead).collect();
-    Polynomial::from_coeffs(&normalized)
-}
-
-/// Rational root candidates for `a_n x^n + ... + a_0` with integer-like coefficients.
-///
-/// Uses the Rational Root Theorem: if `p/q` (in lowest terms) is a root,
-/// then `p | a_0` and `q | a_n`. Returns unique candidates sorted.
-#[must_use]
-pub fn rational_root_candidates(coeffs: &[f64]) -> Vec<f64> {
-    if coeffs.len() < 2 {
-        return vec![];
-    }
-    let lead = coeffs[coeffs.len() - 1];
-    let constant = coeffs[0];
-    if lead.abs() < TOL || constant.abs() < TOL {
-        return vec![];
-    }
-    let p_factors = divisors(constant.abs());
-    let q_factors = divisors(lead.abs());
-    let mut seen = std::collections::HashSet::new();
-    let mut candidates = Vec::new();
-    for &p in &p_factors {
-        for &q in &q_factors {
-            let val = p as f64 / q as f64;
-            for &v in &[val, -val] {
-                if seen.insert(v.to_bits()) {
-                    candidates.push(v);
+    let mut rem: Vec<f64> = p.to_vec();
+    let mut quot = vec![0.0; p.len() - q.len() + 1];
+    let lc = q.last().unwrap();
+    for i in (0..p.len() - q.len() + 1).rev() {
+        let r_idx = i + q.len() - 1;
+        if r_idx < rem.len() {
+            quot[i] = rem[r_idx] / *lc;
+            for j in 0..q.len() {
+                if i + j < rem.len() {
+                    rem[i + j] -= quot[i] * q[j];
                 }
             }
         }
     }
-    candidates.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    candidates
+    let rem_poly = Polynomial::from_coeffs(&rem[..q.len().saturating_sub(1)]);
+    Ok((quot, rem_poly))
 }
 
-/// Positive integer divisors of `n` (rounded to nearest integer).
-fn divisors(n: f64) -> Vec<u64> {
-    let n = n.round() as u64;
-    if n == 0 {
-        return vec![];
+/// Polynomial GCD via the Euclidean algorithm.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::factor::polynomial_gcd;
+///
+/// // gcd(x^2 - 1, x - 1) = x - 1
+/// let a = &[-1.0, 0.0, 1.0]; // x^2 - 1
+/// let b = &[-1.0, 1.0];      // x - 1
+/// let g = polynomial_gcd(a, b);
+/// assert_eq!(g.coeffs(), &[-1.0, 1.0]);
+/// ```
+#[must_use]
+pub fn polynomial_gcd(p: &[f64], q: &[f64]) -> Polynomial {
+    let mut a = Polynomial::from_coeffs(p);
+    let mut b = Polynomial::from_coeffs(q);
+    while !b.is_zero() {
+        let (_, r) = divide(a.coeffs(), b.coeffs()).unwrap();
+        a = b;
+        b = r;
     }
-    let mut divs = Vec::new();
-    for i in 1..=(n as f64).sqrt() as u64 {
-        if n % i == 0 {
-            divs.push(i);
-            if i != n / i {
-                divs.push(n / i);
+    if a.is_zero() {
+        a
+    } else {
+        a
+    }
+}
+
+/// Remainder theorem: evaluate `p(c)` by synthetic division.
+///
+/// `p(x) = (x - c) * q(x) + p(c)`
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::factor::remainder_theorem;
+///
+/// let p = [-6.0, 11.0, -6.0, 1.0]; // (x-1)(x-2)(x-3)
+/// assert_eq!(remainder_theorem(&p, 2.0), 0.0);
+/// assert_eq!(remainder_theorem(&p, 4.0), 6.0);
+/// ```
+#[inline]
+#[must_use]
+pub fn remainder_theorem(coeffs: &[f64], c: f64) -> f64 {
+    synthetic_division(coeffs, c).1
+}
+
+/// Factor theorem: `c` is a root of `p` iff `p(c) == 0`.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::factor::factor_theorem;
+///
+/// let p = [-6.0, 11.0, -6.0, 1.0]; // (x-1)(x-2)(x-3)
+/// assert!(factor_theorem(&p, 1.0));
+/// assert!(!factor_theorem(&p, 4.0));
+/// ```
+#[inline]
+#[must_use]
+pub fn factor_theorem(coeffs: &[f64], c: f64) -> bool {
+    remainder_theorem(coeffs, c).abs() < TOL
+}
+
+/// Full factorization: extract all rational roots and return `(linear_factors, residual)`.
+///
+/// The `linear_factors` are `(root, multiplicity)` pairs. The `residual` polynomial
+/// has no rational roots (degree may still be > 0).
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::factor::factor;
+///
+/// // x^2 - 5x + 6 = (x-2)(x-3)
+/// let (factors, residual) = factor(&[6.0, -5.0, 1.0]);
+/// assert_eq!(factors.len(), 2);
+/// assert!(residual.is_zero());
+/// ```
+#[must_use]
+pub fn factor(coeffs: &[f64]) -> (Vec<(f64, usize)>, Polynomial) {
+    let p = Polynomial::from_coeffs(coeffs);
+    if p.is_zero() {
+        return (vec![], p);
+    }
+    let mut factors = Vec::new();
+    let mut current = p;
+    let a = current.leading();
+    let candidates = rational_root_candidates(a, *current.coeffs().first().unwrap());
+    for &c in &candidates {
+        if current.degree() == 0 {
+            break;
+        }
+        let mut mult = 0;
+        while current.degree() > 0 {
+            let (_, rem) = synthetic_division(current.coeffs(), c);
+            if rem.abs() > TOL {
+                break;
             }
+            mult += 1;
+            let (q, _) = synthetic_division(current.coeffs(), c);
+            current = Polynomial::from_coeffs(&q);
+        }
+        if mult > 0 {
+            factors.push((c, mult));
         }
     }
-    divs.sort_unstable();
-    divs
+    (factors, current)
 }
 
-/// Remainder Theorem: the remainder of `f(x) / (x - a)` is `f(a)`.
+/// Long division with degree-zero divisor.
 ///
+/// If the divisor is a nonzero constant, divides all coefficients directly.
+/// If the divisor is zero, returns [`AlgebraError::DivisionByZero`].
+///
+/// # Errors
+///
+/// Returns [`AlgebraError::DivisionByZero`] if `d` is zero.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::factor::divide_by_scalar;
+///
+/// let p = [6.0, -5.0, 1.0]; // x^2 - 5x + 6
+/// let q = divide_by_scalar(&p, 2.0).unwrap();
+/// assert_eq!(q, vec![3.0, -2.5, 0.5]);
 /// ```
-/// # use mathverse_algebra::factor::remainder_theorem;
-/// # use mathverse_algebra::Polynomial;
-/// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]); // x^2 - 5x + 6
-/// assert!((remainder_theorem(&p, 2.0)).abs() < 1e-12);
+pub fn divide_by_scalar(coeffs: &[f64], d: f64) -> Result<Vec<f64>, AlgebraError> {
+    if d.abs() < TOL {
+        return Err(AlgebraError::DivisionByZero);
+    }
+    Ok(coeffs.iter().map(|&c| c / d).collect())
+}
+
+/// Number of rational roots of the polynomial.
+///
+/// Uses the rational root theorem to check all candidates.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::factor::rational_root_count;
+///
+/// // x^2 - 5x + 6 = (x-2)(x-3): 2 rational roots
+/// assert_eq!(rational_root_count(&[6.0, -5.0, 1.0]), 2);
 /// ```
 #[must_use]
-pub fn remainder_theorem(p: &Polynomial, a: f64) -> f64 {
-    p.eval(a)
-}
-
-/// Factor Theorem: `(x - a)` is a factor of `f(x)` iff `f(a) = 0`.
-///
-/// ```
-/// # use mathverse_algebra::factor::factor_theorem;
-/// # use mathverse_algebra::Polynomial;
-/// let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]); // x^2 - 5x + 6 = (x-2)(x-3)
-/// assert!(factor_theorem(&p, 2.0));
-/// assert!(!factor_theorem(&p, 0.0));
-/// ```
-#[must_use]
-pub fn factor_theorem(p: &Polynomial, a: f64) -> bool {
-    p.eval(a).abs() < TOL
-}
-
-/// Factor out the greatest common divisor of all coefficients.
-///
-/// Returns `(gcd, quotient)` where `quotient = poly / gcd`.
-///
-/// ```
-/// # use mathverse_algebra::factor::common_factor;
-/// # use mathverse_algebra::Polynomial;
-/// let p = Polynomial::from_coeffs(&[4.0, 6.0, 2.0]); // 2x^2 + 6x + 4 = 2(x^2 + 3x + 2)
-/// let (g, q) = common_factor(&p);
-/// assert!((g - 2.0).abs() < 1e-12);
-/// assert!((q.coeffs()[0] - 2.0).abs() < 1e-12);
-/// ```
-#[must_use]
-pub fn common_factor(p: &Polynomial) -> (f64, Polynomial) {
-    let coeffs = p.coeffs();
-    let nonzero: Vec<f64> = coeffs.iter().copied().filter(|c| c.abs() > TOL).collect();
-    if nonzero.is_empty() {
-        return (0.0, p.clone());
+pub fn rational_root_count(coeffs: &[f64]) -> usize {
+    let p = Polynomial::from_coeffs(coeffs);
+    if p.is_zero() {
+        return 0;
     }
-    let g = integer_gcd_vec(&nonzero);
-    let q = p.clone() * (1.0 / g);
-    (g, q)
-}
-
-/// GCD of a list of f64 values (treated as integers when possible).
-fn integer_gcd_vec(vals: &[f64]) -> f64 {
-    let ints: Vec<u64> = vals.iter().map(|v| v.abs().round() as u64).collect();
-    if ints.is_empty() {
-        return 1.0;
-    }
-    let mut g = ints[0];
-    for &n in &ints[1..] {
-        g = gcd_u64(g, n);
-    }
-    g as f64
-}
-
-fn gcd_u64(mut a: u64, mut b: u64) -> u64 {
-    while b != 0 {
-        let t = b;
-        b = a % b;
-        a = t;
-    }
-    a
+    let a = p.leading();
+    let b = coeffs[0];
+    let candidates = rational_root_candidates(a, b);
+    candidates
+        .into_iter()
+        .filter(|&c| {
+            let (_, rem) = synthetic_division(p.coeffs(), c);
+            rem.abs() < TOL
+        })
+        .count()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn approx(a: f64, b: f64) -> bool {
-        (a - b).abs() < 1e-9
+    fn poly(c: &[f64]) -> Polynomial {
+        Polynomial::from_coeffs(c)
     }
 
     #[test]
-    fn synth_div_exact() {
-        let (q, r) = synthetic_division(&[6.0, -5.0, 1.0], 2.0);
-        assert!(approx(q[0], -3.0));
-        assert!(approx(q[1], 1.0));
-        assert!(r.abs() < 1e-12);
+    fn division() {
+        let (q, r) = synthetic_division(&[-6.0, 11.0, -6.0, 1.0], 1.0);
+        assert_eq!(poly(&q).degree(), 2);
+        assert!(r.abs() < 1e-10);
     }
 
     #[test]
-    fn synth_div_remainder() {
-        let (_, r) = synthetic_division(&[6.0, -5.0, 1.0], 1.0);
-        assert!(approx(r, 2.0));
+    fn remainder_theorem_test() {
+        let p = [-6.0, 11.0, -6.0, 1.0];
+        assert_eq!(remainder_theorem(&p, 1.0), 0.0);
+        assert_eq!(remainder_theorem(&p, 2.0), 0.0);
+        assert_eq!(remainder_theorem(&p, 3.0), 0.0);
     }
 
     #[test]
-    fn long_division() {
-        let (q, r) = divide(&[6.0, -5.0, -2.0, 1.0], &[-3.0, 1.0]).unwrap();
-        assert!(approx(q[0], -2.0));
-        assert!(approx(q[1], 1.0));
-        assert!(approx(q[2], 1.0));
-        assert!(r.iter().all(|v| v.abs() < 1e-12));
+    fn factor_theorem_test() {
+        let p = [-6.0, 11.0, -6.0, 1.0];
+        assert!(factor_theorem(&p, 1.0));
+        assert!(!factor_theorem(&p, 4.0));
     }
 
     #[test]
-    fn long_division_by_zero() {
-        assert_eq!(
-            divide(&[1.0, 2.0], &[0.0]),
-            Err(AlgebraError::DivisionByZero)
-        );
+    fn polynomial_gcd_test() {
+        let g = polynomial_gcd(&[-1.0, 0.0, 1.0], &[-1.0, 1.0]);
+        assert_eq!(g.degree(), 1);
+        assert_eq!(g.coeffs(), &[-1.0, 1.0]);
     }
 
     #[test]
-    fn gcd_poly() {
-        let a = Polynomial::from_coeffs(&[-1.0, 0.0, 1.0]); // x^2-1
-        let b = Polynomial::from_coeffs(&[-1.0, 1.0]); // x-1
-        let g = polynomial_gcd(&a, &b);
-        assert!(approx(g.coeffs()[0], -1.0));
-        assert!(approx(g.coeffs()[1], 1.0));
+    fn divide_test() {
+        let (q, r) = divide(&[-4.0, 0.0, 1.0], &[-2.0, 1.0]).unwrap();
+        assert_eq!(q, vec![2.0, 1.0]);
+        assert!(r.is_zero());
     }
 
     #[test]
-    fn rational_roots() {
-        let c = rational_root_candidates(&[6.0, -5.0, 1.0]);
-        assert!(c.contains(&2.0));
-        assert!(c.contains(&3.0));
+    fn factor_test() {
+        let (factors, residual) = factor(&[6.0, -5.0, 1.0]);
+        assert_eq!(factors.len(), 2);
+        assert!(residual.is_zero());
     }
 
     #[test]
-    fn theorems() {
-        let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
-        assert!(factor_theorem(&p, 2.0));
-        assert!(factor_theorem(&p, 3.0));
-        assert!(!factor_theorem(&p, 0.0));
-        assert!(approx(remainder_theorem(&p, 1.0), 2.0));
-    }
-
-    #[test]
-    fn common_factor_extract() {
-        let p = Polynomial::from_coeffs(&[4.0, 6.0, 2.0]);
-        let (g, q) = common_factor(&p);
-        assert!(approx(g, 2.0));
-        assert!(approx(q.coeffs()[0], 2.0));
-        assert!(approx(q.coeffs()[1], 3.0));
-        assert!(approx(q.coeffs()[2], 1.0));
+    fn divide_by_zero() {
+        assert_eq!(divide_by_scalar(&[1.0, 2.0], 0.0), Err(AlgebraError::DivisionByZero));
     }
 }

@@ -1,3 +1,5 @@
+//! Filter design: bilinear transform, Butterworth analog prototypes.
+
 pub fn filter_design(b: &[f64], a: &[f64]) -> Vec<f64> { b.to_vec() }
 
 pub fn bilinear_transform(s_analog: &[f64], s_denom: &[f64], fs: f64) -> (Vec<f64>, Vec<f64>) {

@@ -1,6 +1,7 @@
 use std::collections::{VecDeque, BinaryHeap, HashMap, HashSet};
 use std::cmp::Ordering;
 
+/// Undirected, unweighted graph stored as an adjacency list.
 #[derive(Debug, Clone, Default)]
 pub struct Graph {
     n: usize,
@@ -8,14 +9,28 @@ pub struct Graph {
 }
 
 impl Graph {
+    /// Creates a new graph with `n` vertices and no edges.
     pub fn new(n: usize) -> Self { Self { n, adj: vec![Vec::new(); n] } }
+
+    /// Adds an undirected edge between vertices `u` and `v`.
     pub fn add_edge(&mut self, u: usize, v: usize) { self.adj[u].push(v); self.adj[v].push(u); }
+
+    /// Adds a directed edge from `u` to `v` (even though this is a `Graph` type).
     pub fn add_directed_edge(&mut self, u: usize, v: usize) { self.adj[u].push(v); }
+
+    /// Returns the number of vertices.
     pub fn len(&self) -> usize { self.n }
+
+    /// Returns `true` if the graph has no vertices.
     pub fn is_empty(&self) -> bool { self.n == 0 }
+
+    /// Returns the neighbors of vertex `u`.
     pub fn neighbors(&self, u: usize) -> &[usize] { &self.adj[u] }
+
+    /// Returns the degree of vertex `u`.
     pub fn degree(&self, u: usize) -> usize { self.adj[u].len() }
 
+    /// Breadth-first search starting from `start`. Returns vertices in visit order.
     pub fn bfs(&self, start: usize) -> Vec<usize> {
         let mut order = Vec::with_capacity(self.n);
         let mut visited = vec![false; self.n];
@@ -30,6 +45,7 @@ impl Graph {
         order
     }
 
+    /// Depth-first search starting from `start`. Returns vertices in visit order.
     pub fn dfs(&self, start: usize) -> Vec<usize> {
         let mut order = Vec::with_capacity(self.n);
         let mut visited = vec![false; self.n];
@@ -45,6 +61,7 @@ impl Graph {
         order
     }
 
+    /// Finds the shortest path from `start` to `end` using BFS. Returns `None` if unreachable.
     pub fn shortest_path(&self, start: usize, end: usize) -> Option<Vec<usize>> {
         if start == end { return Some(vec![start]); }
         let mut parent = vec![None; self.n];
@@ -71,8 +88,10 @@ impl Graph {
         None
     }
 
+    /// Returns `true` if the graph is connected.
     pub fn is_connected(&self) -> bool { self.n == 0 || self.bfs(0).len() == self.n }
 
+    /// Returns all connected components as lists of vertices.
     pub fn connected_components(&self) -> Vec<Vec<usize>> {
         let mut visited = vec![false; self.n];
         let mut components = Vec::new();
@@ -93,6 +112,7 @@ impl Graph {
         components
     }
 
+    /// Returns `true` if the graph contains a cycle.
     pub fn has_cycle(&self) -> bool {
         let mut visited = vec![false; self.n];
         for i in 0..self.n {
@@ -110,6 +130,7 @@ impl Graph {
         false
     }
 
+    /// Returns `true` if the graph is bipartite (2-colorable).
     pub fn is_bipartite(&self) -> bool {
         let mut color = vec![None; self.n];
         for i in 0..self.n {
@@ -130,6 +151,7 @@ impl Graph {
     }
 }
 
+/// Directed weighted graph stored as an adjacency list.
 #[derive(Debug, Clone, Default)]
 pub struct WeightedGraph {
     n: usize,
@@ -137,12 +159,22 @@ pub struct WeightedGraph {
 }
 
 impl WeightedGraph {
+    /// Creates a new weighted graph with `n` vertices.
     pub fn new(n: usize) -> Self { Self { n, adj: vec![Vec::new(); n] } }
+
+    /// Adds a directed weighted edge from `u` to `v` with weight `w`.
     pub fn add_edge(&mut self, u: usize, v: usize, w: f64) { self.adj[u].push((v, w)); }
+
+    /// Adds an undirected weighted edge between `u` and `v`.
     pub fn add_undirected_edge(&mut self, u: usize, v: usize, w: f64) { self.adj[u].push((v, w)); self.adj[v].push((u, w)); }
+
+    /// Returns the number of vertices.
     pub fn len(&self) -> usize { self.n }
+
+    /// Returns the weighted neighbors of vertex `u`.
     pub fn neighbors(&self, u: usize) -> &[(usize, f64)] { &self.adj[u] }
 
+    /// Dijkstra's shortest path algorithm. Returns `(distances, predecessors)`.
     pub fn dijkstra(&self, source: usize) -> (Vec<f64>, Vec<Option<usize>>) {
         let mut dist = vec![f64::INFINITY; self.n];
         let mut pred = vec![None; self.n];
@@ -165,6 +197,7 @@ impl WeightedGraph {
         (dist, pred)
     }
 
+    /// Bellman-Ford shortest path. Returns `(distances, predecessors, has_negative_cycle)`.
     pub fn bellman_ford(&self, source: usize) -> (Vec<f64>, Vec<Option<usize>>, bool) {
         let mut dist = vec![f64::INFINITY; self.n];
         let mut pred = vec![None; self.n];
@@ -187,6 +220,7 @@ impl WeightedGraph {
         (dist, pred, neg_cycle)
     }
 
+    /// Floyd-Warshall all-pairs shortest path. Returns an `n×n` distance matrix.
     pub fn floyd_warshall(&self) -> Vec<Vec<f64>> {
         let n = self.n;
         let mut d = vec![vec![f64::INFINITY; n]; n];
@@ -202,6 +236,7 @@ impl WeightedGraph {
         d
     }
 
+    /// Prim's minimum spanning tree. Returns `None` if the graph is disconnected.
     pub fn prim(&self) -> Option<Vec<(usize, usize, f64)>> {
         if self.n == 0 { return Some(Vec::new()); }
         let mut visited = vec![false; self.n];
@@ -226,6 +261,7 @@ impl WeightedGraph {
         if visited.iter().all(|&v| v) { Some(mst) } else { None }
     }
 
+    /// Kruskal's minimum spanning tree. Returns edges as `(u, v, weight)`.
     pub fn kruskal(&self) -> Vec<(usize, usize, f64)> {
         let mut edges: Vec<(f64, usize, usize)> = Vec::new();
         for u in 0..self.n { for &(v, w) in &self.adj[u] { if u < v { edges.push((w, u, v)); } } }
@@ -246,6 +282,7 @@ impl WeightedGraph {
     }
 }
 
+/// Directed, unweighted graph stored as an adjacency list.
 #[derive(Debug, Clone, Default)]
 pub struct DirectedGraph {
     n: usize,
@@ -253,10 +290,16 @@ pub struct DirectedGraph {
 }
 
 impl DirectedGraph {
+    /// Creates a new directed graph with `n` vertices.
     pub fn new(n: usize) -> Self { Self { n, adj: vec![Vec::new(); n] } }
+
+    /// Adds a directed edge from `u` to `v`.
     pub fn add_edge(&mut self, u: usize, v: usize) { self.adj[u].push(v); }
+
+    /// Returns the number of vertices.
     pub fn len(&self) -> usize { self.n }
 
+    /// Kahn's topological sort. Returns `None` if the graph has a cycle.
     pub fn topological_sort(&self) -> Option<Vec<usize>> {
         let mut in_degree = vec![0; self.n];
         for u in 0..self.n { for &v in &self.adj[u] { in_degree[v] += 1; } }
@@ -269,6 +312,7 @@ impl DirectedGraph {
         if result.len() == self.n { Some(result) } else { None }
     }
 
+    /// Finds all strongly connected components using Kosaraju's algorithm.
     pub fn scc(&self) -> Vec<Vec<usize>> {
         let mut visited = vec![false; self.n];
         let mut order = Vec::new();

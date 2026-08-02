@@ -1,3 +1,6 @@
+//! Line search methods: backtracking, Wolfe conditions, Armijo, golden section, Fibonacci.
+
+/// Backtracking line search satisfying the Armijo sufficient decrease condition.
 pub fn backtracking(f: &dyn Fn(&[f64]) -> f64, grad: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64], direction: &[f64], alpha0: f64, rho: f64, c: f64) -> f64 {
     let fx = f(x);
     let g: f64 = x.iter().zip(grad(x)).zip(direction).map(|((xi, gi), di)| gi * di).sum();

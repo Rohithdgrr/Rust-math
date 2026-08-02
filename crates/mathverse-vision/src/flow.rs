@@ -1,3 +1,5 @@
+//! Lucas-Kanade sparse optical flow estimation.
+
 use crate::Image;
 
 pub fn lucas_kanade(a: &Image, b: &Image) -> (Image, Image) {

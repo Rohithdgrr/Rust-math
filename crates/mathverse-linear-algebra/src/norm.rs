@@ -1,3 +1,6 @@
+//! Matrix norms: L1, L∞, Frobenius, spectral (L2), condition number.
+
+/// L1 (maximum column sum) norm of a matrix.
 pub fn norm_1(a: &[Vec<f64>]) -> f64 {
     let (m, n) = (a.len(), a[0].len());
     (0..n).map(|j| (0..m).map(|i| a[i][j].abs()).sum::<f64>()).fold(0.0f64, f64::max)

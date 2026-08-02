@@ -1,12 +1,17 @@
+/// Matrix-vector multiplication. `mat` is row-major `m×n`, `v` has length `n`.
 pub fn mat_vec_mul(mat: &[Vec<f64>], v: &[f64]) -> Vec<f64> {
     mat.iter().map(|row| row.iter().zip(v).map(|(a,b)| a*b).sum()).collect()
 }
+/// Determinant of a 2×2 matrix.
 pub fn det2x2(m: &[[f64; 2]; 2]) -> f64 { m[0][0]*m[1][1] - m[0][1]*m[1][0] }
+
+/// Determinant of a 3×3 matrix.
 pub fn det3x3(m: &[[f64; 3]; 3]) -> f64 {
     m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])
     - m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
     + m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0])
 }
+/// Rank of a matrix via Gaussian elimination with partial pivoting.
 pub fn rank(vectors: &[Vec<f64>]) -> usize {
     let mut mat: Vec<Vec<f64>> = vectors.to_vec();
     let mut rank = 0;
@@ -38,6 +43,7 @@ pub fn rank(vectors: &[Vec<f64>]) -> usize {
     }
     rank
 }
+/// Tests whether a set of vectors is mutually orthogonal within tolerance `tol`.
 pub fn is_orthogonal(vectors: &[Vec<f64>], tol: f64) -> bool {
     for i in 0..vectors.len() {
         for j in i+1..vectors.len() {

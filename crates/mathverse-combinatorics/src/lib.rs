@@ -1,3 +1,18 @@
+//! # mathverse-combinatorics
+//!
+//! Combinatorial mathematics for the MathVerse ecosystem.
+//!
+//! Provides:
+//! - **Counting**: permutations, combinations, permutations with repetition
+//! - **Sequences**: Fibonacci, Catalan, Stirling numbers (first and second kind)
+//! - **Partitions**: integer partition counting
+//! - **Factorials**: factorial and double factorial
+//! - **Subsets**: power set generation
+//! - **Inclusion-exclusion**: principle of inclusion-exclusion for counting
+//!
+//! All functions work on `u64` inputs and return `u64` results, suitable for
+//! exact combinatorial counting within the `u64` range.
+
 pub mod counting;
 pub mod sequences;
 pub mod partitions;

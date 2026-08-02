@@ -1,3 +1,16 @@
+//! # mathverse-optimization
+//!
+//! Optimization algorithms for the MathVerse ecosystem.
+//!
+//! Provides:
+//! - **Gradient methods**: gradient descent, momentum, Adam, Nesterov
+//! - **Constrained**: penalty method, augmented Lagrangian
+//! - **Unconstrained**: Newton's method, BFGS
+//! - **Convex**: convex function operations, Jensen's inequality
+//! - **Linear programming**: simplex method
+//! - **Combinatorial**: greedy, branch-and-bound
+//! - **Line search**: backtracking, Wolfe conditions
+
 pub mod gradient;
 pub mod constrained;
 pub mod unconstrained;

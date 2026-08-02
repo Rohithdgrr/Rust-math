@@ -23,6 +23,7 @@ pub use mathverse_equations::*;
 pub use mathverse_ai::*;
 pub use mathverse_machine_learning::*;
 pub use mathverse_vision::*;
+pub use mathverse_graphics::*;
 
 pub mod prelude {
     pub use crate::*;

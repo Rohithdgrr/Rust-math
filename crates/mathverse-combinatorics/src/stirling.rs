@@ -1,3 +1,6 @@
+//! Stirling numbers, Bell numbers, derangements, Lah numbers, Eulerian numbers.
+
+/// Unsigned Stirling number of the first kind S1(n, k).
 pub fn stirling1_unsigned(n: u64, k: u64) -> u128 {
     if k > n { return 0; }
     let (n, k) = (n as usize, k as usize);

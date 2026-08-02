@@ -1,8 +1,11 @@
 # mathverse-prelude
 
-Umbrella re-export crate for the entire MathVerse workspace. Import one crate, get access to everything.
+[![Crates.io](https://img.shields.io/crates/v/mathverse-prelude.svg)](https://crates.io/crates/mathverse-prelude)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
 
-## What's Included
+Convenience prelude that re-exports the entire MathVerse ecosystem through a single `use` statement.
+
+## Usage
 
 ```toml
 [dependencies]
@@ -10,76 +13,65 @@ mathverse-prelude = { path = "../mathverse-prelude" }
 ```
 
 ```rust
-use mathverse_prelude::*;
+use mathverse_prelude::prelude::*;
 ```
 
-This gives you access to all modules from every MathVerse crate:
+## Re-exported Crates
 
-| Crate | What You Get |
-|-------|-------------|
-| `mathverse_core` | Core error types, shared utilities |
-| `mathverse_arithmetic` | Basic arithmetic operations |
-| `mathverse_algebra` | Algebraic structures and operations |
-| `mathverse_calculus` | Derivatives, integrals, limits |
-| `mathverse_trigonometry` | Trig functions and identities |
-| `mathverse_statistics` | Descriptive statistics |
-| `mathverse_probability` | Distributions, random variables |
-| `mathverse_linear_algebra` | Vector spaces, decompositions |
-| `mathverse_matrix` | Matrix operations |
-| `mathverse_vector` | Vector operations |
-| `mathverse_complex` | Complex number arithmetic |
-| `mathverse_discrete` | Discrete math utilities |
-| `mathverse_number_theory` | Primes, modular arithmetic, GCD |
-| `mathverse_combinatorics` | Combinations, permutations |
+| Crate | Description |
+|---|---|
+| `mathverse_core` | Traits, numeric abstractions, errors, constants |
+| `mathverse_arithmetic` | Basic ops, powers, roots, logs, rounding |
+| `mathverse_algebra` | Polynomials, equation solving, factorization |
+| `mathverse_trigonometry` | Trig, hyperbolic, inverse, angle conversions |
+| `mathverse_geometry` | 2D/3D shapes, area, volume, transforms |
+| `mathverse_linear_algebra` | Matrix, vector, tensor, decompositions |
+| `mathverse_matrix` | Matrix specializations |
+| `mathverse_vector` | Vector specializations |
+| `mathverse_calculus` | Derivatives, integrals, vector calculus |
+| `mathverse_complex` | Complex numbers |
+| `mathverse_probability` | Distributions, Bayes, Monte Carlo |
+| `mathverse_statistics` | Descriptive + inferential statistics |
+| `mathverse_number_theory` | Primes, GCD/LCM, modular arithmetic |
+| `mathverse_combinatorics` | Combinatorial math |
 | `mathverse_graph` | Graph algorithms |
-| `mathverse_transforms` | Fourier, Laplace, Z-transforms |
-| `mathverse_signal` | Signal processing |
-| `mathverse_optimization` | Optimization solvers |
-| `mathverse_numerical` | Numerical methods |
-| `mathverse_equations` | Equation solvers |
-| `mathverse_ai` | Tensors, activations, losses, optimizers, attention |
-| `mathverse_machine_learning` | Classical ML algorithms |
-| `mathverse_vision` | Computer vision primitives |
+| `mathverse_optimization` | Gradient descent, SGD, genetic algorithms |
+| `mathverse_numerical` | Root finding, Runge-Kutta, interpolation |
+| `mathverse_equations` | Equation solving |
+| `mathverse_transforms` | FFT, DCT, wavelets |
+| `mathverse_signal` | Filters, convolution, correlation |
+| `mathverse_ai` | Activations, losses, metrics, attention |
+| `mathverse_machine_learning` | Linear, logistic, KNN, trees, clustering |
+| `mathverse_vision` | Camera, homography, features, optical flow |
+| `mathverse_physics` | Mechanics, E&M, optics, thermo, waves |
+| `mathverse_finance` | TVM, investment, risk, options, portfolio |
+| `mathverse_symbolic` | Expression trees, symbolic derivatives, LaTeX |
+| `mathverse_units` | SI/imperial, compile-time dimensional analysis |
+| `mathverse_plot` | SVG, HTML, terminal plotting |
 
 ## Quick Start
 
 ```rust
-use mathverse_prelude::*;
+use mathverse_prelude::prelude::*;
 
 fn main() {
-    // From mathverse_ai
-    let t = Tensor::zeros(&[2, 3]);
-    let r = relu(&t);
+    // From mathverse-algebra
+    let p = mathverse_algebra::Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
+    println!("Roots: {:?}", p.roots());
 
-    // From mathverse_machine_learning
-    let x = vec![vec![1.0], vec![2.0], vec![3.0]];
-    let y = vec![2.0, 4.0, 6.0];
-    let result = linear::fit(&x, &y).unwrap();
+    // From mathverse-physics
+    let ke = mathverse_physics::mechanics::kinetic_energy(2.0, 3.0);
+    println!("KE = {ke} J");
 
-    // From mathverse_vision
-    let cam = camera::Camera::new(800.0, 600.0, 320.0, 240.0);
-    let (u, v) = cam.project(1.0, 2.0, 10.0);
+    // From mathverse-finance
+    let fv = mathverse_finance::tvm::future_value(1000.0, 0.05, 10);
+    println!("FV = ${fv:.2}");
+
+    // From mathverse-symbolic
+    let x = mathverse_symbolic::Expr::v("x");
+    let expr = x.clone().pow(mathverse_symbolic::Expr::c(2.0));
+    println!("d/dx x² = {}", mathverse_symbolic::derivative::differentiate(&expr, "x"));
 }
-```
-
-## Why Use the Prelude?
-
-- **Convenience**: One import instead of 20+
-- **Discovery**: See everything available at a glance
-- **Exploration**: Great for prototyping and learning
-
-## Why NOT Use the Prelude?
-
-- **Compile time**: Pulls in all crates even if you only need one
-- **Namespace pollution**: May conflict with your own types
-- **Production code**: Prefer explicit dependencies for clarity
-
-For production use, depend on only the crates you need:
-
-```toml
-[dependencies]
-mathverse-ai = { path = "../mathverse-ai" }
-mathverse-machine-learning = { path = "../mathverse-machine-learning" }
 ```
 
 ## License

@@ -24,6 +24,20 @@
 
 extern crate alloc;
 
+/// Compile-time error: `no_std` builds require the `libm` feature.
+///
+/// `mathverse-core` needs software floating-point math (via `libm`) when
+/// the standard library is not available. Enable the `libm` feature:
+///
+/// ```toml
+/// mathverse-core = { version = "0.1", default-features = false, features = ["libm"] }
+/// ```
+#[cfg(all(not(feature = "std"), not(feature = "libm")))]
+compile_error!(
+    "mathverse-core: either the `std` or `libm` feature must be enabled. \
+     no_std builds require `libm` for transcendental function support."
+);
+
 pub mod algorithms;
 pub mod constants;
 pub mod error;
@@ -32,3 +46,9 @@ pub mod ops;
 pub mod precision;
 pub mod prelude;
 pub mod traits;
+
+/// `libm`-backed transcendental functions for `no_std` builds.
+///
+/// Only available when the `libm` feature is enabled and `std` is disabled.
+#[cfg(all(not(feature = "std"), feature = "libm"))]
+pub mod libm_fallback;

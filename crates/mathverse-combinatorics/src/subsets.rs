@@ -1,3 +1,6 @@
+//! Power set, subsets, Cartesian product, permutations, compositions, stars and bars.
+
+/// Generates the power set of `{0, 1, ..., n-1}`.
 pub fn power_set(n: usize) -> Vec<Vec<usize>> {
     (0..(1usize << n)).map(|mask| {
         (0..n).filter(|i| mask & (1 << i) != 0).collect()

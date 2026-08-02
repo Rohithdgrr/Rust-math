@@ -2,10 +2,11 @@
 name = "mathverse-finance"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 authors = ["MathVerse Contributors"]
 description = "Finance domain applications for MathVerse"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/mathverse/mathverse"
+repository = "https://github.com/Rohithdgrr/Rust-math"
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
@@ -13,5 +14,8 @@ mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
 mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
 mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
 
+
+[lints]
+workspace = true
 [dev-dependencies]
 approx = "0.5"

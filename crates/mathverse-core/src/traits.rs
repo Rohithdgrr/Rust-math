@@ -278,7 +278,76 @@ macro_rules! impl_real {
         }
     )*};
 }
+
+// std impl: uses hardware-accelerated float methods
+#[cfg(feature = "std")]
 impl_real!(f32, f64);
+
+// no_std + libm impl: uses libm software implementations
+#[cfg(all(not(feature = "std"), feature = "libm"))]
+macro_rules! impl_real_libm {
+    ($($t:ty),* $(,)?) => {$(
+        impl Real for $t {
+            fn from_f64(v: f64) -> Self { v as $t }
+            fn to_f64(self) -> f64 { f64::from(self) }
+            fn sqrt(self) -> Self { crate::libm_fallback::sqrt(self as f64) as $t }
+            fn cbrt(self) -> Self { crate::libm_fallback::cbrt(self as f64) as $t }
+            fn powf(self, e: Self) -> Self { crate::libm_fallback::powf(self as f64, e as f64) as $t }
+            fn powi(self, e: i32) -> Self { crate::libm_fallback::powi(self as f64, e) as $t }
+            fn exp(self) -> Self { crate::libm_fallback::exp(self as f64) as $t }
+            fn exp_m1(self) -> Self { crate::libm_fallback::exp_m1(self as f64) as $t }
+            fn ln(self) -> Self { crate::libm_fallback::ln(self as f64) as $t }
+            fn ln_1p(self) -> Self { crate::libm_fallback::ln_1p(self as f64) as $t }
+            fn log(self, base: Self) -> Self { crate::libm_fallback::log(self as f64, base as f64) as $t }
+            fn log10(self) -> Self { crate::libm_fallback::log10(self as f64) as $t }
+            fn log2(self) -> Self { crate::libm_fallback::log2(self as f64) as $t }
+            fn sin(self) -> Self { crate::libm_fallback::sin(self as f64) as $t }
+            fn cos(self) -> Self { crate::libm_fallback::cos(self as f64) as $t }
+            fn tan(self) -> Self { crate::libm_fallback::tan(self as f64) as $t }
+            fn asin(self) -> Self { crate::libm_fallback::asin(self as f64) as $t }
+            fn acos(self) -> Self { crate::libm_fallback::acos(self as f64) as $t }
+            fn atan(self) -> Self { crate::libm_fallback::atan(self as f64) as $t }
+            fn atan2(self, other: Self) -> Self { crate::libm_fallback::atan2(self as f64, other as f64) as $t }
+            fn sinh(self) -> Self { crate::libm_fallback::sinh(self as f64) as $t }
+            fn cosh(self) -> Self { crate::libm_fallback::cosh(self as f64) as $t }
+            fn tanh(self) -> Self { crate::libm_fallback::tanh(self as f64) as $t }
+            fn asinh(self) -> Self { crate::libm_fallback::asinh(self as f64) as $t }
+            fn acosh(self) -> Self { crate::libm_fallback::acosh(self as f64) as $t }
+            fn atanh(self) -> Self { crate::libm_fallback::atanh(self as f64) as $t }
+            fn sin_cos(self) -> (Self, Self) {
+                let (s, c) = crate::libm_fallback::sin_cos(self as f64);
+                (s as $t, c as $t)
+            }
+            fn hypot(self, other: Self) -> Self { crate::libm_fallback::hypot(self as f64, other as f64) as $t }
+            fn copysign(self, other: Self) -> Self {
+                if other.is_sign_negative() {
+                    self.abs().neg()
+                } else {
+                    self.abs()
+                }
+            }
+            fn abs_sub(self, other: Self) -> Self { (self - other).max(Self::zero()) }
+            fn recip(self) -> Self { 1.0 / self }
+            fn floor(self) -> Self { crate::libm_fallback::floor(self as f64) as $t }
+            fn ceil(self) -> Self { crate::libm_fallback::ceil(self as f64) as $t }
+            fn round(self) -> Self { crate::libm_fallback::round(self as f64) as $t }
+            fn trunc(self) -> Self { crate::libm_fallback::trunc(self as f64) as $t }
+            fn fract(self) -> Self { self - crate::libm_fallback::floor(self as f64) as $t }
+            fn min(self, other: Self) -> Self { if self < other { self } else { other } }
+            fn max(self, other: Self) -> Self { if self > other { self } else { other } }
+            fn is_finite(self) -> bool { self.is_finite() }
+            fn is_nan(self) -> bool { self.is_nan() }
+            fn is_infinite(self) -> bool { self.is_infinite() }
+            fn is_normal(self) -> bool { self.is_normal() }
+            fn is_subnormal(self) -> bool { self.is_finite() && self != 0.0 && self.abs() < Self::MIN_POSITIVE }
+            fn is_sign_negative(self) -> bool { self.is_sign_negative() }
+            fn is_sign_positive(self) -> bool { self.is_sign_positive() }
+            fn signum(self) -> Self { self.signum() }
+        }
+    )*};
+}
+#[cfg(all(not(feature = "std"), feature = "libm"))]
+impl_real_libm!(f32, f64);
 
 impl Normed for f32 {
     fn norm(self) -> Self {

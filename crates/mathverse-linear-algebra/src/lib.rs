@@ -1,3 +1,15 @@
+//! # mathverse-linear-algebra
+//!
+//! Linear algebra operations for the MathVerse ecosystem.
+//!
+//! Provides:
+//! - **Decompositions**: LU, QR, Cholesky, eigenvalue (2×2 and power iteration)
+//! - **Solvers**: QR-based, Gaussian elimination, least-squares
+//! - **Norms**: L1, L∞, Frobenius, L2 (spectral), condition number
+//! - **Matrix properties**: rank, inverse, singular values
+//!
+//! All matrices are represented as `Vec<Vec<f64>>` in row-major order.
+
 pub mod decomposition;
 pub mod solve;
 pub mod norm;

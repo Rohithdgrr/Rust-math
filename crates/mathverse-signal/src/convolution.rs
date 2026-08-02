@@ -1,3 +1,6 @@
+//! 1D convolution, correlation, FIR filter design (low-pass, high-pass, band-pass).
+
+/// Linear convolution of two signals.
 pub fn convolve(x: &[f64], h: &[f64]) -> Vec<f64> {
     let (n, m) = (x.len(), h.len());
     if n == 0 || m == 0 { return Vec::new(); }

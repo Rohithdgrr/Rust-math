@@ -2,7 +2,7 @@
 name = "mathverse-algebra"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.70"
+rust-version.workspace = true
 description = "MathVerse algebra: polynomials, linear/quadratic/cubic equation solving"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
@@ -12,15 +12,9 @@ categories = ["science", "mathematics"]
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
 
+
+[lints]
+workspace = true
+
 [dev-dependencies]
 
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-pedantic = { level = "warn", priority = -1 }
-must_use_candidate = "allow"
-many_single_char_names = "allow"
-too_many_arguments = "allow"
-missing_errors_doc = "allow"
-empty_line_after_doc_comment = "allow"

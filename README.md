@@ -36,20 +36,19 @@ Mission: become for Rust what NumPy, SciPy, SymPy, scikit-learn utilities, OpenC
 | mathverse-number-theory | Primes, GCD/LCM, modular arithmetic, RSA helpers |
 | mathverse-combinatorics | Combinatorial math |
 | mathverse-graph | Graph algorithms |
-| mathverse-optimization | Gradient descent, SGD, Adam, annealing, genetic |
 | mathverse-numerical | Root finding, Runge-Kutta, interpolation |
 | mathverse-equations | Equation solving |
 | mathverse-transforms | FFT, DCT, wavelets |
 | mathverse-signal | Filters, convolution, correlation |
-| mathverse-image | Kernels, blur, Sobel, Canny, morphology, transforms |
+| mathverse-image | Kernels, blur, Sobel, Canny, morphology, I/O |
 | mathverse-vision | Camera matrix, homography, epipolar, features, optical flow |
-| mathverse-graphics | 2D/3D transforms, quaternions, Bezier, projection |
 | mathverse-ai | Activations, losses, metrics, tensor ops, optimizers, attention |
-| mathverse-physics | Mechanics, E&M, optics, thermo, fluids, quantum basics |
-| mathverse-finance | Interest, EMI, NPV, IRR, Black-Scholes, risk |
+| mathverse-machine-learning | Linear, logistic, KNN, decision trees, clustering |
+| mathverse-physics | Mechanics, E&M, optics, thermo, waves, constants |
+| mathverse-finance | TVM, investment, risk, Black-Scholes, portfolio |
 | mathverse-symbolic | Expression trees, symbolic derivatives, LaTeX |
-| mathverse-units | SI/imperial/currency, compile-time dimensional analysis |
-| mathverse-plot | Plot, scatter, histogram, heatmap, SVG/HTML/terminal |
+| mathverse-units | SI/imperial, compile-time dimensional analysis |
+| mathverse-plot | SVG, HTML, terminal plotting |
 | mathverse-prelude | Re-exports of the whole ecosystem |
 
 ## Phases

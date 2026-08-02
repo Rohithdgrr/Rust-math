@@ -2,6 +2,7 @@
 name = "mathverse-complex"
 version = "0.1.1"
 edition = "2021"
+rust-version.workspace = true
 description = "MathVerse complex numbers: arithmetic, powers, transcendental functions"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
@@ -9,3 +10,7 @@ keywords = ["math", "complex-numbers", "imaginary", "mandelbrot", "fft"]
 categories = ["science", "mathematics"]
 
 [dependencies]
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+
+[lints]
+workspace = true

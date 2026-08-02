@@ -2,10 +2,11 @@
 name = "mathverse-physics"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 authors = ["MathVerse Contributors"]
 description = "Physics domain applications for MathVerse"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/mathverse/mathverse"
+repository = "https://github.com/Rohithdgrr/Rust-math"
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
@@ -15,5 +16,8 @@ mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.2.0"
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
 mathverse-units = { path = "../mathverse-units", version = "0.1.0" }
 
+
+[lints]
+workspace = true
 [dev-dependencies]
 approx = "0.5"

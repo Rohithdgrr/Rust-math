@@ -1,3 +1,6 @@
+//! Integer partition functions: general, k-parts, distinct, even/odd parts, Euler's formula.
+
+/// Number of integer partitions of `n`.
 pub fn partition(n: u64) -> u128 {
     let n = n as usize;
     let mut p = vec![0u128; n + 1];
