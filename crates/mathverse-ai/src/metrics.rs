@@ -53,15 +53,21 @@ pub fn f1(pred: &Tensor, target: &Tensor, num_classes: usize) -> MathResult<Vec<
 }
 
 /// Confusion matrix [num_classes × num_classes].
+///
+/// # Errors
+///
+/// Returns `MathError::OutOfRange` if any prediction or target label is
+/// outside `[0, num_classes)`.
 pub fn confusion_matrix(pred: &Tensor, target: &Tensor, num_classes: usize) -> MathResult<Vec<Vec<f64>>> {
     if pred.numel() != target.numel() { return Err(MathError::DimensionMismatch); }
     let mut cm = vec![vec![0.0f64; num_classes]; num_classes];
     for (p, t) in pred.data.iter().zip(&target.data) {
         let pi = *p as usize;
         let ti = *t as usize;
-        if pi < num_classes && ti < num_classes {
-            cm[ti][pi] += 1.0;
+        if pi >= num_classes || ti >= num_classes || *p < 0.0 || *t < 0.0 || (*p - pi as f64).abs() > 1e-9 || (*t - ti as f64).abs() > 1e-9 {
+            return Err(MathError::OutOfRange);
         }
+        cm[ti][pi] += 1.0;
     }
     Ok(cm)
 }
@@ -76,7 +82,7 @@ pub fn roc_auc(scores: &Tensor, labels: &Tensor) -> MathResult<f64> {
         .map(|(&s, &l)| (s, l))
         .collect();
     // Sort by score descending (highest first)
-    pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
     let total_pos: f64 = labels.data.iter().sum();
     let total_neg = n as f64 - total_pos;
@@ -169,6 +175,13 @@ mod tests {
         assert!((p[0] - 2.0 / 3.0).abs() < E);
         assert!((r[0] - 2.0 / 3.0).abs() < E);
         assert!((f[0] - 2.0 / 3.0).abs() < E);
+    }
+
+    #[test]
+    fn confusion_matrix_rejects_out_of_range_labels() {
+        let pred = Tensor::new(&[3], &[0.0, 1.0, 5.0]).unwrap();
+        let target = Tensor::new(&[3], &[0.0, 1.0, 0.0]).unwrap();
+        assert!(confusion_matrix(&pred, &target, 2).is_err());
     }
 
     #[test]

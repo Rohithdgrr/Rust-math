@@ -642,7 +642,12 @@ impl Tensor {
 
     /// Gather along axis: selects from `self` using indices.
     /// `indices` has same shape as output, values are indices along `axis`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MathError::OutOfRange` if any index is outside `[0, axis_size)`.
     pub fn gather(&self, axis: usize, indices: &Tensor) -> MathResult<Tensor> {
+        if axis >= self.shape.len() { return Err(MathError::InvalidArgument("gather: axis out of range")); }
         let mut out_data = Vec::with_capacity(indices.numel());
         let axis_size = self.shape[axis];
         let _outer: usize = self.shape[..axis].iter().product();
@@ -653,7 +658,11 @@ impl Tensor {
             for k in 0..indices.shape[axis] {
                 for ii in 0..iinner {
                     let idx = io * indices.shape[axis] * iinner + k * iinner + ii;
-                    let gather_idx = indices.data[idx] as usize;
+                    let gi = indices.data[idx];
+                    if gi < 0.0 || gi.fract() != 0.0 || gi as usize >= axis_size {
+                        return Err(MathError::OutOfRange);
+                    }
+                    let gather_idx = gi as usize;
                     let src_flat = io * axis_size * inner + gather_idx * inner + ii;
                     out_data.push(self.data[src_flat]);
                 }
@@ -664,7 +673,12 @@ impl Tensor {
     }
 
     /// Scatter add: adds `src` into a zero tensor at positions given by `indices`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MathError::OutOfRange` if any index is outside `[0, axis_size)`.
     pub fn scatter_add(&self, axis: usize, indices: &Tensor, src: &Tensor) -> MathResult<Tensor> {
+        if axis >= self.shape.len() { return Err(MathError::InvalidArgument("scatter_add: axis out of range")); }
         let mut out = self.clone();
         let axis_size = self.shape[axis];
         let _outer: usize = self.shape[..axis].iter().product();
@@ -675,7 +689,11 @@ impl Tensor {
             for k in 0..indices.shape[axis] {
                 for ii in 0..iinner {
                     let idx = io * indices.shape[axis] * iinner + k * iinner + ii;
-                    let scatter_idx = indices.data[idx] as usize;
+                    let si = indices.data[idx];
+                    if si < 0.0 || si.fract() != 0.0 || si as usize >= axis_size {
+                        return Err(MathError::OutOfRange);
+                    }
+                    let scatter_idx = si as usize;
                     let src_flat = io * src.shape[axis] * inner + k * inner + ii;
                     let dst_flat = io * axis_size * inner + scatter_idx * inner + ii;
                     out.data[dst_flat] += src.data[src_flat];
@@ -778,10 +796,12 @@ impl Tensor {
         Ok(result)
     }
 
-    /// Dot product (flattened).
-    #[must_use]
-    pub fn dot(&self, other: &Tensor) -> f64 {
-        self.data.iter().zip(&other.data).map(|(a, b)| a * b).sum()
+    /// Dot product (flattened). Errors if the tensors have different sizes.
+    pub fn dot(&self, other: &Tensor) -> MathResult<f64> {
+        if self.numel() != other.numel() {
+            return Err(MathError::DimensionMismatch);
+        }
+        Ok(self.data.iter().zip(&other.data).map(|(a, b)| a * b).sum())
     }
 
     /// Cross product (3-vectors only).
@@ -851,12 +871,13 @@ impl Tensor {
         Ok((Tensor { shape: self.shape.clone(), data: val_data }, Tensor { shape: self.shape.clone(), data: idx_data }))
     }
 
-    /// Unique elements (sorted, deduplicated).
+    /// Unique elements (sorted, deduplicated). Exact equality only —
+    /// near-but-not-equal values are kept.
     #[must_use]
     pub fn unique(&self) -> Vec<f64> {
         let mut v: Vec<f64> = self.data.clone();
-        v.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        v.dedup_by(|a, b| (*a - *b).abs() < 1e-12);
+        v.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        v.dedup();
         v
     }
 
