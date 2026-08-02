@@ -42,7 +42,7 @@ impl Linear {
         let mut out_shape = orig_shape;
         let last = out_shape.len() - 1;
         out_shape[last] = self.out_features;
-        let bias_2d = self.bias.unsqueeze(0).broadcast_to(&[batch_dims, self.out_features])?;
+        let bias_2d = self.bias.unsqueeze(0)?.broadcast_to(&[batch_dims, self.out_features])?;
         out.add(&bias_2d)?.reshape(&out_shape)
     }
 
@@ -127,7 +127,7 @@ impl BatchNorm {
     }
 
     /// Forward pass over first dimension.
-    pub fn forward(&self, x: &Tensor, training: bool) -> MathResult<Tensor> {
+    pub fn forward(&mut self, x: &Tensor, training: bool) -> MathResult<Tensor> {
         if x.shape.len() < 2 { return Err(mathverse_core::error::MathError::InvalidArgument("BatchNorm needs >= 2D input")); }
         let batch = x.shape[0];
         let feature_size: usize = x.shape[1..].iter().product();
@@ -144,6 +144,9 @@ impl BatchNorm {
                 }
                 let mu = sum / batch as f64;
                 let var = sum2 / batch as f64 - mu * mu;
+                // Update running statistics with exponential moving average
+                self.running_mean.data[f] = self.momentum * self.running_mean.data[f] + (1.0 - self.momentum) * mu;
+                self.running_var.data[f] = self.momentum * self.running_var.data[f] + (1.0 - self.momentum) * var;
                 (mu, var)
             } else {
                 (self.running_mean.data[f], self.running_var.data[f])
@@ -163,26 +166,26 @@ impl BatchNorm {
 pub struct Dropout {
     /// Drop probability.
     pub p: f64,
+    /// Seed for the dropout mask RNG.
+    pub seed: u64,
 }
 
 impl Dropout {
     /// Create a dropout layer.
-    pub fn new(p: f64) -> Self { Self { p } }
+    pub fn new(p: f64) -> Self { Self { p, seed: 0x1234_5678 } }
+
+    /// Create a dropout layer with a specific seed.
+    pub fn with_seed(p: f64, seed: u64) -> Self { Self { p, seed } }
 
     /// Forward: randomly zero out elements with probability p, scale by 1/(1-p).
     pub fn forward(&self, x: &Tensor, training: bool) -> Tensor {
         if !training || self.p == 0.0 { return x.clone(); }
         let scale = 1.0 / (1.0 - self.p);
-        use std::cell::Cell;
-        thread_local! { static S: Cell<u64> = const { Cell::new(0x1234_5678) }; }
+        let mut state = self.seed;
         let data: Vec<f64> = x.data.iter().map(|&v| {
-            S.with(|s| {
-                let mut x = s.get();
-                x ^= x << 13; x ^= x >> 7; x ^= x << 17;
-                s.set(x);
-                let u = (x as f64) / (u64::MAX as f64);
-                if u < self.p { 0.0 } else { v * scale }
-            })
+            state ^= state << 13; state ^= state >> 7; state ^= state << 17;
+            let u = (state as f64) / (u64::MAX as f64);
+            if u < self.p { 0.0 } else { v * scale }
         }).collect();
         Tensor { shape: x.shape.clone(), data }
     }

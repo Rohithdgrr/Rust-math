@@ -97,6 +97,7 @@ pub fn position_embedding(seq_len: usize, d_model: usize) -> Tensor {
 /// ViT forward pass through multiple transformer layers.
 /// `patches`: [batch, seq_len, d_model] (already embedded, CLS prepended)
 /// `w_q`, `w_k`, `w_v`: [d_model, d_model], `w_o`: [d_model, d_model]
+/// `w_ff1`: [d_model, 4*d_model], `w_ff2`: [4*d_model, d_model]
 /// Returns output [batch, seq_len, d_model].
 pub fn vit_forward(
     patches: &Tensor,
@@ -104,6 +105,8 @@ pub fn vit_forward(
     w_k: &Tensor,
     w_v: &Tensor,
     w_o: &Tensor,
+    w_ff1: &Tensor,
+    w_ff2: &Tensor,
     num_heads: usize,
     num_layers: usize,
 ) -> MathResult<Tensor> {
@@ -175,6 +178,17 @@ pub fn vit_forward(
 
         // Residual connection
         x = x.add(&projected)?;
+
+        // Feed-forward network (pre-norm)
+        let x_normed = x.layer_norm(1e-5);
+        let flat = x_normed.reshape(&[batch * seq_len, d_model])?;
+        // Linear 1 + GELU
+        let ff_hidden = flat.matmul(w_ff1)?;
+        let ff_activated = crate::activations::gelu(&ff_hidden);
+        // Linear 2
+        let ff_out = ff_activated.matmul(w_ff2)?.reshape(&[batch, seq_len, d_model])?;
+        // Residual connection
+        x = x.add(&ff_out)?;
     }
 
     Ok(x)
@@ -228,12 +242,15 @@ mod tests {
         let seq = 5; // CLS + 4 patches
         let d_model = 8;
         let num_heads = 2;
+        let ff_hidden = d_model * 4;
         let x = Tensor::randn(&[batch, seq, d_model]);
         let w_q = Tensor::randn(&[d_model, d_model]);
         let w_k = Tensor::randn(&[d_model, d_model]);
         let w_v = Tensor::randn(&[d_model, d_model]);
         let w_o = Tensor::randn(&[d_model, d_model]);
-        let out = vit_forward(&x, &w_q, &w_k, &w_v, &w_o, num_heads, 2).unwrap();
+        let w_ff1 = Tensor::randn(&[d_model, ff_hidden]);
+        let w_ff2 = Tensor::randn(&[ff_hidden, d_model]);
+        let out = vit_forward(&x, &w_q, &w_k, &w_v, &w_o, &w_ff1, &w_ff2, num_heads, 2).unwrap();
         assert_eq!(out.shape, vec![batch, seq, d_model]);
         assert!(out.data.iter().all(|&v| v.is_finite()));
     }

@@ -30,7 +30,7 @@ pub fn flash_attention(q: &Tensor, k: &Tensor, v: &Tensor, block_size: usize) ->
         let mut qi = 0;
         while qi < seq_q {
             let qi_end = (qi + bs).min(seq_q);
-            for kj in 0..seq_kv {
+            for kj in (0..seq_kv).step_by(bs) {
                 let kj_end = (kj + bs).min(seq_kv);
                 // Compute scores for block [qi..qi_end] x [kj..kj_end]
                 for i in qi..qi_end {
@@ -241,8 +241,8 @@ pub fn linear_attention(q: &Tensor, k: &Tensor, v: &Tensor) -> MathResult<Tensor
     }
 
     // Feature maps: phi(x) = elu(x) + 1
-    let phi_q: Vec<f64> = q.data.iter().map(|&x| (x.exp() - 1.0).max(0.0) + 1.0).collect();
-    let phi_k: Vec<f64> = k.data.iter().map(|&x| (x.exp() - 1.0).max(0.0) + 1.0).collect();
+    let phi_q: Vec<f64> = q.data.iter().map(|&x| if x > 0.0 { x + 1.0 } else { x.exp() }).collect();
+    let phi_k: Vec<f64> = k.data.iter().map(|&x| if x > 0.0 { x + 1.0 } else { x.exp() }).collect();
 
     // S = K^T @ V: [batch, d_k, d_v]
     let mut s = vec![0.0; batch * d_k * d_v];

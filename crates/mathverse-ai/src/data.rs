@@ -20,6 +20,8 @@ pub struct DataLoader {
     pub batch_size: usize,
     /// Whether to shuffle indices on `reset()`.
     pub shuffle: bool,
+    /// Seed for the shuffle RNG.
+    pub seed: u64,
     indices: Vec<usize>,
     pos: usize,
 }
@@ -33,24 +35,26 @@ impl DataLoader {
     pub fn new(x: Tensor, y: Tensor, batch_size: usize, shuffle: bool) -> Self {
         let n = x.shape[0];
         let indices: Vec<usize> = (0..n).collect();
-        Self { x, y, batch_size, shuffle, indices, pos: 0 }
+        Self { x, y, batch_size, shuffle, seed: 0xABCD, indices, pos: 0 }
     }
 
-    /// Reset iterator.
+    /// Create a new [`DataLoader`] with a specific shuffle seed.
+    pub fn with_seed(x: Tensor, y: Tensor, batch_size: usize, shuffle: bool, seed: u64) -> Self {
+        let n = x.shape[0];
+        let indices: Vec<usize> = (0..n).collect();
+        Self { x, y, batch_size, shuffle, seed, indices, pos: 0 }
+    }
+
+    /// Reset iterator. Uses the loader's seed for deterministic shuffling.
     pub fn reset(&mut self) {
         self.pos = 0;
         if self.shuffle {
-            use std::cell::Cell;
-            thread_local! { static S: Cell<u64> = const { Cell::new(0xABCD) }; }
+            let mut state = self.seed;
             // Fisher-Yates shuffle with xorshift
             for i in (1..self.indices.len()).rev() {
-                S.with(|s| {
-                    let mut x = s.get();
-                    x ^= x << 13; x ^= x >> 7; x ^= x << 17;
-                    s.set(x);
-                    let j = (x as usize) % (i + 1);
-                    self.indices.swap(i, j);
-                });
+                state ^= state << 13; state ^= state >> 7; state ^= state << 17;
+                let j = (state as usize) % (i + 1);
+                self.indices.swap(i, j);
             }
         }
     }
@@ -155,8 +159,8 @@ mod tests {
 
     #[test]
     fn dataloader_test() {
-        let x = Tensor::arange(0.0, 10.0, 1.0).reshape(&[10, 1]).unwrap();
-        let y = Tensor::arange(0.0, 10.0, 1.0).reshape(&[10, 1]).unwrap();
+        let x = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
+        let y = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
         let mut loader = DataLoader::new(x, y, 3, false);
         assert_eq!(loader.num_batches(), 4);
         let batch = loader.next().unwrap();
@@ -165,8 +169,8 @@ mod tests {
 
     #[test]
     fn train_test_split_test() {
-        let x = Tensor::arange(0.0, 10.0, 1.0).reshape(&[10, 1]).unwrap();
-        let y = Tensor::arange(0.0, 10.0, 1.0).reshape(&[10, 1]).unwrap();
+        let x = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
+        let y = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
         let (x_tr, x_te, _y_tr, _y_te) = train_test_split(&x, &y, 0.2, 42);
         assert_eq!(x_tr.shape[0], 8);
         assert_eq!(x_te.shape[0], 2);

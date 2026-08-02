@@ -8,11 +8,19 @@ use std::cell::RefCell;
 
 thread_local! {
     static GRAPH: RefCell<Vec<GraphEntry>> = const { RefCell::new(Vec::new()) };
+    static GRAD_REGISTRY: RefCell<Vec<Option<Tensor>>> = RefCell::new(Vec::new());
 }
 
 enum GraphEntry {
     Tensor(Tensor),
     Op { inputs: Vec<usize>, backward_fn: usize },
+}
+
+/// Clear the computation graph and gradient registry.
+/// Call this before starting a new forward pass to avoid memory leaks.
+pub fn clear_graph() {
+    GRAPH.with(|g| g.borrow_mut().clear());
+    GRAD_REGISTRY.with(|g| g.borrow_mut().clear());
 }
 
 /// A tensor with gradient tracking.
@@ -31,6 +39,12 @@ impl GradTensor {
             let id = g.len();
             g.push(GraphEntry::Tensor(tensor.clone()));
             id
+        });
+        GRAD_REGISTRY.with(|g| {
+            let mut g = g.borrow_mut();
+            if g.len() <= id {
+                g.resize_with(id + 1, || None);
+            }
         });
         Self { tensor, grad: None, node_id: id }
     }
@@ -53,6 +67,12 @@ pub fn add(a: &GradTensor, b: &GradTensor) -> GradTensor {
         g.push(GraphEntry::Op { inputs: vec![a.node_id, b.node_id], backward_fn: 0 });
         id
     });
+    GRAD_REGISTRY.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.len() <= out_id {
+            g.resize_with(out_id + 1, || None);
+        }
+    });
     GradTensor { tensor: out, grad: None, node_id: out_id }
 }
 
@@ -64,6 +84,12 @@ pub fn mul(a: &GradTensor, b: &GradTensor) -> GradTensor {
         let id = g.len();
         g.push(GraphEntry::Op { inputs: vec![a.node_id, b.node_id], backward_fn: 1 });
         id
+    });
+    GRAD_REGISTRY.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.len() <= out_id {
+            g.resize_with(out_id + 1, || None);
+        }
     });
     GradTensor { tensor: out, grad: None, node_id: out_id }
 }
@@ -77,6 +103,12 @@ pub fn matmul(a: &GradTensor, b: &GradTensor) -> GradTensor {
         g.push(GraphEntry::Op { inputs: vec![a.node_id, b.node_id], backward_fn: 2 });
         id
     });
+    GRAD_REGISTRY.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.len() <= out_id {
+            g.resize_with(out_id + 1, || None);
+        }
+    });
     GradTensor { tensor: out, grad: None, node_id: out_id }
 }
 
@@ -88,6 +120,12 @@ pub fn relu_op(a: &GradTensor) -> GradTensor {
         let id = g.len();
         g.push(GraphEntry::Op { inputs: vec![a.node_id], backward_fn: 3 });
         id
+    });
+    GRAD_REGISTRY.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.len() <= out_id {
+            g.resize_with(out_id + 1, || None);
+        }
     });
     GradTensor { tensor: out, grad: None, node_id: out_id }
 }
@@ -102,6 +140,12 @@ pub fn sum(a: &GradTensor) -> GradTensor {
         g.push(GraphEntry::Op { inputs: vec![a.node_id], backward_fn: 4 });
         id
     });
+    GRAD_REGISTRY.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.len() <= out_id {
+            g.resize_with(out_id + 1, || None);
+        }
+    });
     GradTensor { tensor: out, grad: None, node_id: out_id }
 }
 
@@ -115,10 +159,17 @@ pub fn mse_loss(pred: &GradTensor, target: &GradTensor) -> GradTensor {
         g.push(GraphEntry::Op { inputs: vec![pred.node_id, target.node_id], backward_fn: 5 });
         id
     });
+    GRAD_REGISTRY.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.len() <= out_id {
+            g.resize_with(out_id + 1, || None);
+        }
+    });
     GradTensor { tensor: out, grad: None, node_id: out_id }
 }
 
-/// Backward pass from a scalar loss tensor.
+/// Backward pass from a scalar loss tensor. Computes gradients for all nodes
+/// in the graph and stores them in the gradient registry.
 pub fn backward(loss: &mut GradTensor, scale: f64) {
     GRAPH.with(|g| {
         let g = g.borrow();
@@ -138,12 +189,6 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
             match &g[i] {
                 GraphEntry::Tensor(_) => {}
                 GraphEntry::Op { inputs, backward_fn } => {
-                    let _input_tensors: Vec<Tensor> = inputs.iter().map(|&id| {
-                        match &g[id] {
-                            GraphEntry::Tensor(t) => t.clone(),
-                            _ => Tensor::zeros(&[1]),
-                        }
-                    }).collect();
                     let input_grads = match backward_fn {
                         // add backward: grad flows to both
                         0 => vec![grad_out.clone(), grad_out.clone()],
@@ -216,6 +261,34 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                 }
             }
         }
+
+        // Write computed gradients back to the registry
+        GRAD_REGISTRY.with(|reg| {
+            let mut reg = reg.borrow_mut();
+            for (id, grad) in grads.into_iter().enumerate() {
+                if let Some(g) = grad {
+                    if id < reg.len() {
+                        reg[id] = Some(g);
+                    }
+                }
+            }
+        });
     });
+
+    // Update the loss tensor's grad
+    loss.grad = Some(Tensor::scalar(scale));
 }
 
+/// Look up the gradient for a node by its node_id.
+/// Returns `None` if no gradient was computed for this node.
+pub fn get_grad(node_id: usize) -> Option<Tensor> {
+    GRAD_REGISTRY.with(|reg| {
+        let reg = reg.borrow();
+        reg.get(node_id).cloned().flatten()
+    })
+}
+
+/// Get the node_id for a GradTensor (for use with [`get_grad`]).
+pub fn node_id(gt: &GradTensor) -> usize {
+    gt.node_id
+}

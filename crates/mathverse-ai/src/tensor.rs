@@ -74,15 +74,17 @@ impl Tensor {
     }
 
     /// 1-D range: [start, stop) with step.
-    pub fn arange(start: f64, stop: f64, step: f64) -> Self {
-        assert!(step > 0.0, "step must be positive");
+    pub fn arange(start: f64, stop: f64, step: f64) -> MathResult<Self> {
+        if step <= 0.0 {
+            return Err(MathError::InvalidArgument("arange: step must be positive"));
+        }
         let mut data = Vec::new();
         let mut v = start;
         while v < stop {
             data.push(v);
             v += step;
         }
-        Self { shape: vec![data.len()], data }
+        Ok(Self { shape: vec![data.len()], data })
     }
 
     /// 1-D linspace.
@@ -98,18 +100,17 @@ impl Tensor {
         Self { shape: vec![n], data }
     }
 
-    /// Pseudo-random normal via xorshift64. Optional seed for reproducibility.
-    pub fn randn(shape: &[usize]) -> Self { Self::randn_seeded(shape, 0xDEAD_BEEF_CAFE_1234) }
-
-    /// Pseudo-random normal with explicit seed.
-    pub fn randn_seeded(shape: &[usize], seed: u64) -> Self {
+    /// Pseudo-random normal via xorshift64. Uses persistent thread-local state
+    /// so successive calls produce different values.
+    pub fn randn(shape: &[usize]) -> Self {
         use std::cell::Cell;
-        thread_local! { static S: Cell<u64> = const { Cell::new(0) }; }
-        S.with(|s| s.set(seed));
+        // 0 is the "uninitialized" sentinel; first call advances to a non-zero state.
+        thread_local! { static S: Cell<u64> = const { Cell::new(0xDEAD_BEEF_CAFE_1234) }; }
         let numel: usize = shape.iter().product();
         let data: Vec<f64> = (0..numel).map(|_| {
             S.with(|s| {
                 let mut x = s.get();
+                if x == 0 { x = 0xDEAD_BEEF_CAFE_1234; }
                 x ^= x << 13;
                 x ^= x >> 7;
                 x ^= x << 17;
@@ -118,6 +119,22 @@ impl Tensor {
                 let u2 = ((x >> 32) as f64) / (u64::MAX as f64).max(1e-30);
                 (-2.0 * u1.max(1e-30).ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
             })
+        }).collect();
+        Self { shape: shape.to_vec(), data }
+    }
+
+    /// Pseudo-random normal with explicit seed. Uses a local RNG state so it
+    /// does not interfere with the shared thread-local state used by [`randn`].
+    pub fn randn_seeded(shape: &[usize], seed: u64) -> Self {
+        let mut state = if seed == 0 { 0xDEAD_BEEF_CAFE_1234 } else { seed };
+        let numel: usize = shape.iter().product();
+        let data: Vec<f64> = (0..numel).map(|_| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            let u1 = (state as f64) / (u64::MAX as f64).max(1e-30);
+            let u2 = ((state >> 32) as f64) / (u64::MAX as f64).max(1e-30);
+            (-2.0 * u1.max(1e-30).ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
         }).collect();
         Self { shape: shape.to_vec(), data }
     }
@@ -277,11 +294,13 @@ impl Tensor {
     }
 
     /// Add a size-1 dimension at axis.
-    pub fn unsqueeze(&self, axis: usize) -> Self {
-        assert!(axis <= self.shape.len(), "axis out of range");
+    pub fn unsqueeze(&self, axis: usize) -> MathResult<Self> {
+        if axis > self.shape.len() {
+            return Err(MathError::InvalidArgument("unsqueeze: axis out of range"));
+        }
         let mut shape = self.shape.clone();
         shape.insert(axis, 1);
-        Self { shape, data: self.data.clone() }
+        Ok(Self { shape, data: self.data.clone() })
     }
 
     /// Expand to a target shape (broadcast semantics, clones data).
@@ -352,12 +371,15 @@ impl Tensor {
         Ok(Tensor { shape: target, data })
     }
 
-    /// Element-wise div (safe: replaces zero with epsilon).
+    /// Element-wise div (safe: replaces zero with epsilon, preserving sign).
     pub fn div(&self, other: &Tensor) -> MathResult<Tensor> {
         let target = broadcast_shapes(&self.shape, &other.shape)?;
         let a = self.broadcast_to(&target)?;
         let b = other.broadcast_to(&target)?;
-        let data: Vec<f64> = a.data.iter().zip(&b.data).map(|(x, y)| x / y.max(f64::EPSILON)).collect();
+        let data: Vec<f64> = a.data.iter().zip(&b.data).map(|(x, y)| {
+            let denom = if y.abs() < f64::EPSILON { f64::EPSILON } else { *y };
+            x / denom
+        }).collect();
         Ok(Tensor { shape: target, data })
     }
 
@@ -379,10 +401,10 @@ impl Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x * s).collect() }
     }
 
-    /// Divide every element by a scalar (denominator clamped to `f64::EPSILON`).
+    /// Divide every element by a scalar (denominator clamped to `f64::EPSILON`, preserving sign).
     #[must_use]
     pub fn div_scalar(&self, s: f64) -> Tensor {
-        let denom = s.max(f64::EPSILON);
+        let denom = if s.abs() < f64::EPSILON { f64::EPSILON } else { s };
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x / denom).collect() }
     }
 
@@ -468,14 +490,18 @@ impl Tensor {
     /// Argmax along axis (returns flat index per slice).
     pub fn argmax_axis(&self, axis: usize) -> MathResult<Tensor> {
         axis_reduce_idx(self, axis, |vals| {
-            vals.iter().enumerate().max_by(|a, b| a.1.partial_cmp(b.1).unwrap()).map(|(i, _)| i).unwrap_or(0)
+            vals.iter().enumerate()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(i, _)| i).unwrap_or(0)
         })
     }
 
     /// Argmin along axis.
     pub fn argmin_axis(&self, axis: usize) -> MathResult<Tensor> {
         axis_reduce_idx(self, axis, |vals| {
-            vals.iter().enumerate().min_by(|a, b| a.1.partial_cmp(b.1).unwrap()).map(|(i, _)| i).unwrap_or(0)
+            vals.iter().enumerate()
+                .min_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(i, _)| i).unwrap_or(0)
         })
     }
 
@@ -516,30 +542,66 @@ impl Tensor {
     }
 
     /// Batch normalization (over first dimension).
+    ///
+    /// For 2-D tensors `[N, features]`, normalizes each feature across the batch.
+    /// For 4-D tensors `[N, C, H, W]`, normalizes per channel across `N, H, W`
+    /// (standard image batch norm behavior).
     pub fn batch_norm(&self, eps: f64) -> MathResult<Tensor> {
         if self.shape.len() < 2 {
             return Err(MathError::InvalidArgument("batch_norm requires >= 2-D tensor"));
         }
         let batch = self.shape[0];
-        let feature_size: usize = self.shape[1..].iter().product();
         let mut out = self.data.clone();
-        let total = self.numel();
-        let per_sample = total / batch;
-        for f in 0..feature_size {
-            let mut sum = 0.0;
-            let mut sum2 = 0.0;
-            for b in 0..batch {
-                let idx = b * per_sample + f;
-                let v = self.data[idx];
-                sum += v;
-                sum2 += v * v;
+
+        if self.shape.len() == 4 {
+            // [N, C, H, W] — per-channel normalization
+            let (n, c, h, w) = (self.shape[0], self.shape[1], self.shape[2], self.shape[3]);
+            let hw = h * w;
+            let spatial_count = (n * h * w) as f64;
+            for ch in 0..c {
+                let mut sum = 0.0;
+                let mut sum2 = 0.0;
+                for ni in 0..n {
+                    for hi in 0..h {
+                        for wi in 0..w {
+                            let v = self.data[ni * c * hw + ch * hw + hi * w + wi];
+                            sum += v;
+                            sum2 += v * v;
+                        }
+                    }
+                }
+                let mu = sum / spatial_count;
+                let var = sum2 / spatial_count - mu * mu;
+                let inv = 1.0 / (var + eps).sqrt();
+                for ni in 0..n {
+                    for hi in 0..h {
+                        for wi in 0..w {
+                            let idx = ni * c * hw + ch * hw + hi * w + wi;
+                            out[idx] = (self.data[idx] - mu) * inv;
+                        }
+                    }
+                }
             }
-            let mu = sum / batch as f64;
-            let var = sum2 / batch as f64 - mu * mu;
-            let inv = 1.0 / (var + eps).sqrt();
-            for b in 0..batch {
-                let idx = b * per_sample + f;
-                out[idx] = (self.data[idx] - mu) * inv;
+        } else {
+            // Generic: normalize each flat position across batch
+            let feature_size: usize = self.shape[1..].iter().product();
+            let per_sample = self.numel() / batch;
+            for f in 0..feature_size {
+                let mut sum = 0.0;
+                let mut sum2 = 0.0;
+                for b in 0..batch {
+                    let idx = b * per_sample + f;
+                    let v = self.data[idx];
+                    sum += v;
+                    sum2 += v * v;
+                }
+                let mu = sum / batch as f64;
+                let var = sum2 / batch as f64 - mu * mu;
+                let inv = 1.0 / (var + eps).sqrt();
+                for b in 0..batch {
+                    let idx = b * per_sample + f;
+                    out[idx] = (self.data[idx] - mu) * inv;
+                }
             }
         }
         Ok(Tensor { shape: self.shape.clone(), data: out })
@@ -639,7 +701,7 @@ impl Tensor {
                     let flat = io * axis_size * inner + a * inner + ii;
                     (self.data[flat], a)
                 }).collect();
-                pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+                pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
                 #[allow(clippy::needless_range_loop)]
                 for ki in 0..k {
                     val_data.push(pairs[ki].0);
@@ -685,27 +747,33 @@ impl Tensor {
         Ok(Tensor { shape: out_shape, data: out_data })
     }
 
-    /// Split into chunks along axis.
+    /// Split into chunks along axis. Last chunk absorbs any remainder.
     pub fn split(&self, num_chunks: usize, axis: usize) -> MathResult<Vec<Tensor>> {
         if axis >= self.shape.len() { return Err(MathError::InvalidArgument("split: axis out of range")); }
-        let chunk_size = self.shape[axis] / num_chunks;
+        if num_chunks == 0 { return Err(MathError::InvalidArgument("split: num_chunks must be > 0")); }
+        let axis_len = self.shape[axis];
+        let chunk_size = axis_len / num_chunks;
+        let remainder = axis_len % num_chunks;
         let outer: usize = self.shape[..axis].iter().product();
         let inner: usize = self.shape[axis + 1..].iter().product();
         let mut result = Vec::with_capacity(num_chunks);
+        let mut offset = 0;
         for c in 0..num_chunks {
-            let mut chunk_data = Vec::with_capacity(outer * chunk_size * inner);
+            let cur_size = if c == num_chunks - 1 { chunk_size + remainder } else { chunk_size };
+            let mut chunk_data = Vec::with_capacity(outer * cur_size * inner);
             for io in 0..outer {
-                for a in 0..chunk_size {
-                    let src_a = c * chunk_size + a;
+                for a in 0..cur_size {
+                    let src_a = offset + a;
                     for ii in 0..inner {
-                        let flat = io * self.shape[axis] * inner + src_a * inner + ii;
+                        let flat = io * axis_len * inner + src_a * inner + ii;
                         chunk_data.push(self.data[flat]);
                     }
                 }
             }
             let mut shape = self.shape.clone();
-            shape[axis] = chunk_size;
+            shape[axis] = cur_size;
             result.push(Tensor { shape, data: chunk_data });
+            offset += cur_size;
         }
         Ok(result)
     }
@@ -773,7 +841,7 @@ impl Tensor {
                     let flat = io * axis_size * inner + a * inner + ii;
                     (self.data[flat], a)
                 }).collect();
-                pairs.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+                pairs.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
                 for &(v, idx) in &pairs {
                     val_data.push(v);
                     idx_data.push(idx as f64);
@@ -939,7 +1007,7 @@ mod tests {
         let t = Tensor::ones(&[3]);
         assert_eq!(t.data, vec![1.0, 1.0, 1.0]);
 
-        let t = Tensor::arange(0.0, 4.0, 1.0);
+        let t = Tensor::arange(0.0, 4.0, 1.0).unwrap();
         assert_eq!(t.data, vec![0.0, 1.0, 2.0, 3.0]);
 
         let t = Tensor::linspace(0.0, 1.0, 5);
@@ -949,7 +1017,7 @@ mod tests {
 
     #[test]
     fn reshape_and_flatten() {
-        let t = Tensor::arange(0.0, 6.0, 1.0).reshape(&[2, 3]).unwrap();
+        let t = Tensor::arange(0.0, 6.0, 1.0).unwrap().reshape(&[2, 3]).unwrap();
         assert_eq!(t.shape, vec![2, 3]);
         assert!((t.get(&[1, 2]).unwrap() - 5.0).abs() < E);
         let f = t.flatten();
@@ -1076,7 +1144,7 @@ mod tests {
         let t = Tensor::zeros(&[1, 3, 1]);
         let s = t.squeeze(None);
         assert_eq!(s.shape, vec![3]);
-        let u = s.unsqueeze(1);
+        let u = s.unsqueeze(1).unwrap();
         assert_eq!(u.shape, vec![3, 1]);
     }
 }

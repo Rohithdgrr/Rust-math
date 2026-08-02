@@ -49,12 +49,13 @@ pub fn gan_discriminator_loss(real_pred: &Tensor, fake_pred: &Tensor) -> MathRes
 }
 
 /// GAN generator loss: wants D(fake) → 1.
+/// Returns mean(-log(D(fake))), which the generator minimizes.
 pub fn gan_generator_loss(fake_pred: &Tensor) -> MathResult<f64> {
     let eps = 1e-12;
     let loss: f64 = fake_pred.data.iter()
         .map(|&x| -(x.max(eps).ln()))
         .sum::<f64>() / fake_pred.numel() as f64;
-    Ok(-loss) // negative because generator minimizes -log(D(fake))
+    Ok(loss)
 }
 
 /// Diffusion forward process: q(x_t | x_0) = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise
@@ -150,9 +151,13 @@ mod tests {
     fn gan_generator_loss_test() {
         let fake_pred = Tensor::new(&[4], &[0.9, 0.8, 0.85, 0.95]).unwrap();
         let loss = gan_generator_loss(&fake_pred).unwrap();
-        // Generator loss should be negative (minimizing -log(D(fake)))
-        assert!(loss < 0.0);
+        // Generator loss = mean(-log(D(fake))), should be positive and finite
+        assert!(loss > 0.0);
         assert!(loss.is_finite());
+        // High D(fake) → low loss
+        let fake_bad = Tensor::new(&[4], &[0.1, 0.1, 0.1, 0.1]).unwrap();
+        let loss_bad = gan_generator_loss(&fake_bad).unwrap();
+        assert!(loss_bad > loss);
     }
 
     #[test]
