@@ -1,10 +1,7 @@
 //! Special trigonometric functions: sinc, haversine, Gudermannian, Chebyshev, versine, exsecant.
 
 use mathverse_core::traits::Real;
-
-fn f<T: Real>(x: T, f: impl Fn(f64) -> f64) -> T {
-    T::from_f64(f(x.to_f64()))
-}
+use crate::util::map_real as f;
 
 // ---------------------------------------------------------------------------
 // Sinc

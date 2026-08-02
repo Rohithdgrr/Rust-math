@@ -1,11 +1,7 @@
 //! Coordinate conversions: polar/cartesian, spherical, angle normalization, turns/grads.
 
-use mathverse_core::constants::TAU;
 use mathverse_core::traits::Real;
-
-fn f<T: Real>(x: T, f: impl Fn(f64) -> f64) -> T {
-    T::from_f64(f(x.to_f64()))
-}
+use crate::util::map_real as f;
 
 fn atan2_f<T: Real>(y: T, x: T) -> T {
     T::from_f64(y.to_f64().atan2(x.to_f64()))
@@ -27,6 +23,18 @@ pub fn wrap_angle<T: Real>(x: T) -> T {
     })
 }
 
+/// Wrap angle in radians to `[-π, π)` (const fn for f64).
+/// Note: This is a simplified version suitable for const context.
+/// For full functionality including special float handling, use the generic `wrap_angle`.
+pub const fn wrap_angle_f64(x: f64) -> f64 {
+    let pi = core::f64::consts::PI;
+    let two_pi = pi * 2.0;
+    let v = x % two_pi;
+    if v >= pi { v - two_pi }
+    else if v < -pi { v + two_pi }
+    else { v }
+}
+
 /// Wrap angle in radians to `[0, 2π)`.
 pub fn wrap_angle_positive<T: Real>(x: T) -> T {
     f(x, |r| {
@@ -42,12 +50,22 @@ pub fn wrap_angle_positive<T: Real>(x: T) -> T {
 
 /// Convert turns (revolutions) to radians.
 pub fn turns_to_radians<T: Real>(turns: T) -> T {
-    turns * T::from_f64(TAU)
+    turns * T::from_f64(2.0 * core::f64::consts::PI)
+}
+
+/// Convert turns (revolutions) to radians (const fn for f64).
+pub const fn turns_to_radians_f64(turns: f64) -> f64 {
+    turns * 2.0 * core::f64::consts::PI
 }
 
 /// Convert radians to turns (revolutions).
 pub fn radians_to_turns<T: Real>(radians: T) -> T {
-    radians / T::from_f64(TAU)
+    radians / T::from_f64(2.0 * core::f64::consts::PI)
+}
+
+/// Convert radians to turns (revolutions) (const fn for f64).
+pub const fn radians_to_turns_f64(radians: f64) -> f64 {
+    radians / (2.0 * core::f64::consts::PI)
 }
 
 // ---------------------------------------------------------------------------
@@ -173,6 +191,20 @@ mod tests {
     fn turns_test() {
         assert!((turns_to_radians(0.5) - PI).abs() < EPS);
         assert!((radians_to_turns(PI) - 0.5).abs() < EPS);
+    }
+
+    #[test]
+    fn const_fn_tests() {
+        // Test const fn variants work correctly
+        assert!((wrap_angle_f64(3.0 * PI) - (-PI)).abs() < EPS);
+        assert!((wrap_angle_f64(-3.0 * PI) - (-PI)).abs() < EPS);
+        assert!((turns_to_radians_f64(0.5) - PI).abs() < EPS);
+        assert!((radians_to_turns_f64(PI) - 0.5).abs() < EPS);
+        
+        // Verify const variants match generic versions
+        assert!((wrap_angle_f64(3.0 * PI) - wrap_angle(3.0 * PI)).abs() < EPS);
+        assert!((turns_to_radians_f64(0.5) - turns_to_radians(0.5)).abs() < EPS);
+        assert!((radians_to_turns_f64(PI) - radians_to_turns(PI)).abs() < EPS);
     }
 
     #[test]

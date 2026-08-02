@@ -10,17 +10,18 @@ pub mod conversions;
 pub mod identities;
 pub mod laws;
 pub mod special;
+mod util;
 
 use mathverse_core::traits::Real;
 
-pub use conversions::{wrap_angle, wrap_angle_positive, rad_to_grad, grad_to_rad,
-    turns_to_radians, radians_to_turns};
+pub use conversions::{wrap_angle, wrap_angle_positive, wrap_angle_f64, rad_to_grad, grad_to_rad,
+    turns_to_radians, turns_to_radians_f64, radians_to_turns, radians_to_turns_f64};
 pub use identities::{sin_cos, sin_double, cos_double, tan_double, sin_half, cos_half, tan_half,
     sin_sum, sin_diff, cos_sum, cos_diff, tan_sum, tan_diff,
     sin_sin_product, cos_cos_product, sin_cos_product,
     sin_sum_to_product, sin_diff_to_product, cos_sum_to_product, cos_diff_to_product,
     sin_squared, cos_squared, tan_squared};
-pub use laws::{law_of_sines_side, law_of_sines_angle, law_of_cosines_side, law_of_cosines_angle,
+pub use laws::{law_of_sines_side, law_of_sines_angle, law_of_sines_angle_both, law_of_cosines_side, law_of_cosines_angle,
     heron, triangle_area_sas, triangle_area_base_height, bearing, haversine_distance};
 pub use special::{sinc, sinc_unnorm, versine, coversine, vercosine, covercosine,
     haversine, havercosine, hacoversine, hacovercosine, exsecant, excosecant,
@@ -29,9 +30,8 @@ pub use special::{sinc, sinc_unnorm, versine, coversine, vercosine, covercosine,
 
 pub use mathverse_core::ops::{deg_to_grad, deg_to_rad, grad_to_deg, rad_to_deg};
 
-fn f<T: Real>(x: T, f: impl Fn(f64) -> f64) -> T {
-    T::from_f64(f(x.to_f64()))
-}
+// Use the centralized map_real utility
+use crate::util::map_real as f;
 
 /// Sine.
 pub fn sin<T: Real>(x: T) -> T {
@@ -111,6 +111,15 @@ pub fn asec<T: Real>(x: T) -> T {
     }
     f(x, |r| (1.0 / r).acos())
 }
+/// Arc secant with domain checking: returns `None` for |x| < 1.
+pub fn asec_checked<T: Real>(x: T) -> Option<T> {
+    let r = x.to_f64();
+    if r.abs() < 1.0 {
+        None
+    } else {
+        Some(T::from_f64((1.0 / r).acos()))
+    }
+}
 /// Arc cosecant: `asin(1/x)`. Domain: |x| >= 1.
 pub fn acsc<T: Real>(x: T) -> T {
     let r = x.to_f64();
@@ -118,6 +127,15 @@ pub fn acsc<T: Real>(x: T) -> T {
         return T::from_f64(f64::NAN);
     }
     f(x, |r| (1.0 / r).asin())
+}
+/// Arc cosecant with domain checking: returns `None` for |x| < 1.
+pub fn acsc_checked<T: Real>(x: T) -> Option<T> {
+    let r = x.to_f64();
+    if r.abs() < 1.0 {
+        None
+    } else {
+        Some(T::from_f64((1.0 / r).asin()))
+    }
 }
 
 /// Inverse hyperbolic sine.
@@ -323,6 +341,33 @@ mod tests {
         assert!(!acsc(1.0).is_nan());
         assert!(!acsc(2.0).is_nan());
         assert!(!acsc(-1.0).is_nan());
+    }
+
+    #[test]
+    fn checked_variants() {
+        // Test asec_checked returns None for invalid domain
+        assert!(asec_checked(0.5).is_none());
+        assert!(asec_checked(0.0).is_none());
+        assert!(asec_checked(-0.5).is_none());
+        
+        // Test asec_checked returns Some for valid domain
+        assert!(asec_checked(1.0).is_some());
+        assert!(asec_checked(2.0).is_some());
+        assert!(asec_checked(-1.0).is_some());
+        
+        // Test acsc_checked returns None for invalid domain
+        assert!(acsc_checked(0.5).is_none());
+        assert!(acsc_checked(0.0).is_none());
+        assert!(acsc_checked(-0.5).is_none());
+        
+        // Test acsc_checked returns Some for valid domain
+        assert!(acsc_checked(1.0).is_some());
+        assert!(acsc_checked(2.0).is_some());
+        assert!(acsc_checked(-1.0).is_some());
+        
+        // Verify checked variants match regular variants for valid inputs
+        assert!((asec_checked(2.0).unwrap() - asec(2.0)).abs() < 1e-12);
+        assert!((acsc_checked(2.0).unwrap() - acsc(2.0)).abs() < 1e-12);
     }
 
     #[test]

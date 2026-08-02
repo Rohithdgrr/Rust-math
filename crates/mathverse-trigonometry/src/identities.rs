@@ -1,10 +1,7 @@
 //! Trigonometric identities: double/half angle, sum/difference, product-to-sum, power-reduction.
 
 use mathverse_core::traits::Real;
-
-fn f<T: Real>(x: T, f: impl Fn(f64) -> f64) -> T {
-    T::from_f64(f(x.to_f64()))
-}
+use crate::util::map_real as f;
 
 // ---------------------------------------------------------------------------
 // Double angle formulas
@@ -189,7 +186,9 @@ pub fn tan_squared<T: Real>(x: T) -> T {
 
 /// Compute (sin(x), cos(x)) simultaneously (more efficient).
 pub fn sin_cos<T: Real>(x: T) -> (T, T) {
-    (f(x, f64::sin), f(x, f64::cos))
+    let r = x.to_f64();
+    let (s, c) = r.sin_cos();
+    (T::from_f64(s), T::from_f64(c))
 }
 
 #[cfg(test)]
