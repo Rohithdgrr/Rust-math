@@ -1,6 +1,12 @@
-//! Elementary symmetric polynomials, power sums, and Newton's identities
-//! relating them.
+//! Elementary symmetric polynomials and Newton's identities.
 
+const TOL: f64 = 1e-12;
+
+/// Compute the elementary symmetric polynomials `e₁, e₂, …, eₙ` from a list
+/// of variables `x₁, x₂, …, xₙ`.
+///
+/// `e_k` is the sum of all products of `k` distinct variables.
+///
 /// Elementary symmetric polynomial `e_k` of `values`.
 ///
 /// `e_0 = 1`, `e_1 = Σxᵢ`, `e_2 = Σᵢ<ⱼ xᵢxⱼ`, …, `e_k = Σ` products of `k`
@@ -48,10 +54,10 @@ pub fn power_sum(values: &[f64], k: usize) -> f64 {
 /// # use mathverse_algebra::symmetric::newtons_identities;
 /// // Values [1, 2, 3]: p1=6, p2=14, p3=36
 /// let e = newtons_identities(&[6.0, 14.0, 36.0]);
-/// assert!((e[1] - 6.0).abs() < 1e-9);   // e1 = 6
-/// assert!((e[2] - 11.0).abs() < 1e-9);  // e2 = 11
-/// assert!((e[3] - 6.0).abs() < 1e-9);   // e3 = 6
-/// ```
+/// assert!((e[1] - 6.0).abs() < 1e-9); // e1 = 6
+/// assert!((e[2] - 11.0).abs() < 1e-9); // e2 = 11
+/// assert!((e[3] - 6.0).abs() < 1e-9); // e3 = 6
+
 pub fn newtons_identities(power_sums: &[f64]) -> Vec<f64> {
     let n = power_sums.len();
     let mut e = vec![0.0; n + 1];

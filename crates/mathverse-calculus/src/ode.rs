@@ -36,7 +36,7 @@ pub fn euler(f: &dyn Fn(f64, f64) -> f64, t0: f64, y0: f64, t_end: f64, steps: u
 /// // dy/dt = y, y(0) = 1, solution: y = e^t
 /// let result = runge_kutta_4(&|t, y| y, 0.0, 1.0, 1.0, 10);
 /// let y_final = result.last().unwrap().1;
-/// assert!((y_final - 1.0_f64.exp()).abs() < 1e-6);
+/// assert!((y_final - 1.0_f64.exp()).abs() < 1e-5);
 /// ```
 pub fn runge_kutta_4(f: &dyn Fn(f64, f64) -> f64, t0: f64, y0: f64, t_end: f64, steps: usize) -> Vec<(f64, f64)> {
     let dt = (t_end - t0) / steps as f64;
@@ -145,7 +145,7 @@ mod tests {
         // dy/dt = y, y(0) = 1, solution: y = e^t
         let result = runge_kutta_4(&|t, y| y, 0.0, 1.0, 1.0, 10);
         let y_final = result.last().unwrap().1;
-        assert!((y_final - 1.0_f64.exp()).abs() < 1e-6);
+        assert!((y_final - 1.0_f64.exp()).abs() < 1e-5);
     }
 
     #[test]

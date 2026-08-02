@@ -13,7 +13,7 @@ const TOL: f64 = 1e-12;
 ///
 /// ```
 /// # use mathverse_algebra::factor::synthetic_division;
-/// // Divide x² - 5x + 6 by (x - 2)  →  quotient x - 3, remainder 0
+/// // Divide x² - 5x + 6 by (x - 2) → quotient x - 3, remainder 0
 /// let (q, r) = synthetic_division(&[6.0, -5.0, 1.0], 2.0);
 /// assert!((q[0] - (-3.0)).abs() < 1e-12 && (q[1] - 1.0).abs() < 1e-12);
 /// assert!(r.abs() < 1e-12);

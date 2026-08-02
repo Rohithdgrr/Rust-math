@@ -33,7 +33,6 @@ Mission: become for Rust what NumPy, SciPy, SymPy, scikit-learn utilities, OpenC
 | mathverse-complex | Complex numbers |
 | mathverse-probability | Random variables, Bayes, distributions, Monte Carlo |
 | mathverse-statistics | Descriptive + inferential statistics, regression |
-| mathverse-discrete | Logic, sets, relations, graphs, trees, boolean algebra |
 | mathverse-number-theory | Primes, GCD/LCM, modular arithmetic, RSA helpers |
 | mathverse-combinatorics | Combinatorial math |
 | mathverse-graph | Graph algorithms |
@@ -66,10 +65,12 @@ Mission: become for Rust what NumPy, SciPy, SymPy, scikit-learn utilities, OpenC
 ## Quick Start
 
 ```rust
-use mathverse::prelude::*;
+use mathverse_prelude::prelude::*;
 
 fn main() {
-    // TBD — available after v0.1
+    let x = 3.0;
+    let y = x.powi(2);
+    println!("{} squared = {}", x, y);
 }
 ```
 

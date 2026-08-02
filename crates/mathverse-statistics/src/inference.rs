@@ -183,7 +183,7 @@ pub fn omega_squared(groups: &[&[f64]]) -> f64 {
 /// ```
 #[must_use]
 #[inline]
-pub const fn bonferroni(alpha: f64, m: usize) -> f64 {
+pub fn bonferroni(alpha: f64, m: usize) -> f64 {
     alpha / m as f64
 }
 

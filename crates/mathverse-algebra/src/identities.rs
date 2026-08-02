@@ -46,153 +46,136 @@ pub fn square_of_sum(a: f64, b: f64) -> f64 {
     a * a + 2.0 * a * b + b * b
 }
 
-/// `(a - b)² = a² - 2ab + b²`.
+/// `(a - b)² = a² - 2ab + b²` — returns the expanded value.
 pub fn square_of_difference(a: f64, b: f64) -> f64 {
     a * a - 2.0 * a * b + b * b
 }
 
-/// Difference of squares: `a² - b² = (a - b)(a + b)`.
-///
-/// Returns `(a - b, a + b)` — the two linear factors.
-///
-/// ```
-/// # use mathverse_algebra::identities::difference_of_squares;
-/// let (f1, f2) = difference_of_squares(5.0, 3.0); // 25 - 9 = 16
-/// assert!((f1 * f2 - 16.0).abs() < 1e-12);
-/// ```
+/// `a² - b² = (a - b)(a + b)` — returns the two factors `(a - b, a + b)`.
 pub fn difference_of_squares(a: f64, b: f64) -> (f64, f64) {
     (a - b, a + b)
 }
 
-/// Perfect square trinomial: `(a ± b)² = a² ± 2ab + b²`.
-///
-/// Returns `(a + b)²` and `(a - b)²`.
-pub fn perfect_square_trinomial(a: f64, b: f64) -> (f64, f64) {
-    (square_of_sum(a, b), square_of_difference(a, b))
-}
-
-/// Sum of cubes: `a³ + b³ = (a + b)(a² − ab + b²)`.
-///
-/// Returns `(linear_factor, quadratic_factor_value)`.
-///
-/// ```
-/// # use mathverse_algebra::identities::sum_of_cubes;
-/// let (lin, quad) = sum_of_cubes(2.0, 3.0); // 8 + 27 = 35
-/// assert!((lin * quad - 35.0).abs() < 1e-12);
-/// ```
-pub fn sum_of_cubes(a: f64, b: f64) -> (f64, f64) {
-    let linear = a + b;
-    let quadratic = a * a - a * b + b * b;
-    (linear, quadratic)
-}
-
-/// Difference of cubes: `a³ - b³ = (a - b)(a² + ab + b²)`.
-///
-/// Returns `(linear_factor, quadratic_factor_value)`.
-pub fn difference_of_cubes(a: f64, b: f64) -> (f64, f64) {
-    let linear = a - b;
-    let quadratic = a * a + a * b + b * b;
-    (linear, quadratic)
-}
-
-/// `(a + b)³ = a³ + 3a²b + 3ab² + b³`.
+/// `(a + b)³ = a³ + 3a²b + 3ab² + b³` — returns the expanded value.
 pub fn cube_of_sum(a: f64, b: f64) -> f64 {
-    a * a * a + 3.0 * a * a * b + 3.0 * a * b * b + b * b * b
+    a.powi(3) + 3.0 * a * a * b + 3.0 * a * b * b + b.powi(3)
 }
 
-/// `(a - b)³ = a³ - 3a²b + 3ab² - b³`.
+/// `(a - b)³ = a³ - 3a²b + 3ab² - b³` — returns the expanded value.
 pub fn cube_of_difference(a: f64, b: f64) -> f64 {
-    a * a * a - 3.0 * a * a * b + 3.0 * a * b * b - b * b * b
+    a.powi(3) - 3.0 * a * a * b + 3.0 * a * b * b - b.powi(3)
 }
 
-/// `(a + b)⁴ = a⁴ + 4a³b + 6a²b² + 4ab³ + b⁴`.
-pub fn fourth_power_sum(a: f64, b: f64) -> f64 {
-    a.powi(4) + 4.0 * a.powi(3) * b + 6.0 * a * a * b * b + 4.0 * a * b.powi(3) + b.powi(4)
+/// `a³ + b³ = (a + b)(a² - ab + b²)` — returns the evaluated numeric result.
+pub fn sum_of_cubes(a: f64, b: f64) -> f64 {
+    a.powi(3) + b.powi(3)
 }
 
-/// `(a + b + c)² = a² + b² + c² + 2ab + 2bc + 2ca`.
-pub fn square_of_trinomial(a: f64, b: f64, c: f64) -> f64 {
-    a * a + b * b + c * c + 2.0 * a * b + 2.0 * b * c + 2.0 * c * a
+/// `a³ - b³ = (a - b)(a² + ab + b²)` — returns the evaluated numeric result.
+pub fn difference_of_cubes(a: f64, b: f64) -> f64 {
+    a.powi(3) - b.powi(3)
 }
 
-/// Sum/difference of nth powers for odd `n`:
-/// `aⁿ + bⁿ = (a + b)(aⁿ⁻¹ - aⁿ⁻²b + … + bⁿ⁻¹)`.
+/// `aⁿ + bⁿ` factorization for odd `n`: returns `(a + b, remaining_factor)`.
 ///
-/// Returns the two factors as `(linear, remaining)`.
+/// For even `n`, returns `None` since `aⁿ + bⁿ` is not factorable over the reals.
 pub fn sum_of_nth_powers(a: f64, b: f64, n: usize) -> Option<(f64, f64)> {
-    if n == 0 || n % 2 == 0 {
+    if n % 2 == 0 {
         return None;
     }
-    let linear = a + b;
-    let mut quad = 0.0;
-    for k in 0..n {
-        let sign = if k % 2 == 0 { 1.0 } else { -1.0 };
-        quad += sign * a.powi((n - 1 - k) as i32) * b.powi(k as i32);
+    let sum = a + b;
+    let remaining = (a.powi(n as i32) + b.powi(n as i32)) / sum;
+    Some((sum, remaining))
+}
+
+/// Factor a quadratic `ax² + bx + c` into `(px + q)(rx + s)` if possible.
+///
+/// Returns `Some((p, q, r, s))` such that `a = pr`, `c = qs`, `b = ps + qr`.
+/// Returns `None` if no integer-like factorization exists.
+pub fn factor_quadratic(a: f64, b: f64, c: f64) -> Option<(f64, f64, f64, f64)> {
+    let a_pairs = factor_pairs(a);
+    let c_pairs = factor_pairs(c);
+    for &(p, r) in &a_pairs {
+        for &(q, s) in &c_pairs {
+            if (p * s + q * r - b).abs() < 1e-9 {
+                return Some((p, q, r, s));
+            }
+        }
     }
-    Some((linear, quad))
+    None
+}
+
+/// All factor pairs of `n` (including negatives).
+fn factor_pairs(n: f64) -> Vec<(f64, f64)> {
+    let n_abs = n.abs();
+    let limit = (n_abs.sqrt() + 1.0) as i64;
+    let mut pairs = Vec::new();
+    for i in 1..=limit {
+        let fi = i as f64;
+        if (n_abs / fi).fract() < 1e-9 {
+            let j = n_abs / fi;
+            pairs.push((fi, j));
+            pairs.push((-fi, -j));
+            if fi != j {
+                pairs.push((j, fi));
+                pairs.push((-j, -fi));
+            }
+        }
+    }
+    pairs
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn approx(a: f64, b: f64) -> bool {
-        (a - b).abs() < 1e-9
-    }
-
     #[test]
     fn pascal() {
         let t = pascal_triangle(4);
         assert_eq!(t[0], vec![1]);
+        assert_eq!(t[1], vec![1, 1]);
+        assert_eq!(t[2], vec![1, 2, 1]);
         assert_eq!(t[3], vec![1, 3, 3, 1]);
         assert_eq!(t[4], vec![1, 4, 6, 4, 1]);
     }
 
     #[test]
-    fn binomial_exp() {
-        let terms = binomial_expand(1.0, 1.0, 4); // (1+1)⁴ = 16
-        assert!((terms.iter().sum::<f64>() - 16.0).abs() < 1e-12);
+    fn binomial_identity() {
+        let terms = binomial_expand(2.0, 3.0, 4);
+        let sum: f64 = terms.iter().sum();
+        assert!((sum - 625.0).abs() < 1e-9); // (2+3)^4 = 625
     }
 
     #[test]
-    fn squares() {
-        assert!(approx(square_of_sum(3.0, 4.0), 49.0));
-        assert!(approx(square_of_difference(3.0, 4.0), 1.0));
+    fn square_identities() {
+        assert!((square_of_sum(2.0, 3.0) - 25.0).abs() < 1e-9);
+        assert!((square_of_difference(5.0, 3.0) - 4.0).abs() < 1e-9);
+        let (a, b) = difference_of_squares(5.0, 3.0);
+        assert!((a - 2.0).abs() < 1e-9);
+        assert!((b - 8.0).abs() < 1e-9);
     }
 
     #[test]
-    fn diff_sq() {
-        let (f1, f2) = difference_of_squares(5.0, 3.0);
-        assert!(approx(f1 * f2, 16.0));
+    fn cube_identities() {
+        assert!((cube_of_sum(1.0, 2.0) - 27.0).abs() < 1e-9);
+        assert!((cube_of_difference(3.0, 1.0) - 8.0).abs() < 1e-9);
+        assert!((sum_of_cubes(2.0, 3.0) - 35.0).abs() < 1e-9);
+        assert!((difference_of_cubes(3.0, 2.0) - 19.0).abs() < 1e-9);
     }
 
     #[test]
-    fn cubes() {
-        let (l, q) = sum_of_cubes(2.0, 3.0);
-        assert!(approx(l * q, 35.0));
-        let (l, q) = difference_of_cubes(3.0, 2.0);
-        assert!(approx(l * q, 19.0));
+    fn sum_nth_powers() {
+        let (sum, remaining) = sum_of_nth_powers(2.0, 1.0, 5).unwrap();
+        assert!((sum - 3.0).abs() < 1e-9);
+        assert!((remaining - 11.0).abs() < 1e-9);
+        assert!(sum_of_nth_powers(2.0, 1.0, 4).is_none());
     }
 
     #[test]
-    fn cube_powers() {
-        assert!(approx(cube_of_sum(2.0, 3.0), 125.0));
-        assert!(approx(cube_of_difference(3.0, 2.0), 1.0));
-    }
-
-    #[test]
-    fn fourth_power() {
-        assert!(approx(fourth_power_sum(1.0, 2.0), 81.0));
-    }
-
-    #[test]
-    fn trinomial_square() {
-        assert!(approx(square_of_trinomial(1.0, 2.0, 3.0), 36.0));
-    }
-
-    #[test]
-    fn nth_powers_odd() {
-        let (l, q) = sum_of_nth_powers(2.0, 1.0, 3).unwrap();
-        assert!(approx(l * q, 9.0)); // 8 + 1 = 9
+    fn factor_quad() {
+        let f = factor_quadratic(1.0, -5.0, 6.0).unwrap(); // x^2 - 5x + 6 = (x-2)(x-3)
+        assert!((f.0 * f.2 - 1.0).abs() < 1e-9); // a = p*r
+        assert!((f.1 * f.3 - 6.0).abs() < 1e-9); // c = q*s
+        assert!((f.0 * f.3 + f.1 * f.2 - (-5.0)).abs() < 1e-9); // b = ps + qr
     }
 }

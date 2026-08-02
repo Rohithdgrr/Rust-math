@@ -43,9 +43,7 @@ pub fn partial_derivative(f: &dyn Fn(&[f64]) -> f64, x: &[f64], var: usize) -> f
     (f(&xp) - f(&xm)) / (2.0 * h)
 }
 
-/// `f⁽ⁿ⁾(x)`, nth derivative using finite differences.
-///
-/// Uses Richardson extrapolation for improved accuracy.
+/// `f⁽ⁿ⁾(x)`, nth derivative via a central finite-difference stencil.
 /// ```
 /// use mathverse_calculus::derivative::nth_derivative;
 /// // Third derivative of x³ should be 6
@@ -62,11 +60,17 @@ pub fn nth_derivative(f: &dyn Fn(f64) -> f64, x: f64, n: usize) -> f64 {
         return second_derivative(f, x);
     }
 
-    // For higher orders, use finite difference with Richardson extrapolation
-    let h = h_at(x);
+    // Optimal step for an nth-order finite difference: h ~ ε^{1/(n+1)} * scale.
+    // Uses machine epsilon (2.22e-16), not the 1e-6 used by h_at().
+    // h_at() gives ε^{1/2} which is optimal for n=1 but too small for n>2,
+    // amplifying roundoff catastrophically (e.g. n=3: roundoff/h³ ≈ 200).
+    let scale = x.abs().max(1.0);
+    let h = f64::EPSILON.powf(1.0 / (n as f64 + 1.0)) * scale;
     let mut result = 0.0;
     for k in 0..=n {
-        let sign = if k % 2 == 0 { 1.0 } else { -1.0 };
+        // (-1)^(n-k): sign flips with the stencil's distance from the center,
+        // not with k alone. (-1)^k here flips the result for every odd n.
+        let sign = if (n - k) % 2 == 0 { 1.0 } else { -1.0 };
         let coeff = sign * binomial(n, k) as f64;
         result += coeff * f(x + (k as f64 - n as f64 / 2.0) * h);
     }
@@ -104,5 +108,11 @@ mod tests {
         assert!((nth_derivative(&|x| x * x * x, 2.0, 3) - 6.0).abs() < 1e-4);
         assert!((nth_derivative(&|x| x * x * x, 2.0, 0) - 8.0).abs() < 1e-8);
         assert!((nth_derivative(&f64::sin, 0.0, 4) - 0.0).abs() < 1e-4);
+        // Odd orders used to come back negated by the stencil sign bug.
+        let v3 = nth_derivative(&|x| x.powi(5), 1.0, 3);
+        assert!((v3 - 60.0).abs() < 1e-2, "n=3 got {v3}");
+        let v5 = nth_derivative(&|x| x.powi(5), 1.0, 5);
+        assert!((v5 - 120.0).abs() < 10.0, "n=5 got {v5}");
+        assert!((nth_derivative(&f64::sin, 0.0, 1) - 1.0).abs() < 1e-8);
     }
 }

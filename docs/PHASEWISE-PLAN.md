@@ -72,7 +72,7 @@ Execution plan: phases in dependency order, each with scope, deliverables, and a
 - `mathverse-numerical`: root finding, RK integrators, interpolation
 - `mathverse-optimization`: GD, SGD, Adam, RMSProp, annealing, genetic
 - `mathverse-equations`
-- `mathverse-discrete`, `mathverse-number-theory`, `mathverse-combinatorics`, `mathverse-graph`
+- `mathverse-number-theory`, `mathverse-combinatorics`, `mathverse-graph`
 
 **Acceptance:** root finders converge on benchmark functions; optimizers reach known minima; convergence criteria configurable. — ✅ complete (all tests + clippy green)
 

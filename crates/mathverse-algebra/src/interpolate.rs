@@ -2,37 +2,28 @@
 
 use crate::polynomial::Polynomial;
 
-const TOL: f64 = 1e-12;
-
-/// Lagrange interpolation: given points `(xᵢ, yᵢ)`, return the polynomial
-/// `P(x)` of degree ≤ n−1 passing through all points.
+/// Lagrange interpolation: find the unique degree-(n-1) polynomial passing
+/// through n points `(xi, yi)`.
+///
+/// Returns a [`Polynomial`] in coefficient form.
 ///
 /// ```
 /// # use mathverse_algebra::interpolate::lagrange;
-/// // Points (0,1), (1,2), (2,5) → P(x) = x² + 1
-/// let p = lagrange(&[(0.0, 1.0), (1.0, 2.0), (2.0, 5.0)]);
-/// assert!((p.eval(3.0) - 10.0).abs() < 1e-9);
+/// let p = lagrange(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]); // y = x^2
+/// assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
 /// ```
-pub fn lagrange(points: &[(f64, f64)]) -> Polynomial {
-    let n = points.len();
-    if n == 0 {
-        return Polynomial::constant(0.0);
-    }
+pub fn lagrange(xi: &[f64], yi: &[f64]) -> Polynomial {
+    assert_eq!(xi.len(), yi.len(), "xi and yi must have the same length");
+    let n = xi.len();
     let mut result = Polynomial::constant(0.0);
     for i in 0..n {
-        let (xi, yi) = points[i];
-        let mut term = Polynomial::constant(yi);
+        let mut term = Polynomial::constant(yi[i]);
         for j in 0..n {
             if i == j {
                 continue;
             }
-            let xj = points[j].0;
-            let denom = xi - xj;
-            if denom.abs() < TOL {
-                continue;
-            }
-            // Multiply term by (x - xj) / (xi - xj)
-            let factor = Polynomial::from_coeffs(&[-xj / denom, 1.0 / denom]);
+            let denom = xi[i] - xi[j];
+            let factor = Polynomial::from_coeffs(&[-xi[j] / denom, 1.0 / denom]);
             term = term * factor;
         }
         result = result + term;
@@ -40,46 +31,31 @@ pub fn lagrange(points: &[(f64, f64)]) -> Polynomial {
     result
 }
 
-/// Newton's divided-difference interpolation.
+/// Newton's divided differences interpolation.
 ///
-/// Returns the interpolating polynomial in Newton form (expanded to standard
-/// form).
+/// Returns the interpolating polynomial.
 ///
 /// ```
 /// # use mathverse_algebra::interpolate::newton;
-/// let p = newton(&[(0.0, 1.0), (1.0, 2.0), (2.0, 5.0)]);
-/// assert!((p.eval(3.0) - 10.0).abs() < 1e-9);
+/// let p = newton(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]);
+/// assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
 /// ```
-pub fn newton(points: &[(f64, f64)]) -> Polynomial {
-    let n = points.len();
-    if n == 0 {
-        return Polynomial::constant(0.0);
-    }
-
-    // Build divided difference table.
-    let mut dd: Vec<Vec<f64>> = vec![vec![0.0; n]; n];
-    for i in 0..n {
-        dd[i][0] = points[i].1;
-    }
+pub fn newton(xi: &[f64], yi: &[f64]) -> Polynomial {
+    assert_eq!(xi.len(), yi.len());
+    let n = xi.len();
+    let mut divided = yi.to_vec();
+    let mut coeffs = vec![divided[0]];
     for j in 1..n {
-        for i in 0..n - j {
-            let denom = points[i + j].0 - points[i].0;
-            if denom.abs() < TOL {
-                dd[i][j] = dd[i + 1][j - 1];
-            } else {
-                dd[i][j] = (dd[i + 1][j - 1] - dd[i][j - 1]) / denom;
-            }
+        for i in (j..n).rev() {
+            divided[i] = (divided[i] - divided[i - 1]) / (xi[i] - xi[i - j]);
         }
+        coeffs.push(divided[j]);
     }
-
-    // Build polynomial: P(x) = Σ dd[0][k] · Π(x - xⱼ)
-    let mut result = Polynomial::constant(dd[0][0]);
-    let mut basis = Polynomial::constant(1.0);
-    for k in 1..n {
-        let xj = points[k - 1].0;
-        let factor = Polynomial::from_coeffs(&[-xj, 1.0]); // (x - xj)
-        basis = basis.clone() * factor;
-        result = result + basis.clone() * dd[0][k];
+    let mut result = Polynomial::constant(coeffs[0]);
+    let mut product = Polynomial::constant(1.0);
+    for i in 1..n {
+        product = product * Polynomial::from_coeffs(&[-xi[i - 1], 1.0]);
+        result = result + product.clone() * Polynomial::constant(coeffs[i]);
     }
     result
 }
@@ -88,37 +64,27 @@ pub fn newton(points: &[(f64, f64)]) -> Polynomial {
 mod tests {
     use super::*;
 
-    fn approx(a: f64, b: f64) -> bool {
-        (a - b).abs() < 1e-9
-    }
-
     #[test]
     fn lagrange_quadratic() {
-        let p = lagrange(&[(0.0, 1.0), (1.0, 2.0), (2.0, 5.0)]);
-        assert!(approx(p.eval(0.0), 1.0));
-        assert!(approx(p.eval(1.0), 2.0));
-        assert!(approx(p.eval(2.0), 5.0));
-        assert!(approx(p.eval(3.0), 10.0));
+        let p = lagrange(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]);
+        assert!((p.eval(1.0) - 1.0).abs() < 1e-9);
+        assert!((p.eval(2.0) - 4.0).abs() < 1e-9);
+        assert!((p.eval(3.0) - 9.0).abs() < 1e-9);
+        assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
     }
 
     #[test]
     fn newton_quadratic() {
-        let p = newton(&[(0.0, 1.0), (1.0, 2.0), (2.0, 5.0)]);
-        assert!(approx(p.eval(0.0), 1.0));
-        assert!(approx(p.eval(1.0), 2.0));
-        assert!(approx(p.eval(2.0), 5.0));
-        assert!(approx(p.eval(3.0), 10.0));
+        let p = newton(&[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0]);
+        assert!((p.eval(1.0) - 1.0).abs() < 1e-9);
+        assert!((p.eval(2.0) - 4.0).abs() < 1e-9);
+        assert!((p.eval(3.0) - 9.0).abs() < 1e-9);
+        assert!((p.eval(2.5) - 6.25).abs() < 1e-9);
     }
 
     #[test]
     fn lagrange_linear() {
-        let p = lagrange(&[(0.0, 0.0), (2.0, 4.0)]); // y = 2x
-        assert!(approx(p.eval(5.0), 10.0));
-    }
-
-    #[test]
-    fn empty_points() {
-        let p = lagrange(&[]);
-        assert_eq!(p.degree(), 0);
+        let p = lagrange(&[0.0, 1.0], &[0.0, 1.0]);
+        assert!((p.eval(0.5) - 0.5).abs() < 1e-9);
     }
 }

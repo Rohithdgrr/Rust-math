@@ -184,7 +184,7 @@ mod tests {
         assert!((gaussian_quadrature(&|x| x * x, 0.0, 1.0, 3) - 1.0/3.0).abs() < 1e-10);
         // ∫₋₁¹ x⁴ dx = 2/5
         assert!((gaussian_quadrature(&|x| x.powi(4), -1.0, 1.0, 3) - 2.0/5.0).abs() < 1e-10);
-        // ∫₀^π sin(x) dx = 2
-        assert!((gaussian_quadrature(&f64::sin, 0.0, core::f64::consts::PI, 5) - 2.0).abs() < 1e-8);
+        // ∫₀^π sin(x) dx = 2; 5-point Gauss error is ~1e-7, not machine eps
+        assert!((gaussian_quadrature(&f64::sin, 0.0, core::f64::consts::PI, 5) - 2.0).abs() < 1e-6);
     }
 }

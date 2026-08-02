@@ -29,7 +29,7 @@ pub fn bisection(
     let mut a = a;
     let mut b = b;
     let mut fa = fa;
-    let mut fb = fb;
+    let mut _fb = fb;
     for _ in 0..max_iter {
         let c = (a + b) / 2.0;
         let fc = f(c);
@@ -40,14 +40,14 @@ pub fn bisection(
         
         if fa * fc < 0.0 {
             b = c;
-            fb = fc;
+            _fb = fc;
         } else {
             a = c;
             fa = fc;
         }
     }
     
-    Ok((a + b) / 2.0)
+    Err(MathError::NotConverged("bisection max iterations exceeded"))
 }
 
 /// Newton-Raphson method for finding roots of f(x) = 0.
@@ -89,7 +89,7 @@ pub fn newton_raphson(
         x = x_new;
     }
     
-    Err(MathError::NotConverged("bisection max iterations exceeded"))
+    Err(MathError::NotConverged("newton max iterations exceeded"))
 }
 
 /// Secant method for finding roots of f(x) = 0.
@@ -134,7 +134,7 @@ pub fn secant(
         f_curr = f(x_curr);
     }
     
-    Ok(x_curr)
+    Err(MathError::NotConverged("secant max iterations exceeded"))
 }
 
 /// False position (regula falsi) method for finding roots.
@@ -180,7 +180,7 @@ pub fn false_position(
         }
     }
     
-    Ok((a * fb - b * fa) / (fb - fa))
+    Err(MathError::NotConverged("false position max iterations exceeded"))
 }
 
 /// Newton-Raphson method with numerical derivative.
@@ -277,5 +277,16 @@ mod tests {
         let f = |x| 1.0;
         let df = |x| 0.0;
         assert!(newton_raphson(&f, &df, 1.0, 1e-10, 100).is_err());
+    }
+
+    #[test]
+    fn max_iter_returns_err() {
+        // f(x)=x³-2, root at 1.2599...; bracket [1,2]. Midpoint 1.5, not a root.
+        let f = |x| x * x * x - 2.0;
+        assert!(bisection(&f, 1.0, 2.0, 1e-15, 2).is_err());
+        assert!(secant(&f, 1.0, 2.0, 1e-15, 2).is_err());
+        assert!(false_position(&f, 1.0, 2.0, 1e-15, 2).is_err());
+        assert!(newton_raphson(&f, &|x| 3.0 * x * x, 1.5, 1e-15, 2).is_err());
+        assert!(newton_raphson_auto(&f, 1.5, 1e-15, 2).is_err());
     }
 }

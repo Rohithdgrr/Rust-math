@@ -79,13 +79,6 @@ Operations: volume, surface area, projection, collision, distance
 - Descriptive: mean, median, mode, variance, standard deviation, quartiles
 - Inferential: t-test, z-test, ANOVA, confidence intervals, regression
 
-## mathverse-discrete
-
-- Logic, sets, relations, functions
-- Graph theory, trees
-- Boolean algebra
-- Automata basics
-
 ## mathverse-number-theory
 
 - Prime generation and testing

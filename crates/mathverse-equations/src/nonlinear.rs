@@ -7,7 +7,7 @@ pub fn newton(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f64, tol: f64
         if dfx.abs() < 1e-30 { return None; }
         x -= fx / dfx;
     }
-    Some(x)
+    None
 }
 
 pub fn secant(f: impl Fn(f64) -> f64, x0: f64, x1: f64, tol: f64, max_iter: usize) -> Option<f64> {
@@ -22,16 +22,19 @@ pub fn secant(f: impl Fn(f64) -> f64, x0: f64, x1: f64, tol: f64, max_iter: usiz
         a = b;
         b = c;
     }
-    Some(b)
+    None
 }
 
 pub fn bisection(f: impl Fn(f64) -> f64, a0: f64, b0: f64, tol: f64) -> Option<f64> {
     let (mut a, mut b) = (a0, b0);
-    if f(a) * f(b) > 0.0 { return None; }
+    let mut fa = f(a);
+    let fb = f(b);
+    if fa * fb > 0.0 { return None; }
     for _ in 0..1000 {
         let mid = (a + b) / 2.0;
         if (b - a).abs() < tol { return Some(mid); }
-        if f(mid) * f(a) <= 0.0 { b = mid; } else { a = mid; }
+        let fmid = f(mid);
+        if fmid * fa <= 0.0 { b = mid; } else { a = mid; fa = fmid; }
     }
     Some((a + b) / 2.0)
 }
@@ -69,5 +72,22 @@ mod tests {
     fn bisect() {
         let x = bisection(|x| x*x - 2.0, 0.0, 2.0, 1e-12).unwrap();
         assert!((x - 2.0_f64.sqrt()).abs() < 1e-10);
+    }
+
+    #[test]
+    fn newton_system_test() {
+        // Solve: x^2 + y^2 = 1, x - y = 0 => x = y = 1/sqrt(2)
+        let f: Vec<Box<dyn Fn(&[f64]) -> f64>> = vec![
+            Box::new(|x| x[0]*x[0] + x[1]*x[1] - 1.0),
+            Box::new(|x| x[0] - x[1]),
+        ];
+        let j = |x: &[f64]| vec![
+            vec![2.0*x[0], 2.0*x[1]],
+            vec![1.0, -1.0],
+        ];
+        let result = newton_system(&f, &j, &[0.5, 0.5], 1e-12, 100).unwrap();
+        let expected = 1.0 / 2.0_f64.sqrt();
+        assert!((result[0] - expected).abs() < 1e-10);
+        assert!((result[1] - expected).abs() < 1e-10);
     }
 }

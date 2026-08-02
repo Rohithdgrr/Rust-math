@@ -9,7 +9,7 @@ const TOL: f64 = 1e-12;
 ///
 /// ```
 /// # use mathverse_algebra::systems::solve_2x2;
-/// // x + y = 3, 2x - y = 0  →  x = 1, y = 2
+/// // x + y = 3, 2x - y = 0 → x = 1, y = 2
 /// let sol = solve_2x2(1.0, 1.0, 3.0, 2.0, -1.0, 0.0).unwrap();
 /// assert!((sol.0 - 1.0).abs() < 1e-12);
 /// assert!((sol.1 - 2.0).abs() < 1e-12);

@@ -143,7 +143,7 @@ impl Mul for Polynomial {
 impl Mul<f64> for Polynomial {
     type Output = Polynomial;
     fn mul(self, k: f64) -> Polynomial {
-        Polynomial::from_coeffs(&self.coeffs.iter().map(|&c| c * k).collect::<Vec<_>>())
+        Polynomial::from_coeffs(&self.coeffs.iter().map(|&c| c * k).collect::<Vec<f64>>())
     }
 }
 

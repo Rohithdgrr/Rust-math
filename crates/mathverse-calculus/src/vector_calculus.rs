@@ -18,10 +18,16 @@ pub fn gradient(f: &dyn Fn(&[f64]) -> f64, x: &[f64]) -> Vec<f64> {
 }
 
 /// `∇·F`: sum of `∂F_i/∂x_i`.
-pub fn divergence(f: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64]) -> f64 {
-    (0..x.len())
+///
+/// Returns [`MathError::DimensionMismatch`] if `f` returns fewer components
+/// than `x` has coordinates.
+pub fn divergence(f: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64]) -> MathResult<f64> {
+    if f(x).len() < x.len() {
+        return Err(MathError::DimensionMismatch);
+    }
+    Ok((0..x.len())
         .map(|i| partial_derivative(&|p: &[f64]| f(p)[i], x, i))
-        .sum()
+        .sum())
 }
 
 /// `∇×F` in 3D; [`MathError::DimensionMismatch`] if `x` isn't length 3.
@@ -34,6 +40,9 @@ pub fn divergence(f: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64]) -> f64 {
 /// ```
 pub fn curl(f: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64]) -> MathResult<Vec<f64>> {
     if x.len() != 3 {
+        return Err(MathError::DimensionMismatch);
+    }
+    if f(x).len() < 3 {
         return Err(MathError::DimensionMismatch);
     }
     let fz = |p: &[f64]| f(p)[2];
@@ -116,6 +125,15 @@ pub fn hessian(f: &dyn Fn(&[f64]) -> f64, x: &[f64]) -> Vec<f64> {
             }
         }
     }
+    // Enforce symmetry: both off-diagonals approximate the same mixed partial,
+    // so average them to cancel asymmetric roundoff.
+    for i in 0..n {
+        for j in 0..i {
+            let avg = (h[i * n + j] + h[j * n + i]) / 2.0;
+            h[i * n + j] = avg;
+            h[j * n + i] = avg;
+        }
+    }
     h
 }
 
@@ -158,7 +176,7 @@ mod tests {
     #[test]
     fn divergence_and_curl() {
         let f = |x: &[f64]| x.to_vec();
-        assert!((divergence(&f, &[1.0, 2.0, 3.0]) - 3.0).abs() < 1e-6);
+        assert!((divergence(&f, &[1.0, 2.0, 3.0]).unwrap() - 3.0).abs() < 1e-6);
         let rot = |x: &[f64]| vec![x[1], x[2], x[0]];
         let c = curl(&rot, &[1.0, 2.0, 3.0]).unwrap();
         assert!(c.iter().all(|&v| (v + 1.0).abs() < 1e-6));
@@ -166,6 +184,9 @@ mod tests {
         let g = |x: &[f64]| vec![2.0 * x[0], 2.0 * x[1], 2.0 * x[2]];
         assert!(curl(&g, &[1.0, 2.0, 3.0]).unwrap().iter().all(|&v| v.abs() < 1e-6));
         assert!(curl(&rot, &[1.0, 2.0]).is_err());
+        // field returning fewer components than x has coordinates
+        assert!(divergence(&|x: &[f64]| vec![x[0]], &[1.0, 2.0]).is_err());
+        assert!(curl(&|x: &[f64]| vec![x[0]], &[1.0, 2.0, 3.0]).is_err());
     }
 
     #[test]
@@ -186,6 +207,11 @@ mod tests {
         assert!((h[1] - 0.0).abs() < 1e-4);
         assert!((h[2] - 0.0).abs() < 1e-4);
         assert!((h[3] - 2.0).abs() < 1e-4);
+        // mixed partials of x*y: symmetric matrix
+        let f2 = |x: &[f64]| x[0] * x[1];
+        let h2 = hessian(&f2, &[3.0, 4.0]);
+        assert!((h2[1] - 1.0).abs() < 1e-4 && (h2[2] - 1.0).abs() < 1e-4);
+        assert!((h2[1] - h2[2]).abs() < 1e-12);
     }
 
     #[test]

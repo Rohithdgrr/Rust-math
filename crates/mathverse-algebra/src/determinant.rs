@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn cramer2() {
-        // x + y = 3,  y = 5  →  x = -2, y = 5
+        // x + y = 3, y = 5 → x = -2, y = 5
         let sol = cramer_rule_2x2(1.0, 1.0, 0.0, 1.0, 3.0, 5.0).unwrap();
         assert!(approx(sol.0, -2.0));
         assert!(approx(sol.1, 5.0));
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn cramer3() {
-        // x + y + z = 6, 2x + 3y + z = 11, x + 2y + 3z = 13  →  x=1, y=2, z=3
+        // x + y + z = 6, 2x + 3y + z = 11, x + 2y + 3z = 13 → x=1, y=2, z=3
         let sol = cramer_rule_3x3(
             1.0, 1.0, 1.0,
             2.0, 3.0, 1.0,

@@ -1,13 +1,13 @@
 pub fn fibonacci_search(f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
-    let fibs: Vec<u64> = {
-        let mut f = vec![1u64, 1];
+    let fibs: Vec<f64> = {
+        let mut f = vec![1.0f64, 1.0];
         for _ in 2..n { let l = f.len(); f.push(f[l-1] + f[l-2]); }
         f
     };
     let k = n.min(fibs.len() - 1);
     let (mut l, mut r) = (a, b);
-    let mut x1 = l + (r - l) * fibs[k - 2] as f64 / fibs[k] as f64;
-    let mut x2 = l + (r - l) * fibs[k - 1] as f64 / fibs[k] as f64;
+    let mut x1 = l + (r - l) * fibs[k - 2] / fibs[k];
+    let mut x2 = l + (r - l) * fibs[k - 1] / fibs[k];
     let mut f1 = f(x1);
     let mut f2 = f(x2);
     for i in (2..k).rev() {
@@ -15,13 +15,13 @@ pub fn fibonacci_search(f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64
             r = x2;
             x2 = x1;
             f2 = f1;
-            x1 = l + (r - l) * fibs[i - 2] as f64 / fibs[i] as f64;
+            x1 = l + (r - l) * fibs[i - 2] / fibs[i];
             f1 = f(x1);
         } else {
             l = x1;
             x1 = x2;
             f1 = f2;
-            x2 = l + (r - l) * fibs[i - 1] as f64 / fibs[i] as f64;
+            x2 = l + (r - l) * fibs[i - 1] / fibs[i];
             f2 = f(x2);
         }
     }
@@ -54,9 +54,10 @@ pub fn convex_search(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
 }
 
 pub fn brent_min(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
-    let (mut x, mut w, mut v) = (0.0f64, 0.0f64, 0.0f64);
+    let mut x = (a + b) / 2.0;
     let mut fx = f(x);
-    let (mut fw, mut fv) = (fx, fx);
+    let (mut w, mut fw) = (x, fx);
+    let (mut v, mut fv) = (x, fx);
     let (mut a0, mut b0) = (a, b);
     for _ in 0..1000 {
         let xm = (a0 + b0) / 2.0;
@@ -113,5 +114,11 @@ mod tests {
     fn brent() {
         let x = brent_min(|x| (x - 1.5).powi(2), 0.0, 3.0, 1e-10);
         assert!((x - 1.5).abs() < 1e-8);
+    }
+
+    #[test]
+    fn brent_no_zero_in_interval() {
+        let x = brent_min(|x| (x - 15.0).powi(2), 10.0, 20.0, 1e-10);
+        assert!((x - 15.0).abs() < 1e-8);
     }
 }

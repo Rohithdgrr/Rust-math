@@ -57,19 +57,24 @@ pub fn determinant(a: &[Vec<f64>]) -> Option<f64> {
     if n == 0 || a.iter().any(|r| r.len() != n) { return None; }
     let mut m: Vec<Vec<f64>> = a.to_vec();
     let mut det = 1.0;
+    let mut swaps = 0usize;
     for col in 0..n {
         let mut max_row = col;
         for r in col+1..n {
             if m[r][col].abs() > m[max_row][col].abs() { max_row = r; }
         }
-        m.swap(col, max_row);
+        if max_row != col {
+            m.swap(col, max_row);
+            swaps += 1;
+        }
         if m[col][col].abs() < 1e-15 { return Some(0.0); }
-        det *= if (col) % 2 == 0 { m[col][col] } else { -m[col][col] };
+        det *= m[col][col];
         for r in col+1..n {
             let f = m[r][col] / m[col][col];
             for c in col..n { m[r][c] -= f * m[col][c]; }
         }
     }
+    if swaps % 2 != 0 { det = -det; }
     Some(det)
 }
 
@@ -85,13 +90,9 @@ pub fn rank(a: &[Vec<f64>]) -> usize {
         }
         if max_row < rows && m[max_row][col].abs() > 1e-15 {
             m.swap(rank, max_row);
-            let pivot = m[rank][col];
-            for c in col..cols { m[rank][c] /= pivot; }
-            for r in 0..rows {
-                if r != rank {
-                    let f = m[r][col];
-                    for c in col..cols { m[r][c] -= f * m[rank][c]; }
-                }
+            for r in rank+1..rows {
+                let f = m[r][col] / m[rank][col];
+                for c in col..cols { m[r][c] -= f * m[rank][c]; }
             }
             rank += 1;
         }
@@ -124,5 +125,35 @@ mod tests {
     fn det() {
         let a = vec![vec![1.0, 2.0], vec![3.0, 4.0]];
         assert!((determinant(&a).unwrap() - (-2.0)).abs() < 1e-10);
+    }
+
+    #[test]
+    fn det_identity() {
+        let a = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
+        assert!((determinant(&a).unwrap() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn det_swap_rows() {
+        let a = vec![vec![0.0, 1.0], vec![1.0, 0.0]];
+        assert!((determinant(&a).unwrap() - (-1.0)).abs() < 1e-10);
+    }
+
+    #[test]
+    fn det_3x3_identity() {
+        let a = vec![vec![1.0, 0.0, 0.0], vec![0.0, 1.0, 0.0], vec![0.0, 0.0, 1.0]];
+        assert!((determinant(&a).unwrap() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn rank_full() {
+        let a = vec![vec![1.0, 2.0], vec![3.0, 4.0]];
+        assert_eq!(rank(&a), 2);
+    }
+
+    #[test]
+    fn rank_deficient() {
+        let a = vec![vec![1.0, 2.0], vec![2.0, 4.0]];
+        assert_eq!(rank(&a), 1);
     }
 }

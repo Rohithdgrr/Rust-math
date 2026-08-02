@@ -1,4 +1,5 @@
 pub fn euler(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f64) -> Vec<(f64, f64)> {
+    assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let mut result = vec![(t0, y0)];
     let (mut t, mut y) = (t0, y0);
     while t < tf - 1e-15 {
@@ -11,6 +12,7 @@ pub fn euler(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f64) -> 
 }
 
 pub fn runge_kutta4(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f64) -> Vec<(f64, f64)> {
+    assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let mut result = vec![(t0, y0)];
     let (mut t, mut y) = (t0, y0);
     while t < tf - 1e-15 {
@@ -27,6 +29,7 @@ pub fn runge_kutta4(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f
 }
 
 pub fn euler_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, tf: f64, h: f64) -> Vec<(f64, Vec<f64>)> {
+    assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let mut result = vec![(t0, y0.to_vec())];
     let (mut t, mut y) = (t0, y0.to_vec());
     while t < tf - 1e-15 {
@@ -40,6 +43,7 @@ pub fn euler_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, t
 }
 
 pub fn rk4_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, tf: f64, h: f64) -> Vec<(f64, Vec<f64>)> {
+    assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let n = y0.len();
     let mut result = vec![(t0, y0.to_vec())];
     let (mut t, mut y) = (t0, y0.to_vec());

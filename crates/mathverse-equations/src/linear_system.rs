@@ -24,7 +24,7 @@ pub fn solve_3x3(a: [[f64; 3]; 3], b: [f64; 3]) -> Option<[f64; 3]> {
     ].map(|v| v / det))
 }
 
-pub fn gaussian_elimination(matrix: &mut Vec<Vec<f64>>) -> bool {
+pub fn row_reduce(matrix: &mut Vec<Vec<f64>>) -> bool {
     let n = matrix.len();
     if n == 0 { return true; }
     let m = matrix[0].len();
@@ -44,6 +44,11 @@ pub fn gaussian_elimination(matrix: &mut Vec<Vec<f64>>) -> bool {
         row += 1;
     }
     row == n.min(m - 1)
+}
+
+#[deprecated(note = "misleading name — only does row reduction, does not solve. Use `row_reduce` or `solve_gauss`")]
+pub fn gaussian_elimination(matrix: &mut Vec<Vec<f64>>) -> bool {
+    row_reduce(matrix)
 }
 
 #[cfg(test)]
@@ -76,6 +81,6 @@ mod tests {
             vec![-3.0, -1.0, 2.0, -11.0],
             vec![-2.0, 1.0, 2.0, -3.0],
         ];
-        assert!(gaussian_elimination(&mut m));
+        assert!(row_reduce(&mut m));
     }
 }

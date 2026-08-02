@@ -20,9 +20,19 @@ members = [
     "crates/mathverse-graph",
     "crates/mathverse-transforms",
     "crates/mathverse-signal",
-    "crates/mathverse-optimization",
+    "crates/mathverse-image",
+    "crates/mathverse-plot",
+    "crates/mathverse-physics",
+    "crates/mathverse-finance",
+    "crates/mathverse-symbolic",
+    "crates/mathverse-units",
     "crates/mathverse-ai",
     "crates/mathverse-machine-learning",
     "crates/mathverse-vision",
     "crates/mathverse-prelude",
 ]
+
+[workspace.package]
+rust-version = "1.87"
+edition = "2021"
+

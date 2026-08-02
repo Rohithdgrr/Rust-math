@@ -5,8 +5,8 @@ edition = "2021"
 description = "MathVerse calculus: numerical derivatives, integration, vector calculus"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
-keywords = ["math", "calculus", "derivative", "integral", "differential-equations"]
+keywords = ["math", "calculus", "derivative", "integral", "ode"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }

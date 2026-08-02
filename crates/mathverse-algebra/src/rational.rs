@@ -37,7 +37,7 @@ impl RationalExpression {
     ///
     /// ```
     /// # use mathverse_algebra::rational::RationalExpression;
-    /// let r = RationalExpression::from_coeffs(&[-1.0, 0.0, 1.0], &[-1.0, 1.0]); // (x²-1)/(x-1)
+    /// let r = RationalExpression::from_coeffs(&[-1.0, 0.0, 1.0], &[-1.0, 1.0]); // (xÂ²-1)/(x-1)
     /// let s = r.simplify();
     /// assert!((s.numerator.coeffs()[0] - 1.0).abs() < 1e-12);
     /// assert!((s.numerator.coeffs()[1] - 1.0).abs() < 1e-12);
@@ -107,12 +107,12 @@ pub fn sub_rational(a: f64, b: f64, c: f64, d: f64) -> (f64, f64) {
     (a * d - b * c, b * d)
 }
 
-/// `(a/b) · (c/d) = ac/bd`.
+/// `(a/b) Â· (c/d) = ac/bd`.
 pub fn mul_rational(a: f64, b: f64, c: f64, d: f64) -> (f64, f64) {
     (a * c, b * d)
 }
 
-/// `(a/b) ÷ (c/d) = ad/bc`.
+/// `(a/b) Ã· (c/d) = ad/bc`.
 pub fn div_rational(a: f64, b: f64, c: f64, d: f64) -> (f64, f64) {
     (a * d, b * c)
 }
@@ -141,23 +141,23 @@ fn gcd_i64(mut a: i64, mut b: i64) -> i64 {
 /// conjugate of the denominator.
 ///
 /// For a denominator of the form `a + b`, returns the rationalized form.
-/// This is a simplified version for `1/(a + b)` → `(a - b)/(a² - b²)`.
+/// This is a simplified version for `1/(a + b)` â†’ `(a - b)/(aÂ² - bÂ²)`.
 pub fn rationalize_denominator(a: f64, b: f64) -> (f64, f64) {
     let conj = a - b;
     let denom = a * a - b * b;
     (conj, denom)
 }
 
-/// Partial fraction decomposition for `P(x) / ((x - r₁)(x - r₂)…(x - rₖ))`.
+/// Partial fraction decomposition for `P(x) / ((x - râ‚)(x - râ‚‚)â€¦(x - râ‚–))`.
 ///
-/// Returns the residues `[A₁, A₂, …, Aₖ]` such that:
-/// `P(x)/Q(x) = Σ Aᵢ/(x - rᵢ)`.
+/// Returns the residues `[Aâ‚, Aâ‚‚, â€¦, Aâ‚–]` such that:
+/// `P(x)/Q(x) = Î£ Aáµ¢/(x - ráµ¢)`.
 ///
-/// Uses the cover-up (Heaviside) method: `Aᵢ = P(rᵢ) / Q'(rᵢ)`.
+/// Uses the cover-up (Heaviside) method: `Aáµ¢ = P(ráµ¢) / Q'(ráµ¢)`.
 ///
 /// ```
 /// # use mathverse_algebra::rational::partial_fractions;
-/// // (x+1) / (x² - 1) = (x+1)/((x-1)(x+1)) = 1/(x-1) · 1 + 1/(x+1) · 1
+/// // (x+1) / (xÂ² - 1) = (x+1)/((x-1)(x+1)) = 1/(x-1) Â· 1 + 1/(x+1) Â· 1
 /// let residues = partial_fractions(&[1.0, 1.0], &[1.0, -1.0]);
 /// assert!((residues[0] - 1.0).abs() < 1e-9);
 /// ```
@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn rational_arithmetic() {
         let r1 = RationalExpression::from_coeffs(&[1.0, 2.0], &[1.0, 1.0]); // (2x+1)/(x+1)
-        let r2 = RationalExpression::from_coeffs(&[2.0, 0.0], &[1.0, 0.0, 1.0]); // 2/(x²+1)
+        let r2 = RationalExpression::from_coeffs(&[2.0, 0.0], &[1.0, 0.0, 1.0]); // 2/(xÂ²+1)
         let sum = r1 + r2;
         // Just verify it evaluates without panic
         let _ = sum.eval(3.0);
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     fn simplify_ratio() {
-        let r = RationalExpression::from_coeffs(&[-1.0, 0.0, 1.0], &[-1.0, 1.0]); // (x²-1)/(x-1)
+        let r = RationalExpression::from_coeffs(&[-1.0, 0.0, 1.0], &[-1.0, 1.0]); // (xÂ²-1)/(x-1)
         let s = r.simplify();
         assert!(approx(s.numerator.coeffs()[0], 1.0));
         assert!(approx(s.numerator.coeffs()[1], 1.0));

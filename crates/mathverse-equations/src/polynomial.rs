@@ -1,6 +1,9 @@
 pub fn solve_linear(a: f64, b: f64) -> Vec<f64> {
     if a.abs() < 1e-15 {
-        if b.abs() < 1e-15 { vec![0.0] } else { vec![] }
+        // 0x + b = 0: no unique solution.
+        // b=0: all reals (caller should check for this degenerate case).
+        // b≠0: no solution.
+        vec![]
     } else {
         vec![-b / a]
     }
@@ -69,19 +72,23 @@ pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
         }
         roots
     } else {
-        let cubic_roots = solve_cubic(1.0, -p, -4.0 * r, 4.0 * p * r - q * q);
-        let y = cubic_roots[0];
-        let sq1 = (2.0 * y - p).max(0.0).sqrt();
-        let sq2 = ((y * y - r).max(0.0)).sqrt();
-        let mut roots = Vec::new();
-        for sign in [-1.0, 1.0] {
-            let inner = -y + sign * 2.0 * q / (2.0 * sq1 + 1e-30);
-            if inner >= -1e-15 {
-                roots.push(sq1 / 2.0 + inner.max(0.0).sqrt() / 2.0 - b / 4.0);
-                roots.push(sq1 / 2.0 - inner.max(0.0).sqrt() / 2.0 - b / 4.0);
-            }
+        // Ferrari: find resolvent root m, then s = sqrt(2m - p), t = q/(2s)
+        let cubic_roots = solve_cubic(1.0, -p / 2.0, -r, r * p / 2.0 - q * q / 8.0);
+        let m = cubic_roots.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let s_sq = 2.0 * m - p;
+        if s_sq < -1e-15 || q.abs() > 1e-15 && s_sq.abs() < 1e-15 {
+            return vec![];
         }
-        roots
+        let s = if s_sq < 0.0 { 0.0 } else { s_sq.sqrt() };
+        if s.abs() < 1e-15 {
+            return vec![];
+        }
+        let t = q / (2.0 * s);
+        let half_m = m / 2.0;
+        let mut roots = Vec::new();
+        roots.extend(solve_quadratic(1.0, s, half_m - t));
+        roots.extend(solve_quadratic(1.0, -s, half_m + t));
+        roots.iter().map(|&y| y - b / 4.0).collect()
     }
 }
 
@@ -97,6 +104,8 @@ mod tests {
     fn linear() {
         assert_eq!(solve_linear(2.0, -4.0), vec![2.0]);
         assert_eq!(solve_linear(0.0, 1.0), Vec::<f64>::new());
+        // 0x + 0 = 0: all reals, returns empty (caller checks inputs)
+        assert_eq!(solve_linear(0.0, 0.0), Vec::<f64>::new());
     }
 
     #[test]
@@ -115,5 +124,16 @@ mod tests {
     #[test]
     fn eval() {
         assert!((polynomial_eval(&[-6.0, 11.0, -6.0, 1.0], 2.0)).abs() < 1e-10);
+    }
+
+    #[test]
+    fn quartic_four_real_roots() {
+        // (x-1)(x-2)(x-3)(x-4) = x^4 - 10x^3 + 35x^2 - 50x + 24
+        let r = solve_quartic(1.0, -10.0, 35.0, -50.0, 24.0);
+        assert_eq!(r.len(), 4);
+        for &root in &r {
+            let val = polynomial_eval(&[24.0, -50.0, 35.0, -10.0, 1.0], root);
+            assert!(val.abs() < 1e-6, "root {root} has residual {val}");
+        }
     }
 }

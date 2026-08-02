@@ -86,7 +86,7 @@ pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
     let bn = b / a;
     let cn = c / a;
     let dn = d / a;
-    // Depressed cubic: t³ + pt + q = 0  where x = t - b/(3a)
+    // Depressed cubic: t³ + pt + q = 0 where x = t - b/(3a)
     let p = cn - bn * bn / 3.0;
     let q = (2.0 * bn * bn * bn - 9.0 * bn * cn + 27.0 * dn) / 27.0;
     let disc = (q * q / 4.0) + (p * p * p / 27.0);
@@ -155,13 +155,13 @@ pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
     let d = d / a;
     let e = e / a;
 
-    // Depressed quartic: y⁴ + py² + qy + r = 0,  x = y - B/4
+    // Depressed quartic: y⁴ + py² + qy + r = 0, x = y - B/4
     let p = c - 3.0 * b * b / 8.0;
     let q = d - b * c / 2.0 + b * b * b / 8.0;
     let r = e - b * d / 4.0 + b * b * c / 16.0 - 3.0 * b * b * b * b / 256.0;
     let shift = -b / 4.0;
 
-    // Resolvent cubic: z³ - (p²/8) z - r = 0  ... using the standard form
+    // Resolvent cubic: z³ - (p²/8) z - r = 0 ... using the standard form
     // m³ - (p/2)m² - r m + (rp/2 - q²/8) = 0 is more stable; use Ferrari's.
     // We solve the resolvent cubic for m:
     // m³ - (p/2) m² - r m + (rp/2 - q²/8) = 0
@@ -180,7 +180,7 @@ pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
         // (y² + a1)(y² + b1 y + ...) — use the standard Ferrari split.
         let q2 = q / 2.0;
         let sqrt_m = if m < 0.0 && m.abs() < TOL { 0.0 } else { m };
-        // Quadratic 1: y² + (q/(2√m)) y + (m/2 - p/2 - q/(2√m))  -- only valid m>0
+        // Quadratic 1: y² + (q/(2√m)) y + (m/2 - p/2 - q/(2√m)) -- only valid m>0
         if m.abs() > TOL {
             let coeff = q / (2.0 * m);
             let const1 = m / 2.0 - p / 2.0 - coeff;
@@ -347,7 +347,7 @@ mod tests {
     #[test]
     fn vieta_general() {
         // x³ - 6x² + 11x - 6
-        let coeffs = [-6.0, 11.0, -6.0, 1.0];
+        let coeffs = &[-6.0, 11.0, -6.0, 1.0];
         assert!(approx(vieta_sum(&coeffs), 6.0));
         assert!(approx(vieta_product(&coeffs), 6.0));
     }

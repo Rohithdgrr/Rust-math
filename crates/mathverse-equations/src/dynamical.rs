@@ -42,7 +42,7 @@ pub fn lyapunov_exponent(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f6
     sum / n as f64
 }
 
-pub fn basin_of_attraction(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -> Option<f64> {
+pub fn iterate_to_fixed_point(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -> Option<f64> {
     let mut x = x0;
     for _ in 0..max_iter {
         let x_new = g(x);
@@ -86,8 +86,17 @@ mod tests {
 
     #[test]
     fn lyapunov() {
+        // r=4 logistic map is chaotic, Lyapunov exponent = ln(2) ≈ 0.693
+        let l = lyapunov_exponent(|x| 4.0 * x * (1.0 - x), |x| 4.0 - 8.0 * x, 0.3, 10000);
+        assert!(l > 0.5);
+        assert!((l - 2.0_f64.ln()).abs() < 0.1);
+    }
+
+    #[test]
+    fn lyapunov_stable() {
+        // r=2 logistic map converges to x=0.5, negative Lyapunov exponent
         let l = lyapunov_exponent(|x| 2.0 * x * (1.0 - x), |x| 2.0 - 4.0 * x, 0.3, 1000);
-        assert!(l > 0.0);
+        assert!(l < 0.0);
     }
 
     #[test]
