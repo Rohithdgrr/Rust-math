@@ -123,35 +123,11 @@ impl Pseudoinverse {
         Ok(pinv)
     }
 
-    /// Block pseudoinverse for large matrices.
-    pub fn block(m: &Matrix, block_size: usize) -> MathResult<Matrix> {
-        let (rows, cols) = (m.rows, m.cols);
-        let mut pinv = Matrix::zeros(cols, rows);
-        
-        for bi in (0..rows).step_by(block_size) {
-            for bj in (0..cols).step_by(block_size) {
-                let i_end = (bi + block_size).min(rows);
-                let j_end = (bj + block_size).min(cols);
-                
-                // Extract block
-                let mut block = Matrix::zeros(i_end - bi, j_end - bj);
-                for i in bi..i_end {
-                    for j in bj..j_end {
-                        block.set(i - bi, j - bj, m.get(i, j));
-                    }
-                }
-                
-                let block_pinv = Self::compute(&block, 1e-10)?;
-                
-                for i in bj..j_end {
-                    for j in bi..i_end {
-                        pinv.set(i, j, block_pinv.get(i - bj, j - bi));
-                    }
-                }
-            }
-        }
-        
-        Ok(pinv)
+    /// Block pseudoinverse for large matrices (delegates to SVD for correctness).
+    pub fn block(m: &Matrix, _block_size: usize) -> MathResult<Matrix> {
+        // Block-wise pseudoinverse is not the pseudoinverse of blocks.
+        // Use SVD-based pseudoinverse for correctness.
+        Self::compute(m, 1e-10)
     }
 }
 

@@ -22,7 +22,7 @@ impl SchurDecompositionImpl {
         
         let n = m.rows;
         let mut h = Self::hessenberg(m)?;
-        let mut q = Matrix::identity(n);
+        let mut q = Self::hessenberg_q(m)?;
         
         // QR iteration
         for _ in 0..100 {
@@ -39,7 +39,7 @@ impl SchurDecompositionImpl {
         Ok(SchurDecomposition { q, t: h })
     }
 
-    /// Reduce matrix to upper Hessenberg form.
+    /// Reduce matrix to upper Hessenberg form (similarity transform only).
     fn hessenberg(m: &Matrix) -> MathResult<Matrix> {
         let n = m.rows;
         let mut h = m.clone();
@@ -87,6 +87,67 @@ impl SchurDecompositionImpl {
         }
         
         Ok(h)
+    }
+
+    /// Compute the accumulated orthogonal factor Q from Hessenberg reduction: A = Q H Q^T.
+    fn hessenberg_q(m: &Matrix) -> MathResult<Matrix> {
+        let n = m.rows;
+        let mut h = m.clone();
+        let mut q = Matrix::identity(n);
+        
+        for k in 0..(n - 2) {
+            let mut x: Vec<f64> = (k + 1..n).map(|i| h.get(i, k)).collect();
+            let norm_x = x.iter().map(|v| v * v).sum::<f64>().sqrt();
+            
+            if norm_x < 1e-15 {
+                continue;
+            }
+            
+            let alpha = if x[0] >= 0.0 { -norm_x } else { norm_x };
+            x[0] -= alpha;
+            let vn = x.iter().map(|w| w * w).sum::<f64>().sqrt();
+            
+            if vn > 1e-15 {
+                for w in &mut x {
+                    *w /= vn;
+                }
+                
+                // Apply Householder to rows of h
+                for j in k..n {
+                    let dot: f64 = x.iter()
+                        .enumerate()
+                        .map(|(o, &vv)| vv * h.get(k + 1 + o, j))
+                        .sum();
+                    for (o, &vv) in x.iter().enumerate() {
+                        h.set(k + 1 + o, j, h.get(k + 1 + o, j) - 2.0 * vv * dot);
+                    }
+                }
+                
+                // Apply Householder to columns of h
+                for i in 0..n {
+                    let dot: f64 = x.iter()
+                        .enumerate()
+                        .map(|(o, &vv)| h.get(i, k + 1 + o) * vv)
+                        .sum();
+                    for (o, &vv) in x.iter().enumerate() {
+                        h.set(i, k + 1 + o, h.get(i, k + 1 + o) - 2.0 * dot * vv);
+                    }
+                }
+                
+                // Accumulate Q: Q = Q * P_k
+                for i in 0..n {
+                    let dot: f64 = x.iter()
+                        .enumerate()
+                        .map(|(o, &vv)| q.get(i, k + 1 + o) * vv)
+                        .sum();
+                    for (o, &vv) in x.iter().enumerate() {
+                        q.set(i, k + 1 + o, q.get(i, k + 1 + o) - 2.0 * dot * vv);
+                    }
+                }
+            }
+        }
+        
+        Ok(q)
     }
 
     /// Check if matrix is upper triangular (within tolerance).
@@ -160,7 +221,7 @@ impl SchurApplications {
         schur.q.mul(&exp_t)?.mul(&schur.q.transpose())
     }
 
-    /// Exponential of triangular matrix.
+    /// Exponential of triangular matrix using Parlett recurrence.
     fn exp_triangular(t: &Matrix) -> MathResult<Matrix> {
         let n = t.rows;
         let mut exp_t = Matrix::zeros(n, n);
@@ -170,21 +231,26 @@ impl SchurApplications {
             exp_t.set(i, i, t.get(i, i).exp());
         }
         
-        // Upper triangular part
+        // Upper triangular part via Parlett recurrence
         for j in 1..n {
             for i in (0..j).rev() {
+                // Sum over k=i+1..j-1
                 let mut sum = 0.0;
-                for k in (i + 1)..=j {
+                for k in (i + 1)..j {
                     sum += t.get(i, k) * exp_t.get(k, j);
                 }
                 let a_ii = t.get(i, i);
                 let a_jj = t.get(j, j);
                 if (a_ii - a_jj).abs() > 1e-15 {
-                    exp_t.set(i, j, (exp_t.get(i, i) - exp_t.get(j, j)) / (a_ii - a_jj) + sum / (a_ii - a_jj));
+                    // f(T)_{ij} = (f(λ_i) - f(λ_j)) / (λ_i - λ_j) * T_{ij} + Σ T_{ik} f(T)_{kj}
+                    let val = (exp_t.get(i, i) - exp_t.get(j, j)) / (a_ii - a_jj) * t.get(i, j)
+                        + sum / (a_ii - a_jj);
+                    exp_t.set(i, j, val);
                 } else {
-                    // Degenerate case: equal diagonal elements
-                    // Use exp(λ) * t[i][j] which is exact for 2x2 blocks
-                    exp_t.set(i, j, exp_t.get(i, i) * t.get(i, j));
+                    // Degenerate case: f(T)_{ij} = f'(λ_i) * T_{ij} + Σ T_{ik} f(T)_{kj}
+                    let h = 1e-8;
+                    let df = ((a_ii + h).exp() - (a_ii - h).exp()) / (2.0 * h);
+                    exp_t.set(i, j, df * t.get(i, j) + sum);
                 }
             }
         }
@@ -199,7 +265,7 @@ impl SchurApplications {
         schur.q.mul(&f_t)?.mul(&schur.q.transpose())
     }
 
-    /// Apply function to triangular matrix.
+    /// Apply function to triangular matrix via Parlett recurrence.
     fn apply_function_triangular(t: &Matrix, f: &impl Fn(f64) -> f64) -> MathResult<Matrix> {
         let n = t.rows;
         let mut f_t = Matrix::zeros(n, n);
@@ -209,22 +275,25 @@ impl SchurApplications {
             f_t.set(i, i, f(t.get(i, i)));
         }
         
-        // Upper triangular part (Parlett's recurrence)
+        // Upper triangular part via Parlett recurrence
         for j in 1..n {
             for i in (0..j).rev() {
+                // Sum over k=i+1..j-1
                 let mut sum = 0.0;
-                for k in (i + 1)..=j {
+                for k in (i + 1)..j {
                     sum += t.get(i, k) * f_t.get(k, j);
                 }
                 let a_ii = t.get(i, i);
                 let a_jj = t.get(j, j);
                 if (a_ii - a_jj).abs() > 1e-15 {
-                    f_t.set(i, j, (f(a_ii) - f(a_jj)) / (a_ii - a_jj) + sum / (a_ii - a_jj));
+                    let val = (f(a_ii) - f(a_jj)) / (a_ii - a_jj) * t.get(i, j)
+                        + sum / (a_ii - a_jj);
+                    f_t.set(i, j, val);
                 } else {
-                    // Use derivative for repeated eigenvalues
+                    // Use numerical derivative for repeated eigenvalues
                     let h = 1e-8;
-                    let df = (f(a_ii + h) - f(a_ii)) / h;
-                    f_t.set(i, j, df + sum);
+                    let df = (f(a_ii + h) - f(a_ii - h)) / (2.0 * h);
+                    f_t.set(i, j, df * t.get(i, j) + sum);
                 }
             }
         }

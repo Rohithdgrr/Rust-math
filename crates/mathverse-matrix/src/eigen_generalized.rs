@@ -47,15 +47,15 @@ impl GeneralizedEigen {
         }
     }
 
-    /// Solve using inverse iteration (for general B).
+    /// Solve using inverse iteration with deflation (for general B).
     fn inverse_iteration(a: &Matrix, b: &Matrix) -> MathResult<GeneralizedEigenDecomposition> {
         let n = a.rows;
         let mut eigenvalues = Vec::new();
         let mut eigenvectors = Matrix::zeros(n, n);
         
         for j in 0..n {
-            // Initial guess
-            let mut x = vec![1.0; n];
+            // Use a distinct starting vector for each eigenvalue
+            let mut x = vec![0.0; n];
             x[j] = 1.0;
             
             // Normalize
@@ -63,12 +63,21 @@ impl GeneralizedEigen {
             x = x.iter().map(|v| v / norm).collect();
             
             // Inverse iteration
-            for _ in 0..20 {
+            for _ in 0..30 {
                 // Solve B x_new = A x
                 let x_vec = mathverse_vector::Vector::new(x.clone());
                 let ax = a.mul_vec(&x_vec)?;
                 let x_new = b.solve(&ax)?;
                 x = x_new.data;
+                
+                // Deflation: orthogonalize against already-found eigenvectors
+                for k in 0..j {
+                    let ek: Vec<f64> = (0..n).map(|i| eigenvectors.get(i, k)).collect();
+                    let dot: f64 = x.iter().zip(ek.iter()).map(|(&xi, &ei)| xi * ei).sum();
+                    for i in 0..n {
+                        x[i] -= dot * ek[i];
+                    }
+                }
                 
                 // Normalize
                 let norm: f64 = x.iter().map(|v| v * v).sum::<f64>().sqrt();
@@ -81,7 +90,9 @@ impl GeneralizedEigen {
             let x_vec = mathverse_vector::Vector::new(x.clone());
             let ax = a.mul_vec(&x_vec)?;
             let bx = b.mul_vec(&x_vec)?;
-            let lambda = ax.dot(&bx) / bx.dot(&bx);
+            let xtbx: f64 = x.iter().zip(bx.data.iter()).map(|(&xi, &bxi)| xi * bxi).sum();
+            let xtax: f64 = x.iter().zip(ax.data.iter()).map(|(&xi, &axi)| xi * axi).sum();
+            let lambda = if xtbx.abs() > 1e-15 { xtax / xtbx } else { xtax };
             
             eigenvalues.push(lambda);
             

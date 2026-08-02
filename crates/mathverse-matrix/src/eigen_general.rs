@@ -23,9 +23,9 @@ impl GeneralEigen {
         
         let n = m.rows;
         
-        // First reduce to Hessenberg form
+        // First reduce to Hessenberg form, accumulating Q
         let mut h = Self::hessenberg(m)?;
-        let mut q = Matrix::identity(n);
+        let mut q = Self::hessenberg_q(m)?;
         
         // QR iteration with shifts
         for _ in 0..100 {
@@ -64,7 +64,7 @@ impl GeneralEigen {
         })
     }
 
-    /// Reduce to upper Hessenberg form.
+    /// Reduce to upper Hessenberg form (similarity transform only).
     fn hessenberg(m: &Matrix) -> MathResult<Matrix> {
         let n = m.rows;
         let mut h = m.clone();
@@ -109,6 +109,67 @@ impl GeneralEigen {
         }
         
         Ok(h)
+    }
+
+    /// Compute the accumulated orthogonal factor Q from Hessenberg reduction.
+    fn hessenberg_q(m: &Matrix) -> MathResult<Matrix> {
+        let n = m.rows;
+        let mut h = m.clone();
+        let mut q = Matrix::identity(n);
+        
+        for k in 0..(n - 2) {
+            let mut x: Vec<f64> = (k + 1..n).map(|i| h.get(i, k)).collect();
+            let norm_x = x.iter().map(|v| v * v).sum::<f64>().sqrt();
+            
+            if norm_x < 1e-15 {
+                continue;
+            }
+            
+            let alpha = if x[0] >= 0.0 { -norm_x } else { norm_x };
+            x[0] -= alpha;
+            let vn = x.iter().map(|w| w * w).sum::<f64>().sqrt();
+            
+            if vn > 1e-15 {
+                for w in &mut x {
+                    *w /= vn;
+                }
+                
+                // Apply to h rows
+                for j in k..n {
+                    let dot: f64 = x.iter()
+                        .enumerate()
+                        .map(|(o, &vv)| vv * h.get(k + 1 + o, j))
+                        .sum();
+                    for (o, &vv) in x.iter().enumerate() {
+                        h.set(k + 1 + o, j, h.get(k + 1 + o, j) - 2.0 * vv * dot);
+                    }
+                }
+                
+                // Apply to h columns
+                for i in 0..n {
+                    let dot: f64 = x.iter()
+                        .enumerate()
+                        .map(|(o, &vv)| h.get(i, k + 1 + o) * vv)
+                        .sum();
+                    for (o, &vv) in x.iter().enumerate() {
+                        h.set(i, k + 1 + o, h.get(i, k + 1 + o) - 2.0 * dot * vv);
+                    }
+                }
+                
+                // Accumulate Q: Q = Q * P_k
+                for i in 0..n {
+                    let dot: f64 = x.iter()
+                        .enumerate()
+                        .map(|(o, &vv)| q.get(i, k + 1 + o) * vv)
+                        .sum();
+                    for (o, &vv) in x.iter().enumerate() {
+                        q.set(i, k + 1 + o, q.get(i, k + 1 + o) - 2.0 * dot * vv);
+                    }
+                }
+            }
+        }
+        
+        Ok(q)
     }
 
     fn extract_submatrix(m: &Matrix, row: usize, col: usize, rows: usize, cols: usize) -> Matrix {

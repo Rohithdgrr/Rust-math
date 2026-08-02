@@ -234,9 +234,57 @@ impl Gmres {
         })
     }
     
+    /// Solve least squares problem min ||beta*e1 - H*y|| using Givens rotations.
     fn solve_least_squares(h: &[Vec<f64>], k: usize, beta: f64) -> MathResult<Vec<f64>> {
-        // Simplified: return zeros
-        Ok(vec![0.0; k])
+        if k == 0 {
+            return Ok(vec![]);
+        }
+        
+        // Build (k+1) x k Hessenberg matrix and apply Givens rotations
+        let mut g = vec![0.0; k + 1];
+        g[0] = beta;
+        
+        // Apply Givens rotations to reduce H to upper triangular
+        let mut cosines = vec![0.0; k];
+        let mut sines = vec![0.0; k];
+        
+        for i in 0..k {
+            // Givens rotation to zero out h[i+1][i]
+            let a = h[i][i];
+            let b = h[i + 1][i];
+            let r = (a * a + b * b).sqrt();
+            
+            if r < 1e-15 {
+                cosines[i] = 1.0;
+                sines[i] = 0.0;
+            } else {
+                cosines[i] = a / r;
+                sines[i] = b / r;
+            }
+            
+            // Apply rotation to g
+            let g_i = cosines[i] * g[i] + sines[i] * g[i + 1];
+            let g_i1 = -sines[i] * g[i] + cosines[i] * g[i + 1];
+            g[i] = g_i;
+            g[i + 1] = g_i1;
+        }
+        
+        // Back substitution on upper triangular system (first k rows of g)
+        let mut y = vec![0.0; k];
+        for i in (0..k).rev() {
+            let mut sum = g[i];
+            for j in (i + 1)..k {
+                sum -= h[i][j] * y[j];
+            }
+            let h_ii = h[i][i];
+            if h_ii.abs() < 1e-15 {
+                y[i] = 0.0;
+            } else {
+                y[i] = sum / h_ii;
+            }
+        }
+        
+        Ok(y)
     }
 }
 

@@ -411,7 +411,6 @@ impl RiccatiEquation {
         max_iterations: usize,
     ) -> MathResult<Matrix> {
         let n = a.rows;
-        let r_inv = r.inverse()?;
         
         let mut x = Matrix::zeros(n, n);
         
@@ -425,11 +424,11 @@ impl RiccatiEquation {
             let r_plus = r.add(&bxb)?;
             let r_plus_inv = r_plus.inverse()?;
             
-            let btxb = bx.mul(b)?;
-            let btxb_rinv = btxb.mul(&r_plus_inv)?;
-            let btxb_rinv_btxa = btxb_rinv.mul(&ax)?;
+            // A^T X B (R + B^T X B)^{-1} B^T X A
+            let axb = ax.mul(b)?;
+            let quadratic = axb.mul(&r_plus_inv)?.mul(&bx.mul(a)?)?;
             
-            let x_new = axa.sub(&btxb_rinv_btxa)?.add(q)?;
+            let x_new = axa.sub(&quadratic)?.add(q)?;
             
             let diff = x_new.sub(&x)?;
             let norm = crate::norms::MatrixNorms::frobenius(&diff);

@@ -186,11 +186,11 @@ impl MatrixSquareRoot {
         
         for _ in 0..100 {
             let y_inv = y.inverse()?;
-            let y_next = y.add(&y_inv)?;
-            let y_next = y_next.scale(0.5);
+            let z_inv = z.inverse()?;
             
-            let z_next = z.add(&z.mul(&y_inv)?)?;
-            let z_next = z_next.scale(0.5);
+            // Correct Denman-Beavers: Y_{k+1} = (Y_k + Z_k^{-1})/2, Z_{k+1} = (Z_k + Y_k^{-1})/2
+            let y_next = y.add(&z_inv)?.scale(0.5);
+            let z_next = z.add(&y_inv)?.scale(0.5);
             
             let diff = y_next.sub(&y)?;
             let norm = crate::norms::MatrixNorms::linf(&diff);
@@ -291,21 +291,22 @@ impl MatrixFunctions {
         Ok(result)
     }
 
-    /// Matrix sine using Taylor series.
+    /// Matrix sine using Taylor series: sin(A) = A - A³/3! + A⁵/5! - ...
     pub fn sin(m: &Matrix) -> MathResult<Matrix> {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
         
-        let identity = Matrix::identity(m.rows);
-        let mut result = Matrix::zeros(m.rows, m.cols);
-        let mut term = m.clone();
+        let m_sq = m.mul(m)?;
+        let mut result = m.clone(); // Start with A (first term)
+        let mut term = m.clone();   // Current term: A^{2k+1}
         let mut sign = 1.0;
         
         for k in 1..=20 {
-            let coeff = sign / Self::factorial(k as u64);
+            // Each iteration: multiply by A² to go from A^{2k-1} to A^{2k+1}
+            term = term.mul(&m_sq)?;
+            let coeff = -sign / Self::factorial((2 * k + 1) as u64);
             result = result.add(&term.scale(coeff))?;
-            term = term.mul(m)?;
             sign = -sign;
             
             let term_norm = crate::norms::MatrixNorms::linf(&term);
@@ -317,21 +318,23 @@ impl MatrixFunctions {
         Ok(result)
     }
 
-    /// Matrix cosine using Taylor series.
+    /// Matrix cosine using Taylor series: cos(A) = I - A²/2! + A⁴/4! - ...
     pub fn cos(m: &Matrix) -> MathResult<Matrix> {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
         
         let identity = Matrix::identity(m.rows);
-        let mut result = identity.clone();
-        let mut term = m.clone();
+        let m_sq = m.mul(m)?;
+        let mut result = identity.clone(); // Start with I (first term)
+        let mut term = identity.clone();   // Current term: A^{2k}
         let mut sign = -1.0;
         
-        for k in 2..=20 {
-            let coeff = sign / Self::factorial(k as u64);
+        for k in 1..=20 {
+            // Each iteration: multiply by A² to go from A^{2k-2} to A^{2k}
+            term = term.mul(&m_sq)?;
+            let coeff = sign / Self::factorial((2 * k) as u64);
             result = result.add(&term.scale(coeff))?;
-            term = term.mul(m)?;
             sign = -sign;
             
             let term_norm = crate::norms::MatrixNorms::linf(&term);

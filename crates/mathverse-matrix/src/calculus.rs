@@ -218,9 +218,9 @@ impl AutoDiff {
         
         for j in 0..n {
             for k in 0..p {
-                let mut deriv = Matrix::zeros(m, n);
+                let mut deriv = Matrix::zeros(m, p);
                 for i in 0..m {
-                    deriv.set(i, j, a.get(i, j));
+                    deriv.set(i, k, a.get(i, j));
                 }
                 derivatives.push(deriv);
             }
