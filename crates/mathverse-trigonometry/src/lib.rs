@@ -103,12 +103,20 @@ pub fn atan2<T: Real>(y: T, x: T) -> T {
 pub fn acot<T: Real>(x: T) -> T {
     f(x, |r| core::f64::consts::FRAC_PI_2 - r.atan())
 }
-/// Arc secant: `acos(1/x)`.
+/// Arc secant: `acos(1/x)`. Domain: |x| >= 1.
 pub fn asec<T: Real>(x: T) -> T {
+    let r = x.to_f64();
+    if r.abs() < 1.0 {
+        return T::from_f64(f64::NAN);
+    }
     f(x, |r| (1.0 / r).acos())
 }
-/// Arc cosecant: `asin(1/x)`.
+/// Arc cosecant: `asin(1/x)`. Domain: |x| >= 1.
 pub fn acsc<T: Real>(x: T) -> T {
+    let r = x.to_f64();
+    if r.abs() < 1.0 {
+        return T::from_f64(f64::NAN);
+    }
     f(x, |r| (1.0 / r).asin())
 }
 
@@ -190,11 +198,11 @@ pub fn atan2_deg<T: Real>(y: T, x: T) -> T {
 pub fn acot_deg<T: Real>(x: T) -> T {
     rad_to_deg(acot(x))
 }
-/// Arc secant, result in degrees.
+/// Arc secant, result in degrees. Domain: |x| >= 1.
 pub fn asec_deg<T: Real>(x: T) -> T {
     rad_to_deg(asec(x))
 }
-/// Arc cosecant, result in degrees.
+/// Arc cosecant, result in degrees. Domain: |x| >= 1.
 pub fn acsc_deg<T: Real>(x: T) -> T {
     rad_to_deg(acsc(x))
 }
@@ -296,6 +304,46 @@ mod tests {
         assert_eq!(cosh(0.0), 1.0);
         assert_eq!(tanh(0.0), 0.0);
         assert!((cosh(1.0f64).powi(2) - sinh(1.0).powi(2) - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn inverse_domain_errors() {
+        // Test asec domain: |x| >= 1
+        assert!(asec(0.5).is_nan());
+        assert!(asec(0.0).is_nan());
+        assert!(asec(-0.5).is_nan());
+        assert!(!asec(1.0).is_nan());
+        assert!(!asec(2.0).is_nan());
+        assert!(!asec(-1.0).is_nan());
+        
+        // Test acsc domain: |x| >= 1
+        assert!(acsc(0.5).is_nan());
+        assert!(acsc(0.0).is_nan());
+        assert!(acsc(-0.5).is_nan());
+        assert!(!acsc(1.0).is_nan());
+        assert!(!acsc(2.0).is_nan());
+        assert!(!acsc(-1.0).is_nan());
+    }
+
+    #[test]
+    fn nan_inf_propagation() {
+        // Test NaN propagation
+        assert!(sin(f64::NAN).is_nan());
+        assert!(cos(f64::NAN).is_nan());
+        assert!(tan(f64::NAN).is_nan());
+        
+        // Test Inf propagation
+        assert!(sin(f64::INFINITY).is_nan());
+        assert!(cos(f64::INFINITY).is_nan());
+        assert!(tan(f64::INFINITY).is_nan());
+        
+        // Test tan at asymptotes (should return ±inf)
+        let pi_half = core::f64::consts::FRAC_PI_2;
+        assert!(tan(pi_half).is_infinite());
+        assert!(tan(-pi_half).is_infinite());
+        
+        // Test cot at 0 (should return ±inf)
+        assert!(cot(0.0).is_infinite());
     }
 
     #[test]

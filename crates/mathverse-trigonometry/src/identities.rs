@@ -34,25 +34,33 @@ pub fn tan_double<T: Real>(x: T) -> T {
 // Half angle formulas
 // ---------------------------------------------------------------------------
 
-/// sin(x/2) = ±√((1 - cos(x)) / 2). Uses the sign of `x`.
+/// sin(x/2) = ±√((1 - cos(x)) / 2). Uses the sign of sin(x/2).
 pub fn sin_half<T: Real>(x: T) -> T {
     let c = f(x, f64::cos);
     let val = ((T::one() - c) / T::from_f64(2.0)).sqrt();
-    if x < T::zero() { -val } else { val }
+    // Sign follows sin(x/2), not signum(x)
+    let half_x = x / T::from_f64(2.0);
+    let exact = f(half_x, f64::sin);
+    if exact < T::zero() { -val } else { val }
 }
 
-/// cos(x/2) = √((1 + cos(x)) / 2). Always non-negative.
+/// cos(x/2) = ±√((1 + cos(x)) / 2). Uses the sign of cos(x/2).
 pub fn cos_half<T: Real>(x: T) -> T {
     let c = f(x, f64::cos);
-    ((T::one() + c) / T::from_f64(2.0)).sqrt()
+    let val = ((T::one() + c) / T::from_f64(2.0)).sqrt();
+    // Sign follows cos(x/2), not always non-negative
+    let half_x = x / T::from_f64(2.0);
+    let exact = f(half_x, f64::cos);
+    if exact < T::zero() { -val } else { val }
 }
 
 /// tan(x/2) = sin(x) / (1 + cos(x)) = (1 - cos(x)) / sin(x).
 pub fn tan_half<T: Real>(x: T) -> T {
     let s = f(x, f64::sin);
     let c = f(x, f64::cos);
-    if s.abs() < T::from_f64(1e-15) {
-        T::zero()
+    if s == T::zero() {
+        // x is multiple of π: tan(x/2) = 0 for even multiples, ±inf for odd
+        if c == T::one() { T::zero() } else { T::from_f64(1.0) / T::zero() }
     } else {
         (T::one() - c) / s
     }
@@ -207,6 +215,34 @@ mod tests {
             assert!((cos_half(x) - (x / 2.0).cos()).abs() < 1e-10, "cos_half x={x}");
             assert!((tan_half(x) - (x / 2.0).tan()).abs() < 1e-10, "tan_half x={x}");
         }
+    }
+
+    #[test]
+    fn half_angle_edge_cases() {
+        // Test sign-sensitive edge cases that catch the original bugs
+        let pi = core::f64::consts::PI;
+        
+        // sin_half(3π) should equal sin(3π/2) = -1
+        assert!((sin_half(3.0 * pi) - (1.5 * pi).sin()).abs() < 1e-10);
+        
+        // cos_half(2π) should equal cos(π) = -1 (not +1)
+        assert!((cos_half(2.0 * pi) - pi.cos()).abs() < 1e-10);
+        
+        // cos_half(3π) should equal cos(3π/2) = 0
+        assert!((cos_half(3.0 * pi) - (1.5 * pi).cos()).abs() < 1e-10);
+        
+        // sin_half(-3π) should equal sin(-3π/2) = 1
+        assert!((sin_half(-3.0 * pi) - (-1.5 * pi).sin()).abs() < 1e-10);
+        
+        // cos_half(-2π) should equal cos(-π) = -1
+        assert!((cos_half(-2.0 * pi) - (-pi).cos()).abs() < 1e-10);
+        
+        // tan_half(π) should be ±inf (tan(π/2))
+        let tan_pi_half = tan_half(pi);
+        assert!(tan_pi_half.is_infinite());
+        
+        // tan_half(2π) should be 0 (tan(π))
+        assert!((tan_half(2.0 * pi) - pi.tan()).abs() < 1e-10);
     }
 
     #[test]

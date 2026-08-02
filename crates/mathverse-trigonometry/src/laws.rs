@@ -21,9 +21,14 @@ pub fn law_of_sines_angle<T: Real>(a: T, b: T, angle_a: T) -> T {
 
 /// Law of cosines: c² = a² + b² - 2ab·cos(C).
 /// Given sides a, b and included angle C, compute opposite side c.
+/// Returns NaN for geometrically impossible inputs (e.g., when the computed c² < 0).
 pub fn law_of_cosines_side<T: Real>(a: T, b: T, angle_c: T) -> T {
     let c2 = a * a + b * b - T::from_f64(2.0) * a * b * f(angle_c, f64::cos);
-    c2.sqrt()
+    if c2 < T::zero() {
+        T::from_f64(f64::NAN)
+    } else {
+        c2.sqrt()
+    }
 }
 
 /// Law of cosines: given sides a, b, c, compute the angle C opposite c.
@@ -35,9 +40,15 @@ pub fn law_of_cosines_angle<T: Real>(a: T, b: T, c: T) -> T {
 }
 
 /// Heron's formula: area of a triangle from three sides.
+/// Returns NaN for invalid triangles (those violating the triangle inequality).
 pub fn heron<T: Real>(a: T, b: T, c: T) -> T {
     let s = (a + b + c) / T::from_f64(2.0);
-    (s * (s - a) * (s - b) * (s - c)).sqrt()
+    let product = s * (s - a) * (s - b) * (s - c);
+    if product < T::zero() {
+        T::from_f64(f64::NAN)
+    } else {
+        product.sqrt()
+    }
 }
 
 /// Area of a triangle from two sides and included angle: ½ab·sin(C).
@@ -121,5 +132,27 @@ mod tests {
         let r = 1.0f64;
         let d = haversine_distance(0.0, 0.0, core::f64::consts::FRAC_PI_2, 0.0, r);
         assert!((d - core::f64::consts::FRAC_PI_2).abs() < EPS);
+    }
+
+    #[test]
+    fn invalid_triangle_tests() {
+        // Test law_of_cosines_side with impossible triangle
+        // Sides 1, 1 with included angle π should give c² = 1 + 1 - 2*1*1*(-1) = 4
+        // But with angle > π, c² can become negative
+        let invalid_side = law_of_cosines_side(1.0f64, 1.0f64, core::f64::consts::PI);
+        assert!(invalid_side.is_nan());
+        
+        // Test heron with invalid triangle (violates triangle inequality)
+        // a=1, b=1, c=3: cannot form a triangle
+        let invalid_area = heron(1.0f64, 1.0f64, 3.0f64);
+        assert!(invalid_area.is_nan());
+        
+        // Another invalid case: a=2, b=3, c=10
+        let invalid_area2 = heron(2.0f64, 3.0f64, 10.0f64);
+        assert!(invalid_area2.is_nan());
+        
+        // Valid triangle should still work
+        let valid_area = heron(3.0f64, 4.0f64, 5.0f64);
+        assert!((valid_area - 6.0).abs() < EPS);
     }
 }
