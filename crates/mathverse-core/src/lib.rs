@@ -42,6 +42,7 @@ pub mod algorithms;
 pub mod arrays;
 pub mod constants;
 pub mod error;
+pub mod float;
 pub mod integer;
 pub mod ops;
 pub mod precision;

@@ -11,6 +11,7 @@ members = [
     "crates/mathverse-linear-algebra",
     "crates/mathverse-calculus",
     "crates/mathverse-complex",
+    "crates/mathverse-special",
     "crates/mathverse-probability",
     "crates/mathverse-statistics",
     "crates/mathverse-numerical",

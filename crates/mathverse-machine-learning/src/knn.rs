@@ -18,7 +18,7 @@ pub fn classify(
             .zip(y_train)
             .map(|(x, &y)| (euclidean(query, x), y))
             .collect();
-        dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
         let mut counts = std::collections::HashMap::new();
         for &(_, label) in dists.iter().take(k) {
             // Normalize -0.0 to 0.0 to avoid hash key collision
@@ -51,7 +51,7 @@ pub fn regress(
             .zip(y_train)
             .map(|(x, &y)| (euclidean(query, x), y))
             .collect();
-        dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
         let sum: f64 = dists.iter().take(k).map(|(_, y)| y).sum();
         results.push(sum / k as f64);
     }

@@ -279,7 +279,7 @@ fn compute_pca(x: &[Vec<f64>], n_components: usize) -> (Vec<Vec<f64>>, Vec<f64>)
             (col, var)
         })
         .collect();
-    variances.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    variances.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
     let components: Vec<Vec<f64>> = variances[..n_components]
         .iter()
@@ -340,7 +340,7 @@ fn select_top_k_features(x: &[Vec<f64>], y: &[f64], k: usize) -> Vec<usize> {
             (col, corr.abs())
         })
         .collect();
-    correlations.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    correlations.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     correlations[..k].iter().map(|&(col, _)| col).collect()
 }
 
@@ -457,7 +457,7 @@ fn fit_decision_stump(x: &[Vec<f64>], y: &[f64]) -> SimpleTree {
             .zip(y.iter())
             .map(|(r, &yi)| (r[feat], yi))
             .collect();
-        vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
         for i in 0..vals.len() - 1 {
             if vals[i].0 == vals[i + 1].0 {
@@ -552,7 +552,7 @@ fn predict_model(model: &ModelFitted, x: &[Vec<f64>]) -> Vec<f64> {
                         (d, ty)
                     })
                     .collect();
-                dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+                dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
                 let kk = (*k).min(dists.len());
                 dists[..kk].iter().map(|&(_, y)| y).sum::<f64>() / kk as f64
             })

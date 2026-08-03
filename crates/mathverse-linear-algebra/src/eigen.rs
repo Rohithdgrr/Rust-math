@@ -1,4 +1,5 @@
-//! Eigenvalue computation: re-exports from decomposition module.
+//! Eigenvalue computation.
+//!
+//! Re-exports from [`decomposition`](crate::decomposition).
 
-// Re-export eigenvalue functionality from decomposition
-pub use crate::decomposition::{Complex, eigenvalue_2x2};
+pub use crate::decomposition::{eigenvalue_2x2, power_iteration, Complex};

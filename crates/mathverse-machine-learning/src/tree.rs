@@ -126,7 +126,7 @@ fn find_best_split(x: &[Vec<f64>], y: &[f64]) -> Option<(usize, f64, f64)> {
     let mut best_gain = -1e-10;
     for j in 0..p {
         let mut vals: Vec<(f64, f64)> = x.iter().zip(y).map(|(row, &yi)| (row[j], yi)).collect();
-        vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
         for i in 0..n - 1 {
             if (vals[i].0 - vals[i + 1].0).abs() < 1e-10 {
                 continue;

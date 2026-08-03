@@ -25,9 +25,11 @@ impl TreeNode {
             return self.value;
         }
         if x[self.feature] <= self.threshold {
-            self.left.as_ref().unwrap().predict_single(x)
+            // Safety: internal nodes always have both children
+            self.left.as_ref().expect("internal node must have left child").predict_single(x)
         } else {
-            self.right.as_ref().unwrap().predict_single(x)
+            // Safety: internal nodes always have both children
+            self.right.as_ref().expect("internal node must have right child").predict_single(x)
         }
     }
 }
@@ -76,7 +78,7 @@ fn build_tree(
             .zip(targets.iter())
             .map(|(xi, &ti)| (xi[feature], ti))
             .collect();
-        vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
         for i in 0..vals.len() - 1 {
             if (vals[i].0 - vals[i + 1].0).abs() < 1e-12 {
@@ -351,7 +353,7 @@ fn build_tree_weighted(
             .zip(hessians.iter())
             .map(|((xi, &gi), &hi)| (xi[feature], gi, hi))
             .collect();
-        vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
         let mut left_g = 0.0;
         let mut left_h = 0.0;

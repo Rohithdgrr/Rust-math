@@ -133,8 +133,8 @@ pub fn predict(r: &GmmResult, x: &[Vec<f64>]) -> Vec<usize> {
             probs
                 .iter()
                 .enumerate()
-                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
-                .unwrap()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Less))
+                .expect("probs cannot be empty")
                 .0
         })
         .collect()

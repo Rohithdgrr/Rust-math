@@ -124,6 +124,77 @@ pub fn convolution(a: &[f64], b: &[f64]) -> Vec<f64> {
     result.iter().map(|c| c.re).take(a.len() + b.len() - 1).collect()
 }
 
+/// Two-dimensional forward FFT, applied separably (rows, then columns).
+///
+/// Both dimensions must be nonzero powers of two. Returns the `rows × cols`
+/// spectrum, where `rows = x.len()` and `cols = x[0].len()`.
+///
+/// ```
+/// use mathverse_complex::Complex;
+/// use mathverse_transforms::{fft2, ifft2};
+/// let x = vec![
+///     vec![Complex::real(1.0), Complex::real(2.0), Complex::real(3.0), Complex::real(4.0)],
+///     vec![Complex::real(5.0), Complex::real(6.0), Complex::real(7.0), Complex::real(8.0)],
+///     vec![Complex::real(9.0), Complex::real(10.0), Complex::real(11.0), Complex::real(12.0)],
+///     vec![Complex::real(13.0), Complex::real(14.0), Complex::real(15.0), Complex::real(16.0)],
+/// ];
+/// let y = fft2(&x).unwrap();
+/// let back = ifft2(&y).unwrap();
+/// for r in 0..4 {
+///     for c in 0..4 {
+///         assert!((x[r][c] - back[r][c]).norm() < 1e-10);
+///     }
+/// }
+/// ```
+pub fn fft2(x: &[Vec<Complex>]) -> mathverse_core::error::MathResult<Vec<Vec<Complex>>> {
+    let rows = x.len();
+    let cols = x.first().map(|r| r.len()).unwrap_or(0);
+    if rows == 0 || cols == 0 || !rows.is_power_of_two() || !cols.is_power_of_two() {
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "fft2: both dimensions must be nonzero powers of two",
+        ));
+    }
+    let rows_fft: Vec<Vec<Complex>> = x
+        .iter()
+        .map(|row| fft(row))
+        .collect::<mathverse_core::error::MathResult<_>>()?;
+    let mut out = vec![vec![Complex::zero(); cols]; rows];
+    for c in 0..cols {
+        let col: Vec<Complex> = (0..rows).map(|r| rows_fft[r][c]).collect();
+        let transformed = fft(&col)?;
+        for r in 0..rows {
+            out[r][c] = transformed[r];
+        }
+    }
+    Ok(out)
+}
+
+/// Two-dimensional inverse FFT (normalized by `1/(rows·cols)`).
+///
+/// Inverts [`fft2`]. Both dimensions must be nonzero powers of two.
+pub fn ifft2(x: &[Vec<Complex>]) -> mathverse_core::error::MathResult<Vec<Vec<Complex>>> {
+    let rows = x.len();
+    let cols = x.first().map(|r| r.len()).unwrap_or(0);
+    if rows == 0 || cols == 0 || !rows.is_power_of_two() || !cols.is_power_of_two() {
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "ifft2: both dimensions must be nonzero powers of two",
+        ));
+    }
+    let rows_ifft: Vec<Vec<Complex>> = x
+        .iter()
+        .map(|row| ifft(row))
+        .collect::<mathverse_core::error::MathResult<_>>()?;
+    let mut out = vec![vec![Complex::zero(); cols]; rows];
+    for c in 0..cols {
+        let col: Vec<Complex> = (0..rows).map(|r| rows_ifft[r][c]).collect();
+        let transformed = ifft(&col)?;
+        for r in 0..rows {
+            out[r][c] = transformed[r];
+        }
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,5 +205,45 @@ mod tests {
         let y = fft(&x).unwrap();
         let back = ifft(&y).unwrap();
         for (a, b) in x.iter().zip(&back) { assert!((*a - *b).norm() < 1e-12); }
+    }
+
+    #[test]
+    fn fft2_roundtrip() {
+        let x: Vec<Vec<Complex>> = (0..4)
+            .map(|r| (0..4).map(|c| Complex::new(r as f64 + 10.0 * c as f64, (r + c) as f64)).collect())
+            .collect();
+        let y = fft2(&x).unwrap();
+        let back = ifft2(&y).unwrap();
+        for r in 0..4 {
+            for c in 0..4 {
+                assert!((x[r][c] - back[r][c]).norm() < 1e-10, "mismatch at ({r}, {c})");
+            }
+        }
+    }
+
+    #[test]
+    fn fft2_rejects_bad_dims() {
+        let ragged = vec![vec![Complex::zero(); 3]; 4];
+        assert!(fft2(&ragged).is_err());
+        assert!(fft2(&[]).is_err());
+    }
+
+    #[test]
+    fn fft2_matches_separable_product() {
+        // FFT of a separable signal x[r][c] = a[r] * b[c] equals
+        // FFT(a) ⊗ FFT(b) (outer product of the 1-D spectra).
+        let a: Vec<Complex> = (0..4).map(|i| Complex::real(i as f64 + 1.0)).collect();
+        let b: Vec<Complex> = (0..4).map(|i| Complex::real(2.0 * i as f64 + 1.0)).collect();
+        let fa = fft(&a).unwrap();
+        let fb = fft(&b).unwrap();
+        let x: Vec<Vec<Complex>> = (0..4)
+            .map(|r| (0..4).map(|c| a[r] * b[c]).collect())
+            .collect();
+        let y = fft2(&x).unwrap();
+        for r in 0..4 {
+            for c in 0..4 {
+                assert!((y[r][c] - fa[r] * fb[c]).norm() < 1e-10, "mismatch at ({r}, {c})");
+            }
+        }
     }
 }

@@ -302,6 +302,69 @@ pub fn binomial_option_price(
     prices[0]
 }
 
+/// Monte Carlo estimate of a European option price under geometric
+/// Brownian motion with a constant seed for reproducibility.
+///
+/// Simulates `paths` independent GBM paths (seed `42`), discounts the mean
+/// terminal payoff by `exp(-r·T)`. The statistical error shrinks like
+/// `1/√paths`; pass a large `paths` (e.g. 100_000) for ~0.5% accuracy. An
+/// empty path count returns `NaN`.
+///
+/// # Arguments
+/// * `spot_price` - Current spot price of underlying
+/// * `strike_price` - Strike price
+/// * `time_to_expiry` - Time to expiry in years
+/// * `risk_free_rate` - Risk-free interest rate (as decimal)
+/// * `volatility` - Volatility of underlying (as decimal)
+/// * `paths` - Number of Monte Carlo paths
+/// * `is_call` - true for call option, false for put
+///
+/// ```
+/// use mathverse_finance::monte_carlo_option_price;
+/// let mc = monte_carlo_option_price(100.0, 100.0, 1.0, 0.05, 0.2, 200_000, true);
+/// let bs = mathverse_finance::black_scholes_call(100.0, 100.0, 1.0, 0.05, 0.2);
+/// assert!((mc - bs).abs() < 0.5);
+/// ```
+pub fn monte_carlo_option_price(
+    spot_price: f64,
+    strike_price: f64,
+    time_to_expiry: f64,
+    risk_free_rate: f64,
+    volatility: f64,
+    paths: usize,
+    is_call: bool,
+) -> f64 {
+    if paths == 0 {
+        return f64::NAN;
+    }
+    let drift = (risk_free_rate - 0.5 * volatility * volatility) * time_to_expiry;
+    let diffusion = volatility * time_to_expiry.sqrt();
+    // LCG with a fixed seed: deterministic across runs.
+    let mut state: u64 = 42;
+    let mut sum = 0.0;
+    for _ in 0..paths {
+        let u1 = next_uniform(&mut state);
+        let u2 = next_uniform(&mut state);
+        // Box-Muller pair from two uniforms.
+        let z = (-2.0 * u1.ln()).sqrt() * (2.0 * core::f64::consts::PI * u2).cos();
+        let terminal = spot_price * (drift + diffusion * z).exp();
+        sum += if is_call {
+            (terminal - strike_price).max(0.0)
+        } else {
+            (strike_price - terminal).max(0.0)
+        };
+    }
+    (-risk_free_rate * time_to_expiry).exp() * sum / paths as f64
+}
+
+/// Next uniform in (0, 1) from an LCG (Numerical Recipes constants).
+fn next_uniform(state: &mut u64) -> f64 {
+    *state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+    // Top 26 bits → (0, 1) with no zero (u1.ln() is taken on it).
+    const SCALE: f64 = 1.0 / (1u64 << 53) as f64;
+    ((*state >> 11) as f64 + 0.5) * SCALE
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

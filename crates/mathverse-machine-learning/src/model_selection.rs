@@ -82,7 +82,7 @@ pub fn confusion_matrix(pred: &[f64], target: &[f64], num_classes: usize) -> Vec
 #[must_use]
 pub fn roc_curve(scores: &[f64], labels: &[f64]) -> Vec<(f64, f64)> {
     let mut pairs: Vec<(f64, f64)> = scores.iter().zip(labels).map(|(&s, &l)| (s, l)).collect();
-    pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
     let total_pos: f64 = labels.iter().sum();
     let total_neg = labels.len() as f64 - total_pos;
     if total_pos == 0.0 || total_neg == 0.0 {

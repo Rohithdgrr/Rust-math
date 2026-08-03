@@ -61,6 +61,75 @@ pub fn prime_gap(n: u64) -> u64 {
     q - p
 }
 
+/// Deterministic Miller-Rabin primality test for the full `u64` range.
+///
+/// Uses the [first twelve prime bases](https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test)
+/// `{2,3,5,7,11,13,17,19,23,29,31,37}`, which provably classify every
+/// `n < 3,317,044,064,679,887,385,961,981` (all of `u64`). Much faster than
+/// trial division for large composites.
+///
+/// ```
+/// use mathverse_number_theory::miller_rabin;
+/// assert!(miller_rabin(97));
+/// assert!(miller_rabin(1_000_000_007));
+/// assert!(!miller_rabin(221)); // 13 * 17
+/// assert!(!miller_rabin(4_611_686_018_427_387_903)); // 2^62 - 2^32 + 1 composite
+/// ```
+pub fn miller_rabin(n: u64) -> bool {
+    if n < 2 {
+        return false;
+    }
+    const SMALL_PRIMES: [u64; 24] = [
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37,
+        41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89,
+    ];
+    for &p in &SMALL_PRIMES {
+        if n % p == 0 {
+            return n == p;
+        }
+    }
+    // n - 1 = d * 2^s with d odd.
+    let mut d = n - 1;
+    let mut s = 0;
+    while d % 2 == 0 {
+        d /= 2;
+        s += 1;
+    }
+    const BASES: [u64; 12] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+    'witness: for &a in &BASES {
+        let a = a % n;
+        if a == 0 {
+            continue;
+        }
+        let mut x = mod_pow_u128(a, d, n);
+        if x == 1 || x == n - 1 {
+            continue;
+        }
+        for _ in 0..s - 1 {
+            x = (x as u128 * x as u128 % n as u128) as u64;
+            if x == n - 1 {
+                continue 'witness;
+            }
+        }
+        return false;
+    }
+    true
+}
+
+fn mod_pow_u128(base: u64, mut exp: u64, m: u64) -> u64 {
+    let mut result = 1u128;
+    let mut b = base as u128 % m as u128;
+    let mm = m as u128;
+    while exp > 0 {
+        if exp & 1 == 1 {
+            result = (result * b) % mm;
+        }
+        b = (b * b) % mm;
+        exp >>= 1;
+    }
+    result as u64
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,5 +171,29 @@ mod tests {
         assert_eq!(mersenne_prime(11), None);         // 2047=23*89
         assert_eq!(mersenne_prime(64), None);         // overflow guard
         assert_eq!(mersenne_prime(1), None);          // 1 is not prime
+    }
+
+    #[test]
+    fn miller_rabin_agrees_with_sieve() {
+        let sieve_primes = sieve(5000);
+        let mut next = 0usize;
+        for n in 0..5000u64 {
+            let expected = next < sieve_primes.len() && sieve_primes[next] == n;
+            assert_eq!(miller_rabin(n), expected, "mismatch at {n}");
+            if expected {
+                next += 1;
+            }
+        }
+    }
+
+    #[test]
+    fn miller_rabin_large() {
+        assert!(miller_rabin(1_000_000_007));
+        assert!(!miller_rabin(1_000_000_007 * 2));
+        assert!(miller_rabin(2_305_843_009_213_693_951)); // 2^61 - 1, Mersenne prime
+        assert!(!miller_rabin(u64::MAX));                // 2^64 - 1 = 3 × 6148914691236517205
+        assert!(!miller_rabin(221));                      // 13 * 17
+        assert!(!miller_rabin(0));
+        assert!(!miller_rabin(1));
     }
 }

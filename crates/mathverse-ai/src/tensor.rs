@@ -388,14 +388,13 @@ impl Tensor {
         Ok(Tensor { shape: target, data })
     }
 
-    /// Element-wise div (safe: replaces zero with epsilon, preserving sign).
+    /// Element-wise div (safe: returns NaN for zero denominators instead of corrupting sign).
     pub fn div(&self, other: &Tensor) -> MathResult<Tensor> {
         let target = broadcast_shapes(&self.shape, &other.shape)?;
         let a = self.broadcast_to(&target)?;
         let b = other.broadcast_to(&target)?;
         let data: Vec<f64> = a.data.iter().zip(&b.data).map(|(x, y)| {
-            let denom = if y.abs() < f64::EPSILON { f64::EPSILON } else { *y };
-            x / denom
+            if *y == 0.0 { f64::NAN } else { x / y }
         }).collect();
         Ok(Tensor { shape: target, data })
     }
@@ -418,10 +417,10 @@ impl Tensor {
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x * s).collect() }
     }
 
-    /// Divide every element by a scalar (denominator clamped to `f64::EPSILON`, preserving sign).
+    /// Divide every element by a scalar (returns NaN for zero denominator).
     #[must_use]
     pub fn div_scalar(&self, s: f64) -> Tensor {
-        let denom = if s.abs() < f64::EPSILON { f64::EPSILON } else { s };
+        let denom = if s == 0.0 { f64::NAN } else { s };
         Tensor { shape: self.shape.clone(), data: self.data.iter().map(|x| x / denom).collect() }
     }
 

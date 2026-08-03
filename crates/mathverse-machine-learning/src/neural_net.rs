@@ -85,7 +85,7 @@ impl NeuralNet {
                 let mut activations = vec![xi.clone()];
                 
                 for layer in &self.layers {
-                    let current = activations.last().unwrap();
+                    let current = activations.last().expect("forward pass must have at least one activation");
                     match layer {
                         Layer::Linear { weights, bias } => {
                             let n_out = weights.len();
@@ -120,7 +120,7 @@ impl NeuralNet {
                 }
                 
                 // Backward pass
-                let output = activations.last().unwrap();
+                let output = activations.last().expect("forward pass must have at least one activation");
                 let target = y[sample_idx];
                 
                 // Output error (MSE loss derivative: output - target)
@@ -213,7 +213,7 @@ impl NeuralNet {
                     row.iter()
                         .enumerate()
                         .filter(|(_, v)| !v.is_nan())
-                        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+                        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Less))
                         .map(|(i, _)| i as f64)
                         .unwrap_or(0.0)
                 } else {

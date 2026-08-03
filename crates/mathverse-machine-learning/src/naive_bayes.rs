@@ -1,5 +1,6 @@
 //! Gaussian Naive Bayes classifier.
 
+use std::cmp::Ordering;
 use mathverse_core::error::MathResult;
 
 /// Fitted Naive Bayes model.
@@ -22,17 +23,22 @@ pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<NaiveBayesModel> {
     let p = x[0].len();
     // Find unique classes
     let mut classes: Vec<f64> = y.to_vec();
-    classes.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    classes.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
     classes.dedup();
     let nc = classes.len();
     let mut counts = vec![0usize; nc];
     let mut sums = vec![vec![0.0; p]; nc];
     let mut sum_sqs = vec![vec![0.0; p]; nc];
     for i in 0..n {
-        let ci = classes
-            .iter()
-            .position(|&c| (c - y[i]).abs() < 1e-10)
-            .unwrap();
+    let ci = classes
+        .iter()
+        .position(|&c| (c - y[i]).abs() < 1e-10);
+    let ci = match ci {
+        Some(idx) => idx,
+        None => return Err(mathverse_core::error::MathError::InvalidArgument(
+            "naive_bayes: prediction contains unseen class label",
+        )),
+    };
         counts[ci] += 1;
         for j in 0..p {
             sums[ci][j] += x[i][j];
@@ -75,9 +81,11 @@ fn predict_one(model: &NaiveBayesModel, x: &[f64]) -> MathResult<f64> {
     let best = probs
         .iter()
         .enumerate()
-        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
-        .unwrap()
-        .0;
+        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(Ordering::Equal))
+        .map(|(idx, _)| idx)
+        .ok_or_else(|| mathverse_core::error::MathError::InvalidArgument(
+            "naive_bayes: no classes available for prediction",
+        ))?;
     Ok(model.classes[best])
 }
 

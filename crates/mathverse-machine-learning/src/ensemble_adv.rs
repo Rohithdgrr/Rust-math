@@ -1,3 +1,5 @@
+use mathverse_core::error::MathResult;
+
 /// Base estimator type for bagging ensemble.
 #[derive(Debug, Clone)]
 pub enum BaggingBase {
@@ -33,7 +35,7 @@ impl SimpleDecisionTree {
                 .zip(y.iter())
                 .map(|(xi, &yi)| (xi[feature], yi))
                 .collect();
-            vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+            vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
             for i in 0..vals.len() - 1 {
                 if vals[i].0 == vals[i + 1].0 {
@@ -91,7 +93,7 @@ fn knn_predict(train_x: &[Vec<f64>], train_y: &[f64], x: &[Vec<f64>], k: usize) 
                     (d, ty)
                 })
                 .collect();
-            dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+            dists.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
             let k = k.min(dists.len());
             let sum: f64 = dists[..k].iter().map(|(_, y)| y).sum();
             sum / k as f64
@@ -573,19 +575,22 @@ impl StackingClassifier {
 
     /// Predicts class labels using the stacked ensemble.
     #[must_use]
-    pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
+    pub fn predict(&self, x: &[Vec<f64>]) -> MathResult<Vec<f64>> {
         let meta_features = self.get_meta_features(x);
-        match self.meta_trained.as_ref().unwrap() {
-            MetaTrained::Logistic(model) => model
+        match self.meta_trained.as_ref() {
+            Some(MetaTrained::Logistic(model)) => Ok(model
                 .predict_proba(&meta_features)
                 .iter()
                 .map(|&p| if p > 0.5 { 1.0 } else { 0.0 })
-                .collect(),
-            MetaTrained::Linear(model) => model
+                .collect()),
+            Some(MetaTrained::Linear(model)) => Ok(model
                 .predict(&meta_features)
                 .iter()
                 .map(|&p| if p > 0.5 { 1.0 } else { 0.0 })
-                .collect(),
+                .collect()),
+            None => Err(mathverse_core::error::MathError::InvalidArgument(
+                "stacked ensemble: meta learner not trained",
+            )),
         }
     }
 }
@@ -661,7 +666,7 @@ mod tests {
             StackingMeta::Logistic,
         );
         model.fit(&x, &y);
-        let preds = model.predict(&x);
+        let preds = model.predict(&x).unwrap();
         assert_eq!(preds.len(), 6);
         let correct = preds
             .iter()

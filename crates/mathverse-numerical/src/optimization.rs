@@ -105,7 +105,7 @@ impl GradientDescent {
 // Re-export advanced optimization methods from mathverse-optimization
 // These have richer APIs and are maintained in the dedicated optimization crate
 pub use mathverse_optimization::{
-    unconstrained::bfgs_min,
+    unconstrained::bfgs,
     combinatorial,
     linear_programming,
 };

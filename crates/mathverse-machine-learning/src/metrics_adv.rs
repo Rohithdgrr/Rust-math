@@ -119,7 +119,7 @@ pub fn precision_at_k(scores: &[f64], labels: &[f64], k: usize) -> f64 {
         .zip(labels.iter())
         .map(|(&s, &l)| (s, l))
         .collect();
-    indexed.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    indexed.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
     let relevant_in_top_k: usize = indexed[..k].iter().filter(|(_, l)| *l > 0.5).count();
     relevant_in_top_k as f64 / k as f64
@@ -134,7 +134,7 @@ pub fn ndcg(scores: &[f64], labels: &[f64], k: usize) -> f64 {
         .zip(labels.iter())
         .map(|(&s, &l)| (s, l))
         .collect();
-    indexed.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    indexed.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
     // DCG
     let dcg: f64 = indexed[..k]
@@ -145,7 +145,7 @@ pub fn ndcg(scores: &[f64], labels: &[f64], k: usize) -> f64 {
 
     // Ideal DCG
     let mut ideal_labels: Vec<f64> = labels.to_vec();
-    ideal_labels.sort_by(|a, b| b.partial_cmp(a).unwrap());
+    ideal_labels.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
     let idcg: f64 = ideal_labels[..k]
         .iter()
         .enumerate()
@@ -185,7 +185,7 @@ pub fn median_absolute_error(pred: &[f64], target: &[f64]) -> f64 {
         .zip(target.iter())
         .map(|(p, t)| (p - t).abs())
         .collect();
-    errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    errors.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let n = errors.len();
     if n == 0 {
         return 0.0;

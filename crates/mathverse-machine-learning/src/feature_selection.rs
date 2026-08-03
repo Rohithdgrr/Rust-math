@@ -146,7 +146,7 @@ pub fn select_k_best(x: &[Vec<f64>], y: &[f64], k: usize) -> (Vec<usize>, Vec<Ve
         })
         .collect();
 
-    scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     let selected: Vec<usize> = scores.iter().take(k).map(|(i, _)| *i).collect();
     let reduced: Vec<Vec<f64>> = x
         .iter()

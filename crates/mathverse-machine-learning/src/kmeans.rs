@@ -1,5 +1,7 @@
 //! K-means clustering.
 
+use std::cmp::Ordering;
+
 use crate::knn::euclidean;
 use mathverse_core::error::MathResult;
 
@@ -78,10 +80,10 @@ pub fn kmeans(x: &[Vec<f64>], k: usize, max_iters: usize, tol: f64) -> MathResul
                 .min_by(|a, b| {
                     euclidean(&x[i], a.1)
                         .partial_cmp(&euclidean(&x[i], b.1))
-                        .unwrap()
+                        .unwrap_or(Ordering::Equal)
                 })
-                .unwrap()
-                .0;
+                .map(|(idx, _)| idx)
+                .unwrap_or(0);
             if labels[i] != best {
                 changed = true;
             }

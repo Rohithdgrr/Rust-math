@@ -19,6 +19,7 @@ mathverse-linear-algebra = { path = "../mathverse-linear-algebra", version = "0.
 mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
 mathverse-complex = { path = "../mathverse-complex", version = "0.1.0" }
+mathverse-special = { path = "../mathverse-special", version = "0.1.0" }
 mathverse-physics = { path = "../mathverse-physics", version = "0.1.0" }
 mathverse-finance = { path = "../mathverse-finance", version = "0.1.0" }
 mathverse-symbolic = { path = "../mathverse-symbolic", version = "0.1.0" }

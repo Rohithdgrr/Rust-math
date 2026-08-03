@@ -80,7 +80,11 @@ impl RandomForest {
                 for preds in &all_preds {
                     *counts.entry(preds[i].to_bits()).or_insert(0usize) += 1;
                 }
-                f64::from_bits(*counts.iter().max_by_key(|(_, c)| *c).unwrap().0)
+                counts
+                    .iter()
+                    .max_by_key(|(_, c)| *c)
+                    .map(|(bits, _)| f64::from_bits(*bits))
+                    .unwrap_or(0.0)
             })
             .collect()
     }

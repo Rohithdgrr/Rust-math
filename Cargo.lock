@@ -673,6 +673,7 @@ dependencies = [
  "mathverse-plot",
  "mathverse-probability",
  "mathverse-signal",
+ "mathverse-special",
  "mathverse-statistics",
  "mathverse-symbolic",
  "mathverse-transforms",
@@ -699,10 +700,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "mathverse-special"
+version = "0.1.0"
+dependencies = [
+ "mathverse-core",
+]
+
+[[package]]
 name = "mathverse-statistics"
 version = "0.1.0"
 dependencies = [
  "mathverse-core",
+ "mathverse-probability",
 ]
 
 [[package]]

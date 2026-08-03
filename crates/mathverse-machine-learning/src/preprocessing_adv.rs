@@ -2,7 +2,7 @@
 #[must_use]
 pub fn label_encode(values: &[f64]) -> Vec<f64> {
     let mut unique: Vec<f64> = values.to_vec();
-    unique.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    unique.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     unique.dedup_by(|a, b| (*a - *b).abs() < 1e-10);
 
     values
@@ -68,7 +68,7 @@ pub fn impute_median(x: &mut [Vec<f64>]) {
             .filter(|row| !row[col.min(row.len() - 1)].is_nan())
             .map(|row| row[col.min(row.len() - 1)])
             .collect();
-        vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let median = if vals.is_empty() {
             0.0
         } else if vals.len().is_multiple_of(2) {
@@ -145,7 +145,7 @@ pub fn quantile_transform(x: &[Vec<f64>], _n_quantiles: usize) -> Vec<Vec<f64>> 
         .map(|col| {
             let mut vals: Vec<(usize, f64)> =
                 x.iter().enumerate().map(|(i, row)| (i, row[col])).collect();
-            vals.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+            vals.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
             let mut result = vec![0.0; n];
             for (rank, &(idx, _)) in vals.iter().enumerate() {
@@ -171,7 +171,7 @@ pub fn quantile_transform_fixed(x: &[Vec<f64>], _n_quantiles: usize) -> Vec<Vec<
     for col in 0..n_cols {
         let mut vals: Vec<(usize, f64)> =
             x.iter().enumerate().map(|(i, row)| (i, row[col])).collect();
-        vals.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        vals.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
         for (rank, &(idx, _)) in vals.iter().enumerate() {
             result[idx][col] = rank as f64 / (n - 1).max(1) as f64;
@@ -194,7 +194,7 @@ pub fn robust_scale(x: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>, Vec<f64>) {
 
     for col in 0..n_cols {
         let mut vals: Vec<f64> = x.iter().map(|row| row[col]).collect();
-        vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         let median = if n.is_multiple_of(2) {
             (vals[n / 2 - 1] + vals[n / 2]) / 2.0

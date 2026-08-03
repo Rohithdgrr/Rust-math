@@ -235,6 +235,7 @@ impl Quadtree {
         if !self.divided {
             self.subdivide();
         }
+        // Safety/invariant: subdivide() always populates all four quadrants
         self.ne.as_mut().unwrap().insert(p)
             || self.nw.as_mut().unwrap().insert(p)
             || self.se.as_mut().unwrap().insert(p)
@@ -251,6 +252,7 @@ impl Quadtree {
             }
         }
         if self.divided {
+            // Safety/invariant: subdivide() always populates all four quadrants
             self.ne.as_ref().unwrap().query(range, result);
             self.nw.as_ref().unwrap().query(range, result);
             self.se.as_ref().unwrap().query(range, result);
@@ -298,6 +300,7 @@ impl Octree {
         if !self.divided {
             self.subdivide();
         }
+        // Safety/invariant: subdivide() always populates all eight children
         for child in self.children.as_mut().unwrap().iter_mut() {
             if child.insert(p) {
                 return true;

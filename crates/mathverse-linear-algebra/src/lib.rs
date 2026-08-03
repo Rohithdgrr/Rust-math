@@ -22,3 +22,5 @@ pub mod least_squares;
 pub use decomposition::{lu_decompose, qr_decompose, cholesky, eigenvalue_2x2, power_iteration, Complex};
 pub use solve::{solve_qr, solve_2x2, solve_3x3, solve_gauss, ls_solve, residual_norm};
 pub use norm::{norm_1, norm_inf, norm_frobenius, norm_2, singular_values, condition_number, matrix_norm};
+pub use inverse::matrix_inverse;
+pub use rank::matrix_rank;
