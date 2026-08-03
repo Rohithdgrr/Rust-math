@@ -1,9 +1,13 @@
-# mathverse-symbolic
+# MathVerse Symbolic
 
 [![Crates.io](https://img.shields.io/crates/v/mathverse-symbolic.svg)](https://crates.io/crates/mathverse-symbolic)
+[![docs.rs](https://docs.rs/mathverse-symbolic/badge.svg)](https://docs.rs/mathverse-symbolic)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
 Symbolic computation with expression trees, automatic differentiation, simplification, and LaTeX rendering for the MathVerse ecosystem.
+
+---
 
 ## Features
 
@@ -25,7 +29,7 @@ Symbolic computation with expression trees, automatic differentiation, simplific
 
 ```toml
 [dependencies]
-mathverse-symbolic = { path = "../mathverse-symbolic" }
+mathverse-symbolic = "0.1"
 ```
 
 ## Quick Start
@@ -160,4 +164,4 @@ Supported rules: power, product, quotient, chain, trig, exponential, logarithmic
 
 ## License
 
-MIT OR Apache-2.0
+MIT OR Apache-2.0 — see [LICENSE](LICENSE) for details.

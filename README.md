@@ -1,92 +1,155 @@
 # MathVerse
 
-A production-grade Rust mathematical computing ecosystem: elementary arithmetic to advanced scientific computing through one consistent, modular API.
+[![Crates.io](https://img.shields.io/crates/v/mathverse-core.svg)](https://crates.io/crates/mathverse-core)
+[![docs.rs](https://docs.rs/mathverse-core/badge.svg)](https://docs.rs/mathverse-core)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
-Mission: become for Rust what NumPy, SciPy, SymPy, scikit-learn utilities, OpenCV math, CGAL, Eigen, and parts of MATLAB collectively provide for other ecosystems.
+A production-grade Rust mathematical computing ecosystem — from elementary arithmetic to advanced scientific computing through one consistent, modular API.
 
-## Objectives
+---
 
-- One unified mathematical ecosystem
-- Production-ready, high performance, safe APIs
-- Generic numeric types
-- Well documented, educational, research friendly
-- GPU ready, WASM compatible, embedded compatible
+## Overview
 
-## Core Principles
+MathVerse aspires to be for Rust what NumPy, SciPy, SymPy, scikit-learn, OpenCV math, CGAL, Eigen, and parts of MATLAB collectively provide for other ecosystems. It is:
 
-- Modular, zero-cost abstractions, generic, extensible
-- SIMD optimized, parallel execution
-- Excellent documentation, 100% tested, stable API
+- **Unified** — one workspace, one error type, one trait hierarchy, one prelude
+- **Modular** — 32 independent crates, each usable standalone
+- **Safe** — `#![forbid(unsafe_code)]` workspace-wide, `Result`-based error handling
+- **Tested** — 1,000+ unit tests, property-based tests, numerical accuracy tests
+- **Documented** — every public item has `///` doc comments with runnable examples
+
+---
 
 ## Workspace Layout
 
-| Crate | Area |
-|---|---|
-| mathverse-core | Traits, numeric abstractions, errors, constants, generic ops, precision |
-| mathverse-arithmetic | Basic ops, powers, roots, logs, rounding |
-| mathverse-algebra | Polynomials, equation solving, factorization |
-| mathverse-trigonometry | Trig, hyperbolic, inverse, angle conversions |
-| mathverse-geometry | 2D/3D shapes, area, volume, transforms, intersection |
-| mathverse-linear-algebra | Matrix, vector, tensor, sparse, eigen, LU/QR/SVD/Cholesky |
-| mathverse-matrix / mathverse-vector | Matrix & vector specializations |
-| mathverse-calculus | Derivatives, integrals, vector calculus |
-| mathverse-complex | Complex numbers |
-| mathverse-probability | Random variables, Bayes, distributions, Monte Carlo |
-| mathverse-statistics | Descriptive + inferential statistics, regression |
-| mathverse-number-theory | Primes, GCD/LCM, modular arithmetic, RSA helpers |
-| mathverse-combinatorics | Combinatorial math |
-| mathverse-graph | Graph algorithms |
-| mathverse-numerical | Root finding, Runge-Kutta, interpolation |
-| mathverse-equations | Equation solving |
-| mathverse-transforms | FFT, DCT, wavelets |
-| mathverse-signal | Filters, convolution, correlation |
-| mathverse-image | Kernels, blur, Sobel, Canny, morphology, I/O |
-| mathverse-vision | Camera matrix, homography, epipolar, features, optical flow |
-| mathverse-ai | Activations, losses, metrics, tensor ops, optimizers, attention |
-| mathverse-machine-learning | Linear, logistic, KNN, decision trees, clustering |
-| mathverse-physics | Mechanics, E&M, optics, thermo, waves, constants |
-| mathverse-finance | TVM, investment, risk, Black-Scholes, portfolio |
-| mathverse-symbolic | Expression trees, symbolic derivatives, LaTeX |
-| mathverse-units | SI/imperial, compile-time dimensional analysis |
-| mathverse-plot | SVG, HTML, terminal plotting |
-| mathverse-prelude | Re-exports of the whole ecosystem |
+| Crate | Domain | Key Capabilities |
+|-------|--------|-----------------|
+| `mathverse-core` | Foundation | Traits (`Num`, `Signed`, `Field`, `Real`), scalar ops, constants, error type |
+| `mathverse-arithmetic` | Arithmetic | Powers, roots, logs, rounding, GCD/LCM |
+| `mathverse-algebra` | Algebra | Polynomials, root finding, factorization, systems |
+| `mathverse-trigonometry` | Trigonometry | Trig, hyperbolic, inverse, angle conversions |
+| `mathverse-geometry` | Geometry | 2D/3D shapes, transforms, intersection, spatial indexing |
+| `mathverse-vector` | Vectors | Vector types and operations |
+| `mathverse-matrix` | Matrices | Dense/sparse matrices, decompositions |
+| `mathverse-linear-algebra` | Linear Algebra | Eigenvalues, SVD, QR, Cholesky, least squares |
+| `mathverse-calculus` | Calculus | Derivatives, integrals, vector calculus |
+| `mathverse-complex` | Complex | Complex number arithmetic |
+| `mathverse-special` | Special Functions | Bessel, error function, gamma, zeta |
+| `mathverse-probability` | Probability | Distributions, random variables, Bayes, Monte Carlo |
+| `mathverse-statistics` | Statistics | Descriptive/inferential stats, regression |
+| `mathverse-number-theory` | Number Theory | Primes, modular arithmetic, RSA helpers |
+| `mathverse-combinatorics` | Combinatorics | Factorials, Catalan, Stirling, partitions |
+| `mathverse-graph` | Graphs | Graph algorithms, traversal |
+| `mathverse-numerical` | Numerical Methods | Root finding, ODE solvers, interpolation, quadrature |
+| `mathverse-equations` | Equations | Equation solving |
+| `mathverse-transforms` | Transforms | FFT, DCT, wavelets |
+| `mathverse-signal` | Signal Processing | Filters, convolution, correlation |
+| `mathverse-image` | Image Processing | Kernels, edge detection, morphology |
+| `mathverse-vision` | Computer Vision | Camera models, homography, optical flow |
+| `mathverse-ai` | AI/ML Primitives | Tensors, activations, losses, optimizers, attention |
+| `mathverse-machine-learning` | Machine Learning | Linear/logistic regression, KNN, trees, clustering |
+| `mathverse-physics` | Physics | Mechanics, E&M, optics, thermodynamics, waves |
+| `mathverse-finance` | Finance | TVM, Black-Scholes, portfolio optimization |
+| `mathverse-symbolic` | Symbolic Math | Expression trees, symbolic derivatives, LaTeX |
+| `mathverse-units` | Units | SI/imperial conversion, dimensional analysis |
+| `mathverse-optimization` | Optimization | Gradient descent, genetic algorithms, constrained optimization |
+| `mathverse-graphics` | Graphics | Quaternions, meshes, transforms |
+| `mathverse-plot` | Plotting | SVG, HTML, terminal visualization |
+| `mathverse-prelude` | Prelude | Single-import re-export of the entire ecosystem |
 
-## Phases
-
-## Docs
-
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — workspace layout, dependencies, performance, testing
-- [docs/FEATURES.md](docs/FEATURES.md) — full feature inventory by crate
-- [docs/PHASEWISE-PLAN.md](docs/PHASEWISE-PLAN.md) — phase-by-phase execution plan
-- [docs/ROADMAP.md](docs/ROADMAP.md) — phases, releases, developer experience
-- [docs/API-GUIDELINES.md](docs/API-GUIDELINES.md) — API conventions, errors, docs & test standards
-- [docs/MSRV.md](docs/MSRV.md) — Minimum Supported Rust Version policy (currently Rust 1.87)
+---
 
 ## Quick Start
+
+```toml
+[dependencies]
+mathverse-core = "0.1"
+```
+
+```rust
+use mathverse_core::prelude::*;
+
+fn main() {
+    // Linear interpolation
+    let x = lerp(0.0, 100.0, 0.3);              // 30.0
+
+    // Float comparison with tolerance
+    let eq = almost_eq(0.1 + 0.2, 0.3, 1e-6);  // true
+
+    // Constants
+    let area = PI * 5.0_f64.powi(2);             // 78.5398...
+
+    // GCD and LCM
+    let g = gcd(48, 18);                         // 6
+    let l = lcm(4, 6);                           // 12
+
+    // Prime checking
+    assert!(is_prime(97));
+
+    println!("lerp(0, 100, 0.3) = {x}");
+    println!("pi x 5² = {area:.4}");
+    println!("gcd(48, 18) = {g}");
+}
+```
+
+For the full ecosystem:
+
+```toml
+[dependencies]
+mathverse-prelude = "0.1"
+```
 
 ```rust
 use mathverse_prelude::prelude::*;
 
 fn main() {
-    let x = 3.0;
-    let y = x.powi(2);
-    println!("{} squared = {}", x, y);
+    // Polynomials
+    let p = mathverse_algebra::Polynomial::new(vec![6.0, -5.0, 1.0]);
+    println!("Roots: {:?}", p.roots());
+
+    // Machine learning
+    let x_train = vec![vec![0.0], vec![1.0], vec![10.0], vec![11.0]];
+    let y_train = vec![0.0, 0.0, 1.0, 1.0];
+    let preds = mathverse_machine_learning::knn::classify(
+        &x_train, &y_train, &vec![vec![0.5], vec![10.5]], 1
+    ).unwrap();
+    println!("KNN predictions: {preds:?}");
 }
 ```
 
-## Release Roadmap
+---
 
-- **v0.1** — core, arithmetic, algebra
-- **v0.2** — geometry, trigonometry
-- **v0.3** — linear algebra
-- **v0.4** — calculus
-- **v0.5** — probability & statistics
-- **v0.6** — numerical methods & optimization
-- **v0.7** — signal processing
-- **v0.8** — image processing & computer vision
-- **v0.9** — AI/ML mathematics
-- **v1.0** — production-ready scientific computing ecosystem
+## Design Principles
 
-## Long-Term Vision (v2+)
+| Principle | Description |
+|-----------|-------------|
+| **Zero-cost abstractions** | Generic over numeric traits, monomorphized at compile time |
+| **SIMD-ready** | Hot paths designed for vectorization via `std::simd` |
+| **`no_std` compatible** | Core crates work without `std` (feature flag) |
+| **`#[forbid(unsafe_code)]`** | All safety guarantees enforced by the compiler |
+| **`#[must_use]`** | Every pure function annotated to prevent silent discard |
+| **Consistent API** | Same verbs across domains: `solve()`, `evaluate()`, `transform()` |
 
-Automatic differentiation, tensor engine, GPU acceleration (CUDA/ROCm/Metal/Vulkan), distributed computing, symbolic engine, PDE solvers, FEM, scientific simulation, robotics math, quantum computing math, educational examples, plugin architecture.
+---
+
+## MSRV
+
+The minimum supported Rust version is **1.87** (stable channel).
+
+---
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) — workspace layout, dependencies, performance strategy
+- [Feature Inventory](docs/FEATURES.md) — complete feature list by crate
+- [API Guidelines](docs/API-GUIDELINES.md) — naming, error handling, documentation standards
+- [MSRV Policy](docs/MSRV.md) — minimum supported version policy
+- [Roadmap](docs/ROADMAP.md) — release phases and milestones
+- [Contributing](CONTRIBUTING.md) — how to contribute
+
+---
+
+## License
+
+Licensed under the [MIT License](LICENSE).

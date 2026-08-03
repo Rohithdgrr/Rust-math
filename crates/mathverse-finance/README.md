@@ -1,9 +1,13 @@
-# mathverse-finance
+# MathVerse Finance
 
 [![Crates.io](https://img.shields.io/crates/v/mathverse-finance.svg)](https://crates.io/crates/mathverse-finance)
+[![docs.rs](https://docs.rs/mathverse-finance/badge.svg)](https://docs.rs/mathverse-finance)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
 Finance domain applications for MathVerse: time value of money, investment analysis, risk metrics, options pricing, and portfolio theory.
+
+---
 
 ## Features
 
@@ -27,7 +31,7 @@ Finance domain applications for MathVerse: time value of money, investment analy
 
 ```toml
 [dependencies]
-mathverse-finance = { path = "../mathverse-finance" }
+mathverse-finance = "0.1"
 ```
 
 ## Quick Start
@@ -162,4 +166,4 @@ BS call price: $10.45
 
 ## License
 
-MIT OR Apache-2.0
+MIT OR Apache-2.0 — see [LICENSE](LICENSE) for details.

@@ -1,9 +1,13 @@
-# mathverse-graphics
+# MathVerse Graphics
 
 [![Crates.io](https://img.shields.io/crates/v/mathverse-graphics.svg)](https://crates.io/crates/mathverse-graphics)
+[![docs.rs](https://docs.rs/mathverse-graphics/badge.svg)](https://docs.rs/mathverse-graphics)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
 2D/3D graphics math: affine transforms, quaternions, camera matrices, and projection for the MathVerse ecosystem.
+
+---
 
 ## Features
 
@@ -23,7 +27,7 @@
 
 ```toml
 [dependencies]
-mathverse-graphics = { path = "../mathverse-graphics" }
+mathverse-graphics = "0.1"
 ```
 
 ## Quick Start
@@ -104,4 +108,4 @@ Projection matrix created (4×4)
 
 ## License
 
-MIT OR Apache-2.0
+MIT OR Apache-2.0 — see [LICENSE](LICENSE) for details.

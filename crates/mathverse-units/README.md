@@ -1,9 +1,13 @@
-# mathverse-units
+# MathVerse Units
 
 [![Crates.io](https://img.shields.io/crates/v/mathverse-units.svg)](https://crates.io/crates/mathverse-units)
+[![docs.rs](https://docs.rs/mathverse-units/badge.svg)](https://docs.rs/mathverse-units)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
 Compile-time dimensional analysis and unit conversion for the MathVerse ecosystem.
+
+---
 
 ## Features
 
@@ -28,7 +32,7 @@ Compile-time dimensional analysis and unit conversion for the MathVerse ecosyste
 
 ```toml
 [dependencies]
-mathverse-units = { path = "../mathverse-units" }
+mathverse-units = "0.1"
 ```
 
 ## Quick Start
@@ -208,4 +212,4 @@ pub struct Quantity<D: Dimension, U: SiUnit> {
 
 ## License
 
-MIT OR Apache-2.0
+MIT OR Apache-2.0 — see [LICENSE](LICENSE) for details.

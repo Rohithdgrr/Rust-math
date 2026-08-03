@@ -74,7 +74,9 @@ Execution plan: phases in dependency order, each with scope, deliverables, and a
 - `mathverse-equations`
 - `mathverse-number-theory`, `mathverse-combinatorics`, `mathverse-graph`
 
-**Acceptance:** root finders converge on benchmark functions; optimizers reach known minima; convergence criteria configurable. — ✅ complete (all tests + clippy green)
+**Acceptance:** root finders converge on benchmark functions; optimizers reach known minima; convergence criteria configurable.
+
+**Status:** Complete. All tests and clippy green.
 
 ## Phase 7 — Signal Processing (v0.7)
 
@@ -84,7 +86,9 @@ Execution plan: phases in dependency order, each with scope, deliverables, and a
 - `mathverse-transforms`: FFT, DCT, wavelets
 - `mathverse-signal`: FIR/IIR, convolution, correlation
 
-**Acceptance:** FFT round-trip (inverse ≈ identity) within tolerance; filter frequency responses verified. — ✅ complete (all tests + clippy green)
+**Acceptance:** FFT round-trip (inverse approx identity) within tolerance; filter frequency responses verified.
+
+**Status:** Complete. All tests and clippy green.
 
 ## Phase 8 — Image & Vision (v0.8)
 
@@ -95,7 +99,9 @@ Execution plan: phases in dependency order, each with scope, deliverables, and a
 - `mathverse-vision`: camera matrix, homography, epipolar, features, optical flow
 - `mathverse-graphics`: 2D/3D graphics math
 
-**Acceptance:** reference-image tests; homography round-trip on synthetic point sets. — ✅ complete (all tests + clippy green)
+**Acceptance:** reference-image tests; homography round-trip on synthetic point sets.
+
+**Status:** Complete. All tests and clippy green.
 
 ## Phase 9 — AI/ML (v0.9)
 

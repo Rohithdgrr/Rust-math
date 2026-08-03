@@ -31,7 +31,7 @@ Rust 1.87 was chosen because it is the first release to expose the APIs and
 const-eval capabilities the workspace relies on:
 
 - `f64::round_ties_even` (stabilized 1.80)
-- const-generic array length expressions in generic contexts (incremental,
+- Const-generic array length expressions in generic contexts (incremental,
   fully available by 1.87-era compilers)
 - `Option::is_some_and` / `Option::is_none_or` (1.70 / 1.82)
 

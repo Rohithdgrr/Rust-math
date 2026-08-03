@@ -1,48 +1,23 @@
-# mathverse-optimization
+# MathVerse Optimization
 
-A production-grade Rust library for numerical optimization: gradient-based methods (GD, SGD, Adam, RMSProp, Adagrad, Nadam), quasi-Newton (BFGS), constrained optimization (Lagrangian, penalty, augmented Lagrangian), convex analysis, linear programming (simplex), and combinatorial search (simulated annealing, genetic algorithms, particle swarm).
+[![Crates.io](https://img.shields.io/crates/v/mathverse-optimization.svg)](https://crates.io/crates/mathverse-optimization)
+[![docs.rs](https://docs.rs/mathverse-optimization/badge.svg)](https://docs.rs/mathverse-optimization)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
+
+A production-grade Rust library for numerical optimization: gradient-based methods, quasi-Newton, constrained optimization, convex analysis, linear programming, and combinatorial search.
+
+---
 
 ## Features
 
-- **Gradient-Based Optimizers**
-  - Gradient Descent with configurable learning rate
-  - SGD with momentum
-  - Adam with bias correction
-  - RMSProp with exponential decay
-  - Adagrad with adaptive per-parameter learning rates
-  - Nadam (Nesterov + Adam)
-
-- **Second-Order Methods**
-  - Newton's method with Hessian inversion (Gaussian elimination)
-  - BFGS quasi-Newton with inverse Hessian approximation
-  - Conjugate Gradient for symmetric positive-definite systems
-
-- **Constrained Optimization**
-  - Lagrangian multiplier method (numerical gradients)
-  - Penalty method with increasing penalty parameter
-  - Augmented Lagrangian method
-  - Projected gradient descent with box constraints
-
-- **Convex Analysis**
-  - 1D convexity testing
-  - Convex hull (1D), convex combinations
-  - Simplex projection (probability simplex)
-  - Box constraint projection
-
-- **Linear Programming**
-  - Simplex algorithm (tableau form) for standard LP
-
-- **Combinatorial / Global Optimization**
-  - Simulated Annealing with geometric cooling
-  - Genetic Algorithm with elitist selection
-  - Particle Swarm Optimization (PSO)
-
-- **Line Search Methods**
-  - Backtracking (Armijo condition)
-  - Wolfe line search (strong Wolfe conditions)
-  - Armijo rule
-  - Golden section search (derivative-free)
-  - Fibonacci search
+- **Gradient-Based Optimizers** — Gradient Descent, SGD, Adam, RMSProp, Adagrad, Nadam
+- **Second-Order Methods** — Newton's method, BFGS, Conjugate Gradient
+- **Constrained Optimization** — Lagrangian, penalty, augmented Lagrangian, projected gradient
+- **Convex Analysis** — convexity testing, convex hull, simplex projection
+- **Linear Programming** — Simplex algorithm (tableau form) for standard LP
+- **Combinatorial / Global Optimization** — Simulated Annealing, Genetic Algorithm, Particle Swarm
+- **Line Search Methods** — Backtracking, Wolfe, Armijo, Golden section, Fibonacci
 
 ## Module Overview
 
@@ -216,21 +191,9 @@ A production-grade Rust library for numerical optimization: gradient-based metho
 
 ## Installation
 
-### Via Cargo (local workspace)
-
 ```toml
 [dependencies]
-mathverse-optimization = { path = "../mathverse-optimization" }
-mathverse-core = { path = "../mathverse-core" }
-mathverse-probability = { path = "../mathverse-probability" }
-```
-
-### From source
-
-```bash
-git clone <repository-url>
-cd rust-math
-cargo build --release -p mathverse-optimization
+mathverse-optimization = "0.1"
 ```
 
 ## Quick Start
@@ -689,7 +652,7 @@ Golden section:  x = 3.000000
 
 **Use cases:** Inner loop of optimization algorithms, step size tuning, derivative-free optimization.
 
-## Future Scope / Roadmap
+## Future Scope
 
 - [ ] **L-BFGS** — limited-memory BFGS for large-scale problems
 - [ ] **Trust-region methods** — Newton with trust region constraint
@@ -702,9 +665,4 @@ Golden section:  x = 3.000000
 
 ## License
 
-Licensed under either of:
-
-- MIT License ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or https://www.apache.org/licenses/LICENSE-2.0)
-
-at your option.
+MIT OR Apache-2.0 — see [LICENSE](LICENSE) for details.

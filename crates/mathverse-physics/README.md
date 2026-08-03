@@ -1,9 +1,13 @@
-# mathverse-physics
+# MathVerse Physics
 
 [![Crates.io](https://img.shields.io/crates/v/mathverse-physics.svg)](https://crates.io/crates/mathverse-physics)
+[![docs.rs](https://docs.rs/mathverse-physics/badge.svg)](https://docs.rs/mathverse-physics)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
 Physics domain applications for MathVerse: mechanics, thermodynamics, electromagnetism, waves, and fundamental constants.
+
+---
 
 ## Features
 
@@ -27,7 +31,7 @@ Physics domain applications for MathVerse: mechanics, thermodynamics, electromag
 
 ```toml
 [dependencies]
-mathverse-physics = { path = "../mathverse-physics" }
+mathverse-physics = "0.1"
 ```
 
 ## Quick Start
@@ -194,4 +198,4 @@ Speed of sound: 343.0 m/s
 
 ## License
 
-MIT OR Apache-2.0
+MIT OR Apache-2.0 — see [LICENSE](LICENSE) for details.

@@ -9,7 +9,7 @@ Traits, numeric abstractions, error handling, constants, generic operations, pre
 ## Phase 2 — Basic Mathematics
 
 | Crate | Scope |
-|---|---|
+|-------|-------|
 | mathverse-arithmetic | Addition, subtraction, multiplication, division, modulus, powers, roots, absolute, percentage, logarithms, exponentials, rounding, precision |
 | mathverse-algebra | Polynomials, equation solving, factorization, simplification, rational expressions, linear/quadratic/cubic equations |
 | mathverse-trigonometry | Sin/cos/tan/cot/sec/cosec, hyperbolic, inverse functions, angle conversions |
@@ -98,7 +98,7 @@ Plot, scatter, histogram, heatmap, SVG, HTML, terminal charts.
 ## Release Sequence
 
 | Version | Content |
-|---|---|
+|---------|---------|
 | v0.1 | Phases 1–2 (core, arithmetic, algebra) |
 | v0.2 | Geometry, trigonometry |
 | v0.3 | Linear algebra |

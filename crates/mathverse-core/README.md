@@ -1,9 +1,11 @@
 # MathVerse Core
 
-**Shared substrate for the MathVerse ecosystem — traits, scalar operations, precision, constants, and algorithms.**
+[![Crates.io](https://img.shields.io/crates/v/mathverse-core.svg)](https://crates.io/crates/mathverse-core)
+[![docs.rs](https://docs.rs/mathverse-core/badge.svg)](https://docs.rs/mathverse-core)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
-[![Rust](https://img.shields.io/badge/Rust-2021-EA5727?style=flat-square&logo=rust)](https://www.rust-lang.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+Shared substrate for the MathVerse ecosystem — traits, scalar operations, precision, constants, and algorithms.
 
 ---
 
@@ -27,8 +29,8 @@
 
 ## Module Overview
 
-| Module | What it does |
-|--------|-------------|
+| Module | Purpose |
+|--------|---------|
 | `traits` | Core numeric trait hierarchy (`Num -> Signed -> Field -> Real`) |
 | `ops` | Scalar math operations: lerp, smoothstep, hypot, nth_root, wrap, trig |
 | `precision` | Float comparison: `almost_eq`, ULP, significant figures, safe division |
@@ -71,13 +73,13 @@ All traits are implemented for `f32` and `f64` via blanket impls, so generic cod
 
 ```toml
 [dependencies]
-mathverse-core = { path = "../mathverse-core" }
+mathverse-core = "0.1"
 ```
 
 For `no_std` environments, disable the `std` feature:
 
 ```toml
-mathverse-core = { path = "../mathverse-core", default-features = false }
+mathverse-core = { version = "0.1", default-features = false }
 ```
 
 ---
@@ -143,12 +145,6 @@ assert_eq!(err.to_string(), "division by zero");
 // Convert to String:
 let s: String = MathError::Overflow.into();
 ```
-
----
-
-## MSRV
-
-The minimum supported Rust version is **1.87**.
 
 ---
 

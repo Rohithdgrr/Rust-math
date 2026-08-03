@@ -1,32 +1,28 @@
-# mathverse-numerical
+# MathVerse Numerical
 
-> Comprehensive numerical methods library for Rust — root finding, ODE integration, interpolation, optimization, numerical linear algebra, and eigenvalue solvers.
+[![Crates.io](https://img.shields.io/crates/v/mathverse-numerical.svg)](https://crates.io/crates/mathverse-numerical)
+[![docs.rs](https://docs.rs/mathverse-numerical/badge.svg)](https://docs.rs/mathverse-numerical)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
-```
-mathverse-numerical
-├── root          Root finding (Newton, Brent, Halley, Secant, ...)
-├── ode           ODE integrators (RKF45, Dormand-Prince, Adams-Bashforth, ...)
-├── interpolation Spline, Hermite, Barycentric, RBF, Chebyshev, ...
-├── optimization  Gradient descent, BFGS, SA, GA, Nelder-Mead, PSO
-├── integration   Gaussian, Romberg, Simpson, Monte Carlo, ...
-├── linear_solvers Jacobi, Gauss-Seidel, SOR, CG, GMRES, BiCGSTAB
-└── eigenvalue    Power method, QR, Lanczos, Jacobi eigenvalue, ...
-```
+Comprehensive numerical methods library for Rust — root finding, ODE integration, interpolation, optimization, numerical linear algebra, and eigenvalue solvers.
+
+---
 
 ## Features
 
-- **Root finding**: Bisection, Newton-Raphson, Secant, False Position, Brent, Muller, Illinois, Steffensen, Halley, Householder, Fixed Point, Aitken delta-squared
-- **ODE integration**: RK4, RKF45 (adaptive), Dormand-Prince (adaptive), Adams-Bashforth (multistep), Backward Euler (implicit/stiff), Crank-Nicolson (implicit)
-- **Interpolation**: Cubic spline, Hermite, Barycentric, RBF (multiquadric), Multilinear, Chebyshev, Nearest neighbor
-- **Optimization**: Gradient descent (+ momentum), BFGS, Simulated annealing, Genetic algorithm, Nelder-Mead, Particle swarm
-- **Integration**: Gaussian-Legendre, Romberg, Adaptive Simpson, Monte Carlo, Simpson, Midpoint, Boole, Clenshaw-Curtis, Double exponential
-- **Linear solvers**: Jacobi, Gauss-Seidel, SOR, Conjugate Gradient, Preconditioned CG, GMRES, BiCGSTAB, ILU preconditioner
-- **Eigenvalue methods**: Power method, Inverse power method, Rayleigh quotient iteration, QR algorithm, Lanczos, Subspace iteration, Jacobi eigenvalue
+- **Root finding** — 12 methods: Bisection, Newton-Raphson, Secant, Brent, Halley, Muller, and more
+- **ODE integration** — 6 solvers: RK4, RKF45 (adaptive), Dormand-Prince, Adams-Bashforth, Backward Euler, Crank-Nicolson
+- **Interpolation** — 7 methods: Cubic spline, Hermite, Barycentric, RBF, Multilinear, Chebyshev, Nearest neighbor
+- **Optimization** — 6 methods: Gradient descent, BFGS, Simulated annealing, Genetic algorithm, Nelder-Mead, Particle swarm
+- **Integration** — 9 quadrature methods: Gaussian-Legendre, Romberg, Adaptive Simpson, Monte Carlo, and more
+- **Linear solvers** — 8 iterative solvers: Jacobi, Gauss-Seidel, SOR, Conjugate Gradient, GMRES, BiCGSTAB
+- **Eigenvalue methods** — 7 solvers: Power method, QR algorithm, Lanczos, Jacobi eigenvalue, and more
 
 ## Module Overview
 
-| Module | Description | Key Types |
-|--------|-------------|-----------|
+| Module | Purpose | Key Types |
+|--------|---------|-----------|
 | `root` | Derivative-free and derivative-based root finders | `secant`, `brent`, `halley`, `muller` |
 | `ode` | Adaptive and multistep ODE integrators | `RKF45`, `DormandPrince`, `AdamsBashforth` |
 | `interpolation` | 1D and multi-dimensional interpolation | `CubicSpline`, `BarycentricInterpolation`, `RBFInterpolation` |
@@ -85,23 +81,6 @@ fn main() {
   Converged to √2 ≈ 1.4142135623730951
 ```
 
-### Bisection Method Steps
-
-```
-  f(x) = x² - 2,  bracket [0, 2]
-
-  Step   a        b        m        f(m)
-  ──────────────────────────────────────
-   1    0.0000   2.0000   1.0000  -1.0000
-   2    1.0000   2.0000   1.5000   0.2500
-   3    1.0000   1.5000   1.2500  -0.4375
-   4    1.2500   1.5000   1.3750  -0.1094
-   5    1.3750   1.5000   1.4375   0.0664
-   ...
-   40   1.4142   1.4143   1.4142   0.0000
-  ──────────────────────────────────────
-```
-
 ### Available Methods
 
 | Method | Signature | Requires Derivative | Convergence |
@@ -133,26 +112,9 @@ let root = brent(&|x| x.cos() - x, 0.0, 1.0, 1e-12, 100).unwrap();
 let root = secant(&|x| x.ln() - 1.0, 2.0, 3.0, 1e-10, 100).unwrap();
 ```
 
-### Use Cases
-
-- Equation solving in scientific computing
-- Finding equilibrium points in physical systems
-- Inverting nonlinear models
-
 ---
 
 ## Module: `ode` — Ordinary Differential Equations
-
-### Adaptive Step Control (RKF45)
-
-```
-  Error = ||y_4th - y_5th|| / (abs_tol + rel_tol * |y_5th|)
-
-  If error ≤ 1.0:  Accept step, adjust h ↑
-  If error > 1.0:  Reject step, adjust h ↓
-
-  h_new = 0.9 * h * (1/error)^0.2
-```
 
 ### Available Integrators
 
@@ -178,19 +140,7 @@ let final_y = sol.last().unwrap().1; // ≈ e^(-4) ≈ 0.0183
 let rkf = RKF45::new(1e-8, 1.0, 1e-10, 1e-10);
 let f = |_: f64, y: &[f64]| vec![-50.0 * y[0]];
 let result = rkf.integrate(&f, 0.0, &[1.0], 1.0).unwrap();
-
-// Backward Euler for stiff: dy/dt = -1000y
-let be = BackwardEuler::new(100, 1e-10);
-let f = |_: f64, y: &[f64]| vec![-1000.0 * y[0]];
-let jac = |_: f64, _: &[f64]| vec![vec![-1000.0]];
-let result = be.integrate(&f, &jac, 0.0, &[1.0], 1.0, 200).unwrap();
 ```
-
-### Use Cases
-
-- Simulating dynamical systems (physics, biology)
-- Circuit simulation (stiff ODEs)
-- Chemical kinetics
 
 ---
 
@@ -218,21 +168,7 @@ let xs = vec![0.0, 1.0, 2.0, 3.0];
 let ys = vec![0.0, 1.0, 4.0, 9.0];
 let spline = CubicSpline::new(xs, ys).unwrap();
 println!("S(1.5) = {}", spline.evaluate(1.5)); // ≈ 2.25
-println!("S'(1.5) = {}", spline.derivative(1.5)); // ≈ 3.0
-
-// Barycentric — numerically stable polynomial interpolation
-let bary = BarycentricInterpolation::new(
-    vec![0.0, 1.0, 2.0, 3.0],
-    vec![0.0, 1.0, 4.0, 9.0],
-).unwrap();
-println!("P(1.5) = {}", bary.evaluate(1.5)); // 2.25
 ```
-
-### Use Cases
-
-- Curve fitting in CAD/graphics
-- Resampling time series data
-- Surface reconstruction from point clouds
 
 ---
 
@@ -260,20 +196,7 @@ let f = |x: &[f64]| x[0].powi(2) + x[1].powi(2);
 let grad = |x: &[f64]| vec![2.0 * x[0], 2.0 * x[1]];
 let (x, fval, _) = bfgs.minimize(&f, &grad, &[3.0, 4.0]).unwrap();
 // x ≈ [0.0, 0.0], fval ≈ 0.0
-
-// Simulated annealing — minimize Rastrigin function (many local minima)
-let sa = SimulatedAnnealing::new(100.0, 0.95, 0.01, 5000);
-let f = |x: &[f64]| (x[0] - 1.0).powi(2) + (x[1] - 2.0).powi(2);
-let bounds = [(-5.0, 5.0), (-5.0, 5.0)];
-let mut rng = rand::thread_rng();
-let (x, fval) = sa.minimize(&f, &[0.0, 0.0], &bounds, &mut rng);
 ```
-
-### Use Cases
-
-- Machine learning model training
-- Engineering design optimization
-- Portfolio optimization in finance
 
 ---
 
@@ -289,16 +212,12 @@ let (x, fval) = sa.minimize(&f, &[0.0, 0.0], &bounds, &mut rng);
 | `GaussianQuadrature` | Degree 2n-1 | No | 2D |
 | `RombergIntegration` | High | Yes | No |
 | `AdaptiveSimpson` | — | Yes | No |
-| `ClenshawCurtis` | — | No | No |
-| `DoubleExponential` | — | No | No |
 | `MonteCarloIntegration` | — | No | 2D |
 
 ### Usage
 
 ```rust
-use mathverse_numerical::{
-    GaussianQuadrature, RombergIntegration, AdaptiveSimpson, MonteCarloIntegration
-};
+use mathverse_numerical::{GaussianQuadrature, RombergIntegration, MonteCarloIntegration};
 
 // Gaussian quadrature (exact for degree ≤ 2n-1 polynomials)
 let area = GaussianQuadrature::integrate(&|x| x.powi(4), 0.0, 1.0, 5);
@@ -307,19 +226,7 @@ let area = GaussianQuadrature::integrate(&|x| x.powi(4), 0.0, 1.0, 5);
 // Romberg integration (Richardson extrapolation)
 let area = RombergIntegration::integrate(&|x| x.sin(), 0.0, std::f64::consts::PI, 10);
 // ≈ 2.0
-
-// Adaptive Simpson
-let area = AdaptiveSimpson::integrate(&|x| (-x * x).exp(), -10.0, 10.0, 1e-10, 30);
-
-// Monte Carlo with error estimate
-let (area, err) = MonteCarloIntegration::integrate(&|x| x * x, 0.0, 1.0, 100_000);
 ```
-
-### Use Cases
-
-- Computing areas, volumes, and moments
-- Probabilistic integration of high-dimensional integrals
-- Physics simulations (path integrals)
 
 ---
 
@@ -350,16 +257,7 @@ let b = vec![1.0, 2.0];
 let cg = ConjugateGradient::new(100, 1e-10);
 let x = cg.solve(&a, &b, None).unwrap();
 // x ≈ [0.142857, 0.619048]
-
-let gmres = GMRES::new(100, 1e-10, 50);
-let x = gmres.solve(&a, &b, None).unwrap();
 ```
-
-### Use Cases
-
-- Finite element method (FEM) systems
-- Computational fluid dynamics (CFD)
-- Large sparse systems from PDE discretization
 
 ---
 
@@ -387,49 +285,10 @@ let a = vec![vec![2.0, 1.0], vec![1.0, 2.0]];
 let pm = PowerMethod::new(1000, 1e-10);
 let (lambda, v) = pm.compute(&a, None).unwrap();
 // lambda ≈ 3.0
-
-// QR algorithm — all eigenvalues
-let qr = QRAlgorithm::new(1000, 1e-10);
-let eigenvalues = qr.compute(&a).unwrap();
-// eigenvalues ≈ [1.0, 3.0]
-
-// Jacobi — for symmetric matrices
-let jacobi = JacobiEigenvalue::new(1000, 1e-10);
-let eigenvalues = jacobi.compute(&a).unwrap();
-// eigenvalues ≈ [1.0, 3.0]
 ```
-
-### Use Cases
-
-- Principal component analysis (PCA)
-- Vibrational analysis in structural mechanics
-- Quantum mechanics (energy eigenvalues)
 
 ---
 
-## Feature Comparison with Other Crates
-
-| Feature | mathverse-numerical | ndarray | nalgebra |
-|---------|:-------------------:|:-------:|:--------:|
-| Root finding | ✅ 12 methods | ❌ | ❌ |
-| ODE integration | ✅ 6 solvers | ❌ | ❌ |
-| Interpolation | ✅ 7 methods | ❌ | ❌ |
-| Optimization | ✅ 6 methods | ❌ | ❌ |
-| Integration | ✅ 9 methods | ❌ | ❌ |
-| Linear solvers | ✅ 8 methods | Partial | Partial |
-| Eigenvalue | ✅ 7 methods | ❌ | Partial |
-
-## Future Scope
-
-- [ ] Boundary value problem (BVP) solvers
-- [ ] PDE solvers (FDM, FEM, FVM)
-- [ ] Automatic differentiation
-- [ ] Interval arithmetic
-- [ ] Sparse matrix support with explicit CSR/CSC formats
-- [ ] GPU acceleration for large-scale problems
-- [ ] Parallel ODE solvers for coupled systems
-- [ ] More optimization: L-BFGS-B, trust-region methods
-
 ## License
 
-MIT OR Apache-2.0
+MIT OR Apache-2.0 — see [LICENSE](LICENSE).

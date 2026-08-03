@@ -11,7 +11,7 @@ This guide addresses the primary remaining architectural issue: algorithm duplic
 
 ---
 
-## 🎯 Consolidation Targets
+## Consolidation Targets
 
 ### Target 1: Root Finding & ODE Solvers
 
@@ -38,11 +38,11 @@ Create a comparison matrix:
 
 | Algorithm | mathverse-calculus | mathverse-numerical | mathverse-equations | Keep In |
 |-----------|-------------------|---------------------|---------------------|---------|
-| Newton-Raphson | ✓ | ✓ | ✓ | numerical |
-| Bisection | ✓ | ✓ | - | numerical |
-| Secant | - | ✓ | ✓ | numerical |
-| RK4 (ODE) | ✓ | ✓ | - | numerical |
-| Euler (ODE) | ✓ | ✓ | - | numerical |
+| Newton-Raphson | YES | YES | YES | numerical |
+| Bisection | YES | YES | - | numerical |
+| Secant | - | YES | YES | numerical |
+| RK4 (ODE) | YES | YES | - | numerical |
+| Euler (ODE) | YES | YES | - | numerical |
 | etc. | ... | ... | ... | ... |
 
 #### Step 2: Enhance mathverse-numerical
@@ -157,7 +157,7 @@ pub use mathverse_numerical::root_finding::{
 /// ```
 /// use mathverse_calculus::root_finding::find_critical_point;
 ///
-/// let f = |x: f64| x.powi(3) - 3.0 * x;  // Has critical points at x = ±1
+/// let f = |x: f64| x.powi(3) - 3.0 * x;  // Has critical points at x = +/-1
 /// let critical = find_critical_point(f, 0.5, 1e-10, 100).unwrap();
 /// assert!((critical - 1.0).abs() < 1e-8);
 /// ```
@@ -340,7 +340,7 @@ use mathverse_transforms::fft::{fft, ifft};
 pub fn power_spectrum(signal: &[f64]) -> Vec<f64> {
     let spectrum = fft(signal);
     
-    // Compute one-sided power spectrum: |X[k]|² for k = 0..N/2
+    // Compute one-sided power spectrum: |X[k]|^2 for k = 0..N/2
     let n = signal.len();
     let nyquist = n / 2 + 1;
     
@@ -379,7 +379,7 @@ Remove any internal FFT implementation from `mathverse-signal/src/` if one exist
 
 ---
 
-## 📋 Consolidation Checklist
+## Consolidation Checklist
 
 Use this checklist to track consolidation progress:
 
@@ -410,12 +410,12 @@ Use this checklist to track consolidation progress:
 - [ ] Refactor spectrum.rs to use transforms::fft
 - [ ] Remove any internal FFT code
 - [ ] Add tests for spectral analysis
-- [ ] Document the layering (transforms → signal)
+- [ ] Document the layering (transforms -> signal)
 - [ ] Update CHANGELOG
 
 ---
 
-## 🧪 Testing Strategy
+## Testing Strategy
 
 After each consolidation, run this full test suite:
 
@@ -464,7 +464,7 @@ fn test_root_finding_unchanged() {
 
 ---
 
-## 📅 Phased Rollout
+## Phased Rollout
 
 ### Phase 1: Week 1-2 (Preparation)
 - [ ] Create feature branch: `consolidation/root-finding`
@@ -496,32 +496,32 @@ fn test_root_finding_unchanged() {
 
 ---
 
-## 🏗️ Architecture Diagram (Post-Consolidation)
+## Architecture Diagram (Post-Consolidation)
 
 ```
-                    ┌─────────────────────┐
-                    │  mathverse-core     │
-                    │  (numeric traits,   │
-                    │   errors, precision)│
-                    └──────────┬──────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-    ┌─────────▼────────┐ ┌────▼─────────┐ ┌───▼──────────┐
-    │ mathverse-       │ │ mathverse-   │ │ mathverse-   │
-    │ numerical        │ │ transforms   │ │ optimization │
-    │ (CANONICAL for   │ │ (CANONICAL   │ │ (CANONICAL   │
-    │  root finding,   │ │  for FFT,    │ │  for gradient│
-    │  ODE, interp.)   │ │  DCT, etc.)  │ │  methods, LP)│
-    └────────┬─────────┘ └──────┬───────┘ └──────────────┘
-             │                  │
-    ┌────────▼─────────┐  ┌────▼──────────┐
-    │ mathverse-       │  │ mathverse-    │
-    │ calculus         │  │ signal        │
-    │ (re-exports +    │  │ (builds on    │
-    │  calculus-       │  │  transforms)  │
-    │  specific utils) │  │               │
-    └──────────────────┘  └───────────────┘
+                    +---------------------+
+                    |  mathverse-core     |
+                    |  (numeric traits,   |
+                    |   errors, precision)|
+                    +----------+----------+
+                               |
+              +----------------+----------------+
+              |                |                |
+    +---------v--------+ +----v---------+ +---v----------+
+    | mathverse-       | | mathverse-   | | mathverse-   |
+    | numerical        | | transforms   | | optimization |
+    | (CANONICAL for   | | (CANONICAL   | | (CANONICAL   |
+    |  root finding,   | |  for FFT,    | |  for gradient|
+    |  ODE, interp.)   | |  DCT, etc.)  | |  methods, LP)|
+    +--------+---------+ +------+-------+ +--------------+
+             |                  |
+    +--------v---------+  +----v----------+
+    | mathverse-       |  | mathverse-    |
+    | calculus         |  | signal        |
+    | (re-exports +    |  | (builds on    |
+    |  calculus-       |  |  transforms)  |
+    |  specific utils) |  |               |
+    +------------------+  +---------------+
 ```
 
 **Key Principles:**
@@ -532,24 +532,24 @@ fn test_root_finding_unchanged() {
 
 ---
 
-## ✅ Success Criteria
+## Success Criteria
 
 Consolidation is complete when:
 
-1. ✅ `cargo check --workspace` passes
-2. ✅ `cargo test --workspace` passes with no regressions
-3. ✅ `cargo clippy --workspace -- -D warnings` passes
-4. ✅ Every algorithm has exactly one implementation (canonical)
-5. ✅ All re-exports are documented with `/// See [canonical location]`
-6. ✅ Migration guide exists for breaking changes
-7. ✅ CHANGELOG updated for all affected crates
-8. ✅ No user-visible behavioral changes (pure refactor)
-9. ✅ CI passes on all targets
-10. ✅ Documentation builds with no warnings and cross-references work
+1. `cargo check --workspace` passes
+2. `cargo test --workspace` passes with no regressions
+3. `cargo clippy --workspace -- -D warnings` passes
+4. Every algorithm has exactly one implementation (canonical)
+5. All re-exports are documented with `/// See [canonical location]`
+6. Migration guide exists for breaking changes
+7. CHANGELOG updated for all affected crates
+8. No user-visible behavioral changes (pure refactor)
+9. CI passes on all targets
+10. Documentation builds with no warnings and cross-references work
 
 ---
 
-## 🆘 Rollback Plan
+## Rollback Plan
 
 If consolidation introduces issues:
 
@@ -560,7 +560,7 @@ If consolidation introduces issues:
 
 ---
 
-## 📞 Questions?
+## Questions
 
 Common questions and answers:
 
@@ -578,4 +578,4 @@ A: At least one minor version (e.g., deprecate in 0.2.0, remove in 0.3.0).
 
 ---
 
-**Ready to start?** Begin with Phase 1 (audit) and work through the checklist systematically. Good luck! 🚀
+**Ready to start?** Begin with Phase 1 (audit) and work through the checklist systematically.

@@ -1,9 +1,11 @@
 # MathVerse Arithmetic
 
-**Percentage, powers, roots, scientific notation, complex numbers, and beyond — a complete numeric toolbox built on `mathverse-core`.**
+[![Crates.io](https://img.shields.io/crates/v/mathverse-arithmetic.svg)](https://crates.io/crates/mathverse-arithmetic)
+[![docs.rs](https://docs.rs/mathverse-arithmetic/badge.svg)](https://docs.rs/mathverse-arithmetic)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
-[![Rust](https://img.shields.io/badge/Rust-2021-EA5727?style=flat-square&logo=rust)](https://www.rust-lang.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+Percentage, powers, roots, scientific notation, complex numbers, and beyond — a complete numeric toolbox built on `mathverse-core`.
 
 ---
 
@@ -23,6 +25,8 @@
 - **Number theory** — modular exponentiation, primality, totient, partitions
 - **Rounding** — floor/ceil/trunc/nearest, banker's, fixed decimal, engineering
 - **Comparison** — total ordering, clamp, sort helpers, epsilon-based fuzzy compare
+- **Finance** — future value, present value, annuities, perpetuities, Rule of 72
+- **Checked/saturating ops** — overflow-safe arithmetic, approximate equality, remapping
 
 ---
 
@@ -46,6 +50,8 @@
 | `special_functions` | `gamma`, `beta`, `erf`, `erfc`, `bessel_j0`, `bessel_j1`, `zeta`, `lambert_w` |
 | `numerical` | Integration, differentiation, root-finding (bisection, Newton), golden-section optimization |
 | `sequence` | Fibonacci, Lucas, prime gaps, harmonic, sum, product, memoized sequences |
+| `finance` | `future_value`, `present_value`, `annuity_future_value`, `rule_of_72`, `continuous_compound` |
+| `checked_ops` | `checked_add`, `saturating_mul`, `approx_eq`, `inverse_lerp`, `remap` |
 
 ---
 
@@ -85,13 +91,13 @@
 
 ```toml
 [dependencies]
-mathverse-arithmetic = { path = "../mathverse-arithmetic" }
+mathverse-arithmetic = "0.1"
 ```
 
 For `no_std` environments:
 
 ```toml
-mathverse-arithmetic = { path = "../mathverse-arithmetic", default-features = false }
+mathverse-arithmetic = { version = "0.1", default-features = false }
 ```
 
 ---
@@ -144,19 +150,6 @@ fn main() {
 }
 ```
 
-**Output:**
-```
-Discounted: 170
-3³ = 27
-∛27 = 3
-123456 in sci: 1.23456e5
-z1 + z2 = 4+1i
-z1 × z2 = 5+1i
-1/3 + 1/6 = 1/2
-Γ(5) = 24
-∫₀¹ x² dx ≈ 0.33333299999999996
-```
-
 ---
 
 ## Module Reference
@@ -200,20 +193,6 @@ let tax = increase_by_percent(89.99, 8.25);
 
 ---
 
-### `scientific` — Scientific Notation
-
-```rust
-let s = ScientificNotation::from_f64(0.00042);
-// 4.2 × 10⁻⁴
-
-let engineering = s.engineering_notation();
-// 420.0 × 10⁻⁶
-
-let back = s.to_f64(); // 0.00042
-```
-
----
-
 ### `complex` — Complex Numbers
 
 ```rust
@@ -235,8 +214,6 @@ z.ln()               // 1.609... + 0.927...i
 z.sin()              // 3.853... + (-27.016...)i
 ```
 
-**Supported operations:** `+`, `-`, `*`, `/`, `==`, `!=`, `abs`, `phase`, `conjugate`, `norm_squared`, `pow`, `sqrt`, `exp`, `ln`, `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`, `asinh`, `from_polar`, `to_polar`.
-
 ---
 
 ### `rational` — Exact Fraction Arithmetic
@@ -256,36 +233,6 @@ The `Rational` type automatically reduces via GCD at each operation.
 
 ---
 
-### `continued_fraction` — Continued Fractions
-
-```
-Simple:     [a₀; a₁, a₂, a₃, …]
-
-            a₀ + ─────────────
-                  a₁ + ────────
-                       a₂ + ───
-                            a₃
-
-General:    b₀ + a₁/(b₁ + a₂/(b₂ + …))
-```
-
-| Function | Description |
-|----------|-------------|
-| `from_f64(x, terms)` | Approximate `x` with n terms |
-| `convergents()` | All convergent fractions |
-| `value_at(index)` | Partial evaluation at index |
-| `euler_number(terms)` | e via generalized CF |
-| `pi(terms)` | π via generalized CF |
-| `golden_ratio(terms)` | φ via [1; 1, 1, 1, …] |
-
-```rust
-let cf = SimpleContinuedFraction::from_f64(3.14159265, 6);
-// Convergents: 3/1, 22/7, 333/106, 355/113, …
-// 355/113 ≈ 3.14159292 (π to 6 decimal places!)
-```
-
----
-
 ### `special_functions` — Mathematical Special Functions
 
 | Function | Formula | Domain |
@@ -299,42 +246,9 @@ let cf = SimpleContinuedFraction::from_f64(3.14159265, 6);
 | `zeta(s)` | Σ 1/n^s | s > 1 |
 | `lambert_w(x)` | W where W·e^W = x | x ≥ -1/e |
 
-```rust
-let g5 = gamma(5.0);     // 24.0 = 4!
-let b11 = beta(1.0, 1.0); // 1.0
-let w1 = lambert_w(1.0);  // ≈ 0.5671 (Omega constant)
-```
-
 ---
 
 ### `numerical` — Numerical Methods
-
-**Integration (Simpson's rule)**
-
-```
-          b
-         ∫  f(x) dx  ≈  (h/3) × [f(x₀) + 4f(x₁) + 2f(x₂) + 4f(x₃) + … + f(xₙ)]
-          a
-
-    where h = (b - a) / n, n even
-```
-
-**Root Finding (Newton-Raphson)**
-
-```
-    xₙ₊₁ = xₙ - f(xₙ) / f'(xₙ)
-
-    Converges quadratically when f'(root) ≠ 0
-```
-
-**Optimization (Golden Section)**
-
-```
-    Search interval [a, b]
-    Split at points c = b - (b-a)/φ, d = a + (b-a)/φ
-    Compare f(c) vs f(d), shrink interval
-    Converges at rate 1/φ ≈ 0.618 per step
-```
 
 ```rust
 // ∫₀¹ eˣ dx = e - 1 ≈ 1.71828
@@ -348,19 +262,6 @@ let root = newton_raphson(
 );
 // ≈ 1.41421356237 (√2)
 ```
-
----
-
-### `sequence` — Sequences & Series
-
-| Function | Description |
-|----------|-------------|
-| `fibonacci(n)` | n-th Fibonacci number |
-| `lucas(n)` | n-th Lucas number |
-| `prime_gaps(limit)` | Gaps between consecutive primes |
-| `harmonic(n)` | H(n) = 1 + 1/2 + 1/3 + … + 1/n |
-| `sum(iter)` | Sum of iterator |
-| `product(iter)` | Product of iterator |
 
 ---
 

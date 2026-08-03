@@ -1,9 +1,13 @@
-# mathverse-plot
+# MathVerse Plot
 
 [![Crates.io](https://img.shields.io/crates/v/mathverse-plot.svg)](https://crates.io/crates/mathverse-plot)
+[![docs.rs](https://docs.rs/mathverse-plot/badge.svg)](https://docs.rs/mathverse-plot)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
 Plotting with SVG, HTML, and terminal output backends for the MathVerse ecosystem.
+
+---
 
 ## Features
 
@@ -27,7 +31,7 @@ Plotting with SVG, HTML, and terminal output backends for the MathVerse ecosyste
 
 ```toml
 [dependencies]
-mathverse-plot = { path = "../mathverse-plot" }
+mathverse-plot = "0.1"
 ```
 
 ## Quick Start
@@ -126,4 +130,4 @@ Built-in colors: `BLACK`, `WHITE`, `RED`, `GREEN`, `BLUE`, `YELLOW`, `CYAN`, `MA
 
 ## License
 
-MIT OR Apache-2.0
+MIT OR Apache-2.0 — see [LICENSE](LICENSE) for details.

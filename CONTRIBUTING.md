@@ -1,24 +1,25 @@
 # Contributing to MathVerse
 
-Thank you for your interest in contributing to MathVerse! This guide will help you get started.
+Thank you for your interest in contributing to MathVerse. This guide covers everything you need to get started.
 
-## 🚀 Quick Start
+---
 
-### Prerequisites
-- Rust 1.87+ (workspace MSRV)
-- Git
+## Prerequisites
+
+- **Rust 1.87+** (workspace MSRV, stable channel)
+- **Git**
 - A GitHub account
 
-### Setup
+## Setup
+
 ```bash
-# Clone the repository
 git clone https://github.com/Rohithdgrr/Rust-math.git
 cd Rust-math
 
-# Check everything builds
+# Verify the workspace builds
 cargo check --workspace
 
-# Run tests
+# Run the full test suite
 cargo test --workspace
 
 # Run lints
@@ -30,46 +31,43 @@ cargo doc --workspace --no-deps --open
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 Rust-math/
-├── crates/
-│   ├── mathverse-core/          # Numeric traits, errors, foundation
-│   ├── mathverse-algebra/       # Polynomials, equation solving
-│   ├── mathverse-matrix/        # Dense/sparse matrices, decompositions
-│   ├── mathverse-ai/            # Neural nets, autograd, attention
+├── crates/                    # 32 independent crates
+│   ├── mathverse-core/        # Numeric traits, errors, foundation
+│   ├── mathverse-algebra/     # Polynomials, equation solving
+│   ├── mathverse-ai/          # Neural nets, autograd, attention
 │   ├── mathverse-machine-learning/  # Classical ML algorithms
-│   └── ...                      # 31 total crates
-├── .github/workflows/           # CI/CD pipelines
-├── scripts/                     # Validation and helper scripts
-├── PRODUCTION_READINESS_STATUS.md  # Current quality status
-├── CONSOLIDATION_GUIDE.md       # Algorithm deduplication plan
-└── CONTRIBUTING.md              # This file
+│   └── ...
+├── docs/                      # Architecture, features, guidelines
+├── scripts/                   # Validation and helper scripts
+├── CONTRIBUTING.md            # This file
+└── README.md                  # Project overview
 ```
 
-### Key Crates to Know
+### Key Crates
 
 | Crate | Purpose | Depends On |
 |-------|---------|------------|
-| **mathverse-core** | Foundation - all crates should use this | - |
-| **mathverse-prelude** | One-stop import for everything | All others |
-| **mathverse-numerical** | Canonical root-finding, ODE, interpolation | core |
-| **mathverse-optimization** | Canonical optimization algorithms | core, probability |
-| **mathverse-transforms** | Canonical FFT, DCT, wavelets | complex |
+| `mathverse-core` | Foundation — all crates depend on this | — |
+| `mathverse-prelude` | One-stop import for everything | All others |
+| `mathverse-numerical` | Canonical root-finding, ODE, interpolation | core |
+| `mathverse-optimization` | Canonical optimization algorithms | core, probability |
+| `mathverse-transforms` | Canonical FFT, DCT, wavelets | complex |
 
 ---
 
-## 🎯 How to Contribute
+## How to Contribute
 
 ### 1. Find an Issue
 
-Check our [issue tracker](https://github.com/Rohithdgrr/Rust-math/issues) for:
-- `good first issue` - Perfect for newcomers
-- `help wanted` - We'd love assistance here
-- `documentation` - Always appreciated!
+Check the [issue tracker](https://github.com/Rohithdgrr/Rust-math/issues) for:
 
-Or review [`PRODUCTION_READINESS_STATUS.md`](./PRODUCTION_READINESS_STATUS.md) for known gaps.
+- `good first issue` — ideal for newcomers
+- `help wanted` — we would appreciate assistance
+- `documentation` — always welcome
 
 ### 2. Create a Branch
 
@@ -79,14 +77,15 @@ git checkout -b feature/your-feature-name
 git checkout -b fix/issue-123
 ```
 
-### 3. Make Your Changes
+### 3. Make Changes
 
-Follow our coding standards (see below).
+Follow the coding standards outlined below.
 
 ### 4. Write Tests
 
 Every new function needs:
-- At least one unit test
+
+- At least one unit test covering happy path and edge cases
 - Doc tests in `///` comments showing usage
 - Golden tests for numerical algorithms (comparing against known-good outputs)
 
@@ -100,7 +99,7 @@ Every new function needs:
 /// ```
 ///
 /// # Panics
-/// Panics if n > 20 (would overflow u64).
+/// Panics if `n > 20` (would overflow `u64`).
 pub fn factorial(n: u64) -> u64 {
     // Implementation...
 }
@@ -127,17 +126,13 @@ mod tests {
 ### 5. Update Documentation
 
 - Add `///` doc comments to all public items
-- Include examples in doc comments
+- Include at least one usage example per function
 - Document panics, errors, and mathematical conventions
-- Update the crate's README.md if adding significant features
+- Update the crate's `README.md` if adding significant features
 
 ### 6. Run the Validation Suite
 
 ```bash
-# On Windows (PowerShell)
-.\scripts\validate_workspace.ps1
-
-# Or manually:
 cargo check --workspace
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
@@ -149,7 +144,7 @@ cargo doc --workspace --no-deps
 ```bash
 git add .
 git commit -m "feat: add factorial function to combinatorics"
-# Follow conventional commits: feat/fix/docs/refactor/test/chore
+# Conventional commits: feat / fix / docs / refactor / test / chore
 git push origin feature/your-feature-name
 ```
 
@@ -161,21 +156,27 @@ git push origin feature/your-feature-name
 
 ---
 
-## 📝 Coding Standards
+## Coding Standards
 
 ### Rust Style
+
 - Follow `rustfmt` defaults (run `cargo fmt --all`)
-- Use `clippy::pedantic` lints (already configured workspace-wide)
+- Use `clippy::pedantic` lints (configured workspace-wide)
 - **No `unsafe` code** (forbidden at workspace level)
 - Prefer explicit error handling (`Result`) over panics
 
 ### Documentation
-- **Every public item must have `///` documentation**
-- Include at least one usage example
-- Document panics and errors explicitly
-- Explain mathematical conventions (normalization, coordinate systems, etc.)
 
-Example of good documentation:
+Every public item must include, in order:
+
+1. **Mathematical definition** — what it computes
+2. **Formula** — rendered in plain text or LaTeX-compatible notation
+3. **Complexity** — Big-O notation
+4. **Numerical stability notes** — cancellation, overflow, ill-conditioning
+5. **References** — sources (papers, textbooks, standards)
+6. **Examples** — runnable `# Examples` doc-tests
+
+Example:
 
 ```rust
 /// Compute the Fast Fourier Transform (FFT) of a signal.
@@ -183,11 +184,11 @@ Example of good documentation:
 /// Uses the radix-2 Cooley-Tukey algorithm. Input length must be a power of 2.
 ///
 /// # Mathematical Convention
-/// Forward transform uses `exp(-2πi·k·n/N)` and is **un-normalized**.
+/// Forward transform uses `exp(-2pi*i*k*n/N)` and is un-normalized.
 /// Use [`ifft`] for the inverse, which applies the `1/N` scaling factor.
 ///
 /// # Arguments
-/// * `signal` - Input signal (length must be power of 2)
+/// * `signal` — Input signal (length must be power of 2)
 ///
 /// # Returns
 /// Complex spectrum with same length as input.
@@ -205,8 +206,8 @@ Example of good documentation:
 /// ```
 ///
 /// # See Also
-/// - [`ifft`] - Inverse FFT
-/// - [`dct`] - Discrete Cosine Transform
+/// - [`ifft`] — Inverse FFT
+/// - [`dct`] — Discrete Cosine Transform
 pub fn fft(signal: &[f64]) -> Vec<Complex<f64>> {
     // Implementation...
 }
@@ -223,10 +224,10 @@ use thiserror::Error;
 pub enum LinearAlgebraError {
     #[error("matrix is singular (determinant = 0)")]
     SingularMatrix,
-    
+
     #[error("dimension mismatch: expected {expected}, got {actual}")]
     DimensionMismatch { expected: usize, actual: usize },
-    
+
     #[error("matrix is not positive definite")]
     NotPositiveDefinite,
 }
@@ -235,14 +236,14 @@ pub enum LinearAlgebraError {
 ### Testing
 
 Every crate should have:
-1. **Unit tests** - Test individual functions
-2. **Integration tests** - Test crate-level APIs (in `tests/`)
-3. **Doc tests** - Ensure examples compile and run
-4. **Property tests** - Use `proptest` for algorithmic properties
-5. **Golden tests** - For numerical algorithms, compare against known-good outputs
+
+1. **Unit tests** — test individual functions
+2. **Integration tests** — test crate-level APIs (in `tests/`)
+3. **Doc tests** — ensure examples compile and run
+4. **Property tests** — use `proptest` for algorithmic properties
+5. **Golden tests** — for numerical algorithms, compare against known-good outputs
 
 ```rust
-// Unit test
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -255,145 +256,73 @@ mod tests {
         assert_abs_diff_eq!(dot(&a, &b), 32.0, epsilon = 1e-10);
     }
 }
-
-// Property test (in dev-dependencies: proptest = "1.0")
-#[cfg(test)]
-mod property_tests {
-    use proptest::prelude::*;
-
-    proptest! {
-        #[test]
-        fn test_norm_non_negative(v in prop::collection::vec(-1000.0..1000.0, 1..100)) {
-            let norm = l2_norm(&v);
-            assert!(norm >= 0.0);
-        }
-    }
-}
 ```
 
 ---
 
-## 🏗️ Adding a New Algorithm
+## Adding a New Algorithm
 
 1. **Check if it belongs in an existing crate**
-   - Root finding → `mathverse-numerical`
-   - Matrix operations → `mathverse-matrix`
-   - ML algorithms → `mathverse-machine-learning`
-   - etc.
+   - Root finding: `mathverse-numerical`
+   - Matrix operations: `mathverse-matrix`
+   - ML algorithms: `mathverse-machine-learning`
 
 2. **Add the function with full documentation**
 
 3. **Write comprehensive tests**
-   - At least 3-5 unit tests
+   - At least 3–5 unit tests
    - Golden test against reference implementation if available
    - Edge cases (empty input, singular matrices, etc.)
 
 4. **Add an example** (in `examples/` directory)
 
-5. **Update the crate's README** if it's a significant addition
+5. **Update the crate's `README.md`** if it is a significant addition
 
 6. **Consider performance**
-   - Add benchmarks for O(n²) or slower algorithms
+   - Add benchmarks for O(n^2) or slower algorithms
    - Profile with `cargo flamegraph` if performance-critical
 
 ---
 
-## 🐛 Reporting Bugs
+## Reporting Bugs
 
 ### Before Reporting
+
 1. Search existing issues
 2. Try with the latest version
 3. Minimize the reproduction case
 
 ### What to Include
+
 - Rust version (`rustc --version`)
 - MathVerse version
 - Minimal code reproducing the issue
 - Expected vs. actual behavior
-- Error messages (full stack trace)
-
-### Example Bug Report
-
-```markdown
-## Bug: FFT returns incorrect results for length-8 signals
-
-**Environment:**
-- Rust: 1.87.0
-- MathVerse: 0.1.0
-- OS: Windows 11
-
-**Code:**
-\`\`\`rust
-use mathverse_transforms::fft::fft;
-
-let signal = vec![1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0];
-let spectrum = fft(&signal);
-println!("{:?}", spectrum);
-\`\`\`
-
-**Expected:** First coefficient should be 4.0+0i (DC component = sum of signal)
-**Actual:** Getting 3.8+0.2i
-
-**Additional context:**
-Works correctly for length-4 signals. Seems specific to length-8.
-```
+- Error messages (full output)
 
 ---
 
-## 🎨 Feature Requests
-
-We welcome feature requests! Please:
-1. Check if it's already requested
-2. Explain the use case (not just "add feature X", but "I need X to do Y")
-3. Suggest which crate it belongs in
-4. Provide pseudocode or reference implementations if available
-
----
-
-## 🔍 Code Review Process
+## Code Review Process
 
 ### What We Look For
-1. **Correctness** - Does it work as specified?
-2. **Tests** - Are there sufficient tests?
-3. **Documentation** - Is it documented clearly?
-4. **Style** - Does it follow Rust conventions?
-5. **Performance** - Any obvious inefficiencies?
-6. **Breaking changes** - Are they necessary and documented?
+
+1. **Correctness** — does it work as specified?
+2. **Tests** — are there sufficient tests?
+3. **Documentation** — is it documented clearly?
+4. **Style** — does it follow Rust conventions?
+5. **Performance** — any obvious inefficiencies?
+6. **Breaking changes** — are they necessary and documented?
 
 ### Review Timeline
-- Small PRs (< 100 lines): 1-2 days
-- Medium PRs (100-500 lines): 3-5 days
-- Large PRs (> 500 lines): 1-2 weeks
 
-**Tip:** Smaller PRs get reviewed faster!
+- Small PRs (< 100 lines): 1–2 days
+- Medium PRs (100–500 lines): 3–5 days
+- Large PRs (> 500 lines): 1–2 weeks
 
----
-
-## 🏆 Recognition
-
-Contributors will be:
-- Listed in the crate's `Cargo.toml` authors (for significant contributions)
-- Mentioned in release notes
-- Credited in the main README
+Smaller PRs get reviewed faster.
 
 ---
 
-## 📞 Questions?
+## License
 
-- **Discord/Chat:** [Coming soon]
-- **GitHub Discussions:** Use for questions and architecture discussions
-- **Issues:** For bugs and feature requests only
-
----
-
-## 📜 License
-
-By contributing, you agree that your contributions will be dual-licensed under MIT OR Apache-2.0, matching the project license.
-
----
-
-## 🙏 Thank You!
-
-Every contribution, no matter how small, makes MathVerse better. We appreciate your time and effort! 
-
-**Happy coding!** 🚀
+By contributing, you agree that your contributions will be licensed under the MIT License, matching the project license.

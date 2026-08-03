@@ -1,19 +1,50 @@
-# mathverse-prelude
+# MathVerse Prelude
 
 [![Crates.io](https://img.shields.io/crates/v/mathverse-prelude.svg)](https://crates.io/crates/mathverse-prelude)
+[![docs.rs](https://docs.rs/mathverse-prelude/badge.svg)](https://docs.rs/mathverse-prelude)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
 Convenience prelude that re-exports the entire MathVerse ecosystem through a single `use` statement.
 
-## Usage
+---
+
+## Features
+
+- **Single import** — `use mathverse_prelude::prelude::*;` brings in every crate
+- **27 crates** — core, arithmetic, algebra, trigonometry, calculus, statistics, physics, finance, and more
+- **Zero overhead** — re-exports only, no additional logic
+
+## Installation
 
 ```toml
 [dependencies]
-mathverse-prelude = { path = "../mathverse-prelude" }
+mathverse-prelude = "0.1"
 ```
+
+## Quick Start
 
 ```rust
 use mathverse_prelude::prelude::*;
+
+fn main() {
+    // From mathverse-algebra
+    let p = mathverse_algebra::Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
+    println!("Roots: {:?}", p.roots());
+
+    // From mathverse-physics
+    let ke = mathverse_physics::mechanics::kinetic_energy(2.0, 3.0);
+    println!("KE = {ke} J");
+
+    // From mathverse-finance
+    let fv = mathverse_finance::tvm::future_value(1000.0, 0.05, 10);
+    println!("FV = ${fv:.2}");
+
+    // From mathverse-symbolic
+    let x = mathverse_symbolic::Expr::v("x");
+    let expr = x.clone().pow(mathverse_symbolic::Expr::c(2.0));
+    println!("d/dx x² = {}", mathverse_symbolic::derivative::differentiate(&expr, "x"));
+}
 ```
 
 ## Re-exported Crates
@@ -49,31 +80,6 @@ use mathverse_prelude::prelude::*;
 | `mathverse_units` | SI/imperial, compile-time dimensional analysis |
 | `mathverse_plot` | SVG, HTML, terminal plotting |
 
-## Quick Start
-
-```rust
-use mathverse_prelude::prelude::*;
-
-fn main() {
-    // From mathverse-algebra
-    let p = mathverse_algebra::Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
-    println!("Roots: {:?}", p.roots());
-
-    // From mathverse-physics
-    let ke = mathverse_physics::mechanics::kinetic_energy(2.0, 3.0);
-    println!("KE = {ke} J");
-
-    // From mathverse-finance
-    let fv = mathverse_finance::tvm::future_value(1000.0, 0.05, 10);
-    println!("FV = ${fv:.2}");
-
-    // From mathverse-symbolic
-    let x = mathverse_symbolic::Expr::v("x");
-    let expr = x.clone().pow(mathverse_symbolic::Expr::c(2.0));
-    println!("d/dx x² = {}", mathverse_symbolic::derivative::differentiate(&expr, "x"));
-}
-```
-
 ## License
 
-MIT OR Apache-2.0
+MIT OR Apache-2.0 — see [LICENSE](LICENSE) for details.
