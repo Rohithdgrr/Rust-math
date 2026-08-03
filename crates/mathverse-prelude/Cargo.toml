@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-prelude"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["MathVerse Contributors"]
 description = "Comprehensive prelude for MathVerse - re-exports common items"
@@ -9,34 +9,34 @@ repository = "https://github.com/Rohithdgrr/Rust-math"
 rust-version.workspace = true
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
-mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.1" }
+mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.1" }
 mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.2.0" }
-mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
-mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
-mathverse-linear-algebra = { path = "../mathverse-linear-algebra", version = "0.1.0" }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
-mathverse-complex = { path = "../mathverse-complex", version = "0.1.0" }
-mathverse-special = { path = "../mathverse-special", version = "0.1.0" }
-mathverse-physics = { path = "../mathverse-physics", version = "0.1.0" }
-mathverse-finance = { path = "../mathverse-finance", version = "0.1.0" }
-mathverse-symbolic = { path = "../mathverse-symbolic", version = "0.1.0" }
-mathverse-units = { path = "../mathverse-units", version = "0.1.0" }
-mathverse-plot = { path = "../mathverse-plot", version = "0.1.0" }
-mathverse-number-theory = { path = "../mathverse-number-theory", version = "0.1.0" }
-mathverse-combinatorics = { path = "../mathverse-combinatorics", version = "0.1.0" }
-mathverse-graph = { path = "../mathverse-graph", version = "0.1.0" }
-mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.0" }
-mathverse-signal = { path = "../mathverse-signal", version = "0.1.0" }
-mathverse-optimization = { path = "../mathverse-optimization", version = "0.1.0" }
-mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.0" }
-mathverse-equations = { path = "../mathverse-equations", version = "0.1.0" }
-mathverse-ai = { path = "../mathverse-ai", version = "0.1.0" }
-mathverse-machine-learning = { path = "../mathverse-machine-learning", version = "0.1.0" }
-mathverse-vision = { path = "../mathverse-vision", version = "0.1.0" }
-mathverse-graphics = { path = "../mathverse-graphics", version = "0.1.0" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.1" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.1" }
+mathverse-linear-algebra = { path = "../mathverse-linear-algebra", version = "0.1.1" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
+mathverse-complex = { path = "../mathverse-complex", version = "0.1.1" }
+mathverse-special = { path = "../mathverse-special", version = "0.1.1" }
+mathverse-physics = { path = "../mathverse-physics", version = "0.1.1" }
+mathverse-finance = { path = "../mathverse-finance", version = "0.1.1" }
+mathverse-symbolic = { path = "../mathverse-symbolic", version = "0.1.1" }
+mathverse-units = { path = "../mathverse-units", version = "0.1.1" }
+mathverse-plot = { path = "../mathverse-plot", version = "0.1.1" }
+mathverse-number-theory = { path = "../mathverse-number-theory", version = "0.1.1" }
+mathverse-combinatorics = { path = "../mathverse-combinatorics", version = "0.1.1" }
+mathverse-graph = { path = "../mathverse-graph", version = "0.1.1" }
+mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.1" }
+mathverse-signal = { path = "../mathverse-signal", version = "0.1.1" }
+mathverse-optimization = { path = "../mathverse-optimization", version = "0.1.1" }
+mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.1" }
+mathverse-equations = { path = "../mathverse-equations", version = "0.1.1" }
+mathverse-ai = { path = "../mathverse-ai", version = "0.1.1" }
+mathverse-machine-learning = { path = "../mathverse-machine-learning", version = "0.1.1" }
+mathverse-vision = { path = "../mathverse-vision", version = "0.1.1" }
+mathverse-graphics = { path = "../mathverse-graphics", version = "0.1.1" }
 
 [lints]
 workspace = true

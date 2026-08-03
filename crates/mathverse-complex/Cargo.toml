@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-complex"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse complex numbers: arithmetic, powers, transcendental functions"

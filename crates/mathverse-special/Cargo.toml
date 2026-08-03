@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-special"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse special functions: gamma family, error function, Bessel functions, Riemann zeta"
@@ -10,7 +10,7 @@ keywords = ["math", "special-functions", "gamma", "bessel", "zeta"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
 
 [lints]
 workspace = true

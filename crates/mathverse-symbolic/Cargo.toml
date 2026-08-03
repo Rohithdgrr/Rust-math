@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-symbolic"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 authors = ["MathVerse Contributors"]
@@ -9,9 +9,9 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
-mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.1" }
+mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.1" }
 thiserror = "2"
 
 

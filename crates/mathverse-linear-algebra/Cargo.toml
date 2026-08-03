@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-linear-algebra"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse linear algebra: unified entry point for matrices, vectors, decompositions"
@@ -10,9 +10,9 @@ keywords = ["math", "linear-algebra", "matrices", "vectors", "decomposition"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
 
 [lints]
 workspace = true

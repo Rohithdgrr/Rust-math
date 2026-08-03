@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-core"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse core: numeric traits, errors, constants, precision utilities, generic operations, common algorithms"

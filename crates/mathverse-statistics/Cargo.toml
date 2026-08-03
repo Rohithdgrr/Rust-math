@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-statistics"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse statistics: descriptive stats, distributions, hypothesis tests, regression, multivariate analysis, and inference"
@@ -10,8 +10,8 @@ keywords = ["math", "statistics", "regression", "hypothesis-testing", "descripti
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.1" }
 
 
 [lints]

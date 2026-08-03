@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-graph"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse graph: adjacency list, BFS/DFS, shortest paths, connectivity"
@@ -10,7 +10,7 @@ keywords = ["math", "graph", "bfs", "dfs", "shortest-path"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
 
 [lints]
 workspace = true

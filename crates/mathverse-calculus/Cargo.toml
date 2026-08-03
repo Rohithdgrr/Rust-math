@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-calculus"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse calculus: numerical derivatives, integration, vector calculus"
@@ -11,7 +11,7 @@ categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
-mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.0" }
+mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.1" }
 
 [lints]
 workspace = true

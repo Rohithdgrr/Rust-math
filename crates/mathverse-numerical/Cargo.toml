@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-numerical"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse numerical methods: root finding, ODE integrators, interpolation, least squares"
@@ -10,10 +10,10 @@ keywords = ["math", "numerical", "root-finding", "ode", "interpolation"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
-mathverse-optimization = { path = "../mathverse-optimization", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
+mathverse-optimization = { path = "../mathverse-optimization", version = "0.1.1" }
 rand = "0.9"
 
 
