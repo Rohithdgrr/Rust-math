@@ -3,19 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MathVerse — Pure-Rust numerical and symbolic math</title>
-<meta name="description" content="MathVerse is a pure-Rust mathematics ecosystem: 31 focused crates spanning linear algebra, calculus, ODE solvers, machine learning, symbolic math, transforms, and more.">
+<title>MathVerse &mdash; Pure-Rust mathematics in 26 published crates</title>
+<meta name="description" content="MathVerse is a pure-Rust mathematics ecosystem: 26 focused crates published on crates.io spanning core numerics, linear algebra, calculus, ODE solvers, machine learning, symbolic math, transforms, and more.">
 <style>
 :root{
   --bg:#FFFFFF;
   --text:#0F172A;
   --muted:#475569;
+  --faint:#64748B;
   --hero-bg:#0B1120;
   --hero-bg2:#0F172A;
   --accent:#CE422B;
-  --accent-hover:#B2381F;
+  --accent-strong:#B2381F;
+  --accent-hover:#7A2A20;
   --accent-bright:#E8613F;
   --code-bg:#0F172A;
+  --code-hd:#111827;
   --code-border:#1E293B;
   --inline-code:#F1F5F9;
   --rule:#E2E8F0;
@@ -26,18 +29,19 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:var(--ui-font);color:var(--text);background:var(--bg);line-height:1.6;font-weight:400}
-h1,h2,h3{font-weight:700;line-height:1.2}
+body{font-family:var(--ui-font);color:var(--text);background:var(--bg);line-height:1.6;font-weight:400;font-size:16px}
+h1,h2,h3,h4{font-weight:700;line-height:1.2}
 section{scroll-margin-top:72px}
 ::selection{background:#CE422B33}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 
-a{color:var(--accent);text-decoration:none}
-a:hover{color:var(--accent-hover)}
+a{color:var(--accent-strong);text-decoration:none}
+a:hover{color:var(--accent-hover);text-decoration:underline}
 p{margin:0}
 code{font-family:var(--mono)}
+button{font-family:var(--ui-font)}
 
-.skip-link{position:absolute;left:-9999px;top:0;z-index:100;background:var(--text);color:#fff;padding:8px 16px;border-radius:0 0 8px 0}
+.skip-link{position:absolute;left:-9999px;top:0;z-index:100;background:var(--accent-strong);color:#fff;padding:8px 16px;border-radius:0 0 8px 0}
 .skip-link:focus{left:0;color:#fff}
 
 /* ---------- Nav ---------- */
@@ -52,9 +56,9 @@ header.navbar{position:sticky;top:0;z-index:50;background:rgba(11,17,32,.92);bac
 .nav-links a.active::after{content:"";display:block;height:2px;background:var(--accent);border-radius:2px;margin-top:3px}
 .nav-cta{margin-left:auto;display:inline-flex;align-items:center;gap:14px}
 .nav-cta .gh{color:#CBD5E1;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:500}
-.nav-cta .gh:hover{color:#fff}
+.nav-cta .gh:hover{color:#fff;text-decoration:none}
 .btn{display:inline-block;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-family:var(--ui-font);font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;line-height:1.4}
-.btn:hover{background:var(--accent-hover);color:#fff}
+.btn:hover{background:var(--accent-hover);color:#fff;text-decoration:none}
 .btn-ghost{background:transparent;color:var(--accent-bright);border:1px solid rgba(232,97,63,.6)}
 .btn-ghost:hover{background:rgba(206,66,43,.12);color:var(--accent-bright);border-color:var(--accent-bright)}
 .btn-sm{padding:7px 14px;font-size:13px}
@@ -68,31 +72,35 @@ header.navbar{position:sticky;top:0;z-index:50;background:rgba(11,17,32,.92);bac
 .hero{background:linear-gradient(160deg,var(--hero-bg) 0%,var(--hero-bg2) 100%);color:#E2E8F0;position:relative;overflow:hidden}
 .hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(148,163,184,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.07) 1px,transparent 1px);background-size:56px 56px;pointer-events:none}
 .hero::after{content:"";position:absolute;top:-220px;right:-160px;width:620px;height:620px;border-radius:50%;background:radial-gradient(circle,rgba(206,66,43,.22) 0%,transparent 65%);pointer-events:none}
-.hero-inner{max-width:1200px;margin:0 auto;padding:96px 24px 88px;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;position:relative}
+.hero-inner{max-width:1200px;margin:0 auto;padding:96px 24px 84px;position:relative}
+.hero-main{max-width:800px}
+.hero-eyebrow{color:var(--accent-bright);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:14px}
 .hero h1{font-size:56px;letter-spacing:-1.5px;color:#F8FAFC;margin-bottom:16px}
 .hero h1 .accent{color:var(--accent-bright)}
-.hero .sub{font-size:18px;color:#94A3B8;max-width:560px;margin-bottom:32px}
-.hero-ctas{display:flex;gap:14px;flex-wrap:wrap}
-.hero .mono{font-family:var(--mono)}
+.hero .sub{font-size:18px;color:#94A3B8;max-width:600px;margin-bottom:32px}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.hero-ctas .btn.mono{font-family:var(--mono);font-size:14px}
+.hero-cmd{display:flex;align-items:center;gap:12px;background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);padding:14px 16px;max-width:600px;margin-bottom:18px}
+.hero-cmd .prompt{color:var(--green);font-weight:700}
+.hero-cmd .cmd{font-family:var(--mono);font-size:14.5px;color:#F8FAFC;flex:1;white-space:nowrap;overflow-x:auto}
+.hero-cmd button{background:#1E293B;color:#CBD5E1;border:1px solid #334155;border-radius:6px;font-size:12px;padding:5px 10px;cursor:pointer}
+.hero-cmd button:hover{color:#fff;border-color:#475569}
+.hero-cmd button.copied{color:var(--green);border-color:var(--green)}
+.hero-subnote{font-size:13.5px;color:#94A3B8;margin-top:14px}
+.hero-subnote code{color:#CBD5E1;background:#161B22;border:1px solid #30363D;padding:1px 6px;border-radius:4px;font-size:12.5px}
+.hero-subnote a{color:var(--accent-bright)}
 
-.code-panel{background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.45)}
-.code-panel pre{margin:0;padding:20px 22px;overflow-x:auto;font-size:13.5px;line-height:1.7}
-.code-panel .panel-head{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--code-border);background:#111827}
-.code-panel .dot{width:11px;height:11px;border-radius:50%}
-.code-panel .dot.r{background:#F87171}.code-panel .dot.y{background:#FBBF24}.code-panel .dot.g{background:#34D399}
-.code-panel .panel-title{margin-left:8px;color:#64748B;font-family:var(--mono);font-size:12px}
-.copy-btn{position:absolute;top:10px;right:10px;background:#1E293B;color:#CBD5E1;border:1px solid #334155;border-radius:6px;font-family:var(--ui-font);font-size:12px;padding:5px 10px;cursor:pointer}
-.copy-btn:hover{color:#fff;border-color:#475569}
-.copy-btn.copied{color:var(--green);border-color:var(--green)}
-.code-wrap{position:relative}
-.run-line{display:flex;align-items:center;gap:10px;padding:9px 22px;border-top:1px solid var(--code-border);background:#0B1120;font-family:var(--mono);font-size:12.5px;color:#8B949E}
-.run-line .arrow{color:var(--green);font-weight:700}
-
-/* ---------- Install strip ---------- */
+/* ---------- Status strip ---------- */
 .install-strip{background:#0B1120;border-top:1px solid rgba(148,163,184,.18);border-bottom:1px solid rgba(148,163,184,.18)}
-.install-strip .inner{max-width:1200px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.install-strip .inner{max-width:1200px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .install-strip .label{color:#94A3B8;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
-.chip{display:inline-flex;align-items:center;gap:10px;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px 8px 8px 14px;font-family:var(--mono);font-size:14px;color:#F8FAFC}
+.strip-item{color:#94A3B8;font-size:13px;white-space:nowrap}
+.strip-item strong{color:#F8FAFC}
+.strip-sep{width:1px;height:18px;background:rgba(148,163,184,.25)}
+.strip-item{color:#94A3B8;font-size:13px;white-space:nowrap}
+.strip-item strong{color:#F8FAFC}
+.strip-sep{width:1px;height:18px;background:rgba(148,163,184,.25)}
+.chip{display:inline-flex;align-items:center;gap:10px;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:7px 8px 7px 14px;font-family:var(--mono);font-size:13.5px;color:#F8FAFC}
 .chip button{background:none;border:none;cursor:pointer;color:#94A3B8;font-family:var(--ui-font);font-size:12px;padding:4px 10px;border-radius:4px;border:1px solid #30363D}
 .chip button:hover{color:#fff;border-color:#475569}
 .chip button.copied{color:var(--green);border-color:var(--green)}
@@ -100,36 +108,47 @@ header.navbar{position:sticky;top:0;z-index:50;background:rgba(11,17,32,.92);bac
 /* ---------- Sections ---------- */
 .section{padding:84px 24px}
 .section-inner{max-width:1200px;margin:0 auto}
-.eyebrow{color:var(--accent);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:10px}
-.section h2{font-size:34px;letter-spacing:-.6px;margin-bottom:14px}
-.section .lede{color:var(--muted);font-size:17px;max-width:720px;margin-bottom:44px}
+.eyebrow{color:var(--accent-strong);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:10px}
+.section h2{font-size:32px;letter-spacing:-.6px;margin-bottom:14px}
+.section .lede{color:var(--muted);font-size:17px;max-width:760px;margin-bottom:44px}
 
 /* Why cards */
 .why-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
 .why-card{background:#fff;border:1px solid var(--rule);border-radius:var(--radius);padding:26px 24px}
-.why-card .glyph{width:38px;height:38px;border-radius:9px;background:#CE422B14;color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;margin-bottom:16px}
+.why-card .glyph{width:38px;height:38px;border-radius:9px;background:#CE422B14;color:var(--accent-strong);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;margin-bottom:16px}
 .why-card h3{font-size:16.5px;margin-bottom:8px}
 .why-card p{color:var(--muted);font-size:14.5px}
+.why-card code{background:var(--inline-code);padding:1px 5px;border-radius:4px;font-size:12.5px}
 
 /* Tabs */
 .tab-bar{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--rule);margin-bottom:0}
 .tab-btn{background:none;border:none;cursor:pointer;font-family:var(--ui-font);font-size:14px;font-weight:600;color:var(--muted);padding:12px 18px;border-bottom:2px solid transparent;margin-bottom:-1px}
 .tab-btn:hover{color:var(--text)}
-.tab-btn[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn[aria-selected="true"]{color:var(--accent-strong);border-bottom-color:var(--accent)}
 .tab-panel{display:none;margin-top:20px}
 .tab-panel[aria-hidden="false"]{display:block}
+.code-wrap{position:relative}
+.code-panel{background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);overflow:hidden}
+.code-panel pre{margin:0;padding:20px 22px;overflow-x:auto;font-size:13.5px;line-height:1.7}
+.code-panel .panel-head{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--code-border);background:var(--code-hd)}
+.code-panel .dot{width:11px;height:11px;border-radius:50%}
+.code-panel .dot.r{background:#F87171}.code-panel .dot.y{background:#FBBF24}.code-panel .dot.g{background:#34D399}
+.code-panel .panel-title{margin-left:8px;color:#64748B;font-family:var(--mono);font-size:12px}
+.copy-btn{position:absolute;top:12px;right:12px;background:#1E293B;color:#CBD5E1;border:1px solid #334155;border-radius:6px;font-family:var(--ui-font);font-size:12px;padding:5px 10px;cursor:pointer;z-index:2}
+.copy-btn:hover{color:#fff;border-color:#475569}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
 .tab-caption{color:var(--muted);font-size:14.5px;margin-top:14px}
-.tab-caption code,.testing-note code{color:var(--accent-hover);background:var(--inline-code);padding:1px 6px;border-radius:4px;font-size:13px}
+.tab-caption code{color:var(--accent-strong);background:var(--inline-code);padding:1px 6px;border-radius:4px;font-size:13px}
 
 /* Crate explorer */
 .explorer-tools{display:flex;flex-direction:column;gap:16px;margin-bottom:28px}
-.search-box{position:relative;max-width:420px}
+.search-box{position:relative;max-width:480px}
 .search-box input{width:100%;border:1px solid #CBD5E1;border-radius:8px;padding:12px 16px 12px 42px;font-family:var(--ui-font);font-size:15px;color:var(--text);background:#fff}
 .search-box input::placeholder{color:#94A3B8}
 .search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip-btn{border:1px solid #CBD5E1;background:#fff;color:var(--muted);border-radius:999px;padding:7px 16px;font-family:var(--ui-font);font-size:13.5px;font-weight:600;cursor:pointer}
-.chip-btn:hover{border-color:var(--accent);color:var(--accent)}
+.chip-btn:hover{border-color:var(--accent);color:var(--accent-strong)}
 .chip-btn[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:#fff}
 .crate-count{color:var(--muted);font-size:14px;margin-bottom:18px}
 .crate-count strong{color:var(--text)}
@@ -139,11 +158,19 @@ header.navbar{position:sticky;top:0;z-index:50;background:rgba(11,17,32,.92);bac
 .crate-card[hidden]{display:none}
 .crate-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .crate-name{font-family:var(--mono);font-size:14.5px;font-weight:700;color:var(--text);word-break:break-all}
-.badge{flex-shrink:0;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--accent-hover);background:#CE422B14;border:1px solid #F1C4BB;padding:2px 8px;border-radius:999px;white-space:nowrap}
-.crate-card p{color:var(--muted);font-size:13.5px;flex:1}
+.badge{flex-shrink:0;font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--accent-strong);background:#CE422B14;border:1px solid #F1C4BB;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.crate-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cat-chip{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--accent-strong);background:#CE422B14;border:1px solid #F1C4BB;padding:2px 8px;border-radius:999px}
+.crate-links{display:flex;gap:14px;font-family:var(--mono);font-size:12.5px}
+.crate-links a{color:var(--faint)}
+.crate-links a:hover{color:var(--accent-strong);text-decoration:underline}
+.crate-card p{color:var(--muted);font-size:13.5px;flex:0 0 auto}
+.crate-inside{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--rule);padding-top:10px}
+.crate-inside li{font-size:13px;color:#334155;padding-left:16px;position:relative}
+.crate-inside li::before{content:"\2022";position:absolute;left:3px;color:var(--accent);font-weight:700}
 .btn-add{align-self:flex-start;font-family:var(--mono);font-size:12.5px;color:var(--text);background:#F8FAFC;border:1px solid #CBD5E1;border-radius:6px;padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
 .btn-add::before{content:"";width:0;height:0;border-style:solid;border-width:5px 0 5px 7px;border-color:transparent transparent transparent var(--accent)}
-.btn-add:hover{border-color:var(--accent);color:var(--accent)}
+.btn-add:hover{border-color:var(--accent);color:var(--accent-strong)}
 .btn-add.copied{color:var(--green);border-color:var(--green)}
 .btn-add.copied::before{border-color:transparent transparent transparent var(--green)}
 
@@ -155,15 +182,17 @@ header.navbar{position:sticky;top:0;z-index:50;background:rgba(11,17,32,.92);bac
 .install-card pre{margin-top:0;background:var(--code-bg);border-radius:6px;padding:14px 16px;color:#E2E8F0;font-size:13px;overflow-x:auto}
 .install-card pre code{white-space:pre}
 .note{margin-top:40px;border:1px solid #F1C4BB;background:#FEF6F4;border-radius:var(--radius);padding:16px 20px;color:#7A2E1F;font-size:14.5px}
-.note code{background:#fff;border:1px solid #F1C4BB;color:var(--accent);padding:1px 6px;border-radius:4px;font-size:13px}
+.note code{background:#fff;border:1px solid #F1C4BB;color:var(--accent-strong);padding:1px 6px;border-radius:4px;font-size:13px}
+.note.not-pub{margin-top:28px}
 
 /* Learn */
 .docs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
 .doc-link{display:block;border:1px solid var(--rule);border-radius:var(--radius);padding:16px 18px;color:var(--text);background:#fff}
-.doc-link:hover{border-color:var(--accent);color:var(--accent)}
+.doc-link:hover{border-color:var(--accent);color:var(--accent-strong);text-decoration:none}
 .doc-link .d-name{font-family:var(--mono);font-size:14px;font-weight:700;display:block;margin-bottom:3px}
 .doc-link .d-sub{color:var(--muted);font-size:13px}
 .testing-note{border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;padding:16px 20px;color:var(--muted);font-size:14.5px;margin-bottom:40px}
+.testing-note code{color:var(--accent-strong);background:var(--inline-code);padding:1px 6px;border-radius:4px;font-size:13px}
 .contribute-cta{background:linear-gradient(150deg,#0B1120,#0F172A);border-radius:var(--radius);padding:40px;color:#E2E8F0;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .contribute-cta h3{color:#F8FAFC;font-size:21px;margin-bottom:6px}
 .contribute-cta p{color:#94A3B8;font-size:14.5px}
@@ -174,7 +203,7 @@ footer{background:#0B1120;color:#64748B;border-top:1px solid rgba(148,163,184,.1
 footer .logo{color:#E2E8F0;font-size:15px}
 .foot-note{font-size:13.5px;text-align:center;color:#94A3B8}
 .back-top{color:#94A3B8;font-size:13.5px;font-weight:600}
-.back-top:hover{color:#fff}
+.back-top:hover{color:#fff;text-decoration:none}
 
 /* Highlight tokens */
 .hl-comment{color:#8B949E;font-style:italic}
@@ -193,7 +222,7 @@ footer .logo{color:#E2E8F0;font-size:15px}
   .crate-grid{grid-template-columns:repeat(2,1fr)}
   .install-grid{grid-template-columns:1fr}
   .docs-grid{grid-template-columns:repeat(2,1fr)}
-  .hero-inner{grid-template-columns:1fr;padding:64px 24px}
+  .hero-inner{padding:64px 24px}
   .hero h1{font-size:44px}
 }
 @media (max-width:760px){
@@ -215,564 +244,843 @@ footer .logo{color:#E2E8F0;font-size:15px}
 </style>
 </head>
 <body>
-<a class="skip-link" href="#main">Skip to main content</a>
-
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="navbar">
   <div class="nav-inner">
-    <a class="logo" href="#top" aria-label="MathVerse home">
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
-        <rect x="2" y="2" width="22" height="22" rx="6" fill="none" stroke="#CE422B" stroke-width="2"/>
-        <path d="M8 18 L13 8 L18 18" fill="none" stroke="#E2E8F0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10.2 14.4 H15.8" stroke="#E2E8F0" stroke-width="2" stroke-linecap="round"/>
-      </svg>
+    <a class="logo" href="#top">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#CE422B"/><path d="M6 17.5h12M7.5 12h9M9.2 6.5l2.8 7 2.8-7" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
       MathVerse
     </a>
-    <nav class="nav-links" id="nav-links" aria-label="Primary">
-      <a href="#overview">Overview</a>
-      <a href="#features">Features</a>
+    <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+    <nav class="nav-links" id="navLinks" aria-label="Primary">
+      <a href="#why">Why</a>
+      <a href="#examples">Examples</a>
       <a href="#crates">Crates</a>
       <a href="#install">Install</a>
-      <a href="#learn">Docs</a>
-      <a href="#contribute">Contribute</a>
-      <span class="nav-cta">
-        <a class="gh" href="https://github.com/Rohithdgrr/Rust-math" aria-label="MathVerse on GitHub (external link)">
-          <svg width="17" height="17" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          GitHub
-        </a>
-        <a class="btn btn-sm" href="#install">Get Started</a>
-      </span>
+      <a href="#learn">Learn</a>
     </nav>
-    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
-      <span></span><span></span><span></span>
-    </button>
+    <div class="nav-cta">
+      <a class="gh" href="https://github.com/Rohithdgrr/Rust-math">GitHub</a>
+      <a class="btn btn-sm" href="#install">Get started</a>
+    </div>
   </div>
 </header>
-
 <main id="main">
 
-<!-- Hero -->
-<section class="hero" id="top" aria-label="MathVerse introduction">
+<div class="hero" id="top">
   <div class="hero-inner">
-    <div>
-      <h1>MathVerse<span class="accent">.</span></h1>
-      <p class="sub">Pure-Rust numerical and symbolic math across <strong style="color:#F8FAFC">31 focused crates</strong> — from linear algebra and ODE solvers to machine-learning primitives and symbolic calculus.</p>
+    <div class="hero-main">
+      <p class="hero-eyebrow">The MathVerse workspace</p>
+      <h1>Pure-Rust mathematics,<br><span class="accent">26 focused crates.</span></h1>
+      <p class="sub">Linear algebra, calculus, ODE solvers, statistics, symbolic math, tensors, and transforms &mdash; each crate published independently on crates.io, each one documented, tested, and free of framework lock-in.</p>
+      <div class="hero-cmd">
+        <span class="prompt">$</span>
+        <span class="cmd">cargo add mathverse-core</span>
+        <button type="button" data-copy="cargo add mathverse-core">Copy</button>
+      </div>
+      <p class="hero-subnote">There is no umbrella <code>mathverse</code> crate &mdash; add the crates you need. See <a href="#crates">the full list</a> below.</p>
       <div class="hero-ctas">
-        <button class="btn btn-lg mono" style="font-family:var(--mono);font-size:14px" data-copy="cargo add mathverse" data-label="Copy cargo add command">cargo add mathverse</button>
-        <a class="btn btn-ghost" href="#crates">Explore the crates</a>
+        <a class="btn" href="#crates">Browse the crates</a>
+        <a class="btn btn-ghost" href="#examples">See code examples</a>
       </div>
     </div>
-    <div class="code-wrap">
-      <div class="code-panel" role="region" aria-label="MathVerse code example">
-        <div class="panel-head">
-          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-          <span class="panel-title">demo.rs</span>
-        </div>
-        <pre class="rust"><code>use mathverse::prelude::*;
-
-fn main() {
-    let a = Matrix::from_rows(vec![
-        vec![4.0, 7.0],
-        vec![2.0, 6.0],
-    ]);
-    let x = a.solve(&vec![1.0, 3.0]).unwrap();
-    println!("x = {x:?}");   // [ -1.5, 1.0 ]
-}</code></pre>
-        <div class="run-line"><span class="arrow">$</span> cargo run --release<span style="flex:1"></span>Finished in 0.38s</div>
-      </div>
-      <button class="copy-btn" data-copy-target="demo.rs" aria-label="Copy code example">Copy</button>
-    </div>
-  </div>
-</section>
-
-<!-- Install strip -->
-<div class="install-strip" aria-label="Quick install">
-  <div class="inner">
-    <span class="label">Install</span>
-    <span class="chip">cargo add mathverse
-      <button data-copy="cargo add mathverse" aria-label="Copy install command">Copy</button>
-    </span>
-    <span class="chip">Rust 1.87+</span>
   </div>
 </div>
 
-<!-- Why MathVerse -->
-<section class="section" id="overview" aria-labelledby="overview-h">
+<div class="install-strip" aria-label="Crates.io status and quick install commands">
+  <div class="inner">
+    <span class="strip-item"><strong>26</strong> crates published</span>
+    <span class="strip-item"><strong>Rust 1.87+</strong></span>
+    <span class="strip-item">MIT OR Apache-2.0</span>
+    <span class="strip-sep" aria-hidden="true"></span>
+    <span class="label">Quick add:</span>
+    <span class="chip">mathverse-matrix <button type="button" data-copy="cargo add mathverse-matrix">Copy</button></span>
+    <span class="chip">mathverse-ai <button type="button" data-copy="cargo add mathverse-ai">Copy</button></span>
+    <span class="chip">mathverse-numerical <button type="button" data-copy="cargo add mathverse-numerical">Copy</button></span>
+    <span class="chip">mathverse-symbolic <button type="button" data-copy="cargo add mathverse-symbolic">Copy</button></span>
+  </div>
+</div>
+
+<section class="section" id="why">
   <div class="section-inner">
     <p class="eyebrow">Why MathVerse</p>
-    <h2 id="overview-h">One workspace, thirty-one focused crates</h2>
-    <p class="lede">MathVerse splits mathematics into small, composable crates so you depend on only what you need — while the prelude lets you pull the whole library with a single import.</p>
+    <h2>A workspace, not a monolith</h2>
+    <p class="lede">MathVerse splits mathematics into small crates that compose cleanly. The pieces are tiny, the dependencies are few, and the docs are honest.</p>
     <div class="why-grid">
       <div class="why-card">
-        <div class="glyph" aria-hidden="true">M</div>
-        <h3>Modular by design</h3>
-        <p>31 focused crates under one namespace. Add <code>mathverse-linear-algebra</code> alone, or everything behind <code>mathverse-prelude</code>.</p>
+        <div class="glyph">0</div>
+        <h3>Zero-dependency core</h3>
+        <p>Every crate builds on <code>mathverse-core</code>, which has zero MathVerse dependencies. Most crates add nothing else at all.</p>
       </div>
       <div class="why-card">
-        <div class="glyph" aria-hidden="true">P</div>
-        <h3>Engineered precision</h3>
-        <p>High-precision constants and an explicit error taxonomy give you predictable numerics instead of silent NaN propagation.</p>
+        <div class="glyph">26</div>
+        <h3>Small crates, real scope</h3>
+        <p>One focused crate per domain &mdash; install only what you use, and let the compiler strip the rest. Each crate versions independently.</p>
       </div>
       <div class="why-card">
-        <div class="glyph" aria-hidden="true">E</div>
-        <h3>Embedded-ready</h3>
-        <p>Core crates run <code>no_std</code> with <code>libm</code> support where it matters — MCUs and WASM included.</p>
+        <div class="glyph">T</div>
+        <h3>Documented by tests</h3>
+        <p>Every public function ships with a doctest example. Property tests (<code>proptest</code>) and benchmarks (<code>criterion</code>) keep the invariants honest.</p>
       </div>
       <div class="why-card">
-        <div class="glyph" aria-hidden="true">E</div>
-        <h3>Example-rich</h3>
-        <p>Every crate ships a runnable example. Try <code>cargo run --example &lt;name&gt; --release</code> from the workspace.</p>
+        <div class="glyph">n</div>
+        <h3>no_std friendly</h3>
+        <p><code>mathverse-core</code> runs without the standard library via <code>libm</code>; optional <code>simd</code> and <code>parallel</code> features are gated behind flags.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Features / code showcase -->
-<section class="section" id="features" style="background:#F8FAFC;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)" aria-labelledby="features-h">
+<section class="section" id="examples">
   <div class="section-inner">
-    <p class="eyebrow">Features</p>
-    <h2 id="features-h">Capabilities, in code</h2>
-    <p class="lede">Six of the core domains, shown as real working patterns. Every snippet compiles against the MathVerse API surface.</p>
-    <div class="tab-bar" role="tablist" aria-label="Code examples by domain">
-      <button class="tab-btn" role="tab" id="tab-linalg" aria-selected="true" aria-controls="panel-linalg">Linear Algebra</button>
-      <button class="tab-btn" role="tab" id="tab-calc" aria-selected="false" aria-controls="panel-calc" tabindex="-1">Calculus</button>
-      <button class="tab-btn" role="tab" id="tab-ode" aria-selected="false" aria-controls="panel-ode" tabindex="-1">Differential Equations</button>
-      <button class="tab-btn" role="tab" id="tab-ml" aria-selected="false" aria-controls="panel-ml" tabindex="-1">Machine Learning</button>
-      <button class="tab-btn" role="tab" id="tab-sym" aria-selected="false" aria-controls="panel-sym" tabindex="-1">Symbolic</button>
-      <button class="tab-btn" role="tab" id="tab-fft" aria-selected="false" aria-controls="panel-fft" tabindex="-1">Transforms</button>
+    <p class="eyebrow">Explore by example</p>
+    <h2>Code that actually compiles</h2>
+    <p class="lede">Every snippet below is taken from its crate&rsquo;s README and doctests &mdash; copy it into a project, add the crate, and it runs.</p>
+
+    <div class="tab-bar" role="tablist" aria-label="Crate examples">
+      <button class="tab-btn" id="tabbtn-linalg" type="button" role="tab" aria-selected="true" aria-controls="tab-linalg" data-tab="tab-linalg">Linear Algebra</button>
+      <button class="tab-btn" id="tabbtn-calculus" type="button" role="tab" aria-selected="false" aria-controls="tab-calculus" data-tab="tab-calculus">Calculus</button>
+      <button class="tab-btn" id="tabbtn-numerical" type="button" role="tab" aria-selected="false" aria-controls="tab-numerical" data-tab="tab-numerical">Numerical</button>
+      <button class="tab-btn" id="tabbtn-ai" type="button" role="tab" aria-selected="false" aria-controls="tab-ai" data-tab="tab-ai">AI</button>
+      <button class="tab-btn" id="tabbtn-symbolic" type="button" role="tab" aria-selected="false" aria-controls="tab-symbolic" data-tab="tab-symbolic">Symbolic</button>
+      <button class="tab-btn" id="tabbtn-transforms" type="button" role="tab" aria-selected="false" aria-controls="tab-transforms" data-tab="tab-transforms">Transforms</button>
     </div>
 
-    <div class="tab-panel" role="tabpanel" id="panel-linalg" aria-labelledby="tab-linalg" aria-hidden="false">
+    <div class="tab-panel" id="tab-linalg" role="tabpanel" aria-hidden="false" data-tabpanel="tab-linalg">
       <div class="code-wrap">
         <div class="code-panel">
-          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">linalg.rs</span></div>
-          <pre class="rust"><code>use mathverse_linear_algebra::{Matrix, Svd};
+          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">mathverse-linear-algebra &middot; Gaussian elimination</span></div>
+          <pre><code><span class="hl-keyword">use</span> mathverse_linear_algebra::*;
 
-fn main() {
-    let a = Matrix::from_rows(vec![
-        vec![3.0, -2.0, 1.0],
-        vec![0.5,  7.0, -4.0],
-        vec![2.0,  1.0,  9.0],
-    ]);
+<span class="hl-keyword">fn</span> main() {
+    <span class="hl-comment">// Solve Ax = b for a 2&times;2 system</span>
+    <span class="hl-keyword">let</span> a = <span class="hl-macro">vec!</span>[<span class="hl-macro">vec!</span>[<span class="hl-number">2.0</span>, <span class="hl-number">1.0</span>],
+                 <span class="hl-macro">vec!</span>[<span class="hl-number">1.0</span>, <span class="hl-number">3.0</span>]];
+    <span class="hl-keyword">let</span> b = <span class="hl-macro">vec!</span>[<span class="hl-number">5.0</span>, <span class="hl-number">7.0</span>];
 
-    let inv = a.inverse().expect("matrix is invertible");
-    let x = inv * Matrix::column(vec![4.0, 3.0, 1.0]);
-    println!("solution: {x}");
+    <span class="hl-keyword">let</span> x = solve_gauss(&amp;a, &amp;b).unwrap();
+    <span class="hl-macro">println!</span>(<span class="hl-string">"x = {:?}"</span>, x);        <span class="hl-comment">// [1.6, 1.8]</span>
 
-    let svd = Svd::of(&a);
-    println!("singular values: {:?}", svd.singular_values());
+    <span class="hl-keyword">let</span> (l, u, _perm) = lu_decompose(&amp;a).unwrap();
+    <span class="hl-macro">println!</span>(<span class="hl-string">"L = {:?}"</span>, l);
+    <span class="hl-macro">println!</span>(<span class="hl-string">"U = {:?}"</span>, u);
+    <span class="hl-macro">println!</span>(<span class="hl-string">"&#x2016;A&#x2016;_F = {:.4}"</span>, norm_frobenius(&amp;a));
+    <span class="hl-macro">println!</span>(<span class="hl-string">"cond(A) = {:.4}"</span>, condition_number(&amp;a));
+
+    <span class="hl-keyword">let</span> (q, r) = qr_decompose(&amp;a).unwrap();
+    <span class="hl-macro">println!</span>(<span class="hl-string">"x (QR) = {:?}"</span>, solve_qr(&amp;q, &amp;r, &amp;b));
 }</code></pre>
         </div>
-        <button class="copy-btn" data-copy-target="linalg.rs" aria-label="Copy linear algebra example">Copy</button>
+        <button type="button" class="copy-btn" data-copy-target="tab-linalg">Copy</button>
       </div>
-      <p class="tab-caption">Matrix inverse, solve, and singular value decomposition via <code>mathverse-linear-algebra</code>.</p>
+      <p class="tab-caption">Pass <code>Vec&lt;Vec&lt;f64&gt;&gt;</code> straight to <code>solve_gauss</code>, <code>lu_decompose</code>, <code>qr_decompose</code>, <code>solve_qr</code>, or <code>cholesky</code> &mdash; plus norms, singular values, and condition numbers. Crate: <code>mathverse-linear-algebra</code></p>
     </div>
 
-    <div class="tab-panel" role="tabpanel" id="panel-calc" aria-labelledby="tab-calc" aria-hidden="true">
+    <div class="tab-panel" id="tab-calculus" role="tabpanel" aria-hidden="true" data-tabpanel="tab-calculus">
       <div class="code-wrap">
         <div class="code-panel">
-          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">calculus.rs</span></div>
-          <pre class="rust"><code>use mathverse_calculus::{derivative, integrate};
+          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">mathverse-calculus &middot; derivative, integral, ODE</span></div>
+          <pre><code><span class="hl-keyword">use</span> mathverse_calculus::derivative::derivative;
+<span class="hl-keyword">use</span> mathverse_calculus::integrate::integrate;
+<span class="hl-keyword">use</span> mathverse_calculus::ode::runge_kutta_4;
 
-fn f(x: f64) -> f64 {
-    x.sin() * x.exp()
-}
+<span class="hl-keyword">fn</span> main() {
+    <span class="hl-comment">// d/dx sin(x) at 0 &rarr; 1.0</span>
+    <span class="hl-keyword">let</span> slope = derivative(&amp;f64::sin, <span class="hl-number">0.0</span>);
 
-fn main() {
-    let df = derivative::central(&f, 0.5, 1e-8);
-    println!("f'(0.5) ~= {df:.8}");
+    <span class="hl-comment">// &int;&#8320;&#8319; sin(x) dx &rarr; 2.0</span>
+    <span class="hl-keyword">let</span> area = integrate(&amp;f64::sin, <span class="hl-number">0.0</span>,
+        std::f64::consts::PI, <span class="hl-number">1e-10</span>);
 
-    let area = integrate::simpson(&f, 0.0, 2.0, 1000);
-    println!("integral(0, 2) f(x) dx ~= {area:.6}");
+    <span class="hl-comment">// dy/dt = y, y(0) = 1 &rarr; y = e^t</span>
+    <span class="hl-keyword">let</span> sol = runge_kutta_4(&amp;|_t, y| y, <span class="hl-number">0.0</span>, <span class="hl-number">1.0</span>, <span class="hl-number">1.0</span>, <span class="hl-number">10</span>);
+
+    <span class="hl-macro">println!</span>(<span class="hl-string">"sin'(0) = {:.4}"</span>, slope);   <span class="hl-comment">// 1.0000</span>
+    <span class="hl-macro">println!</span>(<span class="hl-string">"&#x222B; sin   = {:.4}"</span>, area);    <span class="hl-comment">// 2.0000</span>
+    <span class="hl-macro">println!</span>(<span class="hl-string">"y(1)    = {:.4}"</span>, sol.last().unwrap().1);
 }</code></pre>
         </div>
-        <button class="copy-btn" data-copy-target="calculus.rs" aria-label="Copy calculus example">Copy</button>
+        <button type="button" class="copy-btn" data-copy-target="tab-calculus">Copy</button>
       </div>
-      <p class="tab-caption">Central-difference derivatives and Simpson integration from <code>mathverse-calculus</code>.</p>
+      <p class="tab-caption">Central-difference derivatives, adaptive Simpson and Gaussian quadrature, RK4 for scalar and system ODEs, and Newton&ndash;Raphson root finding &mdash; all from plain closures. Crate: <code>mathverse-calculus</code></p>
     </div>
 
-    <div class="tab-panel" role="tabpanel" id="panel-ode" aria-labelledby="tab-ode" aria-hidden="true">
+    <div class="tab-panel" id="tab-numerical" role="tabpanel" aria-hidden="true" data-tabpanel="tab-numerical">
       <div class="code-wrap">
         <div class="code-panel">
-          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">ode.rs</span></div>
-          <pre class="rust"><code>use mathverse_numerical::ode::Rk45;
+          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">mathverse-numerical &middot; roots, stiff ODEs, quadrature</span></div>
+          <pre><code><span class="hl-keyword">use</span> mathverse_numerical::*;
 
-fn main() {
-    // y' = y - t^2 + 1, y(0) = 0.5  (classic RK45 test problem)
-    let sol = Rk45::new(0.0, 0.5, |t, y| y - t * t + 1.0)
-        .step(0.1)
-        .tolerance(1e-6)
-        .solve_until(2.0);
+<span class="hl-keyword">fn</span> main() {
+    <span class="hl-comment">// &radic;2 via Newton&ndash;Raphson</span>
+    <span class="hl-keyword">let</span> root = newton_raphson(
+        &amp;|x| x * x - <span class="hl-number">2.0</span>,
+        &amp;|x| <span class="hl-number">2.0</span> * x,
+        <span class="hl-number">1.5</span>, <span class="hl-number">1e-12</span>, <span class="hl-number">100</span>,
+    ).unwrap();
 
-    println!("y(2.0) ~= {:.8}", sol.at(2.0));
+    <span class="hl-comment">// Stiff dy/dt = -50y, y(0) = 1 &mdash; adaptive RKF45</span>
+    <span class="hl-keyword">let</span> rkf = RKF45::new(<span class="hl-number">1e-8</span>, <span class="hl-number">1.0</span>, <span class="hl-number">1e-10</span>, <span class="hl-number">1e-10</span>);
+    <span class="hl-keyword">let</span> f = |_: f64, y: &amp;[f64]| <span class="hl-macro">vec!</span>[-<span class="hl-number">50.0</span> * y[<span class="hl-number">0</span>]];
+    <span class="hl-keyword">let</span> sol = rkf.integrate(&amp;f, <span class="hl-number">0.0</span>, &amp;[<span class="hl-number">1.0</span>], <span class="hl-number">1.0</span>).unwrap();
+
+    <span class="hl-comment">// &int;&#8320;&#1859; x&sup2; dx &mdash; Gaussian quadrature</span>
+    <span class="hl-keyword">let</span> area = GaussianQuadrature::integrate(&amp;|x| x * x, <span class="hl-number">0.0</span>, <span class="hl-number">1.0</span>, <span class="hl-number">5</span>);
+
+    <span class="hl-macro">println!</span>(<span class="hl-string">"&radic;2 &asymp; {:.6}"</span>, root);   <span class="hl-comment">// 1.414214</span>
+    <span class="hl-macro">println!</span>(<span class="hl-string">"y(1) = {:.6}"</span>, sol.last().unwrap().y[0]);
+    <span class="hl-macro">println!</span>(<span class="hl-string">"&int;    &asymp; {:.4}"</span>, area);   <span class="hl-comment">// 0.3333</span>
 }</code></pre>
         </div>
-        <button class="copy-btn" data-copy-target="ode.rs" aria-label="Copy differential equations example">Copy</button>
+        <button type="button" class="copy-btn" data-copy-target="tab-numerical">Copy</button>
       </div>
-      <p class="tab-caption">Adaptive Runge-Kutta 4/5 ODE solving with <code>mathverse-numerical</code>.</p>
+      <p class="tab-caption">Twelve root finders, six ODE integrators (including adaptive <code>RKF45</code> and stiff-capable <code>BackwardEuler</code>), nine quadrature rules, splines, and iterative linear solvers. Crate: <code>mathverse-numerical</code></p>
     </div>
 
-    <div class="tab-panel" role="tabpanel" id="panel-ml" aria-labelledby="tab-ml" aria-hidden="true">
+    <div class="tab-panel" id="tab-ai" role="tabpanel" aria-hidden="true" data-tabpanel="tab-ai">
       <div class="code-wrap">
         <div class="code-panel">
-          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">ml.rs</span></div>
-          <pre class="rust"><code>use mathverse_ai::{tensor::Tensor, nn::Linear};
+          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">mathverse-ai &middot; tensors, softmax, Adam</span></div>
+          <pre><code><span class="hl-keyword">use</span> mathverse_ai::{Tensor, softmax, mse, Adam};
 
-fn main() {
-    let layer = Linear::new(784, 128);
-    let x = Tensor::randn(&[32, 784]);
-    let out = layer.forward(&x).relu();
+<span class="hl-keyword">fn</span> main() {
+    <span class="hl-comment">// Logits &rarr; probabilities</span>
+    <span class="hl-keyword">let</span> logits = Tensor::new(&amp;[<span class="hl-number">1</span>, <span class="hl-number">3</span>], &amp;[<span class="hl-number">2.0</span>, <span class="hl-number">1.0</span>, <span class="hl-number">0.5</span>]).unwrap();
+    <span class="hl-keyword">let</span> probs = softmax(&amp;logits, <span class="hl-number">1</span>).unwrap();
 
-    println!("out shape: {}", out.shape());   // [32, 128]
+    <span class="hl-comment">// MSE for a regression target</span>
+    <span class="hl-keyword">let</span> pred = Tensor::new(&amp;[<span class="hl-number">3</span>], &amp;[<span class="hl-number">1.0</span>, <span class="hl-number">2.0</span>, <span class="hl-number">3.0</span>]).unwrap();
+    <span class="hl-keyword">let</span> target = Tensor::new(&amp;[<span class="hl-number">3</span>], &amp;[<span class="hl-number">1.0</span>, <span class="hl-number">2.0</span>, <span class="hl-number">5.0</span>]).unwrap();
+
+    <span class="hl-comment">// Adam minimizing f(x) = x&sup2;</span>
+    <span class="hl-keyword">let</span> <span class="hl-keyword">mut</span> opt = Adam::new(<span class="hl-number">0.1</span>, <span class="hl-number">0.9</span>, <span class="hl-number">0.999</span>, <span class="hl-number">1e-8</span>, <span class="hl-number">0.0</span>);
+    <span class="hl-keyword">let</span> <span class="hl-keyword">mut</span> x = [<span class="hl-number">5.0</span>];
+    <span class="hl-keyword">for</span> _ <span class="hl-keyword">in</span> <span class="hl-number">0</span>..<span class="hl-number">100</span> {
+        <span class="hl-keyword">let</span> g = [<span class="hl-number">2.0</span> * x[<span class="hl-number">0</span>]];
+        opt.step(&amp;<span class="hl-keyword">mut</span> x, &amp;g);
+    }
+
+    <span class="hl-macro">println!</span>(<span class="hl-string">"softmax: {:?}"</span>, probs.data);              <span class="hl-comment">// [0.5906, 0.2447, 0.1647]</span>
+    <span class="hl-macro">println!</span>(<span class="hl-string">"mse:     {:.4}"</span>, mse(&amp;pred, &amp;target).unwrap()); <span class="hl-comment">// 1.3333</span>
+    <span class="hl-macro">println!</span>(<span class="hl-string">"x(100):  {:.6}"</span>, x[<span class="hl-number">0</span>]);                  <span class="hl-comment">// 0.000001</span>
 }</code></pre>
         </div>
-        <button class="copy-btn" data-copy-target="ml.rs" aria-label="Copy machine learning example">Copy</button>
+        <button type="button" class="copy-btn" data-copy-target="tab-ai">Copy</button>
       </div>
-      <p class="tab-caption">Tensor operations and neural-network layers from <code>mathverse-ai</code>.</p>
+      <p class="tab-caption">NumPy-style <code>Tensor</code> with broadcasting, matmul, and layer norm; activations, losses, metrics, attention, and optimizers (<code>Adam</code>, <code>AdamW</code>, <code>Sgd</code>) &mdash; zero dependencies. Crate: <code>mathverse-ai</code></p>
     </div>
 
-    <div class="tab-panel" role="tabpanel" id="panel-sym" aria-labelledby="tab-sym" aria-hidden="true">
+    <div class="tab-panel" id="tab-symbolic" role="tabpanel" aria-hidden="true" data-tabpanel="tab-symbolic">
       <div class="code-wrap">
         <div class="code-panel">
-          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">symbolic.rs</span></div>
-          <pre class="rust"><code>use mathverse_symbolic::{Expr, sym};
+          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">mathverse-symbolic &middot; expression trees + differentiation</span></div>
+          <pre><code><span class="hl-keyword">use</span> mathverse_symbolic::*;
 
-fn main() {
-    let x = sym("x");
-    let f = (x.clone().powi(3) + x * 2 - 1) / x.clone().exp();
-    let df = f.differentiate(&x).simplify();
+<span class="hl-keyword">fn</span> main() {
+    <span class="hl-comment">// Build x&sup2; + 2x + 1</span>
+    <span class="hl-keyword">let</span> x = Expr::v(<span class="hl-string">"x"</span>);
+    <span class="hl-keyword">let</span> expr = x.clone().pow(Expr::c(<span class="hl-number">2.0</span>))
+        .add(Expr::c(<span class="hl-number">2.0</span>).mul(x.clone())).add(Expr::c(<span class="hl-number">1.0</span>));
 
-    println!("f(x)  = {f}");
-    println!("f'(x) = {df}");   // printed as LaTeX
+    <span class="hl-comment">// d/dx (x&sup2; + 2x + 1) = 2x + 2</span>
+    <span class="hl-keyword">let</span> d = derivative::differentiate(&amp;expr, <span class="hl-string">"x"</span>);
+
+    <span class="hl-macro">println!</span>(<span class="hl-string">"f(x)  = {expr}"</span>);   <span class="hl-comment">// x^2 + 2x + 1</span>
+    <span class="hl-macro">println!</span>(<span class="hl-string">"f'(x) = {d}"</span>);      <span class="hl-comment">// 2x + 2</span>
 }</code></pre>
         </div>
-        <button class="copy-btn" data-copy-target="symbolic.rs" aria-label="Copy symbolic example">Copy</button>
+        <button type="button" class="copy-btn" data-copy-target="tab-symbolic">Copy</button>
       </div>
-      <p class="tab-caption">Symbolic differentiation, simplification, and LaTeX output from <code>mathverse-symbolic</code>.</p>
+      <p class="tab-caption">Symbolic expression trees with an <code>Expr</code> enum, analytic first/nth/partial differentiation, simplification, and LaTeX rendering. Crate: <code>mathverse-symbolic</code></p>
     </div>
 
-    <div class="tab-panel" role="tabpanel" id="panel-fft" aria-labelledby="tab-fft" aria-hidden="true">
+    <div class="tab-panel" id="tab-transforms" role="tabpanel" aria-hidden="true" data-tabpanel="tab-transforms">
       <div class="code-wrap">
         <div class="code-panel">
-          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">fft.rs</span></div>
-          <pre class="rust"><code>use mathverse_transforms::fft;
+          <div class="panel-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title">mathverse-transforms &middot; FFT round-trip</span></div>
+          <pre><code><span class="hl-keyword">use</span> mathverse_transforms::{fft, ifft, dct2};
+<span class="hl-keyword">use</span> mathverse_complex::Complex;
 
-fn main() {
-    let n = 1024;
-    let signal: Vec<f64> = (0..n)
-        .map(|i| (2.0 * std::f64::consts::PI * 50.0 * i as f64 / n as f64).sin())
+<span class="hl-keyword">fn</span> main() {
+    <span class="hl-comment">// One period of a sine wave, 8 samples</span>
+    <span class="hl-keyword">let</span> signal: Vec&lt;Complex&gt; = (<span class="hl-number">0</span>..<span class="hl-number">8</span>)
+        .map(|i| Complex::real((<span class="hl-number">2.0</span> * std::f64::consts::PI * i <span class="hl-keyword">as</span> f64 / <span class="hl-number">8.0</span>).sin()))
         .collect();
 
-    let spectrum = fft::rfft(&signal);
-    let peak = spectrum.argmax();
-    println!("dominant bin: {peak}");   // -> 50 Hz tone
+    <span class="hl-keyword">let</span> spectrum = fft(&amp;signal).unwrap();     <span class="hl-comment">// O(n log n) radix-2</span>
+    <span class="hl-keyword">let</span> recovered = ifft(&amp;spectrum).unwrap(); <span class="hl-comment">// exact round-trip</span>
+
+    <span class="hl-keyword">let</span> error = signal.iter().zip(&amp;recovered)
+        .map(|(a, b)| (*a - *b).norm())
+        .fold(<span class="hl-number">0.0</span>, f64::max);
+
+    <span class="hl-keyword">let</span> coeffs = dct2(&amp;[<span class="hl-number">1.0</span>, <span class="hl-number">2.0</span>, <span class="hl-number">3.0</span>, <span class="hl-number">4.0</span>, <span class="hl-number">5.0</span>, <span class="hl-number">6.0</span>, <span class="hl-number">7.0</span>, <span class="hl-number">8.0</span>]);
+
+    <span class="hl-macro">println!</span>(<span class="hl-string">"roundtrip error: {:.2e}"</span>, error); <span class="hl-comment">// &asymp; 0</span>
+    <span class="hl-macro">println!</span>(<span class="hl-string">"dct2: {:?}"</span>, coeffs);
 }</code></pre>
         </div>
-        <button class="copy-btn" data-copy-target="fft.rs" aria-label="Copy transforms example">Copy</button>
+        <button type="button" class="copy-btn" data-copy-target="tab-transforms">Copy</button>
       </div>
-      <p class="tab-caption">Real FFT and peak detection with <code>mathverse-transforms</code>.</p>
+      <p class="tab-caption">FFT/DFT on <code>mathverse_complex::Complex</code> values, DCT and DST families, Haar wavelets, Goertzel detection, plus Hough and Radon. Crate: <code>mathverse-transforms</code></p>
     </div>
   </div>
 </section>
-
-<!-- Crate explorer -->
-<section class="section" id="crates" aria-labelledby="crates-h">
+<section class="section" id="crates">
   <div class="section-inner">
-    <p class="eyebrow">Crate explorer</p>
-    <h2 id="crates-h">31 crates, one ecosystem</h2>
-    <p class="lede">Search and filter the workspace. Click any card's command to copy <code>cargo add</code> for that crate.</p>
+    <p class="eyebrow">Crate catalog</p>
+    <h2>26 published crates</h2>
+    <p class="lede">Every crate below is live on crates.io today. Search by name or domain, or filter by category &mdash; each card lists what the crate actually provides.</p>
+
     <div class="explorer-tools">
       <div class="search-box">
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="#94A3B8" stroke-width="1.8"/><line x1="11" y1="11" x2="14.5" y2="14.5" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <label for="crate-search" style="position:absolute;left:-9999px">Filter crates by name or description</label>
-        <input id="crate-search" type="search" placeholder="Filter crates by name or description...">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#94A3B8" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="crateSearch" placeholder="Search crates &mdash; try &ldquo;fft&rdquo;, &ldquo;tensor&rdquo;, &ldquo;primes&rdquo;&hellip;" aria-label="Search crates">
       </div>
-      <div class="chips" id="crate-chips" role="group" aria-label="Filter by category"></div>
+      <div class="chips" id="catChips" role="group" aria-label="Filter by category">
+        <button type="button" class="chip-btn" aria-pressed="true" data-cat="all">All</button>
+        <button type="button" class="chip-btn" aria-pressed="false" data-cat="core">Core &amp; Arithmetic</button>
+        <button type="button" class="chip-btn" aria-pressed="false" data-cat="geometry">Geometry &amp; Vectors</button>
+        <button type="button" class="chip-btn" aria-pressed="false" data-cat="linalg">Linear Algebra</button>
+        <button type="button" class="chip-btn" aria-pressed="false" data-cat="analysis">Analysis &amp; Calculus</button>
+        <button type="button" class="chip-btn" aria-pressed="false" data-cat="discrete">Discrete &amp; Combinatorics</button>
+        <button type="button" class="chip-btn" aria-pressed="false" data-cat="stats">Probability &amp; Statistics</button>
+        <button type="button" class="chip-btn" aria-pressed="false" data-cat="ml">Data &amp; ML</button>
+        <button type="button" class="chip-btn" aria-pressed="false" data-cat="applied">Applied &amp; Transforms</button>
+      </div>
     </div>
-    <p class="crate-count" aria-live="polite"><strong id="crate-count-num">31</strong> of 31 crates shown</p>
-    <div class="crate-grid" id="crate-grid"></div>
+    <p class="crate-count" id="crateCount" role="status" aria-live="polite">Showing <strong>26</strong> of 26 published crates</p>
+
+    <div class="crate-grid" id="crateGrid">
+
+      <article class="crate-card" data-cat="core" data-search="mathverse-core numerics traits constants no_std number theory gcd primes factorial combinatorics prelude">
+        <div class="crate-head"><span class="crate-name">mathverse-core</span><span class="badge">0.1.2</span></div>
+        <div class="crate-meta"><span class="cat-chip">Core &amp; Arithmetic</span><span class="crate-links"><a href="https://docs.rs/mathverse-core">docs.rs</a><a href="https://crates.io/crates/mathverse-core">crates.io</a></span></div>
+        <p>The zero-dependency foundation: numeric traits, constants, and number theory shared by every MathVerse crate.</p>
+        <ul class="crate-inside">
+          <li>Generic traits <code>Num &rarr; Signed &rarr; Field &rarr; Real</code> for f32/f64</li>
+          <li>50+ constants; GCD/LCM, primes, factorials, Fibonacci, Bell</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-core">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="core" data-search="mathverse-arithmetic fractions rational complex scientific notation special functions gamma beta erf bessel zeta lambert w approximation pade taylor finance rounding">
+        <div class="crate-head"><span class="crate-name">mathverse-arithmetic</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Core &amp; Arithmetic</span><span class="crate-links"><a href="https://docs.rs/mathverse-arithmetic">docs.rs</a><a href="https://crates.io/crates/mathverse-arithmetic">crates.io</a></span></div>
+        <p>Fractions, scientific notation, special functions, and financial helpers.</p>
+        <ul class="crate-inside">
+          <li><code>Complex&lt;f64&gt;</code>, <code>Rational</code>, continued fractions, Gamma/Bessel/Zeta/Lambert W</li>
+          <li>Taylor/Pad&eacute;/minimax approximation, banker&rsquo;s rounding, FV/PV helpers</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-arithmetic">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="core" data-search="mathverse-algebra polynomial roots quadratic cubic quartic cardano ferrari factorization partial fractions lagrange interpolation galois latex">
+        <div class="crate-head"><span class="crate-name">mathverse-algebra</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Core &amp; Arithmetic</span><span class="crate-links"><a href="https://docs.rs/mathverse-algebra">docs.rs</a><a href="https://crates.io/crates/mathverse-algebra">crates.io</a></span></div>
+        <p>Polynomials, root finding through quartic, factorization, and LaTeX output.</p>
+        <ul class="crate-inside">
+          <li><code>Polynomial&lt;T&gt;</code> with linear&rarr;quartic solvers (Cardano, Ferrari)</li>
+          <li>Partial fractions, Lagrange interpolation, Galois solvability checks</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-algebra">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="core" data-search="mathverse-trigonometry sin cos tan hyperbolic degrees radians gradians turns identities polar spherical cylindrical haversine">
+        <div class="crate-head"><span class="crate-name">mathverse-trigonometry</span><span class="badge">0.2.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Core &amp; Arithmetic</span><span class="crate-links"><a href="https://docs.rs/mathverse-trigonometry">docs.rs</a><a href="https://crates.io/crates/mathverse-trigonometry">crates.io</a></span></div>
+        <p>Circular and hyperbolic functions with degree variants, identities, and coordinate conversions.</p>
+        <ul class="crate-inside">
+          <li>Radians/degrees/gradians/turns, polar and spherical coordinates</li>
+          <li>Identity simplification, laws of sines/cosines, haversine; <code>exact</code> and <code>batched</code> features</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-trigonometry">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="geometry" data-search="mathverse-geometry shapes 2d 3d circle triangle rectangle polygon ellipse sphere cube cylinder cone quadtree octree aabb bezier collision ray triangle sat gjk convex hull">
+        <div class="crate-head"><span class="crate-name">mathverse-geometry</span><span class="badge">0.1.2</span></div>
+        <div class="crate-meta"><span class="cat-chip">Geometry &amp; Vectors</span><span class="crate-links"><a href="https://docs.rs/mathverse-geometry">docs.rs</a><a href="https://crates.io/crates/mathverse-geometry">crates.io</a></span></div>
+        <p>2D/3D shapes, spatial indexes, and collision primitives.</p>
+        <ul class="crate-inside">
+          <li>Area/perimeter/centroid/contains for shapes; arcs, sectors, B&eacute;zier curves</li>
+          <li>AABB/OBB, quadtree/octree, ray&ndash;triangle (M&ouml;ller&ndash;Trumbore), SAT, GJK</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-geometry">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="geometry" data-search="mathverse-vector dot cross norm distance hadamard outer gram schmidt mahalanobis cosine simd ray parallel">
+        <div class="crate-head"><span class="crate-name">mathverse-vector</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Geometry &amp; Vectors</span><span class="crate-links"><a href="https://docs.rs/mathverse-vector">docs.rs</a><a href="https://crates.io/crates/mathverse-vector">crates.io</a></span></div>
+        <p>Small-vector arithmetic with norms, statistics, and distances.</p>
+        <ul class="crate-inside">
+          <li>Dot/cross/Hadamard/outer products; l1, l2, linfinite, lp norms</li>
+          <li>Euclidean/Manhattan/Chebyshev/cosine/Mahalanobis distances</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-vector">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="linalg" data-search="mathverse-matrix lu qr cholesky svd schur eigenvalue matrix exponential logarithm sqrt sine cosine sparse coo csr csc gauss seidel sor cg gmres least squares pseudoinverse sylvester lyapunov riccati toeplitz">
+        <div class="crate-head"><span class="crate-name">mathverse-matrix</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Linear Algebra</span><span class="crate-links"><a href="https://docs.rs/mathverse-matrix">docs.rs</a><a href="https://crates.io/crates/mathverse-matrix">crates.io</a></span></div>
+        <p>Dense and sparse matrices with full decomposition and matrix-function support.</p>
+        <ul class="crate-inside">
+          <li>LU/QR/Cholesky/SVD/Schur, eigenvalues, matrix exp/log/sqrt/sin/cos</li>
+          <li>COO/CSR/CSC sparse, CG/GMRES, least squares, Sylvester/Riccati</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-matrix">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="linalg" data-search="mathverse-linear-algebra solve gauss lu qr cramer cholesky power iteration norms singular values condition number least squares functional">
+        <div class="crate-head"><span class="crate-name">mathverse-linear-algebra</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Linear Algebra</span><span class="crate-links"><a href="https://docs.rs/mathverse-linear-algebra">docs.rs</a><a href="https://crates.io/crates/mathverse-linear-algebra">crates.io</a></span></div>
+        <p>Functional linear algebra on <code>Vec&lt;Vec&lt;f64&gt;&gt;</code>: solves, norms, and decompositions.</p>
+        <ul class="crate-inside">
+          <li><code>solve_gauss</code>, <code>solve_lu</code>, <code>solve_qr</code>, Cramer 2&times;2 and 3&times;3</li>
+          <li>LU/QR/Cholesky, spectral norms, singular values, condition number</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-linear-algebra">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="analysis" data-search="mathverse-calculus derivative integrate integral ode rk4 runge kutta root finding newton raphson gradient divergence curl laplacian jacobian hessian simpson gaussian quadrature">
+        <div class="crate-head"><span class="crate-name">mathverse-calculus</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Analysis &amp; Calculus</span><span class="crate-links"><a href="https://docs.rs/mathverse-calculus">docs.rs</a><a href="https://crates.io/crates/mathverse-calculus">crates.io</a></span></div>
+        <p>Numerical differentiation, integration, ODEs, and root finding from closures.</p>
+        <ul class="crate-inside">
+          <li>First/second/nth derivatives, partials; gradient, divergence, curl, Laplacian</li>
+          <li>Simpson and Gaussian quadrature; RK4 for scalar and system ODEs</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-calculus">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="analysis" data-search="mathverse-complex complex numbers polar principal roots transcendental contour integration residues laurent conformal mapping cauchy riemann gamma zeta bessel airy fresnel matrix">
+        <div class="crate-head"><span class="crate-name">mathverse-complex</span><span class="badge">0.1.2</span></div>
+        <div class="crate-meta"><span class="cat-chip">Analysis &amp; Calculus</span><span class="crate-links"><a href="https://docs.rs/mathverse-complex">docs.rs</a><a href="https://crates.io/crates/mathverse-complex">crates.io</a></span></div>
+        <p>Complex arithmetic and analysis with full transcendental coverage.</p>
+        <ul class="crate-inside">
+          <li>Polar form, principal roots, transcendental functions</li>
+          <li>Residues, contour integration, conformal mappings, complex matrix ops</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-complex">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="analysis" data-search="mathverse-special gamma log gamma digamma beta erf erfc bessel zeta special functions">
+        <div class="crate-head"><span class="crate-name">mathverse-special</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Analysis &amp; Calculus</span><span class="crate-links"><a href="https://docs.rs/mathverse-special">docs.rs</a><a href="https://crates.io/crates/mathverse-special">crates.io</a></span></div>
+        <p>Special functions: gamma, error, Bessel, and zeta.</p>
+        <ul class="crate-inside">
+          <li><code>gamma</code>, <code>log_gamma</code>, <code>digamma</code>, <code>beta</code>, <code>erf</code>/<code>erfc</code></li>
+          <li>Bessel J/Y/I/K, <code>zeta(s, terms)</code> with explicit series length</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-special">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="analysis" data-search="mathverse-numerical root finding bisection newton secant brent muller halley householder steffensen fixed point ode rk4 rkf45 dormand prince adams bashforth backward euler crank nicolson stiff interpolation cubic spline hermite barycentric rbf chebyshev optimization gradient descent bfgs simulated annealing genetic nelder mead particle swarm quadrature gauss legendre romberg monte carlo jacobi gauss seidel sor gmres lanczos">
+        <div class="crate-head"><span class="crate-name">mathverse-numerical</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Analysis &amp; Calculus</span><span class="crate-links"><a href="https://docs.rs/mathverse-numerical">docs.rs</a><a href="https://crates.io/crates/mathverse-numerical">crates.io</a></span></div>
+        <p>The workhorse toolbox: 12 root finders, 6 ODE solvers, 9 quadrature rules.</p>
+        <ul class="crate-inside">
+          <li><code>RKF45</code>, <code>DormandPrince</code>, <code>BackwardEuler</code>, <code>CrankNicolson</code> for stiff systems</li>
+          <li>Cubic splines, BFGS, CG/GMRES, power/QR/Lanczos eigenvalues</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-numerical">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="discrete" data-search="mathverse-number-theory primes sieve nth prime twin goldbach factorization divisors mobius modular exponent inverse crt chinese remainder euler phi carmichael primitive roots legendre jacobi tonelli shanks diophantine pell continued fractions">
+        <div class="crate-head"><span class="crate-name">mathverse-number-theory</span><span class="badge">0.1.2</span></div>
+        <div class="crate-meta"><span class="cat-chip">Discrete &amp; Combinatorics</span><span class="crate-links"><a href="https://docs.rs/mathverse-number-theory">docs.rs</a><a href="https://crates.io/crates/mathverse-number-theory">crates.io</a></span></div>
+        <p>Primes, factorization, modular arithmetic, and Diophantine equations.</p>
+        <ul class="crate-inside">
+          <li>Sieves, nth prime, twin primes, Goldbach partitions</li>
+          <li>CRT, Euler/Carmichael totients, Tonelli&ndash;Shanks, Pell equations</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-number-theory">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="discrete" data-search="mathverse-combinatorics combinations permutations catalan stirling bell derangements partitions subsets cartesian products inclusion exclusion birthday coupon collector factorials fibonacci lucas collatz">
+        <div class="crate-head"><span class="crate-name">mathverse-combinatorics</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Discrete &amp; Combinatorics</span><span class="crate-links"><a href="https://docs.rs/mathverse-combinatorics">docs.rs</a><a href="https://crates.io/crates/mathverse-combinatorics">crates.io</a></span></div>
+        <p>Counting, sequences, partitions, and Stirling numbers.</p>
+        <ul class="crate-inside">
+          <li>Combinations/permutations, Fibonacci/Lucas/Catalan/Collatz</li>
+          <li>Partitions, Bell/Stirling/derangements, inclusion&ndash;exclusion</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-combinatorics">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="discrete" data-search="mathverse-graph bfs dfs shortest path dijkstra bellman ford floyd warshall prim kruskal topological sort scc tarjan cycle detection connectivity">
+        <div class="crate-head"><span class="crate-name">mathverse-graph</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Discrete &amp; Combinatorics</span><span class="crate-links"><a href="https://docs.rs/mathverse-graph">docs.rs</a><a href="https://crates.io/crates/mathverse-graph">crates.io</a></span></div>
+        <p>Graph algorithms: search, shortest paths, and connectivity.</p>
+        <ul class="crate-inside">
+          <li>BFS/DFS, cycle detection, connected components</li>
+          <li>Dijkstra, Bellman&ndash;Ford, Floyd&ndash;Warshall, Prim/Kruskal, Tarjan SCC</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-graph">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="stats" data-search="mathverse-probability distributions normal binomial poisson bayesian conjugate priors hmc mcmc metropolis gibbs brownian poisson process gaussian process ornstein uhlenbeck sampling rejection importance stratified bootstrap latin hypercube quc information entropy kl divergence mutual information queueing m/m/1 extreme value gev gumbel frechet hypothesis testing sprt mle">
+        <div class="crate-head"><span class="crate-name">mathverse-probability</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Probability &amp; Statistics</span><span class="crate-links"><a href="https://docs.rs/mathverse-probability">docs.rs</a><a href="https://crates.io/crates/mathverse-probability">crates.io</a></span></div>
+        <p>Distributions, Bayesian inference, sampling, and stochastic processes.</p>
+        <ul class="crate-inside">
+          <li>20+ distributions with PMF/PDF/CDF and sampling</li>
+          <li>HMM, MCMC, Brownian/Poisson processes, M/M/c queues, SPRT</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-probability">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="stats" data-search="mathverse-statistics mean median mode variance skew kurtosis percentiles hypothesis t-test anova chi-squared mann whitney wilcoxon regression ols polynomial logistic pca covariance bootstrap cohen d">
+        <div class="crate-head"><span class="crate-name">mathverse-statistics</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Probability &amp; Statistics</span><span class="crate-links"><a href="https://docs.rs/mathverse-statistics">docs.rs</a><a href="https://crates.io/crates/mathverse-statistics">crates.io</a></span></div>
+        <p>Descriptive statistics, hypothesis tests, and regression.</p>
+        <ul class="crate-inside">
+          <li>Mean/median/skew/kurtosis, percentiles, Normal/t/&chi;&sup2; distributions</li>
+          <li>t/F/&chi;&sup2; tests, ANOVA, OLS/polynomial/logistic regression, PCA</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-statistics">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="ml" data-search="mathverse-ai tensor broadcasting matmul layer norm activations relu gelu sigmoid softmax swish mish losses mse cross entropy metrics accuracy precision recall f1 roc auc optimizers sgd adam adamw schedulers attention multi head rope positional encoding transformer">
+        <div class="crate-head"><span class="crate-name">mathverse-ai</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Data &amp; ML</span><span class="crate-links"><a href="https://docs.rs/mathverse-ai">docs.rs</a><a href="https://crates.io/crates/mathverse-ai">crates.io</a></span></div>
+        <p>Tensors, activations, losses, optimizers, and attention.</p>
+        <ul class="crate-inside">
+          <li>N-D <code>Tensor</code> with broadcasting, matmul, layer norm</li>
+          <li>Adam/AdamW/Sgd, multi-head attention, RoPE, TransformerBlock</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-ai">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="ml" data-search="mathverse-machine-learning linear regression ridge lasso logistic knn naive bayes decision tree random forest gradient boosting xgboost k means dbscan agglomerative gmm isolation forest pca gaussian process cross validation metrics mcc">
+        <div class="crate-head"><span class="crate-name">mathverse-machine-learning</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Data &amp; ML</span><span class="crate-links"><a href="https://docs.rs/mathverse-machine-learning">docs.rs</a><a href="https://crates.io/crates/mathverse-machine-learning">crates.io</a></span></div>
+        <p>Classical ML: linear models, trees, ensembles, and clustering.</p>
+        <ul class="crate-inside">
+          <li>OLS/Ridge/Lasso, logistic regression, KNN, naive Bayes</li>
+          <li>Random forest, gradient boosting, K-means, DBSCAN, PCA</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-machine-learning">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="ml" data-search="mathverse-vision camera pinhole project unproject homography fundamental matrix epipolar harris corners lucas kanade optical flow convolve gaussian blur computer vision">
+        <div class="crate-head"><span class="crate-name">mathverse-vision</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Data &amp; ML</span><span class="crate-links"><a href="https://docs.rs/mathverse-vision">docs.rs</a><a href="https://crates.io/crates/mathverse-vision">crates.io</a></span></div>
+        <p>Camera models, geometry, and feature tracking.</p>
+        <ul class="crate-inside">
+          <li>Pinhole <code>Camera::project</code>/<code>unproject</code>, homography via DLT</li>
+          <li>Fundamental matrices, Harris corners, Lucas&ndash;Kanade flow</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-vision">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="applied" data-search="mathverse-transforms fft ifft dft dct dst haar wavelet goertzel hough radon sinogram convolution cross correlation power spectrum fourier signal">
+        <div class="crate-head"><span class="crate-name">mathverse-transforms</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Applied &amp; Transforms</span><span class="crate-links"><a href="https://docs.rs/mathverse-transforms">docs.rs</a><a href="https://crates.io/crates/mathverse-transforms">crates.io</a></span></div>
+        <p>FFT, DCT/DST, wavelets, and detection transforms.</p>
+        <ul class="crate-inside">
+          <li>Radix-2 FFT/IFFT, power spectrum, convolution, correlation</li>
+          <li>Haar DWT, Goertzel detection, Hough lines/circles, Radon sinograms</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-transforms">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="applied" data-search="mathverse-image grayscale convolution gaussian blur sharpen sobel canny edge detection threshold morphology erode dilate flip rotate resize png jpeg bmp image processing">
+        <div class="crate-head"><span class="crate-name">mathverse-image</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Applied &amp; Transforms</span><span class="crate-links"><a href="https://docs.rs/mathverse-image">docs.rs</a><a href="https://crates.io/crates/mathverse-image">crates.io</a></span></div>
+        <p>Small image processing: filters, edges, morphology, and I/O.</p>
+        <ul class="crate-inside">
+          <li>Gaussian blur, Sobel + Canny edge detection</li>
+          <li>Thresholding, erode/dilate, PNG/JPEG/BMP I/O</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-image">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="applied" data-search="mathverse-finance future value present value annuity npv irr roi cagr sharpe sortino treynor max drawdown var cvar black scholes greeks delta gamma theta vega rho binomial efficient frontier portfolio">
+        <div class="crate-head"><span class="crate-name">mathverse-finance</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Applied &amp; Transforms</span><span class="crate-links"><a href="https://docs.rs/mathverse-finance">docs.rs</a><a href="https://crates.io/crates/mathverse-finance">crates.io</a></span></div>
+        <p>Time value of money, risk metrics, and option pricing.</p>
+        <ul class="crate-inside">
+          <li>FV/PV/annuities/NPV/IRR; ROI, CAGR, Sharpe, max drawdown</li>
+          <li>VaR/CVaR, Black&ndash;Scholes with Greeks, efficient frontier</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-finance">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="applied" data-search="mathverse-symbolic symbolic expression expr differentiate derivative simplify latex pretty print algebra cas">
+        <div class="crate-head"><span class="crate-name">mathverse-symbolic</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Applied &amp; Transforms</span><span class="crate-links"><a href="https://docs.rs/mathverse-symbolic">docs.rs</a><a href="https://crates.io/crates/mathverse-symbolic">crates.io</a></span></div>
+        <p>Symbolic expressions: build, differentiate, simplify, render LaTeX.</p>
+        <ul class="crate-inside">
+          <li><code>Expr</code> trees with arithmetic and trig operators</li>
+          <li>First/nth/partial derivatives, simplification, LaTeX output</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-symbolic">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="applied" data-search="mathverse-units si units dimensions quantity dimensional analysis typenum meter kilogram second ampere kelvin mole candela newton joule watt pascal hertz celsius fahrenheit conversions">
+        <div class="crate-head"><span class="crate-name">mathverse-units</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Applied &amp; Transforms</span><span class="crate-links"><a href="https://docs.rs/mathverse-units">docs.rs</a><a href="https://crates.io/crates/mathverse-units">crates.io</a></span></div>
+        <p>Type-safe SI units with compile-time dimensional analysis.</p>
+        <ul class="crate-inside">
+          <li><code>Quantity&lt;D, U&gt;</code> over typenum dimensions</li>
+          <li>12 SI unit markers, 20+ conversion constants</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-units">cargo add</button>
+      </article>
+
+      <article class="crate-card" data-cat="applied" data-search="mathverse-optimization gradient descent sgd adam rmsprop adagrad nadam newton bfgs conjugate gradient constrained lagrangian penalty augmented simplex linear programming simulated annealing genetic algorithm particle swarm line search wolfe">
+        <div class="crate-head"><span class="crate-name">mathverse-optimization</span><span class="badge">0.1.1</span></div>
+        <div class="crate-meta"><span class="cat-chip">Applied &amp; Transforms</span><span class="crate-links"><a href="https://docs.rs/mathverse-optimization">docs.rs</a><a href="https://crates.io/crates/mathverse-optimization">crates.io</a></span></div>
+        <p>Unconstrained, constrained, and combinatorial optimization.</p>
+        <ul class="crate-inside">
+          <li>Gradient descent/SGD/Adam, BFGS, conjugate gradient</li>
+          <li>Penalty/augmented Lagrangian, annealing/genetic/PSO, simplex LP</li>
+        </ul>
+        <button type="button" class="btn-add" data-copy="cargo add mathverse-optimization">cargo add</button>
+      </article>
+
+    </div>
   </div>
 </section>
-
-<!-- Installation -->
-<section class="section" id="install" style="background:#F8FAFC;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)" aria-labelledby="install-h">
+<section class="section" id="install">
   <div class="section-inner">
     <p class="eyebrow">Installation</p>
-    <h2 id="install-h">Three ways to add MathVerse</h2>
-    <p class="lede">Add the umbrella crate for everything, add a single domain crate for a lean dependency tree, or run the shipped examples directly from the workspace.</p>
+    <h2>Add what you need</h2>
+    <p class="lede">Every crate is a normal crates.io dependency. Start with the core, or go straight to the domain you care about.</p>
+
     <div class="install-grid">
       <div class="install-card">
-        <h3>1. Everything</h3>
-        <p>Pulls in the full library and re-exports every module through <code>mathverse-prelude</code>. Best for prototyping and REPL-style exploration.</p>
-        <pre><code>cargo add mathverse</code></pre>
+        <h3>Start with the core</h3>
+        <p>Traits, constants, and number theory &mdash; the foundation every MathVerse crate builds on.</p>
+        <pre><code>cargo add mathverse-core</code></pre>
       </div>
       <div class="install-card">
-        <h3>2. Individual crates</h3>
-        <p>Each domain crate stands alone. The workspace has no binary crates — all features are library APIs, so the crate you add is exactly what you compile.</p>
-        <pre><code>cargo add mathverse-linear-algebra
-cargo add mathverse-symbolic</code></pre>
+        <h3>Add what you need</h3>
+        <p>Multiple crates in one command. Each stays independent, so your dependency tree only carries what you use.</p>
+        <pre><code>cargo add mathverse-matrix mathverse-ai</code></pre>
       </div>
       <div class="install-card">
-        <h3>3. Run the examples</h3>
-        <p>Every crate ships runnable examples under <code>crates/mathverse-*/examples</code>. Build them optimized for a real feel of the API.</p>
-        <pre><code>cargo run --example &lt;name&gt; --release</code></pre>
+        <h3>No features to think about</h3>
+        <p><code>std</code> is on by default and most crates have no optional features at all. For no_std targets, drop it:</p>
+        <pre><code>mathverse-core = { version = "0.1",
+  default-features = false }</code></pre>
       </div>
     </div>
-    <p class="note"><strong>MSRV:</strong> MathVerse requires <strong>Rust 1.87 or newer</strong> (workspace <code>rust-version</code>). Most crates also compile <code>no_std</code> with <code>libm</code> where applicable.</p>
+
+    <div class="note">
+      <strong><code>cargo add mathverse</code> will not work.</strong> There is no umbrella crate &mdash; the workspace publishes one crate per domain, so add the crates you actually use from <a href="#crates">the list above</a>.
+    </div>
+
+    <div class="note not-pub">
+      <strong>Not yet published:</strong> <code>mathverse-equations</code>, <code>mathverse-graphics</code>, <code>mathverse-physics</code>, <code>mathverse-plot</code>, <code>mathverse-prelude</code>, and <code>mathverse-signal</code> are part of the workspace and will reach crates.io in a future release.
+    </div>
   </div>
 </section>
-
-<!-- Learn & docs -->
-<section class="section" id="learn" aria-labelledby="learn-h">
+<section class="section" id="learn">
   <div class="section-inner">
-    <p class="eyebrow">Learn &amp; docs</p>
-    <h2 id="learn-h">Guides, plans, and API conventions</h2>
-    <p class="lede">The repository ships engineering documentation alongside the code — architecture decisions, API guidelines, and the phase-wise plan behind the workspace.</p>
+    <p class="eyebrow">Learn</p>
+    <h2>Project docs</h2>
+    <p class="lede">The workspace is documented in plain Markdown, next to the code. Start with the architecture and feature inventory.</p>
+
     <div class="docs-grid">
-      <a class="doc-link" href="ROADMAP.md"><span class="d-name">ROADMAP.md</span><span class="d-sub">What is planned and where the ecosystem is heading.</span></a>
-      <a class="doc-link" href="ARCHITECTURE.md"><span class="d-name">ARCHITECTURE.md</span><span class="d-sub">Crate layout, dependencies, and design rationale.</span></a>
-      <a class="doc-link" href="API-GUIDELINES.md"><span class="d-name">API-GUIDELINES.md</span><span class="d-sub">Naming, error types, and public-API conventions.</span></a>
-      <a class="doc-link" href="MSRV.md"><span class="d-name">MSRV.md</span><span class="d-sub">Minimum supported Rust version policy and testing.</span></a>
-      <a class="doc-link" href="PHASEWISE-PLAN.md"><span class="d-name">PHASEWISE-PLAN.md</span><span class="d-sub">Delivery phases and crate rollout order.</span></a>
-      <a class="doc-link" href="CORE-PLAN.md"><span class="d-name">CORE-PLAN.md</span><span class="d-sub">The core crate's scope and stability guarantees.</span></a>
-      <a class="doc-link" href="FEATURES.md"><span class="d-name">FEATURES.md</span><span class="d-sub">Feature inventory across the 31 crates.</span></a>
+      <a class="doc-link" href="ARCHITECTURE.md">
+        <span class="d-name">ARCHITECTURE.md</span>
+        <span class="d-sub">How the workspace is organized &mdash; one core, no circular dependencies.</span>
+      </a>
+      <a class="doc-link" href="FEATURES.md">
+        <span class="d-name">FEATURES.md</span>
+        <span class="d-sub">Domain-by-domain feature inventory across all 32 crates.</span>
+      </a>
+      <a class="doc-link" href="API-GUIDELINES.md">
+        <span class="d-name">API-GUIDELINES.md</span>
+        <span class="d-sub">The conventions every public function follows.</span>
+      </a>
+      <a class="doc-link" href="CORE-PLAN.md">
+        <span class="d-name">CORE-PLAN.md</span>
+        <span class="d-sub">What mathverse-core provides &mdash; and what it deliberately stays out of.</span>
+      </a>
+      <a class="doc-link" href="PHASEWISE-PLAN.md">
+        <span class="d-name">PHASEWISE-PLAN.md</span>
+        <span class="d-sub">How the workspace grew, phase by phase.</span>
+      </a>
+      <a class="doc-link" href="ROADMAP.md">
+        <span class="d-name">ROADMAP.md</span>
+        <span class="d-sub">Where the ecosystem is heading next.</span>
+      </a>
+      <a class="doc-link" href="MSRV.md">
+        <span class="d-name">MSRV.md</span>
+        <span class="d-sub">Minimum supported Rust version policy (Rust 1.87+).</span>
+      </a>
     </div>
-    <p class="testing-note">The workspace runs a full test suite for every crate — <code>cargo test --workspace</code> from the repository root verifies the whole ecosystem in one pass.</p>
-    <div class="contribute-cta" id="contribute">
+
+    <div class="testing-note">
+      <strong>Written for correctness.</strong> Every public function in the workspace has a doctest example; numerical crates add property-based tests (<code>proptest</code>) and benchmark suites (<code>criterion</code>). If a function lacks an example, that&rsquo;s a bug.
+    </div>
+
+    <div class="contribute-cta">
       <div>
-        <h3>Contribute</h3>
-        <p>MathVerse is open source. Read the contributing guide, pick a crate, and open a pull request.</p>
+        <h3>Build with MathVerse</h3>
+        <p>Pick a crate above and open its docs.rs page &mdash; every function ships with a runnable example.</p>
       </div>
-      <a class="btn" href="https://github.com/Rohithdgrr/Rust-math/blob/master/CONTRIBUTING.md">Read CONTRIBUTING.md</a>
+      <a class="btn" href="#crates">Browse the crates</a>
     </div>
   </div>
 </section>
 </main>
-
 <footer>
   <div class="foot-inner">
-    <a class="logo" href="#top" aria-label="Back to top, MathVerse home">
-      <svg width="22" height="22" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="2" width="22" height="22" rx="6" fill="none" stroke="#CE422B" stroke-width="2"/><path d="M8 18 L13 8 L18 18" fill="none" stroke="#E2E8F0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.2 14.4 H15.8" stroke="#E2E8F0" stroke-width="2" stroke-linecap="round"/></svg>
-      MathVerse
-    </a>
-    <p class="foot-note">Made for the Rust numerics community.<br>v0.1.x workspace &middot; MSRV Rust 1.87 &middot; MIT or Apache-2.0</p>
-    <a class="back-top" href="#top">Back to top &uarr;</a>
+    <span class="logo">MathVerse</span>
+    <p class="foot-note">26 crates published on <a href="https://crates.io">crates.io</a> &middot; MIT and MIT OR Apache-2.0 licensed &middot; <a href="https://github.com/Rohithdgrr/Rust-math">GitHub</a> &middot; &copy; 2026</p>
+    <a class="back-top" href="#top">Back to top</a>
   </div>
 </footer>
-
 <script>
-(function(){
-  "use strict";
-
-  /* ---------- Crate catalog (authoritative: globbed from crates/) ---------- */
-  var CRATES = [
-    {name:"mathverse-core",          cat:"Core & Utils",     badge:"core",             desc:"Numeric abstraction traits, precision utilities, const-generic fixed-size arrays, no_std-ready constants."},
-    {name:"mathverse-prelude",       cat:"Core & Utils",     badge:"utils",            desc:"Re-exports every crate behind one use mathverse::prelude::*;"},
-    {name:"mathverse-arithmetic",    cat:"Core & Utils",     badge:"utils",            desc:"Basic arithmetic, modulus, powers, roots, percentages, rounding, logarithms."},
-    {name:"mathverse-algebra",       cat:"Linear Algebra",   badge:"Linear Algebra",   desc:"Polynomials, factorization, equation solving, rational expressions, LaTeX output, Galois-flavored solvability."},
-    {name:"mathverse-trigonometry",  cat:"Linear Algebra",   badge:"Linear Algebra",   desc:"Trig, hyperbolic, inverse functions, angle units, triangle laws, batched DSP evaluation, no_std."},
-    {name:"mathverse-geometry",      cat:"Applied",           badge:"Applied",          desc:"2D/3D shapes, area, volume, centroid, projection, collision, distance."},
-    {name:"mathverse-vector",        cat:"Linear Algebra",   badge:"Linear Algebra",   desc:"SIMD/vectorized math primitives for numeric arrays."},
-    {name:"mathverse-matrix",        cat:"Linear Algebra",   badge:"Linear Algebra",   desc:"Dense and sparse matrices: ops, LU/QR/SVD/Cholesky, eigen, solve."},
-    {name:"mathverse-linear-algebra",cat:"Linear Algebra",   badge:"Linear Algebra",   desc:"Matrix, vector, tensor, sparse matrices, LU/QR/SVD/Cholesky, eigendecomposition."},
-    {name:"mathverse-calculus",      cat:"Applied",           badge:"Applied",          desc:"Derivatives, integrals, gradient, curl, divergence, Laplacian, chain rule."},
-    {name:"mathverse-complex",       cat:"Applied",           badge:"Applied",          desc:"Complex arithmetic and functions."},
-    {name:"mathverse-probability",   cat:"Statistics",        badge:"Statistics",       desc:"Distributions (normal, Poisson, beta, chi-square...), Bayes, Markov chains, Monte Carlo."},
-    {name:"mathverse-statistics",    cat:"Statistics",        badge:"Statistics",       desc:"Descriptive stats, t-test, z-test, ANOVA, CI, regression."},
-    {name:"mathverse-number-theory", cat:"Applied",           badge:"Applied",          desc:"Primes, GCD/LCM, modular arithmetic, Euler theorem, RSA helpers."},
-    {name:"mathverse-combinatorics", cat:"Applied",           badge:"Applied",          desc:"Permutations, combinations, combinatorial algorithms."},
-    {name:"mathverse-graph",         cat:"Applied",           badge:"Applied",          desc:"BFS/DFS, shortest paths, connectivity and graph algorithms."},
-    {name:"mathverse-optimization",  cat:"ML & AI",           badge:"ML & AI",          desc:"Gradient descent, SGD, Adam, RMSProp, simulated annealing, genetic algorithms."},
-    {name:"mathverse-numerical",     cat:"Applied Math",      badge:"Applied Math",     desc:"Root finding, Runge-Kutta ODE solvers, interpolation, approximation."},
-    {name:"mathverse-equations",     cat:"Applied Math",      badge:"Applied Math",     desc:"Equation-solving utilities bridging algebra and numerical methods."},
-    {name:"mathverse-transforms",    cat:"Signal & Image",    badge:"Signal & Image",   desc:"FFT, DCT, wavelets."},
-    {name:"mathverse-signal",        cat:"Signal & Image",    badge:"Signal & Image",   desc:"FIR/IIR filters, convolution, correlation, filtering utilities."},
-    {name:"mathverse-image",         cat:"Signal & Image",    badge:"Signal & Image",   desc:"Kernels, Gaussian blur, Sobel/Canny, histogram, morphology, affine/perspective."},
-    {name:"mathverse-vision",        cat:"Signal & Image",    badge:"Signal & Image",   desc:"Camera matrices, homography, epipolar geometry, feature extraction, optical flow."},
-    {name:"mathverse-graphics",      cat:"Applied",           badge:"Applied",          desc:"2D transforms, Bézier curves, quaternions, view/projection matrices, lighting math."},
-    {name:"mathverse-ai",            cat:"ML & AI",           badge:"ML & AI",          desc:"Activations, losses, metrics, tensor ops, optimizers, attention math."},
-    {name:"mathverse-machine-learning",cat:"ML & AI",         badge:"ML & AI",          desc:"Classical machine learning: regression, classification, clustering, ensembles, SVM, XGBoost, Gaussian Process, pipelines."},
-    {name:"mathverse-physics",       cat:"Applied",           badge:"Applied",          desc:"Mechanics, E&M, optics, thermodynamics, fluids, quantum basics, relativity."},
-    {name:"mathverse-finance",       cat:"Finance & Utils",   badge:"Finance & Utils",  desc:"Compounding, loans/EMI, NPV, IRR, Black-Scholes helpers, risk metrics."},
-    {name:"mathverse-symbolic",      cat:"Applied Math",      badge:"Applied Math",     desc:"Expression trees, simplification, symbolic derivatives, LaTeX generation."},
-    {name:"mathverse-units",         cat:"Finance & Utils",   badge:"Finance & Utils",  desc:"SI/imperial units, currency, temperature, compile-time dimensional analysis."},
-    {name:"mathverse-plot",          cat:"Finance & Utils",   badge:"Finance & Utils",  desc:"Plot, scatter, histogram, heatmap; SVG, HTML, terminal charts."}
-  ];
-
-  /* ---------- Helpers ---------- */
-  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-  function copyText(t){
-    if(navigator.clipboard && window.isSecureContext){return navigator.clipboard.writeText(t);}
-    return new Promise(function(res,rej){
-      var ta=document.createElement("textarea");
-      ta.value=t;ta.style.position="fixed";ta.style.opacity="0";
-      document.body.appendChild(ta);ta.focus();ta.select();
-      try{document.execCommand("copy")?res():rej(new Error("copy failed"));}catch(e){rej(e);}
-      ta.remove();
-    });
+(function () {
+  function flashCopied(btn) {
+    var old = btn.textContent;
+    btn.textContent = "Copied";
+    btn.classList.add("copied");
+    setTimeout(function () {
+      btn.classList.remove("copied");
+      btn.textContent = old;
+    }, 1500);
   }
-  function wireCopy(btn){
-    btn.addEventListener("click",function(){
-      var text = btn.getAttribute("data-copy");
-      if(!text){
-        var wrap = btn.closest(".code-wrap") || btn.parentElement;
-        var codeEl = wrap.querySelector("pre.rust code");
-        text = codeEl ? codeEl.textContent : "";
+
+  function copyFallback(btn, text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); flashCopied(btn); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  var copyCode = function (btn, text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { flashCopied(btn); },
+        function () { copyFallback(btn, text); }
+      );
+    } else {
+      copyFallback(btn, text);
+    }
+  };
+
+  document.querySelectorAll("[data-copy]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      copyCode(btn, btn.getAttribute("data-copy"));
+    });
+  });
+
+  document.querySelectorAll("[data-copy-target]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var code = document.getElementById(btn.getAttribute("data-copy-target"));
+      if (code) copyCode(btn, code.querySelector("code").textContent);
+    });
+  });
+
+  var tablist = document.querySelector("[role=tablist]");
+  var tabBtns = Array.prototype.slice.call(document.querySelectorAll(".tab-btn"));
+
+  function activateTab(btn) {
+    tabBtns.forEach(function (b) {
+      b.setAttribute("aria-selected", String(b === btn));
+      b.tabIndex = b === btn ? 0 : -1;
+    });
+    document.querySelectorAll("[data-tabpanel]").forEach(function (p) {
+      p.setAttribute("aria-hidden", String(p.id !== btn.getAttribute("data-tab")));
+    });
+    btn.focus();
+  }
+
+  tabBtns.forEach(function (btn, i) {
+    btn.setAttribute("tabindex", btn.getAttribute("aria-selected") === "true" ? "0" : "-1");
+    btn.addEventListener("click", function () { activateTab(btn); });
+    btn.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        activateTab(tabBtns[(i + 1) % tabBtns.length]);
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        activateTab(tabBtns[(i - 1 + tabBtns.length) % tabBtns.length]);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        activateTab(tabBtns[0]);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        activateTab(tabBtns[tabBtns.length - 1]);
       }
-      copyText(text).then(function(){
-        var old = btn.textContent, oldLabel = btn.getAttribute("aria-label");
-        btn.textContent = "Copied!"; btn.classList.add("copied");
-        btn.setAttribute("aria-label","Copied to clipboard");
-        setTimeout(function(){btn.textContent=old;btn.classList.remove("copied");btn.setAttribute("aria-label",oldLabel);},1600);
-      });
-    });
-  }
-  document.querySelectorAll(".copy-btn").forEach(wireCopy);
-  document.querySelectorAll("[data-copy]").forEach(function(el){
-    if(el.classList.contains("copy-btn"))return;
-    el.addEventListener("click",function(){
-      copyText(el.getAttribute("data-copy")).then(function(){
-        var old=el.textContent;el.textContent="Copied!";el.classList.add("copied");
-        setTimeout(function(){el.textContent=old;el.classList.remove("copied");},1600);
-      });
     });
   });
 
-  /* ---------- Nav ---------- */
-  var toggle=document.getElementById("nav-toggle"), links=document.getElementById("nav-links");
-  toggle.addEventListener("click",function(){
-    var open=links.classList.toggle("open");
-    toggle.setAttribute("aria-expanded",open?"true":"false");
+  var spySections = ["why", "examples", "crates", "install", "learn"];
+  var spyLinks = {};
+
+  var navToggle = document.getElementById("navToggle");
+  var navLinks = document.getElementById("navLinks");
+  navLinks.querySelectorAll("a").forEach(function (a) {
+    var id = a.getAttribute("href").slice(1);
+    if (spySections.indexOf(id) !== -1) spyLinks[id] = a;
   });
-  links.addEventListener("click",function(e){
-    if(e.target.tagName==="A"){links.classList.remove("open");toggle.setAttribute("aria-expanded","false");}
-  });
-  var navAnchors=Array.prototype.slice.call(document.querySelectorAll(".nav-links a"));
-  if("IntersectionObserver" in window){
-    var io=new IntersectionObserver(function(entries){
-      entries.forEach(function(en){
-        if(en.isIntersecting){
-          navAnchors.forEach(function(a){
-            var on=a.getAttribute("href")==="#"+en.target.id;
-            a.classList.toggle("active",on);
-            if(on)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current");
-          });
+  if ("IntersectionObserver" in window) {
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          navLinks.querySelectorAll("a").forEach(function (a) { a.classList.remove("active"); });
+          var link = spyLinks[entry.target.id];
+          if (link) link.classList.add("active");
         }
       });
-    },{rootMargin:"-40% 0px -55% 0px"});
-    ["overview","features","crates","install","learn","contribute"].forEach(function(id){
-      var s=document.getElementById(id);if(s)io.observe(s);
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    spySections.forEach(function (id) {
+      var s = document.getElementById(id);
+      if (s) spy.observe(s);
     });
   }
-
-  /* ---------- Tabs ---------- */
-  var tabs=Array.prototype.slice.call(document.querySelectorAll(".tab-btn"));
-  tabs.forEach(function(btn,i){
-    btn.addEventListener("click",function(){selectTab(i);});
-    btn.addEventListener("keydown",function(e){
-      var idx;
-      if(e.key==="ArrowRight"){idx=(i+1)%tabs.length;}
-      else if(e.key==="ArrowLeft"){idx=(i-1+tabs.length)%tabs.length;}
-      else if(e.key==="Home"){idx=0;}
-      else if(e.key==="End"){idx=tabs.length-1;}
-      else return;
-      e.preventDefault();selectTab(idx);tabs[idx].focus();
+  navToggle.addEventListener("click", function () {
+    var open = navLinks.classList.toggle("open");
+    navToggle.setAttribute("aria-expanded", String(open));
+  });
+  navLinks.querySelectorAll("a").forEach(function (a) {
+    a.addEventListener("click", function () {
+      navLinks.classList.remove("open");
+      navToggle.setAttribute("aria-expanded", "false");
     });
   });
-  function selectTab(i){
-    tabs.forEach(function(b,j){
-      var sel=j===i;
-      b.setAttribute("aria-selected",sel?"true":"false");
-      b.tabIndex=sel?0:-1;
-      var panel=document.getElementById(b.getAttribute("aria-controls"));
-      panel.setAttribute("aria-hidden",sel?"false":"true");
-    });
-  }
-  selectTab(0);
 
-  /* ---------- Rust highlighter (regex-based, self-contained) ---------- */
-  var KW="use|fn|let|mut|match|if|else|for|while|loop|return|pub|mod|struct|enum|impl|trait|type|const|static|unsafe|async|await|move|ref|where|as|in|break|continue|self|super|crate|extern|dyn|union|macro_rules|true|false";
-  var RUST_RE=/(\/\/[^\n]*|\/\*[\s\S]*?\*\/|b?"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])'|'[a-zA-Z_][a-zA-Z0-9_]*|\b0[xX][0-9a-fA-F_]+|\b\d[\d_]*(?:\.[\d_]+)?(?:[eE][+-]?\d+)?|\b(?:'+KW+')\b|\b[A-Z][a-zA-Z0-9]*\b|[a-zA-Z_][a-zA-Z0-9_]*!|#!?\[[^\]]*\])/g;
-  function kind(m){
-    if(/^\/\//.test(m)||/^\/\*/.test(m))return"hl-comment";
-    if(/^"/.test(m))return"hl-string";
-    if(/^'/.test(m))return /^'[a-zA-Z_]/.test(m)?"hl-lifetime":"hl-char";
-    if(/^[0-9]/.test(m)||/^0[xX]/.test(m))return"hl-number";
-    if(/^#/.test(m))return"hl-attr";
-    if(/!$/.test(m))return"hl-macro";
-    if(/^[A-Z]/.test(m))return"hl-type";
-    return"hl-keyword";
-  }
-  function hl(code){
-    var out="",last=0,m,escaped=esc(code);
-    RUST_RE.lastIndex=0;
-    while((m=RUST_RE.exec(escaped))!==null){
-      out+=escaped.slice(last,m.index)+'<span class="'+kind(m[0])+'">'+m[0]+'</span>';
-      last=m.index+m[0].length;
-    }
-    return out+escaped.slice(last);
-  }
-  document.querySelectorAll("pre.rust code").forEach(function(el){
-    el.innerHTML=hl(el.textContent);
-  });
+  var search = document.getElementById("crateSearch");
+  var chips = document.querySelectorAll("#catChips .chip-btn");
+  var cards = document.querySelectorAll("#crateGrid .crate-card");
+  var count = document.getElementById("crateCount");
+  var activeCat = "all";
 
-  /* ---------- Crate explorer ---------- */
-  var grid=document.getElementById("crate-grid");
-  var chipsBox=document.getElementById("crate-chips");
-  var search=document.getElementById("crate-search");
-  var countEl=document.getElementById("crate-count-num");
-  var cats=["Linear Algebra","Applied Math","Applied","Statistics","ML & AI","Signal & Image","Finance & Utils","Core & Utils"];
-  var activeCat="All";
-
-  CRATES.forEach(function(c){
-    var card=document.createElement("article");
-    card.className="crate-card";
-    card.dataset.cat=c.cat;
-    card.dataset.name=c.name;
-    card.innerHTML=
-      '<div class="crate-head"><span class="crate-name">'+esc(c.name)+'</span><span class="badge">'+esc(c.badge)+'</span></div>'+
-      '<p>'+esc(c.desc)+'</p>'+
-      '<button class="btn-add" data-pkg="'+esc(c.name)+'" aria-label="Copy cargo add '+esc(c.name)+' command">cargo add '+esc(c.name)+'</button>';
-    var addBtn=card.querySelector(".btn-add");
-    addBtn.addEventListener("click",function(){
-      copyText("cargo add "+c.name).then(function(){
-        addBtn.textContent="Copied!";addBtn.classList.add("copied");
-        setTimeout(function(){addBtn.textContent="cargo add "+c.name;addBtn.classList.remove("copied");},1600);
+  chips.forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      activeCat = chip.getAttribute("data-cat");
+      chips.forEach(function (c) {
+        c.setAttribute("aria-pressed", String(c === chip));
       });
+      applyFilter();
     });
-    grid.appendChild(card);
   });
 
-  var all=document.createElement("button");
-  all.className="chip-btn";all.type="button";all.textContent="All";all.setAttribute("aria-pressed","true");
-  all.addEventListener("click",function(){setCat("All");});
-  chipsBox.appendChild(all);
-  cats.forEach(function(c){
-    var b=document.createElement("button");
-    b.className="chip-btn";b.type="button";b.textContent=c;b.setAttribute("aria-pressed","false");
-    b.addEventListener("click",function(){setCat(c);});
-    chipsBox.appendChild(b);
-  });
+  search.addEventListener("input", applyFilter);
 
-  function setCat(c){
-    activeCat=c;
-    Array.prototype.slice.call(chipsBox.children).forEach(function(b){
-      b.setAttribute("aria-pressed",b.textContent===c?"true":"false");
+  function applyFilter() {
+    var q = search.value.trim().toLowerCase();
+    var shown = 0;
+    cards.forEach(function (card) {
+      var catOk = activeCat === "all" || card.getAttribute("data-cat") === activeCat;
+      var textOk = q === "" || card.getAttribute("data-search").toLowerCase().indexOf(q) !== -1;
+      var visible = catOk && textOk;
+      card.hidden = !visible;
+      if (visible) shown++;
     });
-    applyFilter();
+    count.innerHTML = "Showing <strong>" + shown + "</strong> of " + cards.length + " published crates";
   }
-  function applyFilter(){
-    var q=search.value.trim().toLowerCase();
-    var visible=0;
-    Array.prototype.slice.call(grid.children).forEach(function(card){
-      var okCat=activeCat==="All"||card.dataset.cat===activeCat;
-      var okQ=!q||card.dataset.name.indexOf(q)!==-1||card.textContent.toLowerCase().indexOf(q)!==-1;
-      var show=okCat&&okQ;
-      card.hidden=!show;
-      if(show)visible++;
-    });
-    countEl.textContent=visible;
-  }
-  search.addEventListener("input",applyFilter);
 })();
 </script>
 </body>
