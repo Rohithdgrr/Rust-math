@@ -6,8 +6,9 @@
 //! once.
 //!
 //! The crate itself defines no math; it exists to aggregate. Re-exports are
-//! unconditionally enabled (no feature gates) — for a trimmed dependency
-//! graph, depend on the individual crates directly instead.
+//! unconditionally enabled except for `mathverse-plot`, which is gated behind
+//! the `plot` feature flag — for a trimmed dependency graph, depend on the
+//! individual crates directly instead.
 
 pub use mathverse_core::*;
 pub use mathverse_algebra::*;
@@ -32,6 +33,9 @@ pub use mathverse_ai::*;
 pub use mathverse_machine_learning::*;
 pub use mathverse_vision::*;
 pub use mathverse_graphics::*;
+
+#[cfg(feature = "plot")]
+pub use mathverse_plot::*;
 
 /// Namespace that re-exports the entire prelude, for
 /// `use mathverse_prelude::prelude::*;`.
