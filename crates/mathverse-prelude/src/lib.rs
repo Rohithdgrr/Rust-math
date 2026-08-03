@@ -1,6 +1,13 @@
 //! MathVerse Prelude
 //!
-//! Re-exports commonly used items from across the MathVerse workspace.
+//! A single re-export surface for the whole MathVerse ecosystem:
+//! `use mathverse_prelude::*;` brings in the public API of every workspace
+//! crate (core, algebra, calculus, transforms, ML, vision, graphics, ...) at
+//! once.
+//!
+//! The crate itself defines no math; it exists to aggregate. Re-exports are
+//! unconditionally enabled (no feature gates) — for a trimmed dependency
+//! graph, depend on the individual crates directly instead.
 
 pub use mathverse_core::*;
 pub use mathverse_algebra::*;
@@ -25,6 +32,8 @@ pub use mathverse_machine_learning::*;
 pub use mathverse_vision::*;
 pub use mathverse_graphics::*;
 
+/// Namespace that re-exports the entire prelude, for
+/// `use mathverse_prelude::prelude::*;`.
 pub mod prelude {
     pub use crate::*;
 }

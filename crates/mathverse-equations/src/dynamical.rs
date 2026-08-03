@@ -104,7 +104,8 @@ mod tests {
 
     #[test]
     fn period_test() {
-        let p = period(|x| -1.5 * x * x + 1.5, 0.1, 1e-10, 10);
-        assert!(p.is_some());
+        // r=3.2 logistic map has a stable period-2 orbit
+        let p = period(|x| 3.2 * x * (1.0 - x), 0.3, 1e-10, 10);
+        assert_eq!(p, Some(2));
     }
 }

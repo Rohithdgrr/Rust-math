@@ -1,5 +1,9 @@
 //! Discrete Cosine Transform (Type II) and its inverse.
 
+/// Discrete Cosine Transform, Type II (orthonormal).
+///
+/// `X[k] = c(k)·Σᵢ x[i]·cos(π·(i+0.5)·k/N)` with `c(0) = √(1/N)` and
+/// `c(k) = √(2/N)` otherwise. Inverted by [`idct2`].
 pub fn dct2(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     (0..n).map(|k| {
@@ -9,6 +13,9 @@ pub fn dct2(x: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+/// Inverse Discrete Cosine Transform, Type II (orthonormal).
+///
+/// Inverts [`dct2`]; the orthonormal scaling makes it an exact round trip.
 pub fn idct2(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     (0..n).map(|i| {
@@ -20,6 +27,11 @@ pub fn idct2(x: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+/// Discrete Cosine Transform, Type I (orthonormal).
+///
+/// Endpoints (`i = 0`, `i = N-1`) are weighted by `0.5`, matching the DCT-I
+/// boundary convention. Requires `N ≥ 2`; shorter inputs are returned
+/// unchanged.
 pub fn dct1(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     if n < 2 { return x.to_vec(); }
@@ -33,6 +45,10 @@ pub fn dct1(x: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+/// Discrete Cosine Transform, Type III (orthonormal).
+///
+/// Related to DCT-II by transposition; often used as the inverse of a
+/// non-orthonormal DCT-II variant.
 pub fn dct3(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     (0..n).map(|k| {
@@ -42,6 +58,10 @@ pub fn dct3(x: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+/// Discrete Cosine Transform, Type IV (orthonormal).
+///
+/// `X[k] = √(2/N)·Σᵢ x[i]·cos(π·(i+0.5)·(k+0.5)/N)`. Self-inverse up to
+/// floating-point rounding (DCT-IV is an involution).
 pub fn dct4(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let scale = (2.0 / n as f64).sqrt();

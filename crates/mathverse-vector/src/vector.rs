@@ -7,6 +7,8 @@ pub struct Vector {
     pub data: Vec<f64>,
 }
 
+use mathverse_core::error::{MathError, MathResult};
+
 impl Vector {
     /// Creates a new `Vector` from the given data.
     pub fn new(data: Vec<f64>) -> Self { Self { data } }
@@ -43,6 +45,51 @@ impl Vector {
 
     /// Dot product of two vectors.
     pub fn dot(&self, other: &Vector) -> f64 {
-        self.data.iter().zip(&other.data).map(|(a, b)| a * b).sum()
+        crate::operations::dot(&self.data, &other.data)
+    }
+
+    /// Unit vector in the same direction.
+    ///
+    /// Returns [`MathError::DivisionByZero`] if the vector has zero length, so
+    /// callers can react instead of silently producing a zero "unit" vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use mathverse_vector::Vector;
+    ///
+    /// let v = Vector::new(vec![3.0, 4.0]);
+    /// let u = v.normalized().unwrap();
+    /// assert!((u.get(0) - 0.6).abs() < 1e-12);
+    /// assert!(Vector::zeros(2).normalized().is_err());
+    /// ```
+    pub fn normalized(&self) -> MathResult<Vector> {
+        let m = crate::operations::magnitude(&self.data);
+        if m == 0.0 {
+            return Err(MathError::DivisionByZero);
+        }
+        Ok(Vector::new(self.data.iter().map(|x| x / m).collect()))
+    }
+
+    /// 3D cross product `self × other`.
+    ///
+    /// Returns [`MathError::DimensionMismatch`] unless both vectors have
+    /// exactly three elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use mathverse_vector::Vector;
+    ///
+    /// let i = Vector::new(vec![1.0, 0.0, 0.0]);
+    /// let j = Vector::new(vec![0.0, 1.0, 0.0]);
+    /// let k = i.cross3(&j).unwrap();
+    /// assert!((k.get(2) - 1.0).abs() < 1e-12);
+    /// ```
+    pub fn cross3(&self, other: &Vector) -> MathResult<Vector> {
+        if self.len() != 3 || other.len() != 3 {
+            return Err(MathError::DimensionMismatch);
+        }
+        Ok(Vector::new(crate::operations::cross(&self.data, &other.data)))
     }
 }

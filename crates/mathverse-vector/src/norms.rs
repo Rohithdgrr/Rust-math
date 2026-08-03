@@ -1,8 +1,8 @@
 /// L1 (Manhattan) norm: sum of absolute values.
-pub fn l1(v: &[f64]) -> f64 { v.iter().map(|x| x.abs()).sum() }
+pub fn l1(v: &[f64]) -> f64 { crate::operations::sum_abs_fast(v) }
 
 /// L2 (Euclidean) norm: square root of sum of squares.
-pub fn l2(v: &[f64]) -> f64 { v.iter().map(|x| x*x).sum::<f64>().sqrt() }
+pub fn l2(v: &[f64]) -> f64 { crate::operations::sum_sq_fast(v).sqrt() }
 
 /// Lp norm: `(sum(|x|^p))^(1/p)`.
 pub fn lp(v: &[f64], p: f64) -> f64 { v.iter().map(|x| x.abs().powf(p)).sum::<f64>().powf(1.0/p) }

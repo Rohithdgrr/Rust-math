@@ -2,6 +2,11 @@
 
 use mathverse_complex::Complex;
 
+/// Forward radix-2 Cooley-Tukey FFT, un-normalized.
+///
+/// Computes `X[k] = Σₙ x[n]·exp(-2πi·k·n/N)`. The input length must be a
+/// nonzero power of two. Use [`ifft`] (which applies the `1/N` scale) to
+/// invert, so `ifft(fft(x)) == x` exactly up to floating-point error.
 pub fn fft(x: &[Complex]) -> mathverse_core::error::MathResult<Vec<Complex>> {
     let n = x.len();
     if n == 0 || !n.is_power_of_two() {
@@ -29,6 +34,10 @@ pub fn fft(x: &[Complex]) -> mathverse_core::error::MathResult<Vec<Complex>> {
     Ok(a)
 }
 
+/// Inverse FFT, normalized by `1/N`.
+///
+/// Inverts [`fft`] via the conjugate trick. The input length must be a
+/// nonzero power of two.
 pub fn ifft(x: &[Complex]) -> mathverse_core::error::MathResult<Vec<Complex>> {
     let n = x.len();
     let conj: Vec<Complex> = x.iter().map(Complex::conjugate).collect();
@@ -36,6 +45,11 @@ pub fn ifft(x: &[Complex]) -> mathverse_core::error::MathResult<Vec<Complex>> {
     Ok(y.iter().map(|c| c.conjugate() / Complex::real(n as f64)).collect())
 }
 
+/// Direct O(N²) discrete Fourier transform, un-normalized.
+///
+/// Same convention as [`fft`]: `X[k] = Σₙ x[n]·exp(-2πi·k·n/N)`, but computed
+/// directly rather than via the radix-2 algorithm, so it accepts any length
+/// (not just powers of two). Use [`idft`] to invert.
 pub fn dft(x: &[Complex]) -> Vec<Complex> {
     let n = x.len();
     (0..n).map(|k| {
@@ -46,6 +60,9 @@ pub fn dft(x: &[Complex]) -> Vec<Complex> {
     }).collect()
 }
 
+/// Direct inverse DFT, normalized by `1/N`.
+///
+/// Inverts [`dft`]; accepts any input length.
 pub fn idft(x: &[Complex]) -> Vec<Complex> {
     let n = x.len();
     (0..n).map(|k| {
@@ -56,15 +73,26 @@ pub fn idft(x: &[Complex]) -> Vec<Complex> {
     }).collect()
 }
 
+/// Forward FFT of a real-valued signal, returned as complex coefficients.
+///
+/// Treats the input as a complex signal with zero imaginary parts. Returns an
+/// empty vector if the length is not a nonzero power of two.
 pub fn fft_real(x: &[f64]) -> Vec<Complex> {
     let xc: Vec<Complex> = x.iter().map(|&v| Complex::real(v)).collect();
     fft(&xc).unwrap_or_default()
 }
 
+/// Power spectrum of a real signal: squared magnitudes `|X[k]|²` of its FFT.
 pub fn power_spectrum(x: &[f64]) -> Vec<f64> {
     fft_real(x).iter().map(Complex::norm_sq).collect()
 }
 
+/// Cross-correlation of two real signals via FFT-based circular convolution.
+///
+/// Both inputs are zero-padded to a common power-of-two length (the next
+/// power of two at least the longer input). The result has that padded length;
+/// for linear (non-circular) correlation the caller should trim to
+/// `a.len() + b.len() - 1`.
 pub fn cross_correlation(a: &[f64], b: &[f64]) -> Vec<f64> {
     let n = a.len().max(b.len()).next_power_of_two();
     let mut fa = vec![Complex::zero(); n];
@@ -78,6 +106,11 @@ pub fn cross_correlation(a: &[f64], b: &[f64]) -> Vec<f64> {
     result.iter().map(|c| c.re).collect()
 }
 
+/// Linear convolution of two real signals via FFT.
+///
+/// Zero-pads both inputs to the next power of two ≥ `a.len() + b.len() - 1`,
+/// multiplies their spectra, and truncates the inverse FFT back to the full
+/// linear-convolution length `a.len() + b.len() - 1`.
 pub fn convolution(a: &[f64], b: &[f64]) -> Vec<f64> {
     let n = (a.len() + b.len() - 1).next_power_of_two();
     let mut fa = vec![Complex::zero(); n];

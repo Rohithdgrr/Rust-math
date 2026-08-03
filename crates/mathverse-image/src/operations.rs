@@ -3,6 +3,18 @@
 use crate::GrayImage;
 use rand::Rng;
 
+/// Draw a sample from `N(mean, std_dev)` using the Box–Muller transform.
+///
+/// Uses `Rng::random::<f64>` (the non-deprecated `rand` 0.9 API) for the two
+/// uniform draws and guarantees a non-zero (hence finite) result.
+fn normal_sample(rng: &mut impl Rng, mean: f64, std_dev: f64) -> f64 {
+    let u1 = rng.random::<f64>().max(1e-12);
+    let u2 = rng.random::<f64>();
+    let mag = (-2.0 * u1.ln()).sqrt();
+    let z = mag * (2.0 * core::f64::consts::PI * u2).cos();
+    mean + std_dev * z
+}
+
 impl GrayImage {
     /// Apply simple thresholding: values >= threshold become 1.0, else 0.0.
     pub fn threshold(&self, threshold: f64) -> GrayImage {
@@ -47,7 +59,7 @@ impl GrayImage {
         let mut rng = rand::thread_rng();
         
         for v in out.data.iter_mut() {
-            let noise: f64 = rng.normal(mean, std_dev);
+            let noise: f64 = normal_sample(&mut rng, mean, std_dev);
             *v = (*v + noise).clamp(0.0, 1.0);
         }
         out
@@ -59,8 +71,8 @@ impl GrayImage {
         let mut rng = rand::thread_rng();
         
         for v in out.data.iter_mut() {
-            if rng.gen::<f64>() < density {
-                *v = if rng.gen::<bool>() { 1.0 } else { 0.0 };
+            if rng.random::<f64>() < density {
+                *v = if rng.random::<bool>() { 1.0 } else { 0.0 };
             }
         }
         out

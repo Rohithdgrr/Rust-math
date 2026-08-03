@@ -1,5 +1,11 @@
 //! Radon transform for tomographic reconstruction.
 
+/// Radon transform: projection sums of a 2D image over line integrals.
+///
+/// For each of `n_angles` equally spaced angles `θ ∈ [0, π)` and `n_offsets`
+/// equally spaced offsets spanning `[-max, max]` (where `max = √(h² + w²)`),
+/// sums every pixel whose projected coordinate `x·cos θ + y·sin θ` lies within
+/// 1.0 of the offset. Returns a `[n_angles][n_offsets]` matrix (a sinogram).
 pub fn radon_transform(image: &[Vec<f64>], n_angles: usize, n_offsets: usize) -> Vec<Vec<f64>> {
     let (h, w) = (image.len(), image[0].len());
     let max_offset = ((h * h + w * w) as f64).sqrt() as usize;
@@ -21,6 +27,8 @@ pub fn radon_transform(image: &[Vec<f64>], n_angles: usize, n_offsets: usize) ->
     result
 }
 
+/// Sinogram of an image: [`radon_transform`] with offsets spanning
+/// `2·max_r = 2·√(h² + w²)`.
 pub fn sinogram(image: &[Vec<f64>], n_angles: usize) -> Vec<Vec<f64>> {
     let (h, w) = (image.len(), image[0].len());
     let max_r = ((h * h + w * w) as f64).sqrt() as usize * 2;

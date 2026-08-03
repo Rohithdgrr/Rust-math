@@ -225,6 +225,6 @@ mod tests {
     #[test]
     fn test_net_present_value() {
         let cash_flows = vec![-1000.0, 300.0, 300.0, 300.0, 300.0];
-        assert_relative_eq!(net_present_value(&cash_flows, 0.1), -49.7367, epsilon = 1e-4);
+        assert_relative_eq!(net_present_value(&cash_flows, 0.1), -49.0403660952122, epsilon = 1e-4);
     }
 }

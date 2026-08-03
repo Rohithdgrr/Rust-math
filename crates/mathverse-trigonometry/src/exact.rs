@@ -144,6 +144,16 @@ fn base_tan(rem: i32) -> Option<ExactValue> {
     }
 }
 
+/// (quadrant, reference angle in degrees) for `n` in `[0, 360)`.
+fn quadrant_ref(n: i32) -> (i32, i32) {
+    match n {
+        0..90 => (0, n),
+        90..180 => (1, 180 - n),
+        180..270 => (2, n - 180),
+        _ => (3, 360 - n),
+    }
+}
+
 /// Exact sine of an angle in degrees, for multiples of 30° or 45°.
 ///
 /// # Examples
@@ -164,8 +174,8 @@ pub fn sin_exact_deg(deg: i32) -> Option<ExactValue> {
             _ => ExactValue::Integer(-1), // 270
         });
     }
-    let q = n / 90;
-    let base = base_sin(n % 90)?;
+    let (q, ref_angle) = quadrant_ref(n);
+    let base = base_sin(ref_angle)?;
     let positive = q == 0 || q == 1;
     Some(if positive { base } else { base.negate() })
 }
@@ -190,8 +200,8 @@ pub fn cos_exact_deg(deg: i32) -> Option<ExactValue> {
             _ => ExactValue::Integer(0), // 90, 270
         });
     }
-    let q = n / 90;
-    let base = base_cos(n % 90)?;
+    let (q, ref_angle) = quadrant_ref(n);
+    let base = base_cos(ref_angle)?;
     let positive = q == 0 || q == 3;
     Some(if positive { base } else { base.negate() })
 }
@@ -218,8 +228,8 @@ pub fn tan_exact_deg(deg: i32) -> Option<ExactValue> {
             None // 90°, 270°
         };
     }
-    let q = n / 90;
-    let base = base_tan(n % 90)?;
+    let (q, ref_angle) = quadrant_ref(n);
+    let base = base_tan(ref_angle)?;
     let positive = q == 0 || q == 2;
     Some(if positive { base } else { base.negate() })
 }
@@ -284,7 +294,7 @@ mod tests {
     fn cosine_table() {
         assert_eq!(cos_exact_deg(0), Some(ExactValue::Integer(1)));
         assert_eq!(cos_exact_deg(60), Some(ExactValue::Half(1)));
-        assert_eq!(cos_exact_deg(120), Some(ExactValue::Root { coeff: -1, radicand: 3, denom: 2 }));
+        assert_eq!(cos_exact_deg(120), Some(ExactValue::Half(-1)));
         assert_eq!(cos_exact_deg(180), Some(ExactValue::Integer(-1)));
         assert_eq!(cos_exact_deg(300), Some(ExactValue::Half(1)));
         assert_eq!(cos_exact_deg(90), Some(ExactValue::Integer(0)));

@@ -11,6 +11,8 @@ categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-complex = { path = "../mathverse-complex", version = "0.1.0" }
+mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.0" }
 
 [lints]
 workspace = true

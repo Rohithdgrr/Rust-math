@@ -1,51 +1,58 @@
-//! Nonlinear root finders: Newton, secant, bisection, Newton for systems.
+//! Nonlinear equation solving: root finding and systems of equations.
 //!
-//! These are convenience wrappers with `impl Fn` signatures. For the full
-//! set of root-finding methods (Brent, Muller, Householder, etc.), see
-//! [`mathverse_numerical::root`].
+//! ## Migration Notice (v0.2.0)
+//! The single-variable root-finding functions in this module now delegate to
+//! [`mathverse_numerical`] for the canonical implementations. The API remains
+//! compatible but returns `Option` instead of `Result` for convenience.
+//!
+//! For advanced methods (Brent, Muller, Halley, etc.) and full `Result` error handling,
+//! use [`mathverse_numerical::root`] or [`mathverse_numerical`] directly.
+
+use mathverse_numerical as num;
 
 /// Newton's method with analytically provided derivative.
+///
+/// **Note:** This is a convenience wrapper that returns `Option<f64>`.
+/// For full error handling with `Result`, use [`mathverse_numerical::newton_raphson`].
+///
+/// # Examples
+/// ```
+/// use mathverse_equations::nonlinear::newton;
+/// let root = newton(|x| x*x - 2.0, |x| 2.0*x, 1.0, 1e-10, 100).unwrap();
+/// assert!((root - 1.41421).abs() < 1e-4);
+/// ```
 pub fn newton(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -> Option<f64> {
-    let mut x = x0;
-    for _ in 0..max_iter {
-        let fx = f(x);
-        if fx.abs() < tol { return Some(x); }
-        let dfx = df(x);
-        if dfx.abs() < 1e-30 { return None; }
-        x -= fx / dfx;
-    }
-    None
+    num::newton_raphson(&f, &df, x0, tol, max_iter).ok()
 }
 
 /// Secant method (derivative-free Newton-like).
+///
+/// **Note:** This is a convenience wrapper that returns `Option<f64>`.
+/// For full error handling with `Result`, use [`mathverse_numerical::root::secant`].
+///
+/// # Examples
+/// ```
+/// use mathverse_equations::nonlinear::secant;
+/// let root = secant(|x| x*x - 2.0, 1.0, 2.0, 1e-10, 100).unwrap();
+/// assert!((root - 1.41421).abs() < 1e-4);
+/// ```
 pub fn secant(f: impl Fn(f64) -> f64, x0: f64, x1: f64, tol: f64, max_iter: usize) -> Option<f64> {
-    let (mut a, mut b) = (x0, x1);
-    for _ in 0..max_iter {
-        let fb = f(b);
-        if fb.abs() < tol { return Some(b); }
-        let fa = f(a);
-        let diff = fb - fa;
-        if diff.abs() < 1e-30 { return None; }
-        let c = b - fb * (b - a) / diff;
-        a = b;
-        b = c;
-    }
-    None
+    num::root::secant(&f, x0, x1, tol, max_iter).ok()
 }
 
 /// Bisection method on a bracketing interval.
+///
+/// **Note:** This is a convenience wrapper that returns `Option<f64>`.
+/// For full error handling with `Result`, use [`mathverse_numerical::bisection`].
+///
+/// # Examples
+/// ```
+/// use mathverse_equations::nonlinear::bisection;
+/// let root = bisection(|x| x*x - 2.0, 0.0, 2.0, 1e-10).unwrap();
+/// assert!((root - 1.41421).abs() < 1e-4);
+/// ```
 pub fn bisection(f: impl Fn(f64) -> f64, a0: f64, b0: f64, tol: f64) -> Option<f64> {
-    let (mut a, mut b) = (a0, b0);
-    let mut fa = f(a);
-    let fb = f(b);
-    if fa * fb > 0.0 { return None; }
-    for _ in 0..1000 {
-        let mid = (a + b) / 2.0;
-        if (b - a).abs() < tol { return Some(mid); }
-        let fmid = f(mid);
-        if fmid * fa <= 0.0 { b = mid; } else { a = mid; fa = fmid; }
-    }
-    Some((a + b) / 2.0)
+    num::bisection(&f, a0, b0, tol).ok()
 }
 
 /// Newton's method for a system of nonlinear equations.

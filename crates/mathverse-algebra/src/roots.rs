@@ -34,7 +34,10 @@
 //!
 //! // x^3 - 6x^2 + 11x - 6 = 0 → x = 1, 2, 3
 //! let r = solve_cubic(1.0, -6.0, 11.0, -6.0);
-//! assert_eq!(r, vec![1.0, 2.0, 3.0]);
+//! assert_eq!(r.len(), 3);
+//! for (got, want) in r.iter().zip([1.0, 2.0, 3.0]) {
+//!     assert!((got - want).abs() < 1e-9);
+//! }
 //! ```
 
 use crate::polynomial::Polynomial;
@@ -192,7 +195,10 @@ pub fn cubic_discriminant(a: f64, b: f64, c: f64, d: f64) -> f64 {
 ///
 /// // (x-1)(x-2)(x-3) → x = 1, 2, 3
 /// let r = solve_cubic(1.0, -6.0, 11.0, -6.0);
-/// assert_eq!(r, vec![1.0, 2.0, 3.0]);
+/// assert_eq!(r.len(), 3);
+/// for (got, want) in r.iter().zip([1.0, 2.0, 3.0]) {
+///     assert!((got - want).abs() < 1e-9);
+/// }
 /// ```
 #[must_use]
 pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
@@ -398,6 +404,99 @@ pub fn vieta_product(coeffs: &[f64]) -> f64 {
     }
     let sign = if n % 2 == 0 { 1.0 } else { -1.0 };
     sign * coeffs[0] / coeffs[n]
+}
+
+// ---------------------------------------------------------------------------
+// Rational root theorem
+// ---------------------------------------------------------------------------
+
+/// All positive integer divisors of `n` (including `1` and `n` itself).
+///
+/// If `n == 0`, returns just `[0]` (the only "divisor" of zero that is useful
+/// as a rational-root candidate).
+fn integer_divisors(n: u64) -> Vec<u64> {
+    let mut divs = Vec::new();
+    if n == 0 {
+        divs.push(0);
+        return divs;
+    }
+    let mut d: u64 = 1;
+    while d.saturating_mul(d) <= n {
+        if n % d == 0 {
+            divs.push(d);
+            let o = n / d;
+            if o != d {
+                divs.push(o);
+            }
+        }
+        d += 1;
+    }
+    divs.sort_unstable();
+    divs
+}
+
+/// Enumerate the rational-root candidates of a polynomial via the rational
+/// root theorem.
+///
+/// For a polynomial `a_n x^n + ... + a_1 x + a_0`, any rational root `p/q` (in
+/// lowest terms) has `p` dividing `a_0` (the *constant* term) and `q` dividing
+/// `a_n` (the *leading* coefficient). This returns every candidate with both
+/// signs, deduplicated and sorted ascending.
+///
+/// `leading` is the leading coefficient `a_n`; `constant` is the constant term
+/// `a_0`. Coefficients are converted to integers via rounding, so pass the
+/// same integer-valued coefficients the rest of this crate's factoring uses.
+///
+/// # Examples
+///
+/// ```rust
+/// use mathverse_algebra::roots::rational_root_candidates;
+///
+/// // x^2 - 5x + 6: leading 1, constant 6 → ±1, ±2, ±3, ±6
+/// let candidates = rational_root_candidates(1.0, 6.0);
+/// assert!(candidates.contains(&2.0));
+/// assert!(candidates.contains(&3.0));
+/// ```
+#[must_use]
+pub fn rational_root_candidates(leading: f64, constant: f64) -> Vec<f64> {
+    let mut out: Vec<f64> = Vec::new();
+    let l = leading.round() as i64;
+    let c = constant.round() as i64;
+    if l == 0 {
+        return out;
+    }
+    let p_divs = integer_divisors(c.unsigned_abs());
+    let q_divs = integer_divisors(l.unsigned_abs());
+    for &p in &p_divs {
+        for &q in &q_divs {
+            let v = (p as f64) / (q as f64);
+            if v == 0.0 {
+                if !out.contains(&0.0) {
+                    out.push(0.0);
+                }
+                continue;
+            }
+            if !out.contains(&v) {
+                out.push(v);
+            }
+            let nv = -v;
+            if !out.contains(&nv) {
+                out.push(nv);
+            }
+        }
+    }
+    out.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    out
+}
+
+/// Alias with a descriptive name used by `factor`; see
+/// [`rational_root_candidates`].
+#[must_use]
+pub fn rational_root_candidates_from_coeffs(coeffs: &[f64]) -> Vec<f64> {
+    if coeffs.is_empty() {
+        return Vec::new();
+    }
+    rational_root_candidates(*coeffs.last().unwrap(), coeffs[0])
 }
 
 #[cfg(test)]

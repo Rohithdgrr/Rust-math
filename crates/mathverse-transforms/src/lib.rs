@@ -12,6 +12,15 @@
 //! - **Radon**: Radon transform for tomographic reconstruction
 //!
 //! All transforms operate on `Vec<f64>` and return `Vec<f64>`.
+//!
+//! # Conventions
+//!
+//! - FFT/DFT use the forward sign `exp(-2πi·k·n/N)` and are **un-normalized**;
+//!   the inverse [`fft::ifft`] applies the `1/N` scale.
+//! - DCT/DST variants are **orthonormalized** (scaled by `√(1/N)` / `√(2/N)`
+//!   per coefficient), so forward-then-inverse is an exact round trip.
+//! - The Haar wavelet is orthonormal (factors of `1/√2`), preserving energy
+//!   across the transform.
 
 pub mod fft;
 pub mod dct;

@@ -124,7 +124,7 @@ pub fn haversine_distance<T: Real>(lat1: T, lon1: T, lat2: T, lon2: T, radius: T
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::f64::consts::{FRAC_PI_3, FRAC_PI_4, FRAC_PI_6};
+    use core::f64::consts::{FRAC_PI_2, FRAC_PI_3, FRAC_PI_6};
 
     const EPS: f64 = 1e-10;
 
@@ -139,8 +139,9 @@ mod tests {
 
     #[test]
     fn law_of_sines_angle_both_test() {
-        // Test single solution case (right triangle)
-        let (angle, maybe_second) = law_of_sines_angle_both(3.0f64, 4.0f64, FRAC_PI_2);
+        // Test single solution case (right triangle): a=2, b=√3, A=90° is a
+        // 30-60-90 triangle, so B = 60° = π/3. a > b rules out the ambiguous case.
+        let (angle, maybe_second) = law_of_sines_angle_both(2.0f64, 3.0_f64.sqrt(), FRAC_PI_2);
         assert!((angle - FRAC_PI_3).abs() < EPS);
         assert!(maybe_second.is_none());
         

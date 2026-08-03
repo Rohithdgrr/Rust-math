@@ -1,5 +1,10 @@
 //! Goertzel algorithm for single-frequency tone detection.
 
+/// Goertzel algorithm: single-bin DFT at index `k`.
+///
+/// Returns the complex coefficient `(real, imag)` for frequency bin `k` of an
+/// `N`-sample signal, using the same `exp(-2πi·k·n/N)` convention as [`crate::fft::fft`].
+/// Returns `None` if the signal is empty or `k >= N`.
 pub fn goertzel(x: &[f64], k: usize) -> Option<(f64, f64)> {
     let n = x.len();
     if n == 0 || k >= n { return None; }
@@ -17,10 +22,16 @@ pub fn goertzel(x: &[f64], k: usize) -> Option<(f64, f64)> {
     Some((real, imag))
 }
 
+/// Magnitude of the single-bin DFT at index `k` (see [`goertzel`]).
+///
+/// Returns `0.0` when the bin is out of range.
 pub fn goertzel_magnitude(x: &[f64], k: usize) -> f64 {
     goertzel(x, k).map(|(re, im)| (re * re + im * im).sqrt()).unwrap_or(0.0)
 }
 
+/// Batch form of [`goertzel`] for multiple frequency bins.
+///
+/// Out-of-range bins are returned as `(0.0, 0.0)`.
 pub fn goertzel_batch(x: &[f64], ks: &[usize]) -> Vec<(f64, f64)> {
     ks.iter().map(|&k| goertzel(x, k).unwrap_or((0.0, 0.0))).collect()
 }

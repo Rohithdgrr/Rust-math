@@ -32,19 +32,19 @@ pub fn convex_combination(points: &[[f64; 2]], weights: &[f64]) -> [f64; 2] {
 
 pub fn projection_simplex(v: &[f64], lambda: f64) -> Vec<f64> {
     let n = v.len();
-    let mut sorted: Vec<(f64, usize)> = v.iter().enumerate().map(|(i, &x)| (x, i)).collect();
-    sorted.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
-    let mut result = vec![0.0; n];
+    let mut sorted: Vec<f64> = v.to_vec();
+    sorted.sort_by(|a, b| b.partial_cmp(a).unwrap());
+    let mut cumsum = 0.0;
     let mut rho = 0;
-    let mut theta = 0.0;
     for k in 0..n {
-        let val = sorted[k].0;
-        theta += val;
-        if val - (theta - lambda) / (k as f64 + 1.0) > 1e-15 { rho = k + 1; } else { break; }
+        cumsum += sorted[k];
+        if sorted[k] - (cumsum - lambda) / (k as f64 + 1.0) > 0.0 {
+            rho = k + 1;
+        }
     }
-    let tau = (theta - lambda) / rho as f64;
-    for i in 0..n { result[i] = (v[i] - tau).max(0.0); }
-    result
+    let cumsum_rho: f64 = sorted[..rho].iter().sum();
+    let tau = (cumsum_rho - lambda) / rho as f64;
+    v.iter().map(|&vi| (vi - tau).max(0.0)).collect()
 }
 
 pub fn box_constraint(x: &[f64], lo: &[f64], hi: &[f64]) -> Vec<f64> {

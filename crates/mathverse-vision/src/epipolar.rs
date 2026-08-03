@@ -1,9 +1,12 @@
 //! Epipolar geometry: fundamental matrix, epipolar line computation.
 
+/// Fundamental matrix $F$ ($3 \times 3$) relating corresponding points in stereo vision: $x_2^T F x_1 = 0$.
 #[derive(Debug, Clone)]
 pub struct Fundamental(pub [[f64; 3]; 3]);
 
 impl Fundamental {
+    /// Computes the epipolar line $l_2 = F x_1$ in the second image for point $(x, y)$ in the first image.
+    /// Returns line parameters $(a, b, c)$ such that $a x' + b y' + c = 0$.
     pub fn line_in_second(&self, x: f64, y: f64) -> (f64, f64, f64) {
         let f = &self.0;
         let a = f[0][0] * x + f[0][1] * y + f[0][2];
@@ -12,6 +15,7 @@ impl Fundamental {
         (a, b, c)
     }
 
+    /// Computes the first-order geometric Sampson distance error for a pair of matched points.
     pub fn sampson_distance(&self, x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
         let l2 = self.line_in_second(x1, y1);
         let l1 = (
@@ -90,6 +94,9 @@ fn smallest_eigenvector(a: &[Vec<f64>], n: usize) -> Option<Vec<f64>> {
     Some(b)
 }
 
+/// Estimates the fundamental matrix $F$ from $\ge 8$ point correspondences using the 8-point Direct Linear Transform (DLT) algorithm.
+///
+/// Returns `None` if fewer than 8 points are provided or if lengths differ.
 pub fn fundamental(a: &[(f64, f64)], b: &[(f64, f64)]) -> Option<Fundamental> {
     if a.len() < 8 || a.len() != b.len() {
         return None;

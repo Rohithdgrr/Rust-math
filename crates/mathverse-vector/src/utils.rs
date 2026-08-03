@@ -34,7 +34,7 @@ pub fn max(v: &[f64]) -> f64 { v.iter().cloned().fold(f64::NEG_INFINITY, f64::ma
 pub fn min(v: &[f64]) -> f64 { v.iter().cloned().fold(f64::INFINITY, f64::min) }
 
 /// Sum of all elements.
-pub fn sum(v: &[f64]) -> f64 { v.iter().sum() }
+pub fn sum(v: &[f64]) -> f64 { crate::operations::sum_fast(v) }
 
 /// Product of all elements.
 pub fn prod(v: &[f64]) -> f64 { v.iter().product() }

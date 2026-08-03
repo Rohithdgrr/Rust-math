@@ -1,17 +1,17 @@
 /// Euclidean (L2) distance between two points.
-pub fn euclidean(a: &[f64], b: &[f64]) -> f64 { a.iter().zip(b).map(|(x,y)| (x-y).powi(2)).sum::<f64>().sqrt() }
+pub fn euclidean(a: &[f64], b: &[f64]) -> f64 { crate::operations::dist_sq_fast(a, b).sqrt() }
 
 /// Manhattan (L1) distance between two points.
-pub fn manhattan(a: &[f64], b: &[f64]) -> f64 { a.iter().zip(b).map(|(x,y)| (x-y).abs()).sum() }
+pub fn manhattan(a: &[f64], b: &[f64]) -> f64 { crate::operations::dist_abs_fast(a, b) }
 
 /// Chebyshev (L∞) distance between two points.
 pub fn chebyshev(a: &[f64], b: &[f64]) -> f64 { a.iter().zip(b).map(|(x,y)| (x-y).abs()).fold(0.0, f64::max) }
 
 /// Cosine distance: `1 - cos(θ)`. Returns 0.0 if either vector is zero.
 pub fn cosine(a: &[f64], b: &[f64]) -> f64 {
-    let dot: f64 = a.iter().zip(b).map(|(x,y)| x*y).sum();
-    let ma = a.iter().map(|x| x*x).sum::<f64>().sqrt();
-    let mb = b.iter().map(|x| x*x).sum::<f64>().sqrt();
+    let dot: f64 = crate::operations::dot_fast(a, b);
+    let ma = crate::operations::sum_sq_fast(a).sqrt();
+    let mb = crate::operations::sum_sq_fast(b).sqrt();
     if ma == 0.0 || mb == 0.0 { 0.0 } else { 1.0 - dot / (ma * mb) }
 }
 /// Mahalanobis distance using the inverse covariance matrix.

@@ -1,28 +1,24 @@
 //! Stochastic optimization examples.
 //!
-//! This example demonstrates simulated annealing and genetic algorithms.
+//! Demonstrates simulated annealing and a genetic algorithm on the convex
+//! quadratic `f(x) = x² + y²`.
 
-use mathverse_optimization::{simulated_annealing, genetic, AnnealingConfig, GeneticConfig};
-use mathverse_probability::Rng;
+use mathverse_optimization::{genetic_algorithm, simulated_annealing};
 
 fn main() {
     // Minimize f(x) = x² + y²
-    let f = |x: &[f64]| x.iter().map(|v| v * v).sum();
-    
-    println!("Minimizing f(x) = x² + y² using stochastic methods");
-    
-    // Simulated Annealing
-    let mut rng = Rng::new(42);
+    let f = |x: &[f64]| x.iter().map(|v| v * v).sum::<f64>();
+
+    println!("Minimizing f(x) = x² + y² using stochastic methods\n");
+
+    // Simulated Annealing (seed 42)
     let bounds = [(-10.0, 10.0), (-10.0, 10.0)];
-    let sa_cfg = AnnealingConfig::default();
-    let sa_best = simulated_annealing(&f, &bounds, &sa_cfg, &mut rng);
-    println!("Simulated Annealing result: {:?}", sa_best);
-    println!("Final value: {:.6}", f(&sa_best));
-    
-    // Genetic Algorithm
-    let mut rng = Rng::new(7);
-    let ga_cfg = GeneticConfig::new(vec![(-5.0, 5.0), (-5.0, 5.0)]);
-    let ga_best = genetic(&f, &ga_cfg, &mut rng);
-    println!("Genetic Algorithm result: {:?}", ga_best);
+    let sa_best = simulated_annealing(&f, &bounds, 100.0, 1e-4, 1.0, 1000, 42);
+    println!("Simulated Annealing result: {sa_best:?}");
+    println!("Final value: {:.6}\n", f(&sa_best));
+
+    // Genetic Algorithm (seed 7)
+    let ga_best = genetic_algorithm(&f, &bounds, 200, 500, 0.05, 7);
+    println!("Genetic Algorithm result: {ga_best:?}");
     println!("Final value: {:.6}", f(&ga_best));
 }

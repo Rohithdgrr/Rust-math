@@ -167,7 +167,7 @@ impl RationalExpression {
         }
         let a = roots[0];
         let b = roots[1];
-        let n = self.num;
+        let n = &self.num;
         let res_a = n.eval(a) / ((a - b) * d[2]);
         let res_b = n.eval(b) / ((b - a) * d[2]);
         Ok((vec![a, b], vec![res_a, res_b]))
@@ -202,7 +202,7 @@ impl RationalExpression {
         let a = roots[0];
         let b = roots[1];
         let c = roots[2];
-        let n = self.num;
+        let n = &self.num;
         let res_a = n.eval(a) / ((a - b) * (a - c) * d[3]);
         let res_b = n.eval(b) / ((b - a) * (b - c) * d[3]);
         let res_c = n.eval(c) / ((c - a) * (c - b) * d[3]);

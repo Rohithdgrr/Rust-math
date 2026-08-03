@@ -23,8 +23,8 @@
 //! assert_eq!(p.eval(2.0), 0.0);
 //!
 //! // Scalar operations
-//! let q = &p + 1.0;      // x^2 - 5x + 7
-//! let r = &p * 2.0;      // 2x^2 - 10x + 12
+//! let q = p.clone() + 1.0;      // x^2 - 5x + 7
+//! let r = p.clone() * 2.0;      // 2x^2 - 10x + 12
 //!
 //! // Display
 //! assert_eq!(format!("{p}"), "x^2 - 5x + 6");

@@ -10,14 +10,17 @@ pub struct Camera {
 }
 
 impl Camera {
+    /// Creates a new camera model with given focal length `(fx, fy)` and principal point `(cx, cy)`.
     pub fn new(fx: f64, fy: f64, cx: f64, cy: f64) -> Self {
         Self { fx, fy, cx, cy }
     }
 
+    /// Projects 3D camera coordinates `(x, y, z)` into 2D pixel coordinates `(u, v)`.
     pub fn project(&self, x: f64, y: f64, z: f64) -> (f64, f64) {
         (self.fx * x / z + self.cx, self.fy * y / z + self.cy)
     }
 
+    /// Unprojects 2D pixel coordinates `(u, v)` at depth `z` back to 3D camera coordinates `(x, y, z)`.
     pub fn unproject(&self, u: f64, v: f64, z: f64) -> (f64, f64) {
         ((u - self.cx) * z / self.fx, (v - self.cy) * z / self.fy)
     }

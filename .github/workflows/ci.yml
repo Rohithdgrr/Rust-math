@@ -52,6 +52,18 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
 
+  features:
+    name: Optional features (simd, parallel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test -p mathverse-vector --features simd
+      - run: cargo test -p mathverse-vector --features parallel
+      - run: cargo test -p mathverse-vector --features simd,parallel
+      - run: cargo clippy -p mathverse-vector --features simd,parallel --all-targets -- -D warnings
+
   no-std:
     name: no_std build
     runs-on: ubuntu-latest

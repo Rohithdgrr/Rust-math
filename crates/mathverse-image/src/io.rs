@@ -15,9 +15,12 @@ use std::path::Path;
 /// # Example
 ///
 /// ```rust,no_run
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use mathverse_image::io::load;
 ///
 /// let img = load("input.png")?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn load<P: AsRef<Path>>(path: P) -> Result<GrayImage> {
     let dyn_img = image::open(path)?;
@@ -35,10 +38,13 @@ pub fn load<P: AsRef<Path>>(path: P) -> Result<GrayImage> {
 /// # Example
 ///
 /// ```rust,no_run
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use mathverse_image::{GrayImage, io::save};
 ///
 /// let img = GrayImage::new(64, 64);
 /// save(&img, "output.png")?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn save<P: AsRef<Path>>(img: &GrayImage, path: P) -> Result<()> {
     let gray_img = convert_from_grayimage(img);

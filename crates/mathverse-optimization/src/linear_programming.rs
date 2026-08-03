@@ -60,6 +60,6 @@ mod tests {
         let a = vec![vec![1.0, 1.0], vec![1.0, 0.0], vec![0.0, 1.0]];
         let b = vec![4.0, 3.0, 2.0];
         let (obj, x) = simplex(&c, &a, &b).unwrap();
-        assert!((obj - 8.0).abs() < 1e-6);
+        assert!((obj - 11.0).abs() < 1e-6);
     }
 }

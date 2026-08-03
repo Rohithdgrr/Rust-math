@@ -1,3 +1,20 @@
+/// Computes the LU decomposition with partial pivoting ($PA = LU$).
+///
+/// Returns `Some((L, U, perm))` where:
+/// - `L` is unit lower triangular $n \times n$
+/// - `U` is upper triangular $n \times n$
+/// - `perm` is a vector of row indices indicating the permutation matrix $P$
+///
+/// Returns `None` if the matrix is singular or non-square.
+///
+/// # Examples
+/// ```
+/// use mathverse_linear_algebra::lu_decompose;
+///
+/// let a = vec![vec![2.0, 1.0], vec![1.0, 3.0]];
+/// let (l, u, perm) = lu_decompose(&a).unwrap();
+/// assert!((l[1][0] - 0.5).abs() < 1e-10);
+/// ```
 pub fn lu_decompose(a: &[Vec<f64>]) -> Option<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<usize>)> {
     let n = a.len();
     if n == 0 || a.iter().any(|r| r.len() != n) { return None; }
@@ -50,6 +67,10 @@ pub fn lu_decompose(a: &[Vec<f64>]) -> Option<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec
     Some((l, u, perm))
 }
 
+/// Computes the QR decomposition of an $m \times n$ matrix ($A = QR$) using Modified Gram-Schmidt.
+///
+/// Returns `Some((Q, R))` where `Q` has orthonormal columns ($m \times n$) and `R` is upper triangular ($n \times n$).
+/// Returns `None` if matrix columns are linearly dependent or empty.
 pub fn qr_decompose(a: &[Vec<f64>]) -> Option<(Vec<Vec<f64>>, Vec<Vec<f64>>)> {
     let (m, n) = (a.len(), a[0].len());
     let mut q = vec![vec![0.0; n]; m]; // Q is m×n with orthonormal columns
@@ -81,6 +102,10 @@ pub fn qr_decompose(a: &[Vec<f64>]) -> Option<(Vec<Vec<f64>>, Vec<Vec<f64>>)> {
     Some((q, r))
 }
 
+/// Computes the Cholesky factorization of a symmetric positive-definite matrix ($A = L L^T$).
+///
+/// Returns `Some(L)` where `L` is lower triangular.
+/// Returns `None` if the matrix is not positive-definite or not square.
 pub fn cholesky(a: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
     let n = a.len();
     let mut l = vec![vec![0.0; n]; n];
@@ -99,6 +124,7 @@ pub fn cholesky(a: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
     Some(l)
 }
 
+/// Solves a linear system $Ax = b$ given its LU decomposition $(L, U, P)$.
 pub fn solve_lu(l: &[Vec<f64>], u: &[Vec<f64>], perm: &[usize], b: &[f64]) -> Vec<f64> {
     let n = b.len();
     
@@ -122,12 +148,16 @@ pub fn solve_lu(l: &[Vec<f64>], u: &[Vec<f64>], perm: &[usize], b: &[f64]) -> Ve
     x
 }
 
+/// Simple complex number representation for eigenvalue results.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Complex {
+    /// Real part
     pub re: f64,
+    /// Imaginary part
     pub im: f64,
 }
 
+/// Computes exact eigenvalues for a $2 \times 2$ real matrix.
 pub fn eigenvalue_2x2(a: [[f64; 2]; 2]) -> (Complex, Complex) {
     let trace = a[0][0] + a[1][1];
     let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
@@ -151,6 +181,9 @@ pub fn eigenvalue_2x2(a: [[f64; 2]; 2]) -> (Complex, Complex) {
     }
 }
 
+/// Approximates the dominant eigenvalue and eigenvector using Power Iteration.
+///
+/// Returns `Some((eigenvector, eigenvalue))` or `None` if convergence fails.
 pub fn power_iteration(a: &[Vec<f64>], max_iter: usize, tol: f64) -> Option<(Vec<f64>, f64)> {
     let n = a.len();
     if n == 0 { return None; }

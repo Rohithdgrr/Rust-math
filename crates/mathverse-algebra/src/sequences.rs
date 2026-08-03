@@ -7,14 +7,14 @@
 //! ```rust
 //! use mathverse_algebra::sequences::*;
 //!
-/// // Arithmetic: 1, 3, 5, 7, 9
-/// assert_eq!(arithmetic_term(1.0, 2.0, 4), 9.0);
-/// assert_eq!(arithmetic_sum(1.0, 2.0, 5), 25.0);
-///
-/// // Geometric: 1, 2, 4, 8, 16
-/// assert_eq!(geometric_term(1.0, 2.0, 4), 8.0);
-/// assert_eq!(geometric_sum(1.0, 2.0, 5), 31.0);
-/// ```
+//! // Arithmetic: 1, 3, 5, 7, 9
+//! assert_eq!(arithmetic_term(1.0, 2.0, 4), 9.0);
+//! assert_eq!(arithmetic_sum(1.0, 2.0, 5), 25.0);
+//!
+//! // Geometric: 1, 2, 4, 8, 16
+//! assert_eq!(geometric_term(1.0, 2.0, 4), 16.0);
+//! assert_eq!(geometric_sum(1.0, 2.0, 5), 31.0);
+//! ```
 
 /// nth term of an arithmetic sequence: `a + n*d`.
 ///
@@ -276,7 +276,8 @@ mod tests {
     fn means() {
         assert_eq!(arithmetic_mean(&[1.0, 2.0, 3.0]), 2.0);
         assert_eq!(geometric_mean(&[1.0, 2.0, 4.0]).unwrap(), 2.0);
-        assert_eq!(harmonic_mean(&[1.0, 2.0, 4.0]).unwrap(), 24.0 / 7.0);
+        // Harmonic mean of [1,2,4] = 3 / (1 + 1/2 + 1/4) = 12/7
+        assert_eq!(harmonic_mean(&[1.0, 2.0, 4.0]).unwrap(), 12.0 / 7.0);
     }
 
     #[test]

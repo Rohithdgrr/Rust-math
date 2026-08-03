@@ -10,10 +10,10 @@
 //! ```rust
 //! use mathverse_algebra::latex::{polynomial_latex, equation_solution_latex};
 //!
-//! assert_eq!(polynomial_latex(&[6.0, -5.0, 1.0]), "x^2 - 5x + 6");
+//! assert_eq!(polynomial_latex(&[6.0, -5.0, 1.0]), "x^{2} - 5x + 6");
 //! assert_eq!(
 //!     equation_solution_latex(&[6.0, -5.0, 1.0], &[2.0, 3.0]),
-//!     "x^2 - 5x + 6 = 0 \\quad\\Longrightarrow\\quad x \\in \\{2, 3\\}"
+//!     "x^{2} - 5x + 6 = 0 \\quad\\Longrightarrow\\quad x \\in \\{2, 3\\}"
 //! );
 //! ```
 
@@ -61,8 +61,8 @@ fn term_latex(coeff: f64, power: usize) -> String {
 /// ```rust
 /// use mathverse_algebra::latex::polynomial_latex;
 ///
-/// assert_eq!(polynomial_latex(&[6.0, -5.0, 1.0]), "x^2 - 5x + 6");
-/// assert_eq!(polynomial_latex(&[-2.0, 0.0, 3.0]), "3x^2 - 2");
+/// assert_eq!(polynomial_latex(&[6.0, -5.0, 1.0]), "x^{2} - 5x + 6");
+/// assert_eq!(polynomial_latex(&[-2.0, 0.0, 3.0]), "3x^{2} - 2");
 /// ```
 #[must_use]
 pub fn polynomial_latex(coeffs: &[f64]) -> String {
@@ -114,7 +114,7 @@ pub fn roots_latex(roots: &[f64]) -> String {
         }
         out.push_str(&fmt_num(r));
     }
-    out.push('}');
+    out.push_str("\\}");
     out
 }
 
@@ -127,7 +127,7 @@ pub fn roots_latex(roots: &[f64]) -> String {
 ///
 /// assert_eq!(
 ///     equation_solution_latex(&[6.0, -5.0, 1.0], &[2.0, 3.0]),
-///     "x^2 - 5x + 6 = 0 \\quad\\Longrightarrow\\quad x \\in \\{2, 3\\}"
+///     "x^{2} - 5x + 6 = 0 \\quad\\Longrightarrow\\quad x \\in \\{2, 3\\}"
 /// );
 /// ```
 #[must_use]
@@ -176,12 +176,12 @@ mod tests {
 
     #[test]
     fn polynomial_render() {
-        assert_eq!(polynomial_latex(&[6.0, -5.0, 1.0]), "x^2 - 5x + 6");
-        assert_eq!(polynomial_latex(&[-2.0, 0.0, 3.0]), "3x^2 - 2");
+        assert_eq!(polynomial_latex(&[6.0, -5.0, 1.0]), "x^{2} - 5x + 6");
+        assert_eq!(polynomial_latex(&[-2.0, 0.0, 3.0]), "3x^{2} - 2");
         assert_eq!(polynomial_latex(&[0.0]), "0");
         assert_eq!(polynomial_latex(&[7.0]), "7");
         assert_eq!(polynomial_latex(&[0.0, 1.0]), "x");
-        assert_eq!(polynomial_latex(&[-1.0, 0.0, 0.0, 1.0]), "x^3 - 1");
+        assert_eq!(polynomial_latex(&[-1.0, 0.0, 0.0, 1.0]), "x^{3} - 1");
     }
 
     #[test]
@@ -195,7 +195,7 @@ mod tests {
     fn equation_render() {
         assert_eq!(
             equation_solution_latex(&[6.0, -5.0, 1.0], &[2.0, 3.0]),
-            "x^2 - 5x + 6 = 0 \\quad\\Longrightarrow\\quad x \\in \\{2, 3\\}"
+"x^{2} - 5x + 6 = 0 \\quad\\Longrightarrow\\quad x \\in \\{2, 3\\}"
         );
     }
 

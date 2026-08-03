@@ -21,8 +21,8 @@ pub fn differentiate(expr: &Expr, var: &str) -> Expr {
                 Expr::c(0.0)
             }
         }
-        Expr::Add(a, b) => differentiate(a, var).add(differentiate(b, var)),
-        Expr::Sub(a, b) => differentiate(a, var).sub(differentiate(b, var)),
+        Expr::Add(a, b) => crate::simplify::simplify(&differentiate(a, var).add(differentiate(b, var))),
+        Expr::Sub(a, b) => crate::simplify::simplify(&differentiate(a, var).sub(differentiate(b, var))),
         Expr::Mul(a, b) => {
             // Product rule: (uv)' = u'v + uv'
             let da = differentiate(a, var);

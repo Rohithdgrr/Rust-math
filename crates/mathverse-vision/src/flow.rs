@@ -2,6 +2,9 @@
 
 use crate::Image;
 
+/// Estimates dense optical flow vectors `(u, v)` between image `a` and image `b` using the Lucas-Kanade differential method.
+///
+/// Returns `(horizontal_flow, vertical_flow)` as two grayscale `Image` instances.
 pub fn lucas_kanade(a: &Image, b: &Image) -> (Image, Image) {
     assert_eq!((a.w, a.h), (b.w, b.h));
     const GX: [f64; 9] = [-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0];

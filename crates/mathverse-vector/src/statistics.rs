@@ -1,5 +1,5 @@
 /// Arithmetic mean of a slice.
-pub fn mean(v: &[f64]) -> f64 { v.iter().sum::<f64>() / v.len() as f64 }
+pub fn mean(v: &[f64]) -> f64 { crate::operations::sum_fast(v) / v.len() as f64 }
 
 /// Population variance of a slice.
 pub fn variance(v: &[f64]) -> f64 {

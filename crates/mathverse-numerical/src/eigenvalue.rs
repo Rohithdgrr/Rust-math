@@ -678,7 +678,7 @@ mod tests {
         let a = vec![vec![2.0, 1.0], vec![1.0, 2.0]];
         
         let qr = QRAlgorithm::new(1000, 1e-10);
-        let eigenvalues = qr.compute(&a).unwrap();
+        let mut eigenvalues = qr.compute(&a).unwrap();
         
         // Eigenvalues should be 3 and 1
         eigenvalues.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -701,7 +701,7 @@ mod tests {
         let a = vec![vec![2.0, 1.0], vec![1.0, 2.0]];
         
         let jacobi = JacobiEigenvalue::new(1000, 1e-10);
-        let eigenvalues = jacobi.compute(&a).unwrap();
+        let mut eigenvalues = jacobi.compute(&a).unwrap();
         
         eigenvalues.sort_by(|a, b| a.partial_cmp(b).unwrap());
         assert!((eigenvalues[0] - 1.0).abs() < 1e-6);

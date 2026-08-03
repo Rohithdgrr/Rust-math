@@ -298,7 +298,7 @@ pub fn acsch_deg<T: Real>(x: T) -> T {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::f64::consts::{FRAC_PI_4, PI};
+    use core::f64::consts::FRAC_PI_4;
 
     const EPS: f64 = 1e-12;
 
@@ -378,8 +378,8 @@ mod tests {
         assert!(acsc_checked(-1.0).is_some());
 
         // Verify checked variants match regular variants for valid inputs
-        assert!((asec_checked(2.0).unwrap() - asec(2.0)).abs() < 1e-12);
-        assert!((acsc_checked(2.0).unwrap() - acsc(2.0)).abs() < 1e-12);
+        assert!((asec_checked(2.0f64).unwrap() - asec(2.0)).abs() < 1e-12);
+        assert!((acsc_checked(2.0f64).unwrap() - acsc(2.0)).abs() < 1e-12);
     }
 
     #[test]
@@ -394,10 +394,11 @@ mod tests {
         assert!(cos(f64::INFINITY).is_nan());
         assert!(tan(f64::INFINITY).is_nan());
 
-        // Test tan at asymptotes (should return ±inf)
+        // Test tan at asymptotes (should diverge to a huge finite value, as
+        // f64 cannot represent ±inf exactly at the asymptote)
         let pi_half = core::f64::consts::FRAC_PI_2;
-        assert!(tan(pi_half).is_infinite());
-        assert!(tan(-pi_half).is_infinite());
+        assert!(tan(pi_half).abs() > 1e14);
+        assert!(tan(-pi_half).abs() > 1e14);
 
         // Test cot at 0 (should return ±inf)
         assert!(cot(0.0).is_infinite());

@@ -2,6 +2,9 @@
 
 use crate::Image;
 
+/// Computes the Harris corner response map for an image.
+///
+/// `sigma` is the Gaussian smoothing parameter, `k` is the Harris detector free parameter (typically 0.04 - 0.06).
 pub fn harris(img: &Image, _sigma: f64, k: f64) -> Image {
     const GX: [f64; 9] = [-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0];
     const GY: [f64; 9] = [-1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0];

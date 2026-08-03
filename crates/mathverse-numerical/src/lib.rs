@@ -16,7 +16,7 @@ pub mod eigenvalue;
 pub use root::{secant, false_position, muller, brent, illinois, steffensen, halley, householder, fixed_point, aitken_delta_squared};
 pub use ode::{ODEState, RKF45, DormandPrince, AdamsBashforth, BackwardEuler, CrankNicolson};
 pub use interpolation::{CubicSpline, HermiteInterpolation, BarycentricInterpolation, RBFInterpolation, MultilinearInterpolation, ChebyshevInterpolation, NearestNeighbor};
-pub use optimization::{GradientDescent, BFGS, SimulatedAnnealing, GeneticAlgorithm, NelderMead, ParticleSwarm};
+pub use optimization::{GradientDescent};
 pub use integration::{GaussianQuadrature, RombergIntegration, AdaptiveSimpson, MonteCarloIntegration, SimpsonRule, MidpointRule, BooleRule, ClenshawCurtis, DoubleExponential};
 pub use linear_solvers::{Jacobi, GaussSeidel, SOR, ConjugateGradient, PreconditionedCG, GMRES, BiCGSTAB, ILUPreconditioner};
 pub use eigenvalue::{PowerMethod, InversePowerMethod, RayleighQuotientIteration, QRAlgorithm, Lanczos, SubspaceIteration, JacobiEigenvalue};

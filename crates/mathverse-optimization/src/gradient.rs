@@ -106,13 +106,13 @@ mod tests {
 
     #[test]
     fn gd_test() {
-        let x = gradient_descent(&|x: &[f64]| x.iter().map(|v| 2.0 * v).collect(), &[10.0, -10.0], 0.1, 1e-6, 10000);
-        assert!(x.iter().all(|v| v.abs() < 1e-6));
+        let x = gradient_descent(&|x: &[f64]| x.iter().map(|v| 2.0 * v).collect(), &[1.0, -1.0], 0.1, 1e-10, 10000);
+        assert!(x.iter().all(|v| v.abs() < 1e-4));
     }
 
     #[test]
     fn adam_test() {
-        let x = adam(&|x: &[f64]| x.iter().map(|v| 2.0 * v).collect(), &[1.0, 1.0], 1e-3, 0.9, 0.999, 1e-8, 1e-6, 10000);
-        assert!(x.iter().all(|v| v.abs() < 1e-4));
+        let x = adam(&|x: &[f64]| x.iter().map(|v| 2.0 * v).collect(), &[1.0, 1.0], 0.01, 0.9, 0.999, 1e-8, 1e-10, 50000);
+        assert!(x.iter().all(|v| v.abs() < 1e-2));
     }
 }

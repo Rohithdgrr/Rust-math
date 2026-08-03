@@ -12,7 +12,7 @@
 //!
 //! // (x^3 - 6x^2 + 11x - 6) ÷ (x - 1) → quotient (x^2 - 5x + 6), remainder 0
 //! let div = synthetic_division(&[-6.0, 11.0, -6.0, 1.0], 1.0);
-//! assert_eq!(div.remainder, 0.0);
+//! assert_eq!(div.1, 0.0);
 //! ```
 
 use crate::polynomial::Polynomial;
@@ -173,7 +173,8 @@ pub fn factor_theorem(coeffs: &[f64], c: f64) -> bool {
 /// // x^2 - 5x + 6 = (x-2)(x-3)
 /// let (factors, residual) = factor(&[6.0, -5.0, 1.0]);
 /// assert_eq!(factors.len(), 2);
-/// assert!(residual.is_zero());
+/// // Monic: dividing out both linear factors leaves the constant 1
+/// assert!((residual.eval(0.0) - 1.0).abs() < 1e-9);
 /// ```
 #[must_use]
 pub fn factor(coeffs: &[f64]) -> (Vec<(f64, usize)>, Polynomial) {
@@ -307,9 +308,12 @@ mod tests {
 
     #[test]
     fn factor_test() {
+        // x^2 - 5x + 6 = (x-2)(x-3): monic, so the residual is the
+        // constant leading coefficient 1, not zero
         let (factors, residual) = factor(&[6.0, -5.0, 1.0]);
         assert_eq!(factors.len(), 2);
-        assert!(residual.is_zero());
+        assert_eq!(residual.degree(), 0);
+        assert!((residual.eval(0.0) - 1.0).abs() < TOL);
     }
 
     #[test]

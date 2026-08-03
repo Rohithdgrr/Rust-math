@@ -1,5 +1,8 @@
 //! Discrete Sine Transform (Type I) and its inverse.
 
+/// Discrete Sine Transform, Type I (orthonormal).
+///
+/// `X[k] = √(2/(N+1))·Σᵢ x[i]·sin(π·(i+1)·(k+1)/(N+1))`.
 pub fn dst1(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let scale = (2.0 / (n + 1) as f64).sqrt();
@@ -9,6 +12,10 @@ pub fn dst1(x: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+/// Discrete Sine Transform, Type II (orthonormal).
+///
+/// `X[k] = c(k)·Σᵢ x[i]·sin(π·(i+0.5)·(k+1)/N)` with `c(N-1) = √(1/N)` and
+/// `c(k) = √(2/N)` otherwise.
 pub fn dst2(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     (0..n).map(|k| {
@@ -18,6 +25,10 @@ pub fn dst2(x: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+/// Discrete Sine Transform, Type III (orthonormal).
+///
+/// `X[k] = c(k)·Σᵢ x[i]·sin(π·i·(k+0.5)/N)` with `c(0) = √(1/N)` and
+/// `c(k) = √(2/N)` otherwise.
 pub fn dst3(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     (0..n).map(|k| {
@@ -27,6 +38,10 @@ pub fn dst3(x: &[f64]) -> Vec<f64> {
     }).collect()
 }
 
+/// Discrete Sine Transform, Type IV (orthonormal).
+///
+/// `X[k] = √(2/N)·Σᵢ x[i]·sin(π·(i+0.5)·(k+0.5)/N)`. Self-inverse up to
+/// floating-point rounding (DST-IV is an involution).
 pub fn dst4(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let scale = (2.0 / n as f64).sqrt();

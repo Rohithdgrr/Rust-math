@@ -52,8 +52,13 @@ pub fn round_ties_even(x: f64) -> f64 {
 
 /// Quantize `x` to have the same number of decimal places as `reference`.
 pub fn quantize(x: f64, reference: f64) -> f64 {
-    let precision = -reference.fract().log10().ceil() as i32;
-    if precision < 0 { 0.0 } else { (x * 10.0_f64.powi(precision)).round() / 10.0_f64.powi(precision) }
+    let frac = reference.fract();
+    if frac == 0.0 {
+        return x.round();
+    }
+    let precision = -frac.log10().ceil() as i32;
+    let factor = 10.0_f64.powi(precision);
+    (x * factor).round() / factor
 }
 
 #[cfg(test)]

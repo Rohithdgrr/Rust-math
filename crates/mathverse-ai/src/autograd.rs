@@ -7,9 +7,12 @@ use crate::tensor::Tensor;
 use std::cell::RefCell;
 
 /// Assert two shapes match, panicking with a clear message if not.
+///
+/// Uses a non-debug assertion so shape mismatches fail loudly in release
+/// builds too, before any `.unwrap()` on the underlying tensor operation.
 macro_rules! assert_shape {
     ($a:expr, $b:expr) => {
-        debug_assert_eq!(
+        assert_eq!(
             $a.shape,
             $b.shape,
             "shape mismatch: lhs {:?} vs rhs {:?}",
@@ -20,9 +23,11 @@ macro_rules! assert_shape {
 }
 
 /// Assert a matmul dimension match, panicking with a clear message if not.
+///
+/// Uses a non-debug assertion so mismatches fail loudly in release builds too.
 macro_rules! assert_matmul {
     ($a:expr, $b:expr) => {
-        debug_assert_eq!(
+        assert_eq!(
             $a.shape[1],
             $b.shape[0],
             "matmul dimension mismatch: lhs cols {} vs rhs rows {}",
@@ -78,8 +83,8 @@ impl GradTensor {
     /// Create a leaf tensor from data + shape.
     pub fn from_data(shape: &[usize], data: Vec<f64>) -> Self {
         let t = Tensor::from_vec(shape, data);
-        debug_assert!(t.is_some(), "from_vec failed for shape {:?}", shape);
-        Self::new(t.unwrap())
+        assert!(t.is_ok(), "from_vec failed for shape {:?}", shape);
+        Self::new(t.expect("shape check above"))
     }
 
     /// Zero the gradient.

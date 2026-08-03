@@ -264,7 +264,7 @@ pub fn rank_3x3(m: &[f64]) -> u8 {
 /// let b = [4.0, 7.0];
 /// let x = solve_matrix_2x2(&m, &b).unwrap();
 /// assert!((x[0] - 5.0).abs() < 1e-9);
-/// assert!((x[1] - (-2.0)).abs() < 1e-9);
+/// assert!((x[1] - (-6.0)).abs() < 1e-9);
 /// ```
 pub fn solve_matrix_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> {
     cramer_rule_2x2(m, b)
@@ -381,18 +381,18 @@ pub fn identity_3x3() -> [f64; 9] {
     [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
 }
 
-/// Characteristic polynomial coefficients of a 2×2 matrix.
+/// Characteristic polynomial coefficients of a 2×2 matrix, `det(A - λI)`.
 ///
-/// Returns `[1, -(trace), (determinant)]` — the monic polynomial in
+/// Returns `[det, -(trace), 1]` — the monic polynomial in
 /// **lowest-degree-first** order.
 #[must_use]
 pub fn characteristic_poly_2x2(m: &[f64]) -> [f64; 3] {
-    [1.0, -trace_2x2(m), det_2x2(m)]
+    [det_2x2(m), -trace_2x2(m), 1.0]
 }
 
-/// Characteristic polynomial coefficients of a 3×3 matrix.
+/// Characteristic polynomial coefficients of a 3×3 matrix, `det(A - λI)`.
 ///
-/// Returns `[1, -(trace), (sum of principal 2×2 minors), -(determinant)]`
+/// Returns `[-(det), (sum of principal 2×2 minors), -(trace), 1]`
 /// in lowest-degree-first order.
 #[must_use]
 pub fn characteristic_poly_3x3(m: &[f64]) -> [f64; 4] {
@@ -400,7 +400,7 @@ pub fn characteristic_poly_3x3(m: &[f64]) -> [f64; 4] {
     let m11 = m[4] * m[8] - m[5] * m[7];
     let m22 = m[0] * m[8] - m[2] * m[6];
     let m33 = m[0] * m[4] - m[1] * m[3];
-    [1.0, -t, m11 + m22 + m33, -det_3x3(m)]
+    [-det_3x3(m), m11 + m22 + m33, -t, 1.0]
 }
 
 /// Eigenvalues of a 2×2 matrix.
@@ -539,7 +539,7 @@ mod tests {
         let b = [4.0, 7.0];
         let x = cramer_rule_2x2(&m, &b).unwrap();
         assert!((x[0] - 5.0).abs() < 1e-9);
-        assert!((x[1] - (-2.0)).abs() < 1e-9);
+        assert!((x[1] - (-6.0)).abs() < 1e-9);
     }
 
     #[test]

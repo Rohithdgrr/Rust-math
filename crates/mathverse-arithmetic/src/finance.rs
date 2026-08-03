@@ -71,16 +71,17 @@ mod tests {
 
     #[test]
     fn fv_pv() {
-        assert!((future_value(1000.0, 0.05, 10.0) - 1628.8946).abs() < EPS);
-        assert!((present_value(1628.8946, 0.05, 10.0) - 1000.0).abs() < EPS);
+        assert!((future_value(1000.0, 0.05, 10.0) - 1628.8946267774414).abs() < EPS);
+        let fv = future_value(1000.0, 0.05, 10.0);
+        assert!((present_value(fv, 0.05, 10.0) - 1000.0).abs() < EPS);
     }
 
     #[test]
     fn annuity() {
         let fv = annuity_future_value(100.0, 0.05, 10);
-        assert!((fv - 1257.7893).abs() < EPS);
+        assert!((fv - 1257.7892535548828).abs() < EPS);
         let pv = annuity_present_value(100.0, 0.05, 10);
-        assert!((pv - 772.1735).abs() < EPS);
+        assert!((pv - 772.1734929184781).abs() < EPS);
     }
 
     #[test]
@@ -92,12 +93,12 @@ mod tests {
     #[test]
     fn doubling_time() {
         let t = periods_to_reach(1000.0, 2000.0, 0.07);
-        assert!((t - 10.2448).abs() < EPS);
+        assert!((t - 10.2447683510587).abs() < EPS);
     }
 
     #[test]
     fn continuous() {
-        assert!((continuous_compound(1000.0, 0.05, 10.0) - 1648.7213).abs() < EPS);
+        assert!((continuous_compound(1000.0, 0.05, 10.0) - 1648.7212707001282).abs() < EPS);
     }
 
     #[test]

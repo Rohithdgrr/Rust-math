@@ -1,6 +1,6 @@
 # mathverse-vector
 
-> Lightweight dense vector operations — arithmetic, norms, geometry, linear algebra, statistics, and distance metrics. All `f64`, zero dependencies beyond `mathverse-core`.
+> Lightweight dense vector operations — arithmetic, norms, geometry, linear algebra, statistics, and distance metrics. All `f64`, zero required dependencies beyond `mathverse-core`.
 
 [![MIT/Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE)
 
@@ -13,7 +13,7 @@
 - **Statistics** — mean, variance, std deviation, covariance, Pearson correlation
 - **Distance metrics** — Euclidean, Manhattan, Chebyshev, cosine, Mahalanobis, Minkowski
 - **Utilities** — zeros, ones, linspace, random, argmax, argmin, clip, reverse
-- Optional `simd` and `parallel` feature flags (placeholder)
+- Optional `simd` (SSE2/NEON via `wide`) and `parallel` (Rayon) acceleration for the O(n) reductions — `dot`, `sum`, `mean`, magnitudes, and distances
 
 ## Module Overview
 
@@ -40,6 +40,11 @@ With optional features:
 [dependencies]
 mathverse-vector = { path = "../mathverse-vector", features = ["simd", "parallel"] }
 ```
+
+- `simd` — safe 128-bit SIMD lanes for the O(n) reductions (SSE2 on x86-64,
+  NEON on AArch64; scalar fallback elsewhere). No `unsafe` in the crate.
+- `parallel` — the same reductions use Rayon parallel iterators once inputs
+  exceed ~4096 elements; smaller inputs keep the scalar path.
 
 ## Quick Start
 
@@ -344,8 +349,6 @@ assert_eq!(v, vec![2.0, 5.0, 8.0, 8.0]);
 ## Future Scope
 
 - [ ] Sparse vector support (`SparseVec` with CSR-like storage)
-- [ ] SIMD acceleration for `add`, `dot`, `l2` via `target_feature`
-- [ ] Parallel iterators via Rayon (`parallel` feature)
 - [ ] Generic `Real` trait support (like trigonometry crate)
 - [ ] Matrix operations (inverse, eigenvalues, SVD)
 - [ ] Complex number vector support

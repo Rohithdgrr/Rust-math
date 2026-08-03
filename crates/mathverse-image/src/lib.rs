@@ -53,7 +53,6 @@ pub mod morphology;
 pub mod operations;
 
 pub use crate::error::{ImageError, Result};
-pub use crate::GrayImage;
 
 /// Grayscale image with row-major `f64` pixel values in `[0, 1]`.
 ///
@@ -78,7 +77,7 @@ pub use crate::GrayImage;
 ///
 /// // Create from existing data
 /// let data = vec![0.5; 64 * 64];
-/// let img = GrayImage::from_data(64, 64, data)?;
+/// let mut img = GrayImage::from_data(64, 64, data).unwrap();
 ///
 /// // Access and modify pixels
 /// img.set(10, 10, 0.8);
@@ -137,7 +136,7 @@ impl GrayImage {
     /// use mathverse_image::GrayImage;
     ///
     /// let data = vec![0.5; 64 * 64];
-    /// let img = GrayImage::from_data(64, 64, data)?;
+    /// let img = GrayImage::from_data(64, 64, data).unwrap();
     /// ```
     pub fn from_data(w: usize, h: usize, data: Vec<f64>) -> Result<GrayImage> {
         if w == 0 || h == 0 {

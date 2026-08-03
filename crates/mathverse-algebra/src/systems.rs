@@ -146,7 +146,7 @@ mod tests {
         let b = [4.0, 7.0];
         let x = solve_2x2(&a, &b).unwrap();
         assert!((x[0] - 5.0).abs() < 1e-9);
-        assert!((x[1] - (-2.0)).abs() < 1e-9);
+        assert!((x[1] - (-6.0)).abs() < 1e-9);
     }
 
     #[test]
@@ -154,9 +154,9 @@ mod tests {
         let a = [2.0, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 2.0];
         let b = [4.0, 8.0, 10.0];
         let x = solve_3x3(&a, &b).unwrap();
-        assert!((x[0] - 1.0).abs() < 1e-9);
-        assert!((x[1] - 1.0).abs() < 1e-9);
-        assert!((x[2] - 4.0).abs() < 1e-9);
+        assert!((x[0] - 1.25).abs() < 1e-9);
+        assert!((x[1] - 1.5).abs() < 1e-9);
+        assert!((x[2] - 5.0).abs() < 1e-9);
     }
 
     #[test]
@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn residual_test() {
         let a = [2.0, 1.0, 5.0, 3.0];
-        let x = [5.0, -2.0];
+        let x = [5.0, -6.0];
         let b = [4.0, 7.0];
         let r = residual_2x2(&a, &x, &b);
         assert!(r < 1e-9);

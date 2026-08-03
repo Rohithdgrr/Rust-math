@@ -37,9 +37,15 @@ use core::ops::{Add, Div, Mul, Sub};
 /// assert_eq!(c, Array::from([2.0, 3.0, 4.0]));
 /// assert!((a.dot(&b) - 6.0).abs() < 1e-12);
 /// ```
-#[derive(Clone, Copy, PartialEq, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Array<T, const N: usize> {
     data: [T; N],
+}
+
+impl<T: Num, const N: usize> Default for Array<T, N> {
+    fn default() -> Self {
+        Self::zeros()
+    }
 }
 
 impl<T: Num, const N: usize> Array<T, N> {

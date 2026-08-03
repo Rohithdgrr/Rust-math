@@ -1,9 +1,11 @@
 //! Homography estimation and point warping.
 
+/// 2D Homography transformation matrix $H$ ($3 \times 3$ normalized).
 #[derive(Debug, Clone)]
 pub struct Homography(pub [f64; 9]);
 
 impl Homography {
+    /// Applies homography transformation to point `(x, y)`: $[x', y', w']^T = H [x, y, 1]^T$, returning $(x'/w', y'/w')$.
     pub fn apply(&self, x: f64, y: f64) -> (f64, f64) {
         let h = &self.0;
         let w = h[6] * x + h[7] * y + h[8];
@@ -91,6 +93,9 @@ fn smallest_eigenvector(a: &[[f64; 9]; 9]) -> Option<[f64; 9]> {
     Some(b)
 }
 
+/// Computes 2D homography matrix $H$ mapping `src` points to `dst` points using Direct Linear Transform (DLT).
+///
+/// Requires $\ge 4$ point correspondences. Returns `None` if fewer points or singular input.
 pub fn homography_dlt(src: &[(f64, f64)], dst: &[(f64, f64)]) -> Option<Homography> {
     let n = src.len();
     if n < 4 || n != dst.len() {

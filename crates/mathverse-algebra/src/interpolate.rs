@@ -5,10 +5,10 @@
 //! ## Examples
 //!
 //! ```rust
-/// use mathverse_algebra::interpolate::{lagrange, newton};
-///
-/// // Points (0,1), (1,3), (2,7) → p(x) = x^2 + 2x + 1
-/// let xs = [0.0, 1.0, 2.0];
+//! use mathverse_algebra::interpolate::{lagrange, newton};
+//!
+//! // Points (0,1), (1,3), (2,7) → p(x) = x^2 + x + 1
+//! let xs = [0.0, 1.0, 2.0];
 /// let ys = [1.0, 3.0, 7.0];
 /// assert!((lagrange(&xs, &ys)(2.0) - 7.0).abs() < 1e-10);
 /// assert!((newton(&xs, &ys)(2.0) - 7.0).abs() < 1e-10);
@@ -66,7 +66,7 @@ pub fn divided_differences(xs: &[f64], ys: &[f64]) -> Vec<f64> {
             dd[i].push(if denom.abs() < crate::TOL { 0.0 } else { diff / denom });
         }
     }
-    dd.iter().map(|row| row[row.len() - 1]).collect()
+    dd.remove(0)
 }
 
 /// Newton interpolation using divided differences.
@@ -91,7 +91,7 @@ pub fn newton(xs: &[f64], ys: &[f64]) -> Polynomial {
     let mut basis = Polynomial::constant(1.0);
     for i in 1..n {
         basis = basis * Polynomial::from_coeffs(&[-xs[i - 1], 1.0]);
-        result = result + basis * Polynomial::constant(dd[i]);
+        result = result + basis.clone() * Polynomial::constant(dd[i]);
     }
     result
 }
@@ -107,7 +107,7 @@ pub fn newton(xs: &[f64], ys: &[f64]) -> Polynomial {
 ///
 /// let xs = [0.0, 1.0, 2.0];
 /// let ys = [1.0, 2.0, 5.0];
-/// assert!((evaluate_newton(&xs, &ys, 1.5) - 4.25).abs() < 1e-10);
+/// assert!((evaluate_newton(&xs, &ys, 1.5) - 3.25).abs() < 1e-10);
 /// ```
 #[must_use]
 pub fn evaluate_newton(xs: &[f64], ys: &[f64], x: f64) -> f64 {
@@ -140,7 +140,8 @@ mod tests {
         let xs = [0.0, 1.0, 2.0];
         let ys = [1.0, 3.0, 7.0];
         let p = lagrange(&xs, &ys);
-        let err = (p.eval(0.5) - 2.25).abs();
+        // Interpolant is x^2 + x + 1 → p(0.5) = 1.75
+        let err = (p.eval(0.5) - 1.75).abs();
         assert!(err < 1e-10);
         for i in 0..3 {
             assert!((p.eval(xs[i]) - ys[i]).abs() < 1e-10);

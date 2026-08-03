@@ -8,7 +8,7 @@ pub fn sub(a: &[f64], b: &[f64]) -> Vec<f64> { a.iter().zip(b).map(|(x, y)| x - 
 pub fn scale(v: &[f64], s: f64) -> Vec<f64> { v.iter().map(|x| x * s).collect() }
 
 /// Dot product of two slices.
-pub fn dot(a: &[f64], b: &[f64]) -> f64 { a.iter().zip(b).map(|(x, y)| x * y).sum() }
+pub fn dot(a: &[f64], b: &[f64]) -> f64 { dot_fast(a, b) }
 
 /// Cross product of two 3D vectors. Returns an empty vector if inputs are not length 3.
 pub fn cross(a: &[f64], b: &[f64]) -> Vec<f64> {
@@ -17,7 +17,7 @@ pub fn cross(a: &[f64], b: &[f64]) -> Vec<f64> {
 }
 
 /// L2 (Euclidean) magnitude of a vector.
-pub fn magnitude(v: &[f64]) -> f64 { v.iter().map(|x| x*x).sum::<f64>().sqrt() }
+pub fn magnitude(v: &[f64]) -> f64 { sum_sq_fast(v).sqrt() }
 
 /// Returns a unit vector in the same direction. Returns the input unchanged if magnitude is zero.
 pub fn normalize(v: &[f64]) -> Vec<f64> { let m = magnitude(v); if m == 0.0 { v.to_vec() } else { v.iter().map(|x| x/m).collect() } }
@@ -36,6 +36,72 @@ pub fn add_scalar(v: &[f64], s: f64) -> Vec<f64> { v.iter().map(|x| x + s).colle
 
 /// Linear interpolation between two vectors: `a + t * (b - a)`.
 pub fn lerp(a: &[f64], b: &[f64], t: f64) -> Vec<f64> { a.iter().zip(b).map(|(x, y)| x + t * (y - x)).collect() }
+
+pub(crate) fn dot_fast(a: &[f64], b: &[f64]) -> f64 {
+    #[cfg(feature = "parallel")]
+    if a.len() >= crate::parallel::THRESHOLD {
+        return crate::parallel::dot(a, b);
+    }
+    #[cfg(feature = "simd")]
+    return crate::simd::dot(a, b);
+    #[cfg(not(feature = "simd"))]
+    a.iter().zip(b).map(|(x, y)| x * y).sum()
+}
+
+pub(crate) fn sum_fast(v: &[f64]) -> f64 {
+    #[cfg(feature = "parallel")]
+    if v.len() >= crate::parallel::THRESHOLD {
+        return crate::parallel::sum(v);
+    }
+    #[cfg(feature = "simd")]
+    return crate::simd::sum(v);
+    #[cfg(not(feature = "simd"))]
+    v.iter().sum()
+}
+
+pub(crate) fn sum_sq_fast(v: &[f64]) -> f64 {
+    #[cfg(feature = "parallel")]
+    if v.len() >= crate::parallel::THRESHOLD {
+        return crate::parallel::sum_sq(v);
+    }
+    #[cfg(feature = "simd")]
+    return crate::simd::sum_sq(v);
+    #[cfg(not(feature = "simd"))]
+    v.iter().map(|x| x * x).sum()
+}
+
+pub(crate) fn sum_abs_fast(v: &[f64]) -> f64 {
+    #[cfg(feature = "parallel")]
+    if v.len() >= crate::parallel::THRESHOLD {
+        return crate::parallel::sum_abs(v);
+    }
+    #[cfg(feature = "simd")]
+    return crate::simd::sum_abs(v);
+    #[cfg(not(feature = "simd"))]
+    v.iter().map(|x| x.abs()).sum()
+}
+
+pub(crate) fn dist_sq_fast(a: &[f64], b: &[f64]) -> f64 {
+    #[cfg(feature = "parallel")]
+    if a.len() >= crate::parallel::THRESHOLD {
+        return crate::parallel::dist_sq(a, b);
+    }
+    #[cfg(feature = "simd")]
+    return crate::simd::dist_sq(a, b);
+    #[cfg(not(feature = "simd"))]
+    a.iter().zip(b).map(|(x, y)| (x - y) * (x - y)).sum()
+}
+
+pub(crate) fn dist_abs_fast(a: &[f64], b: &[f64]) -> f64 {
+    #[cfg(feature = "parallel")]
+    if a.len() >= crate::parallel::THRESHOLD {
+        return crate::parallel::dist_abs(a, b);
+    }
+    #[cfg(feature = "simd")]
+    return crate::simd::dist_abs(a, b);
+    #[cfg(not(feature = "simd"))]
+    a.iter().zip(b).map(|(x, y)| (x - y).abs()).sum()
+}
 
 #[cfg(test)]
 mod tests {

@@ -1,24 +1,28 @@
 //! Matrix norms: L1, L∞, Frobenius, spectral (L2), condition number.
 
-/// L1 (maximum column sum) norm of a matrix.
+/// L1 (maximum absolute column sum) norm of a matrix: $\|A\|_1 = \max_j \sum_i |a_{ij}|$.
 pub fn norm_1(a: &[Vec<f64>]) -> f64 {
     let (m, n) = (a.len(), a[0].len());
     (0..n).map(|j| (0..m).map(|i| a[i][j].abs()).sum::<f64>()).fold(0.0f64, f64::max)
 }
 
+/// L-infinity (maximum absolute row sum) norm of a matrix: $\|A\|_\infty = \max_i \sum_j |a_{ij}|$.
 pub fn norm_inf(a: &[Vec<f64>]) -> f64 {
     a.iter().map(|r| r.iter().map(|v| v.abs()).sum::<f64>()).fold(0.0f64, f64::max)
 }
 
+/// Frobenius norm of a matrix: $\|A\|_F = \sqrt{\sum_{i,j} a_{ij}^2}$.
 pub fn norm_frobenius(a: &[Vec<f64>]) -> f64 {
     a.iter().flat_map(|r| r.iter()).map(|v| v * v).sum::<f64>().sqrt()
 }
 
+/// Spectral (L2) norm of a matrix, equal to the largest singular value.
 pub fn norm_2(a: &[Vec<f64>]) -> f64 {
     let singular = singular_values(a);
     singular.first().copied().unwrap_or(0.0)
 }
 
+/// Computes the singular values of matrix $A$ in descending order via power iteration and deflation.
 pub fn singular_values(a: &[Vec<f64>]) -> Vec<f64> {
     let (m, n) = (a.len(), a[0].len());
     
@@ -60,6 +64,8 @@ pub fn singular_values(a: &[Vec<f64>]) -> Vec<f64> {
     vals
 }
 
+/// Computes the $L_2$ condition number $\kappa(A) = \sigma_{\max} / \sigma_{\min}$.
+/// Returns `f64::INFINITY` if singular or nearly singular.
 pub fn condition_number(a: &[Vec<f64>]) -> f64 {
     let sv = singular_values(a);
     if sv.is_empty() { return f64::INFINITY; }
@@ -69,6 +75,7 @@ pub fn condition_number(a: &[Vec<f64>]) -> f64 {
     max_sv / min_sv
 }
 
+/// Computes matrix p-norm (`p = 1.0` for L1, `p = 2.0` for L2/spectral, `p = f64::INFINITY` for L-inf, `p = 0.0` for Frobenius).
 pub fn matrix_norm(a: &[Vec<f64>], p: f64) -> f64 {
     if p == 1.0 { norm_1(a) }
     else if p == f64::INFINITY { norm_inf(a) }

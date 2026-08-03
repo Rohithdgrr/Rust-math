@@ -1,5 +1,6 @@
 //! Linear system solvers: LU-based, QR-based, Gaussian, least-squares.
 
+/// Solves $Ax = b$ using pre-computed LU decomposition and permutation vector.
 pub fn solve_lu(l: &[Vec<f64>], u: &[Vec<f64>], perm: &[usize], b: &[f64]) -> Vec<f64> {
     let n = b.len();
     
@@ -23,6 +24,7 @@ pub fn solve_lu(l: &[Vec<f64>], u: &[Vec<f64>], perm: &[usize], b: &[f64]) -> Ve
     x
 }
 
+/// Solves $Ax = b$ using pre-computed QR decomposition ($Q^T b = R x$).
 pub fn solve_qr(q: &[Vec<f64>], r: &[Vec<f64>], b: &[f64]) -> Vec<f64> {
     let n = b.len();
     let mut qt_b = vec![0.0; n];
@@ -32,12 +34,14 @@ pub fn solve_qr(q: &[Vec<f64>], r: &[Vec<f64>], b: &[f64]) -> Vec<f64> {
     x
 }
 
+/// Solves a 2x2 linear system $Ax = b$ analytically using Cramer's rule.
 pub fn solve_2x2(a: [[f64; 2]; 2], b: [f64; 2]) -> Option<[f64; 2]> {
     let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
     if det.abs() < 1e-15 { return None; }
     Some([(b[0]*a[1][1]-b[1]*a[0][1])/det, (a[0][0]*b[1]-a[1][0]*b[0])/det])
 }
 
+/// Solves a 3x3 linear system $Ax = b$ analytically using Cramer's rule.
 pub fn solve_3x3(a: [[f64; 3]; 3], b: [f64; 3]) -> Option<[f64; 3]> {
     let det = a[0][0]*(a[1][1]*a[2][2]-a[1][2]*a[2][1]) - a[0][1]*(a[1][0]*a[2][2]-a[1][2]*a[2][0]) + a[0][2]*(a[1][0]*a[2][1]-a[1][1]*a[2][0]);
     if det.abs() < 1e-15 { return None; }
@@ -48,6 +52,7 @@ pub fn solve_3x3(a: [[f64; 3]; 3], b: [f64; 3]) -> Option<[f64; 3]> {
     ])
 }
 
+/// Solves $Ax = b$ using Gaussian elimination with partial pivoting.
 pub fn solve_gauss(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     let n = a.len();
     let mut aug: Vec<Vec<f64>> = (0..n).map(|i| { let mut r = a[i].clone(); r.push(b[i]); r }).collect();
@@ -66,6 +71,7 @@ pub fn solve_gauss(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     Some(x)
 }
 
+/// Solves an overdetermined linear system $Ax \approx b$ in the least-squares sense using QR decomposition.
 pub fn ls_solve(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     // Use QR decomposition for better numerical stability
     // Solve Ax = b via QR: Q^T b = R x, then back substitution
@@ -90,6 +96,7 @@ pub fn ls_solve(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     Some(x)
 }
 
+/// Computes the residual norm $\|b - Ax\|_2$.
 pub fn residual_norm(a: &[Vec<f64>], b: &[f64], x: &[f64]) -> f64 {
     let m = a.len();
     let mut sum = 0.0;
