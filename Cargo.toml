@@ -38,6 +38,10 @@ members = [
 [workspace.package]
 rust-version = "1.87"
 edition = "2021"
+description = "A comprehensive mathematics library for Rust"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Rohithdgrr/Rust-math"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
