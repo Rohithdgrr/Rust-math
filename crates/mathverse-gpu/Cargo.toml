@@ -21,6 +21,7 @@ wgpu = { version = "24", features = ["naga-ir"] }
 pollster = "0.4"
 bytemuck = { version = "1", features = ["derive"] }
 log = "0.4"
+futures = "0.3"
 
 [lints]
 workspace = true

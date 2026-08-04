@@ -43,14 +43,12 @@ impl GpuContext {
 
     /// Get the device info name.
     pub fn device_name(&self) -> String {
-        self.device
-            .push_error_scope(wgpu::ErrorFilter::Validation)
-            .to_string()
+        "GPU".to_string()
     }
 
     /// Create a buffer from a f64 slice.
     pub fn create_buffer_init(&self, data: &[f64]) -> wgpu::Buffer {
-        use bytemuck::Pod;
+        use wgpu::util::DeviceExt;
         let bytes: &[u8] = bytemuck::cast_slice(data);
         self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("MathVerse Buffer"),
@@ -75,14 +73,13 @@ impl GpuContext {
         self.queue.submit([encoder.finish()]);
 
         let slice = staging.slice(..);
-        let (tx, rx) = futures_intrinsics::channel();
+        let (tx, rx) = futures::channel::oneshot::channel();
         slice.map_async(wgpu::MapMode::Read, move |result| {
             tx.send(result).ok();
         });
         self.device.poll(wgpu::Maintain::Wait);
 
-        rx.recv()
-            .await
+        rx.await
             .map_err(|_| MathError::Io)?
             .map_err(|_| MathError::Io)?;
 
