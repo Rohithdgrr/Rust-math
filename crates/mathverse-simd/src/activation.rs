@@ -30,7 +30,7 @@ pub fn relu(a: &[f64], out: &mut [f64]) {
 pub fn leaky_relu(a: &[f64], alpha: f64, out: &mut [f64]) {
     assert_eq!(a.len(), out.len());
     for (o, &v) in out.iter_mut().zip(a) {
-        *o = if *v > 0.0 { *v } else { alpha * v };
+        *o = if v > 0.0 { v } else { alpha * v };
     }
 }
 
@@ -51,7 +51,7 @@ pub fn gelu(a: &[f64], out: &mut [f64]) {
 pub fn silu(a: &[f64], out: &mut [f64]) {
     assert_eq!(a.len(), out.len());
     for (o, &v) in out.iter_mut().zip(a) {
-        let s = if *v >= 0.0 {
+        let s = if v >= 0.0 {
             1.0 / (1.0 + (-v).exp())
         } else {
             let ev = v.exp();
@@ -87,8 +87,8 @@ pub fn softmax(a: &[f64], out: &mut [f64]) {
 pub fn elu(a: &[f64], alpha: f64, out: &mut [f64]) {
     assert_eq!(a.len(), out.len());
     for (o, &v) in out.iter_mut().zip(a) {
-        *o = if *v > 0.0 {
-            *v
+        *o = if v > 0.0 {
+            v
         } else {
             alpha * (v.exp() - 1.0)
         };

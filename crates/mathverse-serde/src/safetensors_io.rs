@@ -18,7 +18,7 @@ pub struct SafetensorsHeader {
 }
 
 /// Information about a single tensor.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct TensorInfo {
     pub dtype: DType,
     pub offsets: (usize, usize),
