@@ -124,7 +124,7 @@ impl<'a> Clone for LazyVec<'a> {
     fn clone(&self) -> Self {
         // Reconstruct from a fresh eval (expression trees aren't cheaply cloneable)
         Self {
-            expr: Expr::Owned(self.expr.clone()),
+            expr: self.expr.clone(),
         }
     }
 }
