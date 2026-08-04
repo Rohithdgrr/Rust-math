@@ -1,0 +1,26 @@
+[package]
+name = "mathverse-gpu"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "MathVerse GPU compute backend: wgpu-based GPU acceleration for matrix and tensor ops"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "gpu", "wgpu", "compute", "acceleration"]
+categories = ["science", "mathematics", "algorithms"]
+
+[features]
+default = []
+std = []
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+wgpu = { version = "24", features = ["naga-ir"] }
+pollster = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
+log = "0.4"
+
+[lints]
+workspace = true

@@ -1,0 +1,23 @@
+[package]
+name = "mathverse-parallel"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "MathVerse parallel computation: rayon-based parallel iterators for math operations"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "parallel", "rayon", "concurrency", "performance"]
+categories = ["science", "mathematics", "algorithms"]
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+rayon = "1.10"
+
+[lints]
+workspace = true

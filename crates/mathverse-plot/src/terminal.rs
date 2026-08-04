@@ -1,6 +1,7 @@
 //! Terminal (ASCII) plotting backend
 
-use crate::common::{DataPoint, DataSeries, PlotConfig};
+use crate::backend::PlotData;
+use crate::common::{plot_bounds, DataSeries, PlotConfig};
 
 /// Terminal plot generator
 pub struct TerminalPlot {
@@ -50,7 +51,7 @@ impl TerminalPlot {
             for point in &series.points {
                 let x = ((point.x - x_min) / (x_max - x_min) * (self.width - 2) as f64) as usize;
                 let y = ((point.y - y_min) / (y_max - y_min) * (self.height - 2) as f64) as usize;
-                
+
                 if x < self.width && y < self.height {
                     grid[self.height - 1 - y][x] = '*';
                 }
@@ -104,34 +105,12 @@ impl TerminalPlot {
         output
     }
 
+    /// Padded bounds over all series; falls back to `0..1` when empty.
     fn calculate_ranges(&self) -> (f64, f64, f64, f64) {
-        let mut x_min = f64::INFINITY;
-        let mut x_max = f64::NEG_INFINITY;
-        let mut y_min = f64::INFINITY;
-        let mut y_max = f64::NEG_INFINITY;
-
-        for series in &self.series {
-            for point in &series.points {
-                x_min = x_min.min(point.x);
-                x_max = x_max.max(point.x);
-                y_min = y_min.min(point.y);
-                y_max = y_max.max(point.y);
-            }
-        }
-
-        // Add some padding to ranges
-        let x_range = x_max - x_min;
-        let y_range = y_max - y_min;
-        if x_range > 0.0 {
-            x_min -= x_range * 0.05;
-            x_max += x_range * 0.05;
-        }
-        if y_range > 0.0 {
-            y_min -= y_range * 0.05;
-            y_max += y_range * 0.05;
-        }
-
-        (x_min, x_max, y_min, y_max)
+        let (x, y) = plot_bounds(&self.series);
+        let x = x.pad(0.05);
+        let y = y.pad(0.05);
+        (x.min, x.max, y.min, y.max)
     }
 }
 
@@ -141,17 +120,27 @@ impl Default for TerminalPlot {
     }
 }
 
+impl crate::backend::Backend for TerminalPlot {
+    fn generate(&self, data: &PlotData) -> crate::error::PlotResult<String> {
+        let mut tp =
+            TerminalPlot::new(data.config.clone()).with_dimensions(self.width, self.height);
+        for s in &data.series {
+            tp.add_series(s.clone());
+        }
+        Ok(tp.generate())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::DataPoint;
 
     #[test]
     fn test_terminal_plot_creation() {
-        let config = PlotConfig::new()
-            .with_title("Test Plot".to_string());
+        let config = PlotConfig::new().with_title("Test Plot".to_string());
 
-        let mut plot = TerminalPlot::new(config)
-            .with_dimensions(40, 20);
+        let mut plot = TerminalPlot::new(config).with_dimensions(40, 20);
 
         let points = vec![
             DataPoint::new(1.0, 2.0),

@@ -1,0 +1,49 @@
+[package]
+name = "mathverse-benches"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "MathVerse unified benchmark suite: Criterion benchmarks for all math operations"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+
+[dependencies]
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+mathverse-simd = { path = "../mathverse-simd", version = "0.1.0" }
+mathverse-lazy = { path = "../mathverse-lazy", version = "0.1.0" }
+mathverse-views = { path = "../mathverse-views", version = "0.1.0" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
+mathverse-serde = { path = "../mathverse-serde", version = "0.1.0" }
+
+[[bench]]
+name = "vector_bench"
+harness = false
+
+[[bench]]
+name = "matrix_bench"
+harness = false
+
+[[bench]]
+name = "simd_bench"
+harness = false
+
+[[bench]]
+name = "lazy_bench"
+harness = false
+
+[[bench]]
+name = "view_bench"
+harness = false
+
+[[bench]]
+name = "stats_bench"
+harness = false
+
+[lints]
+workspace = true

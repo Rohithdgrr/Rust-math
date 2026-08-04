@@ -1,0 +1,23 @@
+[package]
+name = "mathverse-ndarray-interop"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "MathVerse ndarray interop: zero-copy conversions between MathVerse and ndarray types"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "ndarray", "interop", "conversion", "zero-copy"]
+categories = ["science", "mathematics"]
+
+[features]
+default = []
+std = ["ndarray/std"]
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+ndarray = { version = "0.15", default-features = false }
+
+[lints]
+workspace = true

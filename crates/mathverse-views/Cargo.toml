@@ -1,0 +1,20 @@
+[package]
+name = "mathverse-views"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "MathVerse zero-copy views: borrowed matrix/vector views for subarray operations"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "views", "zero-copy", "slicing", "borrow"]
+categories = ["science", "mathematics"]
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+
+[lints]
+workspace = true

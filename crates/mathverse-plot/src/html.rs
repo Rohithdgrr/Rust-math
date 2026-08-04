@@ -1,6 +1,7 @@
 //! HTML plotting backend
 
-use crate::common::{DataPoint, DataSeries, PlotConfig};
+use crate::backend::PlotData;
+use crate::common::{DataSeries, PlotConfig};
 use crate::svg::SvgPlot;
 
 /// HTML plot generator (wraps SVG in HTML)
@@ -70,9 +71,36 @@ impl HtmlPlot {
     }
 }
 
+impl crate::backend::Backend for HtmlPlot {
+    fn generate(&self, data: &PlotData) -> crate::error::PlotResult<String> {
+        let svg_content = <SvgPlot as crate::backend::Backend>::generate(
+            &SvgPlot::new(data.config.clone()),
+            data,
+        )?;
+        let mut html = String::from("<!DOCTYPE html>\n<html>\n<head>\n");
+        html.push_str("  <meta charset=\"UTF-8\">\n  <title>");
+        html.push_str(&data.config.title);
+        html.push_str(
+            "</title>\n  <style>\n    body { font-family: Arial, sans-serif; margin: 20px; }\n",
+        );
+        html.push_str("    .plot-container { text-align: center; }\n    h1 { color: #333; }\n");
+        html.push_str("  </style>\n</head>\n<body>\n  <div class=\"plot-container\">\n");
+        if !data.config.title.is_empty() {
+            html.push_str("    <h1>");
+            html.push_str(&data.config.title);
+            html.push_str("</h1>\n");
+        }
+        html.push_str("    <div>\n");
+        html.push_str(&svg_content);
+        html.push_str("    </div>\n  </div>\n</body>\n</html>\n");
+        Ok(html)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::DataPoint;
 
     #[test]
     fn test_html_plot_creation() {

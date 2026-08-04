@@ -11,12 +11,44 @@ publish = false
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.0" }
-mathverse-calculus = { path = "../mathverse-calculus", version = "0.1.0" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.1" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.1" }
+mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.2.1" }
+mathverse-finance = { path = "../mathverse-finance", version = "0.1.1" }
+mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.0" }
+mathverse-signal = { path = "../mathverse-signal", version = "0.1.0" }
+mathverse-complex = { path = "../mathverse-complex", version = "0.1.0" }
+mathverse-machine-learning = { path = "../mathverse-machine-learning", version = "0.1.0" }
+mathverse-graphics = { path = "../mathverse-graphics", version = "0.1.0" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+mathverse-graph = { path = "../mathverse-graph", version = "0.1.0" }
 thiserror = "2"
+tiny-skia = { version = "0.12", optional = true }
+resvg = { version = "0.48", optional = true }
+usvg = { version = "0.48", optional = true }
+printpdf = { version = "0.12", optional = true }
+eframe = { version = "0.31", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+web-sys = { version = "0.3", optional = true, features = ["CanvasRenderingContext2d", "HtmlCanvasElement", "Document", "Window", "Element"] }
+
+[features]
+png = ["dep:tiny-skia", "dep:resvg", "dep:usvg"]
+pdf = ["dep:printpdf"]
+interactive = ["dep:eframe"]
+canvas = ["dep:wasm-bindgen", "dep:web-sys"]
 
 
 [lints]
 workspace = true
 [dev-dependencies]
 approx = "0.5"
+criterion = "0.5"
+
+[[bench]]
+name = "plot_bench"
+harness = false
+
+[[example]]
+name = "interactive"
+required-features = ["interactive"]

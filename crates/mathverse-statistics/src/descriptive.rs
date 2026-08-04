@@ -648,6 +648,96 @@ pub struct Summary {
     pub kurtosis: f64,
 }
 
+/// Sturges' rule for histogram bin count: `ceil(1 + log2(n))`.
+///
+/// Returns `None` for empty input.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::sturges_rule;
+///
+/// assert_eq!(sturges_rule(&[1.0, 2.0, 3.0]), Some(3));
+/// ```
+#[must_use]
+pub fn sturges_rule(xs: &[f64]) -> Option<usize> {
+    if xs.is_empty() {
+        return None;
+    }
+    Some(1 + (xs.len() as f64).log2().ceil() as usize)
+}
+
+/// Scott's normal reference rule for histogram bin count:
+/// `ceil((max - min) / (3.49 * sigma / n^(1/3)))`.
+///
+/// Returns `None` for empty data or data with zero range.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::scott_rule;
+///
+/// let data = [1.0, 2.0, 2.0, 3.0, 4.0, 5.0];
+/// assert!(scott_rule(&data).unwrap() >= 1);
+/// ```
+#[must_use]
+pub fn scott_rule(xs: &[f64]) -> Option<usize> {
+    if xs.is_empty() {
+        return None;
+    }
+    let r = range(xs);
+    if r <= 0.0 {
+        return Some(1);
+    }
+    let n = xs.len() as f64;
+    let width = 3.49 * std_dev_sample(xs) / n.cbrt();
+    if width <= 0.0 || width.is_nan() {
+        return None;
+    }
+    Some((r / width).ceil().max(1.0) as usize)
+}
+
+/// Freedman-Diaconis rule for histogram bin count using the IQR:
+/// `ceil((max - min) / (2 * IQR / n^(1/3)))`.
+///
+/// Returns `None` for empty data or a zero IQR.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::fd_rule;
+///
+/// let data = [1.0, 2.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
+/// assert!(fd_rule(&data).unwrap() >= 1);
+/// ```
+#[must_use]
+pub fn fd_rule(xs: &[f64]) -> Option<usize> {
+    if xs.is_empty() {
+        return None;
+    }
+    let r = range(xs);
+    if r <= 0.0 {
+        return Some(1);
+    }
+    let n = xs.len() as f64;
+    let width = 2.0 * iqr(xs) / n.cbrt();
+    if width <= 0.0 || width.is_nan() {
+        return None;
+    }
+    Some((r / width).ceil().max(1.0) as usize)
+}
+
+/// Square-root rule for histogram bin count: `ceil(sqrt(n))`.
+///
+/// Returns `None` for empty data.
+#[must_use]
+pub fn sqrt_rule(xs: &[f64]) -> Option<usize> {
+    if xs.is_empty() {
+        return None;
+    }
+    Some((xs.len() as f64).sqrt().ceil() as usize)
+}
+
 /// Compute a full summary of the data.
 ///
 /// # Examples
@@ -855,5 +945,17 @@ mod tests {
     fn quartiles_test() {
         let data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
         assert_eq!(quartiles(&data), (3.0, 5.0, 7.0));
+    }
+
+    #[test]
+    fn binning_rules_test() {
+        assert_eq!(sturges_rule(&[]), None);
+        assert_eq!(sturges_rule(&[1.0, 2.0, 3.0]), Some(3));
+        assert_eq!(sqrt_rule(&[1.0; 100]), Some(10));
+        assert_eq!(scott_rule(&[1.0; 10]), Some(1));
+        assert_eq!(fd_rule(&[1.0; 10]), Some(1));
+        let data = [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0, 5.0];
+        assert!(scott_rule(&data).is_some() && scott_rule(&data).unwrap() >= 1);
+        assert!(fd_rule(&data).is_some() && fd_rule(&data).unwrap() >= 1);
     }
 }

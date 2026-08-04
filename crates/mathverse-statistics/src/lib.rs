@@ -50,6 +50,7 @@
 
 extern crate alloc;
 
+pub mod density;
 pub mod descriptive;
 pub mod distributions;
 pub mod error;
@@ -61,10 +62,16 @@ pub mod regression;
 pub use error::{MathError, MathResult};
 
 pub use descriptive::{
-    coefficient_of_variation, covariance, describe, geometric_mean, harmonic_mean, iqr, kurtosis,
-    linear_regression, mad, mean, mean_ci, median, mode, pearson, percentile, quantile, quartiles,
-    range, skewness, standard_error, std_dev_pop, std_dev_sample, trimmed_mean, variance_pop,
-    variance_sample, weighted_mean, winsorized_mean, z_test, Summary,
+    coefficient_of_variation, covariance, describe, fd_rule, geometric_mean, harmonic_mean, iqr,
+    kurtosis, linear_regression, mad, mean, mean_ci, median, mode, pearson, percentile, quantile,
+    quartiles, range, scott_rule, skewness, sqrt_rule, standard_error, std_dev_pop, std_dev_sample,
+    sturges_rule, trimmed_mean, variance_pop, variance_sample, weighted_mean, winsorized_mean,
+    z_test, Summary,
+};
+
+pub use density::{
+    kernel_density, kernel_density_curve, resolve_bandwidth, scott_bandwidth, silverman_bandwidth,
+    Bandwidth,
 };
 
 pub use distributions::{

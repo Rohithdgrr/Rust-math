@@ -1,0 +1,24 @@
+[package]
+name = "mathverse-dataframe"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "MathVerse DataFrame: pandas-like tabular data structures with zero external dependencies"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Rohithdgrr/Rust-math"
+keywords = ["math", "dataframe", "tabular", "pandas", "data"]
+categories = ["science", "mathematics", "data-structures"]
+
+[dependencies]
+mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+
+[dev-dependencies]
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
+
+[lints]
+workspace = true
+
+[features]
+default = ["csv", "json"]
+csv = []
+json = []

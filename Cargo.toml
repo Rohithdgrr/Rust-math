@@ -33,6 +33,15 @@ members = [
     "crates/mathverse-optimization",
     "crates/mathverse-graphics",
     "crates/mathverse-prelude",
+    "crates/mathverse-lazy",
+    "crates/mathverse-ndarray-interop",
+    "crates/mathverse-serde",
+    "crates/mathverse-simd",
+    "crates/mathverse-parallel",
+    "crates/mathverse-views",
+    "crates/mathverse-benches",
+    "crates/mathverse-gpu",
+    "crates/mathverse-wasm",
 ]
 
 [workspace.package]
