@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 ///
 /// `Expr` forms a tree of deferred operations. Call `.eval()` to materialize
 /// the result into a `Vec<f64>`.
+#[derive(Clone)]
 pub enum Expr<'a> {
     /// A reference to an existing slice (zero-copy).
     Slice(&'a [f64]),
