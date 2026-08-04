@@ -101,7 +101,7 @@ pub fn slice2d_to_view<'a>(data: &'a [f64], rows: usize, cols: usize) -> ArrayVi
 }
 
 /// Convert an ndarray 1D view back to a slice.
-pub fn view_to_slice<'a>(arr: &ArrayView1<'a, f64>) -> &'a [f64] {
+pub fn view_to_slice<'a>(arr: &'a ArrayView1<'a, f64>) -> &'a [f64] {
     arr.as_slice().expect("ArrayView should be contiguous")
 }
 
