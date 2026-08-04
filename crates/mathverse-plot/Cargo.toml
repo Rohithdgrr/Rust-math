@@ -7,7 +7,6 @@ authors = ["MathVerse Contributors"]
 description = "Plotting with SVG, HTML, and terminal output backends"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
-publish = false
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
