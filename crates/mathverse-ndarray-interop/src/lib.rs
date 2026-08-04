@@ -23,80 +23,68 @@ use ndarray::{Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut1, ArrayViewMu
 
 // ─── Vector ↔ Array1 ──────────────────────────────────────────────
 
-impl From<Vector> for Array1<f64> {
-    fn from(v: Vector) -> Self {
-        Array1::from_vec(v.data)
-    }
+/// Convert a `Vector` into an `Array1<f64>`.
+pub fn vector_to_array1(v: Vector) -> Array1<f64> {
+    Array1::from_vec(v.data)
 }
 
-impl From<Array1<f64>> for Vector {
-    fn from(arr: Array1<f64>) -> Self {
-        Vector::new(arr.to_vec())
-    }
+/// Convert an `Array1<f64>` into a `Vector`.
+pub fn array1_to_vector(arr: Array1<f64>) -> Vector {
+    Vector::new(arr.to_vec())
 }
 
-impl<'a> From<&'a Vector> for ArrayView1<'a, f64> {
-    fn from(v: &'a Vector) -> Self {
-        ArrayView1::from_shape(v.len(), &v.data).expect("valid shape")
-    }
+/// Convert a `&Vector` into an `ArrayView1<f64>`.
+pub fn vector_to_view1<'a>(v: &'a Vector) -> ArrayView1<'a, f64> {
+    ArrayView1::from_shape(v.len(), &v.data).expect("valid shape")
 }
 
-impl<'a> From<&'a mut Vector> for ArrayViewMut1<'a, f64> {
-    fn from(v: &'a mut Vector) -> Self {
-        let len = v.len();
-        ArrayViewMut1::from_shape(len, &mut v.data).expect("valid shape")
-    }
+/// Convert a `&mut Vector` into an `ArrayViewMut1<f64>`.
+pub fn vector_to_view1_mut<'a>(v: &'a mut Vector) -> ArrayViewMut1<'a, f64> {
+    let len = v.len();
+    ArrayViewMut1::from_shape(len, &mut v.data).expect("valid shape")
 }
 
-impl<'a> From<ArrayView1<'a, f64>> for Vector {
-    fn from(arr: ArrayView1<'a, f64>) -> Self {
-        Vector::new(arr.to_vec())
-    }
+/// Convert an `ArrayView1<f64>` into a `Vector`.
+pub fn view1_to_vector<'a>(arr: ArrayView1<'a, f64>) -> Vector {
+    Vector::new(arr.to_vec())
 }
 
 // ─── Matrix ↔ Array2 ──────────────────────────────────────────────
 
-impl From<Matrix> for Array2<f64> {
-    fn from(m: Matrix) -> Self {
-        Array2::from_shape_vec((m.rows, m.cols), m.data)
-            .expect("Matrix shape should be valid")
-    }
+/// Convert a `Matrix` into an `Array2<f64>`.
+pub fn matrix_to_array2(m: Matrix) -> Array2<f64> {
+    Array2::from_shape_vec((m.rows, m.cols), m.data)
+        .expect("Matrix shape should be valid")
 }
 
-impl TryFrom<Array2<f64>> for Matrix {
-    type Error = ShapeError;
-
-    fn try_from(arr: Array2<f64>) -> Result<Self, Self::Error> {
-        let (rows, cols) = arr.dim();
-        Ok(Matrix {
-            rows,
-            cols,
-            data: arr.into_raw_vec(),
-        })
-    }
+/// Convert an `Array2<f64>` into a `Matrix`.
+pub fn array2_to_matrix(arr: Array2<f64>) -> Result<Matrix, ShapeError> {
+    let (rows, cols) = arr.dim();
+    Ok(Matrix {
+        rows,
+        cols,
+        data: arr.into_raw_vec(),
+    })
 }
 
-impl<'a> From<&'a Matrix> for ArrayView2<'a, f64> {
-    fn from(m: &'a Matrix) -> Self {
-        ArrayView2::from_shape((m.rows, m.cols), &m.data).expect("valid shape")
-    }
+/// Convert a `&Matrix` into an `ArrayView2<f64>`.
+pub fn matrix_to_view2<'a>(m: &'a Matrix) -> ArrayView2<'a, f64> {
+    ArrayView2::from_shape((m.rows, m.cols), &m.data).expect("valid shape")
 }
 
-impl<'a> From<&'a mut Matrix> for ArrayViewMut2<'a, f64> {
-    fn from(m: &'a mut Matrix) -> Self {
-        let (rows, cols) = (m.rows, m.cols);
-        ArrayViewMut2::from_shape((rows, cols), &mut m.data).expect("valid shape")
-    }
+/// Convert a `&mut Matrix` into an `ArrayViewMut2<f64>`.
+pub fn matrix_to_view2_mut<'a>(m: &'a mut Matrix) -> ArrayViewMut2<'a, f64> {
+    let (rows, cols) = (m.rows, m.cols);
+    ArrayViewMut2::from_shape((rows, cols), &mut m.data).expect("valid shape")
 }
 
-impl<'a> From<ArrayView2<'a, f64>> for Matrix {
-    fn from(arr: ArrayView2<'a, f64>) -> Self {
-        let (rows, cols) = arr.dim();
-        Matrix {
-            rows,
-            cols,
-            data: arr.to_owned().into_raw_vec(),
-        }
+/// Convert an `ArrayView2<f64>` into a `Matrix`.
+pub fn view2_to_matrix<'a>(arr: ArrayView2<'a, f64>) -> Matrix {
+    let (rows, cols) = arr.dim();
+    Matrix {
+        rows,
+        cols,
+        data: arr.to_owned().into_raw_vec(),
     }
 }
 
@@ -124,23 +112,23 @@ mod tests {
     #[test]
     fn vector_roundtrip() {
         let v = Vector::new(vec![1.0, 2.0, 3.0]);
-        let arr: Array1<f64> = Array1::from(v.clone());
-        let v2: Vector = Vector::from(arr);
+        let arr = vector_to_array1(v.clone());
+        let v2 = view1_to_vector(vector_to_view1(&v));
         assert_eq!(v, v2);
     }
 
     #[test]
     fn matrix_roundtrip() {
         let m = Matrix::from_rows(&[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
-        let arr: Array2<f64> = Array2::from(m.clone());
-        let m2: Matrix = Matrix::try_from(arr).unwrap();
+        let arr = matrix_to_array2(m.clone());
+        let m2 = array2_to_matrix(arr).unwrap();
         assert_eq!(m, m2);
     }
 
     #[test]
     fn vector_to_array1() {
         let v = Vector::new(vec![10.0, 20.0, 30.0]);
-        let arr: Array1<f64> = v.into();
+        let arr = vector_to_array1(v);
         assert_eq!(arr.len(), 3);
         assert_eq!(arr[0], 10.0);
         assert_eq!(arr[2], 30.0);
@@ -149,7 +137,7 @@ mod tests {
     #[test]
     fn matrix_to_array2() {
         let m = Matrix::from_rows(&[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
-        let arr: Array2<f64> = m.into();
+        let arr = matrix_to_array2(m);
         assert_eq!(arr.dim(), (2, 2));
         assert_eq!((arr[[0, 0]], arr[[1, 1]]), (1.0, 4.0));
     }

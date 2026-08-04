@@ -37,7 +37,7 @@ pub fn par_monte_carlo<T, F, R, I>(n: u64, sample_fn: F, reduce_fn: R, identity:
 where
     T: Send + Sync,
     F: Fn(u64) -> T + Send + Sync,
-    R: fn(T, T) -> T + Send + Sync,
+    R: Fn(T, T) -> T + Send + Sync,
     I: Fn() -> T + Send + Sync,
 {
     (0..n)
