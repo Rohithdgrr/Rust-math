@@ -150,7 +150,7 @@ mod tests {
 
     fn series(name: &str, pts: Vec<(f64, f64)>) -> DataSeries {
         DataSeries::new(
-            name.into(),
+            name,
             pts.into_iter().map(|(x, y)| DataPoint::new(x, y)).collect(),
         )
     }

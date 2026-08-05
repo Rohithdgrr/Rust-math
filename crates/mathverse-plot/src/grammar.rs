@@ -23,7 +23,7 @@ use std::collections::HashMap;
 
 use crate::axes::Scale;
 use crate::common::{DataPoint, DataSeries, PlotConfig};
-use crate::style::{Color, LineStyle, MarkerStyle, PlotStyle};
+use crate::style::{Color, PlotStyle};
 use crate::svg::SvgPlot;
 use crate::theme::{Theme, ThemeConfig};
 

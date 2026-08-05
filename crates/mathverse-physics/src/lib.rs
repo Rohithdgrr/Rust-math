@@ -1,11 +1,11 @@
-//! Physics domain applications for MathVerse
+//! Physics domain applications for `MathVerse`
 //! 
 //! This crate provides physics-specific calculations and constants including:
 //! - Classical mechanics (kinematics, dynamics)
 //! - Thermodynamics
 //! - Electromagnetism
 //! - Waves and optics
-//! - Modern physics
+//! - Physical constants
 
 pub mod mechanics;
 pub mod thermodynamics;

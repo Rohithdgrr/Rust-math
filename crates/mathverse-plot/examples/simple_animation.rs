@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Assemble into animated SVG
     let animated_svg = assemble_animated_svg(&frames, &config);
-    std::fs::write("animation.svg", &animated_svg)?;
+    PlotSaver::new(animated_svg).save_png("animation.png")?;
     println!("Wrote animation.svg ({} bytes)", animated_svg.len());
 
     Ok(())

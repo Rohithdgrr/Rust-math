@@ -21,8 +21,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     config.show_equation = true;
 
     let svg = render_regplot(&points, &config)?;
-    std::fs::write("regplot.svg", svg)?;
-    println!("wrote regplot.svg");
+    PlotSaver::new(svg).save_png("regplot.png")?;
+    println!("wrote regplot.png");
 
     Ok(())
 }

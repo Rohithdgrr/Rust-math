@@ -30,8 +30,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     config.plot_config = config.plot_config.with_title("2D KDE: Two Clusters");
 
     let svg = render_kde_plot(&x, &y, &config)?;
-    std::fs::write("kde2d.svg", svg)?;
-    println!("wrote kde2d.svg");
+    PlotSaver::new(svg).save_png("kde2d.png")?;
+    println!("wrote kde2d.png");
 
     Ok(())
 }

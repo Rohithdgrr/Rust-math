@@ -25,8 +25,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 500;
 
     let svg = render_quiver(&vectors, &cfg)?;
-    std::fs::write("quiver.svg", svg)?;
-    println!("wrote quiver.svg");
+    PlotSaver::new(svg).save_png("quiver.png")?;
+    println!("wrote quiver.png");
 
     Ok(())
 }

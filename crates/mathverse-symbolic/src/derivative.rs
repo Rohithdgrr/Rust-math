@@ -1,7 +1,6 @@
 //! Symbolic differentiation
 
 use crate::expr::Expr;
-use std::rc::Rc;
 
 /// Compute the symbolic derivative of an expression with respect to a variable
 /// 

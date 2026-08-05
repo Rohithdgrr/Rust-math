@@ -23,7 +23,7 @@ mod wide_impl {
             acc += f64x2::from([a[i], a[i + 1]]) * f64x2::from([b[i], b[i + 1]]);
             i += 2;
         }
-        let mut s = acc.0[0] + acc.0[1];
+        let mut s = acc.to_array()[0] + acc.to_array()[1];
         while i < n {
             s += a[i] * b[i];
             i += 1;
@@ -39,7 +39,7 @@ mod wide_impl {
             acc += f64x2::from([v[i], v[i + 1]]);
             i += 2;
         }
-        let mut s = acc.0[0] + acc.0[1];
+        let mut s = acc.to_array()[0] + acc.to_array()[1];
         while i < v.len() {
             s += v[i];
             i += 1;
@@ -56,7 +56,7 @@ mod wide_impl {
             acc += lane * lane;
             i += 2;
         }
-        let mut s = acc.0[0] + acc.0[1];
+        let mut s = acc.to_array()[0] + acc.to_array()[1];
         while i < v.len() {
             s += v[i] * v[i];
             i += 1;
@@ -72,7 +72,7 @@ mod wide_impl {
             acc += f64x2::from([v[i].abs(), v[i + 1].abs()]);
             i += 2;
         }
-        let mut s = acc.0[0] + acc.0[1];
+        let mut s = acc.to_array()[0] + acc.to_array()[1];
         while i < v.len() {
             s += v[i].abs();
             i += 1;
@@ -90,7 +90,7 @@ mod wide_impl {
             acc += d * d;
             i += 2;
         }
-        let mut s = acc.0[0] + acc.0[1];
+        let mut s = acc.to_array()[0] + acc.to_array()[1];
         while i < n {
             let d = a[i] - b[i];
             s += d * d;
@@ -108,7 +108,7 @@ mod wide_impl {
             acc += f64x2::from([(a[i] - b[i]).abs(), (a[i + 1] - b[i + 1]).abs()]);
             i += 2;
         }
-        let mut s = acc.0[0] + acc.0[1];
+        let mut s = acc.to_array()[0] + acc.to_array()[1];
         while i < n {
             s += (a[i] - b[i]).abs();
             i += 1;

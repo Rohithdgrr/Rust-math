@@ -1,6 +1,6 @@
 //! Classical mechanics - kinematics and dynamics
 
-use crate::constants::G_0;
+pub use crate::constants::G_0;
 
 /// Calculate displacement with constant acceleration
 /// 
@@ -36,9 +36,11 @@ pub fn final_velocity(v0: f64, a: f64, t: f64) -> f64 {
 /// * `d` - Displacement (m)
 /// 
 /// # Returns
-/// Final velocity (m/s)
-pub fn velocity_from_displacement(v0: f64, a: f64, d: f64) -> f64 {
-    (v0 * v0 + 2.0 * a * d).sqrt()
+/// Final velocity (m/s), or `None` if `v0² + 2ad` is negative (no real solution).
+pub fn velocity_from_displacement(v0: f64, a: f64, d: f64) -> Option<f64> {
+    let radicand = v0 * v0 + 2.0 * a * d;
+    if radicand < 0.0 { return None; }
+    Some(radicand.sqrt())
 }
 
 /// Calculate kinetic energy
@@ -110,9 +112,10 @@ pub fn work(f: f64, d: f64, theta: f64) -> f64 {
 /// * `t` - Time (s)
 /// 
 /// # Returns
-/// Power (W)
-pub fn power(w: f64, t: f64) -> f64 {
-    w / t
+/// Power (W), or `None` if the time is zero.
+pub fn power(w: f64, t: f64) -> Option<f64> {
+    if t == 0.0 { return None; }
+    Some(w / t)
 }
 
 /// Calculate centripetal force
@@ -123,9 +126,10 @@ pub fn power(w: f64, t: f64) -> f64 {
 /// * `r` - Radius (m)
 /// 
 /// # Returns
-/// Centripetal force (N)
-pub fn centripetal_force(m: f64, v: f64, r: f64) -> f64 {
-    m * v * v / r
+/// Centripetal force (N), or `None` if the radius is zero.
+pub fn centripetal_force(m: f64, v: f64, r: f64) -> Option<f64> {
+    if r == 0.0 { return None; }
+    Some(m * v * v / r)
 }
 
 /// Calculate gravitational force between two masses
@@ -136,9 +140,10 @@ pub fn centripetal_force(m: f64, v: f64, r: f64) -> f64 {
 /// * `r` - Distance between masses (m)
 /// 
 /// # Returns
-/// Gravitational force (N)
-pub fn gravitational_force(m1: f64, m2: f64, r: f64) -> f64 {
-    crate::constants::G * m1 * m2 / (r * r)
+/// Gravitational force (N), or `None` if the distance is zero.
+pub fn gravitational_force(m1: f64, m2: f64, r: f64) -> Option<f64> {
+    if r == 0.0 { return None; }
+    Some(crate::constants::G * m1 * m2 / (r * r))
 }
 
 /// Calculate period of a simple pendulum
@@ -148,9 +153,11 @@ pub fn gravitational_force(m1: f64, m2: f64, r: f64) -> f64 {
 /// * `g` - Gravitational acceleration (default: 9.80665 m/s²)
 /// 
 /// # Returns
-/// Period (s)
-pub fn pendulum_period(l: f64, g: Option<f64>) -> f64 {
-    2.0 * std::f64::consts::PI * (l / g.unwrap_or(G_0)).sqrt()
+/// Period (s), or `None` if `l < 0` or `g <= 0`.
+pub fn pendulum_period(l: f64, g: Option<f64>) -> Option<f64> {
+    let g = g.unwrap_or(G_0);
+    if l < 0.0 || g <= 0.0 { return None; }
+    Some(2.0 * std::f64::consts::PI * (l / g).sqrt())
 }
 
 /// Calculate spring force (Hooke's law)
@@ -172,9 +179,10 @@ pub fn spring_force(k: f64, x: f64) -> f64 {
 /// * `r` - Radius (m)
 /// 
 /// # Returns
-/// Angular velocity (rad/s)
-pub fn angular_velocity(v: f64, r: f64) -> f64 {
-    v / r
+/// Angular velocity (rad/s), or `None` if the radius is zero.
+pub fn angular_velocity(v: f64, r: f64) -> Option<f64> {
+    if r == 0.0 { return None; }
+    Some(v / r)
 }
 
 /// Calculate moment of inertia for a solid cylinder
@@ -202,6 +210,7 @@ pub fn moment_of_inertia_sphere(m: f64, r: f64) -> f64 {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
@@ -229,5 +238,34 @@ mod tests {
     #[test]
     fn test_force() {
         assert_relative_eq!(force(10.0, 5.0), 50.0, epsilon = 1e-6);
+    }
+
+    #[test]
+    fn test_velocity_from_displacement() {
+        assert_relative_eq!(velocity_from_displacement(0.0, 9.8, 2.0).unwrap(), 39.2_f64.sqrt(), epsilon = 1e-6);
+        assert!(velocity_from_displacement(1.0, -0.5, 100.0).is_none());
+    }
+
+    #[test]
+    fn test_potential_energy_uses_g_0() {
+        assert_relative_eq!(potential_energy(2.0, 3.0, None), 2.0 * 3.0 * G_0, epsilon = 1e-9);
+        assert_relative_eq!(potential_energy(2.0, 3.0, Some(10.0)), 60.0, epsilon = 1e-9);
+    }
+
+    #[test]
+    fn test_power() {
+        assert_relative_eq!(power(100.0, 5.0).unwrap(), 20.0, epsilon = 1e-9);
+        assert!(power(100.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn test_spring_and_period() {
+        assert_relative_eq!(spring_force(10.0, 2.0), -20.0, epsilon = 1e-9);
+        assert_relative_eq!(
+            pendulum_period(1.0, None).unwrap(),
+            2.0 * std::f64::consts::PI / G_0.sqrt(),
+            epsilon = 1e-9
+        );
+        assert!(pendulum_period(-1.0, None).is_none());
     }
 }

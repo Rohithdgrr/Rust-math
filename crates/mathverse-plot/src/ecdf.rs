@@ -67,7 +67,7 @@ pub fn render_ecdf(values: &[f64], config: &EcdfConfig) -> PlotResult<String> {
 
     let n = sorted.len() as f64;
     let min_val = sorted[0];
-    let max_val = sorted.last().unwrap();
+    let max_val = sorted.last().ok_or_else(|| PlotError::InvalidData("empty data".into()))?;
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;

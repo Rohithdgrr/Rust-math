@@ -42,8 +42,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 450;
 
     let svg = render_marimekko(&columns, &cfg)?;
-    std::fs::write("marimekko.svg", svg)?;
-    println!("wrote marimekko.svg");
+    PlotSaver::new(svg).save_png("marimekko.png")?;
+    println!("wrote marimekko.png");
 
     Ok(())
 }

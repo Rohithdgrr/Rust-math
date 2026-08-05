@@ -18,16 +18,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_node_radius(10.0);
 
     let svg = render_graph(&graph, config)?;
-    std::fs::write("graph.svg", &svg)?;
-    println!("Wrote graph.svg ({} bytes)", svg.len());
+PlotSaver::new(&svg).save_png("graph.png")?;
+println!("Wrote graph.png ({} bytes)", svg.len());
 
-    // Render BFS tree from node 0
-    let tree_config = GraphLayoutConfig::new()
-        .with_node_radius(10.0);
+// Render BFS tree from node 0
+let tree_config = GraphLayoutConfig::new()
+    .with_node_radius(10.0);
 
-    let svg = render_bfs_tree(&graph, 0, tree_config)?;
-    std::fs::write("bfs_tree.svg", &svg)?;
-    println!("Wrote bfs_tree.svg ({} bytes)", svg.len());
+let svg = render_bfs_tree(&graph, 0, tree_config)?;
+PlotSaver::new(&svg).save_png("bfs_tree.png")?;
+println!("Wrote bfs_tree.png ({} bytes)", svg.len());
 
     Ok(())
 }

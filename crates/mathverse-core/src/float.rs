@@ -14,6 +14,7 @@
 /// ```
 #[cfg(feature = "std")]
 #[inline]
+#[must_use]
 pub fn expm1(x: f64) -> f64 {
     x.exp_m1()
 }
@@ -21,6 +22,7 @@ pub fn expm1(x: f64) -> f64 {
 /// `e^x - 1`, accurate for small `x` (libm fallback for `no_std`).
 #[cfg(all(not(feature = "std"), feature = "libm"))]
 #[inline]
+#[must_use]
 pub fn expm1(x: f64) -> f64 {
     libm::expm1(x)
 }
@@ -34,6 +36,7 @@ pub fn expm1(x: f64) -> f64 {
 /// ```
 #[cfg(feature = "std")]
 #[inline]
+#[must_use]
 pub fn log1p(x: f64) -> f64 {
     x.ln_1p()
 }
@@ -41,6 +44,7 @@ pub fn log1p(x: f64) -> f64 {
 /// `ln(1 + x)`, accurate for small `x` (libm fallback for `no_std`).
 #[cfg(all(not(feature = "std"), feature = "libm"))]
 #[inline]
+#[must_use]
 pub fn log1p(x: f64) -> f64 {
     libm::log1p(x)
 }
@@ -55,6 +59,7 @@ pub fn log1p(x: f64) -> f64 {
 /// let xs = [1e16, 1.0, -1e16];
 /// assert_eq!(fsum(&xs), 1.0); // naive sum gives 0.0
 /// ```
+#[must_use]
 pub fn fsum(xs: &[f64]) -> f64 {
     let mut sum = 0.0;
     let mut correction = 0.0;
@@ -80,8 +85,9 @@ pub fn fsum(xs: &[f64]) -> f64 {
 /// assert!(!isclose(1.0, 2.0, 1e-9, 1e-12));
 /// ```
 #[inline]
+#[must_use]
 pub fn isclose(a: f64, b: f64, rel_tol: f64, abs_tol: f64) -> bool {
-    (a - b).abs() <= abs_tol + rel_tol * b.abs().max(a.abs())
+    (a - b).abs() <= rel_tol.mul_add(b.abs().max(a.abs()), abs_tol)
 }
 
 /// Split `x` into a mantissa `m` in `[0.5, 1)` (sign preserved) and an
@@ -95,6 +101,7 @@ pub fn isclose(a: f64, b: f64, rel_tol: f64, abs_tol: f64) -> bool {
 /// assert_eq!(m, 0.75);
 /// assert_eq!(e, 3);
 /// ```
+#[must_use]
 pub fn frexp(x: f64) -> (f64, i32) {
     if x == 0.0 || x.is_nan() || x.is_infinite() {
         return (x, 0);
@@ -119,6 +126,7 @@ pub fn frexp(x: f64) -> (f64, i32) {
 /// assert!((ldexp(m, e) - x).abs() < 1e-12);
 /// assert!(ldexp(1.0, 2000).is_infinite());
 /// ```
+#[must_use]
 pub fn ldexp(x: f64, e: i32) -> f64 {
     if x == 0.0 || x.is_nan() || x.is_infinite() {
         return x;
@@ -161,6 +169,7 @@ pub fn ldexp(x: f64, e: i32) -> f64 {
 /// assert!((frac + 0.7).abs() < 1e-12);
 /// assert_eq!(int, -2.0);
 /// ```
+#[must_use]
 pub fn modf(x: f64) -> (f64, f64) {
     if x.is_nan() || x.is_infinite() {
         return (x, 0.0);
@@ -180,6 +189,7 @@ pub fn modf(x: f64) -> (f64, f64) {
 /// assert_eq!(nextafter(0.0, 1.0), f64::from_bits(1));
 /// assert_eq!(nextafter(1.0, 1.0), 1.0);
 /// ```
+#[must_use]
 pub fn nextafter(x: f64, y: f64) -> f64 {
     if x.is_nan() || y.is_nan() {
         return f64::NAN;

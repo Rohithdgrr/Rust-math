@@ -30,7 +30,7 @@ pub fn simulated_annealing(f: &dyn Fn(&[f64]) -> f64, bounds: &[(f64, f64)], t0:
 pub fn genetic_algorithm(f: &dyn Fn(&[f64]) -> f64, bounds: &[(f64, f64)], pop_size: usize, generations: usize, mutation_rate: f64, seed: u64) -> Vec<f64> {
     let mut rng = seed;
     let mut next_rng = || { rng ^= rng << 13; rng ^= rng >> 7; rng ^= rng << 17; rng };
-    let d = bounds.len();
+    let _d = bounds.len();
     let mut pop: Vec<(Vec<f64>, f64)> = (0..pop_size).map(|_| {
         let x: Vec<f64> = bounds.iter().map(|&(lo, hi)| lo + (hi - lo) * (next_rng() as f64 / u64::MAX as f64)).collect();
         let val = f(&x);

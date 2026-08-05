@@ -1,7 +1,7 @@
 //! PDF vector backend (behind `pdf` feature flag).
 
 use crate::axes::Range;
-use crate::backend::PlotData;
+use crate::backend::{PlotData, PlotOutput};
 use crate::error::PlotResult;
 use crate::style::Color;
 
@@ -233,41 +233,11 @@ impl PdfBackend {
 
     #[allow(clippy::unused_self)]
     fn compute_x_range(&self, data: &PlotData) -> Range {
-        data.series
-            .iter()
-            .flat_map(|s| s.points.iter().map(|p| p.x))
-            .chain(data.boxes.iter().enumerate().map(|(i, _)| i as f64))
-            .chain(data.error_bars.iter().map(|e| e.x))
-            .fold(None::<(f64, f64)>, |acc, x| match acc {
-                None => Some((x, x)),
-                Some((lo, hi)) => Some((lo.min(x), hi.max(x))),
-            })
-            .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range {
-                min: lo,
-                max: hi,
-            })
+        crate::common::compute_x_range(data)
     }
 
-    #[allow(clippy::unused_self)]
     fn compute_y_range(&self, data: &PlotData) -> Range {
-        data.series
-            .iter()
-            .flat_map(|s| s.points.iter().map(|p| p.y))
-            .chain(data.bars.iter().map(|b| b.y))
-            .chain(data.error_bars.iter().flat_map(|e| [e.bar.lo, e.bar.hi]))
-            .chain(
-                data.boxes
-                    .iter()
-                    .flat_map(|bx| [bx.stats.q1, bx.stats.q3, bx.stats.min, bx.stats.max]),
-            )
-            .fold(None::<(f64, f64)>, |acc, y| match acc {
-                None => Some((y, y)),
-                Some((lo, hi)) => Some((lo.min(y), hi.max(y))),
-            })
-            .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range {
-                min: lo,
-                max: hi,
-            })
+        crate::common::compute_y_range(data)
     }
 
     #[allow(clippy::unused_self)]
@@ -317,9 +287,9 @@ impl PdfBackend {
 }
 
 impl crate::backend::Backend for PdfBackend {
-    fn generate(&self, data: &PlotData) -> PlotResult<String> {
+    fn generate(&self, data: &PlotData) -> PlotResult<PlotOutput> {
         let bytes = self.render(data)?;
-        Ok(format!("application/pdf;base64,{}", base64_encode(&bytes)))
+        Ok(PlotOutput::Binary(bytes, "application/pdf"))
     }
 }
 
@@ -374,36 +344,6 @@ fn color_to_printpdf(c: Color) -> printpdf::Color {
     }
 }
 
-fn base64_encode(data: &[u8]) -> String {
-    let alphabet = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
-    for chunk in data.chunks(3) {
-        let b0 = u32::from(chunk[0]);
-        let b1 = if chunk.len() > 1 {
-            u32::from(chunk[1])
-        } else {
-            0
-        };
-        let b2 = if chunk.len() > 2 {
-            u32::from(chunk[2])
-        } else {
-            0
-        };
-        let triple = (b0 << 16) | (b1 << 8) | b2;
-        for i in (0..4).rev() {
-            let idx = ((triple >> (i * 6)) & 0x3F) as usize;
-            if i == 1 && chunk.len() == 2 {
-                out.push('=');
-            } else if i == 0 && chunk.len() == 1 {
-                out.push_str("==");
-            } else {
-                out.push(alphabet[idx] as char);
-            }
-        }
-    }
-    out
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -428,10 +368,13 @@ mod tests {
         ));
         let backend = PdfBackend::new(200.0, 150.0);
         let uri = backend.generate(&data).unwrap();
-        assert!(uri.starts_with("application/pdf;base64,"));
-        let b64 = &uri["application/pdf;base64,".len()..];
-        let decoded = base64_decode(b64);
-        assert_eq!(&decoded[..5], b"%PDF-");
+        match uri {
+            PlotOutput::Binary(bytes, mime) => {
+                assert_eq!(mime, "application/pdf");
+                assert_eq!(&bytes[..5], b"%PDF-");
+            }
+            PlotOutput::Svg(_) | PlotOutput::Text(_) => panic!("expected Binary output"),
+        }
     }
 
     #[test]
@@ -446,36 +389,12 @@ mod tests {
         };
         let backend = PdfBackend::new(100.0, 100.0);
         let uri = backend.generate(&data).unwrap();
-        assert!(uri.starts_with("application/pdf;base64,"));
-    }
-
-    fn base64_decode(input: &str) -> Vec<u8> {
-        let alphabet: &[u8; 64] =
-            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        let mut buf: Vec<u32> = Vec::new();
-        for c in input.bytes() {
-            if c == b'=' {
-                continue;
+        match uri {
+            PlotOutput::Binary(bytes, mime) => {
+                assert_eq!(mime, "application/pdf");
+                assert_eq!(&bytes[..5], b"%PDF-");
             }
-            let val = alphabet.iter().position(|&b| b == c).unwrap() as u32;
-            buf.push(val);
+            PlotOutput::Svg(_) | PlotOutput::Text(_) => panic!("expected Binary output"),
         }
-        let mut bytes = Vec::new();
-        for chunk in buf.chunks(4) {
-            let mut triple: u32 = 0;
-            for &v in chunk {
-                triple = (triple << 6) | v;
-            }
-            if chunk.len() >= 2 {
-                bytes.push((triple >> 16) as u8);
-            }
-            if chunk.len() >= 3 {
-                bytes.push((triple >> 8) as u8);
-            }
-            if chunk.len() >= 4 {
-                bytes.push(triple as u8);
-            }
-        }
-        bytes
     }
 }

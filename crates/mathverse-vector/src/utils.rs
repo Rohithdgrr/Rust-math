@@ -22,10 +22,10 @@ pub fn random(n: usize, min: f64, max: f64) -> Vec<f64> {
     }).collect()
 }
 /// Index of the maximum element.
-pub fn argmax(v: &[f64]) -> usize { v.iter().enumerate().max_by(|a,b| a.1.partial_cmp(b.1).unwrap()).unwrap().0 }
+pub fn argmax(v: &[f64]) -> usize { v.iter().enumerate().max_by(|a,b| a.1.partial_cmp(b.1).expect("non-finite value")).expect("empty slice").0 }
 
 /// Index of the minimum element.
-pub fn argmin(v: &[f64]) -> usize { v.iter().enumerate().min_by(|a,b| a.1.partial_cmp(b.1).unwrap()).unwrap().0 }
+pub fn argmin(v: &[f64]) -> usize { v.iter().enumerate().min_by(|a,b| a.1.partial_cmp(b.1).expect("non-finite value")).expect("empty slice").0 }
 
 /// Maximum value in a slice.
 pub fn max(v: &[f64]) -> f64 { v.iter().cloned().fold(f64::NEG_INFINITY, f64::max) }

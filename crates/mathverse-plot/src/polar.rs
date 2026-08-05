@@ -176,7 +176,7 @@ pub fn render_polar_svg(data: &PolarData, width: u32, height: u32) -> String {
             // Close the path if it looks like a closed shape
             if series.points.len() > 2 {
                 let first = &series.points[0];
-                let last = series.points.last().unwrap();
+                let last = series.points.last().expect("series.points is non-empty");
                 let dtheta = (first.theta - last.theta).abs();
                 if dtheta < 0.1 || (dtheta - 2.0 * std::f64::consts::PI).abs() < 0.1 {
                     path.push('Z');

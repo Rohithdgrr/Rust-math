@@ -23,8 +23,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_grouped_bar(&series, &cfg)?;
-    std::fs::write("grouped_bar.svg", svg)?;
-    println!("wrote grouped_bar.svg");
+PlotSaver::new(&svg).save_png("grouped_bar.png")?;
+println!("wrote grouped_bar.png");
 
     Ok(())
 }

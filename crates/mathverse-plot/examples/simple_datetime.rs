@@ -1,6 +1,6 @@
 //! Datetime axis example for time series data.
 
-use mathverse_plot::{DataPoint, DataSeries, DateTime, DatetimeAxis, PlotConfig, SvgPlot};
+use mathverse_plot::{DataPoint, DataSeries, DateTime, DatetimeAxis, PlotConfig, PlotSaver, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate time series data: daily temperatures for a month
@@ -48,8 +48,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut labeled_svg = svg;
     labeled_svg = labeled_svg.replace("</svg>", &format!("{}\n</svg>", date_labels));
 
-    std::fs::write("datetime.svg", &labeled_svg)?;
-    println!("Wrote datetime.svg ({} bytes)", labeled_svg.len());
+PlotSaver::new(&labeled_svg).save_png("datetime.png")?;
+println!("Wrote datetime.png ({} bytes)", labeled_svg.len());
 
     Ok(())
 }

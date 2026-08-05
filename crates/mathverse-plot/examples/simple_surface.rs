@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         y_range,
         config,
     )?;
-    std::fs::write("surface.svg", &svg)?;
+    PlotSaver::new(svg).save_png("surface.png")?;
     println!("Wrote surface.svg ({} bytes)", svg.len());
 
     Ok(())

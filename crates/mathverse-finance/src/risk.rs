@@ -149,7 +149,7 @@ fn inverse_normal_cdf(p: f64) -> f64 {
     let p_low = 0.02425;
     let p_high = 1.0 - p_low;
     let q: f64;
-    let r: f64;
+    let _r: f64;
 
     if p < p_low {
         q = (0.0 - p.ln()).sqrt();

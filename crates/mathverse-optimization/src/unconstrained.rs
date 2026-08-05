@@ -1,10 +1,10 @@
-pub fn newton_min(f: &dyn Fn(&[f64]) -> f64, grad: &dyn Fn(&[f64]) -> Vec<f64>, hessian: &dyn Fn(&[f64]) -> Vec<Vec<f64>>, x0: &[f64], tol: f64, max_iters: usize) -> Vec<f64> {
+pub fn newton_min(_f: &dyn Fn(&[f64]) -> f64, grad: &dyn Fn(&[f64]) -> Vec<f64>, hessian: &dyn Fn(&[f64]) -> Vec<Vec<f64>>, x0: &[f64], tol: f64, max_iters: usize) -> Vec<f64> {
     let mut x = x0.to_vec();
     for _ in 0..max_iters {
         let g = grad(&x);
         let h = hessian(&x);
         let n = x.len();
-        let mut det = 1.0;
+        let _det = 1.0;
         let mut aug: Vec<Vec<f64>> = (0..n).map(|i| {
             let mut row = h[i].clone();
             row.push(-g[i]);

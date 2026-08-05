@@ -69,7 +69,7 @@ impl AxisBreak {
     }
 
     /// Map a value through the break, accounting for the gap.
-    pub fn map_value(&self, value: f64, scale_min: f64, scale_max: f64) -> f64 {
+    pub fn map_value(&self, value: f64, _scale_min: f64, _scale_max: f64) -> f64 {
         if value < self.start {
             value
         } else if value > self.end {
@@ -85,7 +85,7 @@ impl AxisBreak {
     /// Render break marks at a given x position and y range.
     pub fn render_svg(&self, x: f64, y_top: f64, y_bottom: f64) -> String {
         let mut svg = String::new();
-        let mid_y = (y_top + y_bottom) / 2.0;
+        let _mid_y = (y_top + y_bottom) / 2.0;
         let mark_height = (y_bottom - y_top) * 0.3;
 
         match self.style {

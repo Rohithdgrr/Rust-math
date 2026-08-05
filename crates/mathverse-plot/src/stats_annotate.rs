@@ -291,7 +291,7 @@ impl StatAnnotation {
     }
 
     /// Render the bracket as SVG.
-    pub fn render_svg(&self, plot_top: f64, y_scale: f64) -> String {
+    pub fn render_svg(&self, _plot_top: f64, _y_scale: f64) -> String {
         let mut svg = String::new();
         let x1 = self.left_x;
         let x2 = self.right_x;

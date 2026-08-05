@@ -27,8 +27,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_area_chart(&series, &cfg)?;
-    std::fs::write("area.svg", svg)?;
-    println!("wrote area.svg");
+PlotSaver::new(&svg).save_png("area.png")?;
+println!("wrote area.png");
 
     Ok(())
 }

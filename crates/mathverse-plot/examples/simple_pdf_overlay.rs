@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Color::RED,
     );
 
-    std::fs::write("pdf_overlay.svg", plot.generate())?;
-    println!("wrote pdf_overlay.svg");
+    PlotSaver::new(&plot.generate()).save_png("pdf_overlay.png")?;
+    println!("wrote pdf_overlay.png");
     Ok(())
 }

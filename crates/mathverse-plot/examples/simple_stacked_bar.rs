@@ -24,8 +24,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_stacked_bar(&series, &cfg)?;
-    std::fs::write("stacked_bar.svg", svg)?;
-    println!("wrote stacked_bar.svg");
+    PlotSaver::new(svg).save_png("stacked_bar.png")?;
+    println!("wrote stacked_bar.png");
 
     Ok(())
 }

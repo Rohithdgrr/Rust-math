@@ -23,6 +23,9 @@ pub const K_B: f64 = 1.380_649e-23;
 /// Avogadro constant (mol⁻¹)
 pub const N_A: f64 = 6.022_140_76e23;
 
+/// Molar gas constant (J/mol·K) = `N_A` · `k_B`
+pub const R: f64 = N_A * K_B;
+
 /// Permittivity of free space (F/m)
 pub const EPSILON_0: f64 = 8.854_187_812_8e-12;
 

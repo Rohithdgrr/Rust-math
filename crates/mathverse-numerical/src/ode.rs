@@ -155,11 +155,13 @@ impl RKF45 {
         
         // Step size adjustment
         let safety = 0.9;
-        let new_h = if error > 0.0 {
-            h * safety * (1.0 / error).powf(0.2)
+        let factor = if error > 0.0 {
+            (1.0 / error).powf(0.2)
         } else {
-            h * 2.0
+            5.0
         };
+        let factor = factor.min(5.0);
+        let new_h = h * safety * factor;
         
         Ok((ODEState::new(t + h, y5th), error, new_h))
     }
@@ -445,7 +447,7 @@ impl BackwardEuler {
         t1: f64,
         steps: usize,
     ) -> MathResult<Vec<ODEState>> {
-        let n = y0.len();
+        let _n = y0.len();
         let h = (t1 - t0) / steps as f64;
         
         let mut result = Vec::new();
@@ -463,10 +465,10 @@ impl BackwardEuler {
                 let j = jacobian(t + h, &y_new);
                 
                 // Solve (I - h*J) * delta = h*fy - (y_new - y)
-                let mut rhs: Vec<f64> = fy.iter()
+                let rhs: Vec<f64> = fy.iter()
                     .zip(&y_new)
                     .zip(&y)
-                    .map(|((&fyi, &yni), &yi)| h * fyi - (yni - yi))
+                    .map(|((&fyi, &yni), &yi)| (yni - yi) - h * fyi)
                     .collect();
                 
                 // Simplified: use diagonal approximation
@@ -516,7 +518,7 @@ impl CrankNicolson {
         t1: f64,
         steps: usize,
     ) -> MathResult<Vec<ODEState>> {
-        let n = y0.len();
+        let _n = y0.len();
         let h = (t1 - t0) / steps as f64;
         
         let mut result = Vec::new();
@@ -536,7 +538,7 @@ impl CrankNicolson {
                 let j = jacobian(t + h, &y_new);
                 
                 // Residual: y_new - y - h/2 * (f(t,y) + f(t+h,y_new))
-                let mut residual: Vec<f64> = y_new.iter()
+                let residual: Vec<f64> = y_new.iter()
                     .zip(&y)
                     .zip(&fy_current)
                     .zip(&fy_new)
@@ -544,7 +546,7 @@ impl CrankNicolson {
                     .collect();
                 
                 // Jacobian of residual: I - h/2 * J
-                let mut delta: Vec<f64> = residual.iter()
+                let delta: Vec<f64> = residual.iter()
                     .zip(&j)
                     .map(|(&ri, ji)| {
                         let diag = 1.0 - h / 2.0 * ji[0];

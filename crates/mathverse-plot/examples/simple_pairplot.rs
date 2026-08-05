@@ -18,8 +18,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_title("Pair Plot: Variable Relationships");
 
     let svg = render_pairplot(&data, &labels, &config)?;
-    std::fs::write("pairplot.svg", svg)?;
-    println!("wrote pairplot.svg");
+    PlotSaver::new(svg).save_png("pairplot.png")?;
+    println!("wrote pairplot.png");
 
     Ok(())
 }

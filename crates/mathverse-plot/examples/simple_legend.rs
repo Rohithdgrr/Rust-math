@@ -47,8 +47,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
 
     let svg = plot.generate();
-    std::fs::write("legend_upper_right.svg", &svg)?;
-    println!("Wrote legend_upper_right.svg");
+    PlotSaver::new(svg).save_png("legend_upper_right.png")?;
+    println!("Wrote legend_upper_right.png");
 
     // Example 2: Legend at bottom left
     let config = PlotConfig::new()
@@ -80,8 +80,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     svg = svg.replace("</svg>", &format!("{}\n</svg>", legend_svg));
-    std::fs::write("legend_lower_left.svg", &svg)?;
-    println!("Wrote legend_lower_left.svg");
+    PlotSaver::new(svg).save_png("legend_lower_left.png")?;
+    println!("Wrote legend_lower_left.png");
 
     // Example 3: Legend outside right
     let config = PlotConfig::new()
@@ -120,8 +120,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     svg = svg.replace("</svg>", &format!("{}\n</svg>", legend_svg));
-    std::fs::write("legend_outside_right.svg", &svg)?;
-    println!("Wrote legend_outside_right.svg");
+    PlotSaver::new(svg).save_png("legend_outside_right.png")?;
+    println!("Wrote legend_outside_right.png");
 
     Ok(())
 }

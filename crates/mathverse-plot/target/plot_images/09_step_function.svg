@@ -1,0 +1,77 @@
+<svg width="800" height="500" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+  <title>Step Function</title>
+  <defs>
+    <clipPath id="plot-area">
+      <rect x="50" y="50" width="700" height="400"/>
+    </clipPath>
+    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <line x1="81.81818181818183" y1="50" x2="81.81818181818183" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="249.28229665071774" y1="50" x2="249.28229665071774" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="416.7464114832536" y1="50" x2="416.7464114832536" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="584.2105263157895" y1="50" x2="584.2105263157895" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="431.8181818181818" x2="750" y2="431.8181818181818" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="359.0909090909091" x2="750" y2="359.0909090909091" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="286.3636363636364" x2="750" y2="286.3636363636364" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="213.63636363636363" x2="750" y2="213.63636363636363" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="140.90909090909093" x2="750" y2="140.90909090909093" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="68.18181818181819" x2="750" y2="68.18181818181819" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="450" x2="750" y2="450" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <line x1="50" y1="50" x2="50" y2="450" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <line x1="81.81818181818183" y1="450" x2="81.81818181818183" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="81.81818181818183" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">0</text>
+  <line x1="249.28229665071774" y1="450" x2="249.28229665071774" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="249.28229665071774" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">5</text>
+  <line x1="416.7464114832536" y1="450" x2="416.7464114832536" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="416.7464114832536" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">10</text>
+  <line x1="584.2105263157895" y1="450" x2="584.2105263157895" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="584.2105263157895" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">15</text>
+  <line x1="45" y1="431.8181818181818" x2="50" y2="431.8181818181818" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="435.8181818181818" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">0</text>
+  <line x1="45" y1="359.0909090909091" x2="50" y2="359.0909090909091" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="363.0909090909091" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">0.2</text>
+  <line x1="45" y1="286.3636363636364" x2="50" y2="286.3636363636364" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="290.3636363636364" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">0.4</text>
+  <line x1="45" y1="213.63636363636363" x2="50" y2="213.63636363636363" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="217.63636363636363" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">0.6</text>
+  <line x1="45" y1="140.90909090909093" x2="50" y2="140.90909090909093" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="144.90909090909093" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">0.8</text>
+  <line x1="45" y1="68.18181818181819" x2="50" y2="68.18181818181819" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="72.18181818181819" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">1</text>
+  <path d="M81.8,68.2 C93.0,68.2 104.1,431.8 115.3,431.8 C126.5,431.8 137.6,68.2 148.8,68.2 C160.0,68.2 171.1,431.8 182.3,431.8 C193.5,431.8 204.6,68.2 215.8,68.2 C227.0,68.2 238.1,431.8 249.3,431.8 C260.4,431.8 271.6,68.2 282.8,68.2 C293.9,68.2 305.1,431.8 316.3,431.8 C327.4,431.8 338.6,68.2 349.8,68.2 C360.9,68.2 372.1,431.8 383.3,431.8 C394.4,431.8 405.6,68.2 416.7,68.2 C427.9,68.2 439.1,431.8 450.2,431.8 C461.4,431.8 472.6,68.2 483.7,68.2 C494.9,68.2 506.1,431.8 517.2,431.8 C528.4,431.8 539.6,68.2 550.7,68.2 C561.9,68.2 573.0,431.8 584.2,431.8 C595.4,431.8 606.5,68.2 617.7,68.2 C628.9,68.2 640.0,431.8 651.2,431.8 C662.4,431.8 673.5,68.2 684.7,68.2 C695.9,68.2 707.0,431.8 718.2,431.8" fill="none" stroke="#0000ff" stroke-width="2" stroke-dasharray="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="81.81818181818183" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="115.311004784689" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="148.8038277511962" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="182.29665071770336" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="215.78947368421055" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="249.28229665071774" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="282.7751196172249" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="316.26794258373207" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="349.7607655502392" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="383.2535885167464" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="416.7464114832536" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="450.2392344497608" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="483.73205741626793" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="517.2248803827752" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="550.7177033492824" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="584.2105263157895" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="617.7033492822967" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="651.1961722488038" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="684.688995215311" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="718.1818181818182" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <text x="400" y="30" text-anchor="middle" font-size="20" font-family="Arial, sans-serif" fill="#000000">Step Function</text>
+  <rect x="744" y="60" width="96" height="32" fill="#ffffffe6" rx="4"/>
+  <rect x="744" y="60" width="96" height="32" fill="none" stroke="#cccccc" stroke-width="1" rx="4"/>
+  <rect x="752" y="68" width="8.8" height="8.8" fill="#0000ff" rx="2"/>
+  <text x="764.8" y="75.04" font-size="11">Square Wave</text>
+</svg>

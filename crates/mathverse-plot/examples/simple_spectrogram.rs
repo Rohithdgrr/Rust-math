@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Render to SVG
     let svg = render_spectrogram_svg(&signal, config)?;
-    std::fs::write("spectrogram.svg", &svg)?;
+    PlotSaver::new(svg).save_png("spectrogram.png")?;
     println!("Wrote spectrogram.svg ({} bytes)", svg.len());
 
     Ok(())

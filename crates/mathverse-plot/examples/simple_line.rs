@@ -18,8 +18,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut svg = SvgPlot::new(config.clone());
     svg.add_series(DataSeries::new("sin(x)".into(), points.clone()));
-    std::fs::write("sine.svg", svg.generate())?;
-    println!("wrote sine.svg");
+PlotSaver::new(&svg.generate()).save_png("sine.png")?;
+println!("wrote sine.png");
 
     let mut term = TerminalPlot::new(config).with_dimensions(80, 24);
     term.add_series(DataSeries::new("sin(x)".into(), points));

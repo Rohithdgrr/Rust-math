@@ -4,7 +4,6 @@
 use wasm_bindgen::prelude::*;
 
 use alloc::vec::Vec;
-use mathverse_core::error::{MathError, MathResult};
 
 /// WASM-compatible matrix wrapper.
 #[cfg_attr(feature = "wasm", wasm_bindgen)]

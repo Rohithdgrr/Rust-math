@@ -18,8 +18,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config = cfg.plot_config.with_title("Strip Plot: Response by Group");
 
     let svg = render_strip_plot(&categories, &cfg)?;
-    std::fs::write("strip.svg", svg)?;
-    println!("wrote strip.svg");
+    PlotSaver::new(svg).save_png("strip.png")?;
+    println!("wrote strip.png");
 
     Ok(())
 }

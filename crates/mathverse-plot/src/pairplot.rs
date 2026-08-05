@@ -99,7 +99,7 @@ pub fn render_pairplot(
                             let bin = bin.min(bins - 1);
                             hist[bin] += 1;
                         }
-                        let max_count = *hist.iter().max().unwrap() as f64;
+                        let max_count = *hist.iter().max().ok_or_else(|| PlotError::InvalidData("empty histogram".into()))? as f64;
 
                         for (b, &count) in hist.iter().enumerate() {
                             let bar_h = (count as f64 / max_count) * (cell_size - 4.0);

@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     labeled_svg = labeled_svg.replace("</svg>", &format!("{}\n</svg>", category_labels));
 
-    std::fs::write("categorical.svg", &labeled_svg)?;
+    PlotSaver::new(labeled_svg).save_png("categorical.png")?;
     println!("Wrote categorical.svg ({} bytes)", labeled_svg.len());
 
     Ok(())

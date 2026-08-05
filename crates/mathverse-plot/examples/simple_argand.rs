@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_resolution(400);
 
     let svg = render_argand(&points, config)?;
-    std::fs::write("argand.svg", &svg)?;
+    PlotSaver::new(svg).save_png("argand.png")?;
     println!("Wrote argand.svg ({} bytes)", svg.len());
 
     // Example 2: Domain coloring of f(z) = 1/z
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let svg = render_domain_coloring(f, domain_config)?;
-    std::fs::write("domain_coloring.svg", &svg)?;
+    PlotSaver::new(svg).save_png("domain_coloring.png")?;
     println!("Wrote domain_coloring.svg ({} bytes)", svg.len());
 
     Ok(())

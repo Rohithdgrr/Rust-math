@@ -22,8 +22,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.line_color = Color::rgb(220, 20, 60);
 
     let svg = render_pareto(&bars, &cfg)?;
-    std::fs::write("pareto.svg", svg)?;
-    println!("wrote pareto.svg");
+    PlotSaver::new(svg).save_png("pareto.png")?;
+    println!("wrote pareto.png");
 
     Ok(())
 }

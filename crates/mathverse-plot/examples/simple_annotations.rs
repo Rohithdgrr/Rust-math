@@ -123,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     svg = svg.replace("<svg", &format!("<svg\n{}", marker_def));
     svg = svg.replace("</svg>", &format!("{}\n</svg>", annotation_svg));
 
-    std::fs::write("annotations.svg", &svg)?;
+    PlotSaver::new(svg).save_png("annotations.png")?;
     println!("Wrote annotations.svg ({} bytes)", svg.len());
 
     Ok(())

@@ -1,6 +1,6 @@
 //! Joint plot (bivariate + marginal distributions).
 
-use crate::common::{DataPoint, PlotConfig};
+use crate::common::PlotConfig;
 use crate::error::{PlotError, PlotResult};
 use crate::style::Color;
 
@@ -68,7 +68,7 @@ pub fn render_jointplot(
 
     let main_x = margin_size + 10.0;
     let main_y = 10.0;
-    let top_y = 10.0;
+    let _top_y = 10.0;
     let right_x = main_x + main_size + 10.0;
 
     let x_min = x_data.iter().fold(f64::INFINITY, |a, &b| a.min(b));
@@ -96,7 +96,7 @@ pub fn render_jointplot(
             let bin = bin.min(config.bins - 1);
             hist[bin] += 1;
         }
-        let max_count = *hist.iter().max().unwrap() as f64;
+        let max_count = *hist.iter().max().ok_or_else(|| PlotError::InvalidData("empty histogram".into()))? as f64;
         let bar_w = main_size / config.bins as f64;
         let marginal_height = margin_size - 20.0;
 
@@ -128,7 +128,7 @@ pub fn render_jointplot(
             let bin = bin.min(config.bins - 1);
             hist[bin] += 1;
         }
-        let max_count = *hist.iter().max().unwrap() as f64;
+        let max_count = *hist.iter().max().ok_or_else(|| PlotError::InvalidData("empty histogram".into()))? as f64;
         let bar_h = main_size / config.bins as f64;
         let marginal_width = margin_size - 20.0;
 

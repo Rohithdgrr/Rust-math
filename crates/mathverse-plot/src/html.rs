@@ -1,7 +1,8 @@
 //! HTML plotting backend
 
-use crate::backend::PlotData;
+use crate::backend::{PlotData, PlotOutput};
 use crate::common::{DataSeries, PlotConfig};
+use crate::error::PlotResult;
 use crate::svg::SvgPlot;
 
 /// HTML plot generator (wraps SVG in HTML)
@@ -72,7 +73,7 @@ impl HtmlPlot {
 }
 
 impl crate::backend::Backend for HtmlPlot {
-    fn generate(&self, data: &PlotData) -> crate::error::PlotResult<String> {
+    fn generate(&self, data: &PlotData) -> PlotResult<PlotOutput> {
         let svg_content = <SvgPlot as crate::backend::Backend>::generate(
             &SvgPlot::new(data.config.clone()),
             data,
@@ -90,10 +91,15 @@ impl crate::backend::Backend for HtmlPlot {
             html.push_str(&data.config.title);
             html.push_str("</h1>\n");
         }
+        let svg_string = match svg_content {
+            PlotOutput::Svg(s) => s,
+            PlotOutput::Text(s) => s,
+            _ => String::new(),
+        };
         html.push_str("    <div>\n");
-        html.push_str(&svg_content);
+        html.push_str(&svg_string);
         html.push_str("    </div>\n  </div>\n</body>\n</html>\n");
-        Ok(html)
+        Ok(PlotOutput::Svg(html))
     }
 }
 

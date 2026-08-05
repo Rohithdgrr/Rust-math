@@ -1,7 +1,8 @@
 //! Terminal (ASCII) plotting backend
 
-use crate::backend::PlotData;
-use crate::common::{plot_bounds, DataSeries, PlotConfig};
+use crate::backend::{Backend, PlotData, PlotOutput};
+use crate::common::{compute_x_range, compute_y_range, DataSeries, PlotConfig};
+use crate::error::PlotResult;
 
 /// Terminal plot generator
 pub struct TerminalPlot {
@@ -107,9 +108,16 @@ impl TerminalPlot {
 
     /// Padded bounds over all series; falls back to `0..1` when empty.
     fn calculate_ranges(&self) -> (f64, f64, f64, f64) {
-        let (x, y) = plot_bounds(&self.series);
-        let x = x.pad(0.05);
-        let y = y.pad(0.05);
+        let data = PlotData {
+            config: self.config.clone(),
+            series: self.series.clone(),
+            bars: vec![],
+            boxes: vec![],
+            error_bars: vec![],
+            heatmaps: vec![],
+        };
+        let x = compute_x_range(&data).pad(0.05);
+        let y = compute_y_range(&data).pad(0.05);
         (x.min, x.max, y.min, y.max)
     }
 }
@@ -121,13 +129,13 @@ impl Default for TerminalPlot {
 }
 
 impl crate::backend::Backend for TerminalPlot {
-    fn generate(&self, data: &PlotData) -> crate::error::PlotResult<String> {
+    fn generate(&self, data: &PlotData) -> PlotResult<PlotOutput> {
         let mut tp =
             TerminalPlot::new(data.config.clone()).with_dimensions(self.width, self.height);
         for s in &data.series {
             tp.add_series(s.clone());
         }
-        Ok(tp.generate())
+        Ok(PlotOutput::Text(tp.generate()))
     }
 }
 

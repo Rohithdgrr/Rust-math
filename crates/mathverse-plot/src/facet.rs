@@ -15,7 +15,6 @@
 //!     .shared_axes(true, true);
 //! ```
 
-use crate::axis_config::AxisConfig;
 use crate::common::{DataPoint, DataSeries};
 use crate::style::Color;
 use crate::theme::ThemeConfig;

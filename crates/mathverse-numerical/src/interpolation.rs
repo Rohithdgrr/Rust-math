@@ -144,7 +144,7 @@ impl HermiteInterpolation {
         let mut product = 1.0;
         
         for j in 1..2 * n {
-            product *= (x - z[j - 1]);
+            product *= x - z[j - 1];
             result += q[j][j] * product;
         }
         
@@ -224,7 +224,7 @@ impl RBFInterpolation {
         }
         
         let n = xs.len();
-        let dim = xs[0].len();
+        let _dim = xs[0].len();
         
         // Build interpolation matrix
         let mut a = vec![vec![0.0; n]; n];
@@ -383,8 +383,8 @@ impl MultilinearInterpolation {
             let i = indices[0];
             let j = indices[1];
             
-            let t = ( indices[0] as f64 );
-            let s = ( indices[1] as f64 );
+            let t = indices[0] as f64;
+            let s = indices[1] as f64;
             
             let v00 = self.get_value(&[i, j]);
             let v01 = self.get_value(&[i, j + 1]);

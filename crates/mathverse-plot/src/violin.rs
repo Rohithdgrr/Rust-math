@@ -6,6 +6,27 @@ use crate::common::PlotConfig;
 use crate::error::{PlotError, PlotResult};
 use crate::style::Color;
 
+/// Linear interpolation quantile (Method 2 / Tukey hinges).
+/// Returns the p-th quantile (p in [0, 1]) of sorted data.
+fn quantile_linear(sorted: &[f64], p: f64) -> f64 {
+    let n = sorted.len();
+    if n == 0 {
+        return f64::NAN;
+    }
+    if n == 1 {
+        return sorted[0];
+    }
+    let index = p * (n - 1) as f64;
+    let lower = index.floor() as usize;
+    let upper = index.ceil() as usize;
+    if lower == upper {
+        sorted[lower]
+    } else {
+        let frac = index - lower as f64;
+        sorted[lower] * (1.0 - frac) + sorted[upper] * frac
+    }
+}
+
 /// Configuration for a violin plot.
 #[derive(Debug, Clone)]
 pub struct ViolinConfig {
@@ -191,8 +212,9 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
                 right_path.push_str(&format!(" {x},{y}"));
             } else {
                 right_path.push_str(&format!(" L {x},{y}"));
-            }
-        }
+    }
+}
+
 
         // Left side (mirrored)
         for (val, dens) in density.iter().rev() {
@@ -216,9 +238,9 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
                 v.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 v
             };
-            let q1 = sorted[sorted.len() / 4];
-            let median = sorted[sorted.len() / 2];
-            let q3 = sorted[3 * sorted.len() / 4];
+            let q1 = quantile_linear(&sorted, 0.25);
+            let median = quantile_linear(&sorted, 0.5);
+            let q3 = quantile_linear(&sorted, 0.75);
 
             let box_width = 8.0;
 
@@ -243,9 +265,20 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
                 svg.push('\n');
             }
 
-            // Whiskers
-            let whisker_low = sorted[sorted.len() / 10];
-            let whisker_high = sorted[9 * sorted.len() / 10];
+            // Whiskers using 1.5 * IQR rule
+            let iqr = q3 - q1;
+            let lower_fence = q1 - 1.5 * iqr;
+            let upper_fence = q3 + 1.5 * iqr;
+            let whisker_low = sorted
+                .iter()
+                .copied()
+                .filter(|&v| v >= lower_fence)
+                .fold(f64::INFINITY, f64::min);
+            let whisker_high = sorted
+                .iter()
+                .copied()
+                .filter(|&v| v <= upper_fence)
+                .fold(f64::NEG_INFINITY, f64::max);
             svg.push_str(&format!(
                 r#"  <line x1="{center_x}" y1="{}" x2="{center_x}" y2="{}" stroke="black"/>"#,
                 to_y(whisker_high), to_y(whisker_low)
@@ -256,7 +289,7 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
         // Label
         svg.push_str(&format!(
             r#"  <text x="{center_x}" y="{}" text-anchor="middle" font-size="11">{}</text>"#,
-            height - padding + 15.0, d.label
+            height - padding + 15.0, crate::common::xml_escape(&d.label)
         ));
         svg.push('\n');
     }
@@ -265,7 +298,7 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
     if !config.plot_config.title.is_empty() {
         svg.push_str(&format!(
             r#"  <text x="{}" y="25" text-anchor="middle" font-size="20" font-weight="bold">{}</text>"#,
-            width / 2.0, config.plot_config.title
+            width / 2.0, crate::common::xml_escape(&config.plot_config.title)
         ));
         svg.push('\n');
     }

@@ -2,7 +2,6 @@
 
 use crate::axes::{Range, Scale};
 use crate::heatmap::Colormap;
-use crate::style::Color;
 
 /// Configuration for a colorbar.
 #[derive(Debug, Clone)]
@@ -102,7 +101,7 @@ pub fn render_colorbar(
     svg.push('\n');
 
     // Draw tick marks and labels
-    let data_range = Range {
+    let _data_range = Range {
         min: data_min,
         max: data_max,
     };

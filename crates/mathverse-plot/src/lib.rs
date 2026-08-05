@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Plotting with SVG, HTML, and terminal output backends.
 //!
 //! This crate provides:
@@ -10,12 +11,6 @@
 //! All mathematical computation ships from the `mathverse-*` ecosystem; this
 //! crate is rendering glue on top.
 
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::return_self_not_must_use)]
-#![allow(clippy::format_push_string)]
-#![allow(clippy::items_after_statements)]
 pub mod annotations;
 pub mod animation;
 pub mod area;
@@ -71,10 +66,12 @@ pub mod pdf_overlay;
 #[cfg(feature = "png")]
 pub mod png_backend;
 pub mod pie;
+pub mod plt;
 pub mod pointplot;
 pub mod polar;
 pub mod quiver;
 pub mod radar;
+pub mod rcparams;
 pub mod regplot;
 pub mod residplot;
 pub mod rug;

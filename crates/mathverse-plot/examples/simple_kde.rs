@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         200,
     )?;
 
-    std::fs::write("histogram_kde.svg", plot.generate())?;
-    println!("wrote histogram_kde.svg");
+    PlotSaver::new(&plot.generate()).save_png("histogram_kde.png")?;
+    println!("wrote histogram_kde.png");
     Ok(())
 }

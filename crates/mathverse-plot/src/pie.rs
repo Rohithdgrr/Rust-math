@@ -2,7 +2,6 @@
 
 use std::f64::consts::PI;
 
-use crate::common::PlotConfig;
 use crate::error::{PlotError, PlotResult};
 use crate::style::Color;
 

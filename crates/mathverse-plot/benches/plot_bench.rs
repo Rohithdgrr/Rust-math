@@ -17,14 +17,14 @@ fn make_points(n: usize) -> Vec<DataPoint> {
 fn bench_svg_small(c: &mut Criterion) {
     let config = PlotConfig::new().with_title("bench");
     let mut plot = SvgPlot::new(config);
-    plot.add_series(DataSeries::new("s".into(), make_points(1_000)));
+    plot.add_series(DataSeries::new("s", make_points(1_000)));
     c.bench_function("svg_generate_1k", |b| b.iter(|| black_box(plot.generate())));
 }
 
 fn bench_svg_large(c: &mut Criterion) {
     let config = PlotConfig::new().with_title("bench");
     let mut plot = SvgPlot::new(config);
-    plot.add_series(DataSeries::new("s".into(), make_points(100_000)));
+    plot.add_series(DataSeries::new("s", make_points(100_000)));
     c.bench_function("svg_generate_100k", |b| {
         b.iter(|| black_box(plot.generate()))
     });

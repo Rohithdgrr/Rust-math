@@ -23,8 +23,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg2.color = Color::rgb(66, 133, 244);
 
     let svg = render_rug_plot(&values, &cfg2)?;
-    std::fs::write("rug.svg", svg)?;
-    println!("wrote rug.svg");
+    PlotSaver::new(svg).save_png("rug.png")?;
+    println!("wrote rug.png");
 
     Ok(())
 }

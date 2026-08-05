@@ -93,7 +93,7 @@ pub fn render_argand(
         .map(|z| (z.re, z.im))
         .collect();
 
-    let points_str = filtered
+    let _points_str = filtered
         .iter()
         .map(|(x, y)| format!("{},{}", x, y))
         .collect::<Vec<_>>()

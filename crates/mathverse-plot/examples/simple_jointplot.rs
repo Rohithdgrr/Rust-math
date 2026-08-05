@@ -19,8 +19,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_title("Joint Plot: x vs y");
 
     let svg = render_jointplot(&x, &y, &config)?;
-    std::fs::write("jointplot.svg", svg)?;
-    println!("wrote jointplot.svg");
+    PlotSaver::new(svg).save_png("jointplot.png")?;
+    println!("wrote jointplot.png");
 
     Ok(())
 }

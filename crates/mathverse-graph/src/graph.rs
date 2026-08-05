@@ -1,4 +1,4 @@
-use std::collections::{VecDeque, BinaryHeap, HashMap, HashSet};
+use std::collections::{VecDeque, BinaryHeap};
 use std::cmp::Ordering;
 
 /// Undirected, unweighted graph stored as an adjacency list.
@@ -13,10 +13,22 @@ impl Graph {
     pub fn new(n: usize) -> Self { Self { n, adj: vec![Vec::new(); n] } }
 
     /// Adds an undirected edge between vertices `u` and `v`.
-    pub fn add_edge(&mut self, u: usize, v: usize) { self.adj[u].push(v); self.adj[v].push(u); }
+    ///
+    /// # Panics
+    /// Panics if `u` or `v` is out of bounds.
+    pub fn add_edge(&mut self, u: usize, v: usize) {
+        assert!(u < self.n && v < self.n, "vertex index out of bounds: u={}, v={}, n={}", u, v, self.n);
+        self.adj[u].push(v); self.adj[v].push(u);
+    }
 
-    /// Adds a directed edge from `u` to `v` (even though this is a `Graph` type).
-    pub fn add_directed_edge(&mut self, u: usize, v: usize) { self.adj[u].push(v); }
+    /// Adds a directed edge from `u` to `v`.
+    ///
+    /// # Panics
+    /// Panics if `u` or `v` is out of bounds.
+    pub fn add_directed_edge(&mut self, u: usize, v: usize) {
+        assert!(u < self.n && v < self.n, "vertex index out of bounds: u={}, v={}, n={}", u, v, self.n);
+        self.adj[u].push(v);
+    }
 
     /// Returns the number of vertices.
     pub fn len(&self) -> usize { self.n }
@@ -25,13 +37,27 @@ impl Graph {
     pub fn is_empty(&self) -> bool { self.n == 0 }
 
     /// Returns the neighbors of vertex `u`.
-    pub fn neighbors(&self, u: usize) -> &[usize] { &self.adj[u] }
+    ///
+    /// # Panics
+    /// Panics if `u` is out of bounds.
+    pub fn neighbors(&self, u: usize) -> &[usize] {
+        assert!(u < self.n, "vertex index out of bounds: u={}, n={}", u, self.n);
+        &self.adj[u]
+    }
 
     /// Returns the degree of vertex `u`.
-    pub fn degree(&self, u: usize) -> usize { self.adj[u].len() }
+    ///
+    /// # Panics
+    /// Panics if `u` is out of bounds.
+    pub fn degree(&self, u: usize) -> usize {
+        assert!(u < self.n, "vertex index out of bounds: u={}, n={}", u, self.n);
+        self.adj[u].len()
+    }
 
     /// Breadth-first search starting from `start`. Returns vertices in visit order.
+    /// Returns an empty vector if `start` is out of bounds.
     pub fn bfs(&self, start: usize) -> Vec<usize> {
+        if start >= self.n { return Vec::new(); }
         let mut order = Vec::with_capacity(self.n);
         let mut visited = vec![false; self.n];
         let mut q = VecDeque::from([start]);
@@ -46,7 +72,9 @@ impl Graph {
     }
 
     /// Depth-first search starting from `start`. Returns vertices in visit order.
+    /// Returns an empty vector if `start` is out of bounds.
     pub fn dfs(&self, start: usize) -> Vec<usize> {
+        if start >= self.n { return Vec::new(); }
         let mut order = Vec::with_capacity(self.n);
         let mut visited = vec![false; self.n];
         let mut stack = vec![start];
@@ -61,8 +89,10 @@ impl Graph {
         order
     }
 
-    /// Finds the shortest path from `start` to `end` using BFS. Returns `None` if unreachable.
+    /// Finds the shortest path from `start` to `end` using BFS. Returns `None` if unreachable
+    /// or if `start`/`end` is out of bounds.
     pub fn shortest_path(&self, start: usize, end: usize) -> Option<Vec<usize>> {
+        if start >= self.n || end >= self.n { return None; }
         if start == end { return Some(vec![start]); }
         let mut parent = vec![None; self.n];
         let mut visited = vec![false; self.n];
@@ -119,10 +149,13 @@ impl Graph {
             if !visited[i] {
                 let mut stack = vec![(i, None::<usize>)];
                 while let Some((u, parent)) = stack.pop() {
-                    if visited[u] { return true; }
+                    if visited[u] { continue; }
                     visited[u] = true;
                     for &v in &self.adj[u] {
-                        if Some(v) != parent { stack.push((v, Some(u))); }
+                        if Some(v) != parent {
+                            if visited[v] { return true; }
+                            stack.push((v, Some(u)));
+                        }
                     }
                 }
             }
@@ -138,10 +171,11 @@ impl Graph {
             color[i] = Some(0u8);
             let mut q = VecDeque::from([i]);
             while let Some(u) = q.pop_front() {
+                let Some(cu) = color[u] else { continue; };
                 for &v in &self.adj[u] {
-                    if color[v] == Some(color[u].unwrap()) { return false; }
+                    if Some(cu) == color[v] { return false; }
                     if color[v].is_none() {
-                        color[v] = Some(1 - color[u].unwrap());
+                        color[v] = Some(1 - cu);
                         q.push_back(v);
                     }
                 }
@@ -151,40 +185,76 @@ impl Graph {
     }
 }
 
-/// Directed weighted graph stored as an adjacency list.
+/// Weighted graph stored as an adjacency list.
+///
+/// Supports both directed edges (via [`WeightedGraph::add_edge`]) and
+/// undirected edges (via [`WeightedGraph::add_undirected_edge`]).
 #[derive(Debug, Clone, Default)]
 pub struct WeightedGraph {
     n: usize,
     adj: Vec<Vec<(usize, f64)>>,
 }
 
+#[derive(Clone)]
+struct State { dist: f64, vertex: usize }
+
+impl PartialEq for State { fn eq(&self, o: &Self) -> bool { self.dist == o.dist && self.vertex == o.vertex } }
+impl Eq for State {}
+impl Ord for State { fn cmp(&self, o: &Self) -> Ordering { o.dist.partial_cmp(&self.dist).unwrap_or(Ordering::Equal) } }
+impl PartialOrd for State { fn partial_cmp(&self, o: &Self) -> Option<Ordering> { Some(self.cmp(o)) } }
+
+#[derive(Clone)]
+struct Edge { weight: f64, u: usize, v: usize }
+
+impl PartialEq for Edge { fn eq(&self, o: &Self) -> bool { self.weight == o.weight && self.u == o.u && self.v == o.v } }
+impl Eq for Edge {}
+impl Ord for Edge { fn cmp(&self, o: &Self) -> Ordering { o.weight.partial_cmp(&self.weight).unwrap_or(Ordering::Equal) } }
+impl PartialOrd for Edge { fn partial_cmp(&self, o: &Self) -> Option<Ordering> { Some(self.cmp(o)) } }
+
 impl WeightedGraph {
     /// Creates a new weighted graph with `n` vertices.
     pub fn new(n: usize) -> Self { Self { n, adj: vec![Vec::new(); n] } }
 
     /// Adds a directed weighted edge from `u` to `v` with weight `w`.
-    pub fn add_edge(&mut self, u: usize, v: usize, w: f64) { self.adj[u].push((v, w)); }
+    ///
+    /// # Panics
+    /// Panics if `u` or `v` is out of bounds.
+    pub fn add_edge(&mut self, u: usize, v: usize, w: f64) {
+        assert!(u < self.n && v < self.n, "vertex index out of bounds: u={}, v={}, n={}", u, v, self.n);
+        self.adj[u].push((v, w));
+    }
 
     /// Adds an undirected weighted edge between `u` and `v`.
-    pub fn add_undirected_edge(&mut self, u: usize, v: usize, w: f64) { self.adj[u].push((v, w)); self.adj[v].push((u, w)); }
+    ///
+    /// # Panics
+    /// Panics if `u` or `v` is out of bounds.
+    pub fn add_undirected_edge(&mut self, u: usize, v: usize, w: f64) {
+        assert!(u < self.n && v < self.n, "vertex index out of bounds: u={}, v={}, n={}", u, v, self.n);
+        self.adj[u].push((v, w)); self.adj[v].push((u, w));
+    }
 
     /// Returns the number of vertices.
     pub fn len(&self) -> usize { self.n }
 
+    /// Returns `true` if the graph has no vertices.
+    pub fn is_empty(&self) -> bool { self.n == 0 }
+
     /// Returns the weighted neighbors of vertex `u`.
-    pub fn neighbors(&self, u: usize) -> &[(usize, f64)] { &self.adj[u] }
+    ///
+    /// # Panics
+    /// Panics if `u` is out of bounds.
+    pub fn neighbors(&self, u: usize) -> &[(usize, f64)] {
+        assert!(u < self.n, "vertex index out of bounds: u={}, n={}", u, self.n);
+        &self.adj[u]
+    }
 
     /// Dijkstra's shortest path algorithm. Returns `(distances, predecessors)`.
+    /// Returns empty vectors if the graph is empty or `source` is out of bounds.
     pub fn dijkstra(&self, source: usize) -> (Vec<f64>, Vec<Option<usize>>) {
+        if self.n == 0 || source >= self.n { return (Vec::new(), Vec::new()); }
         let mut dist = vec![f64::INFINITY; self.n];
         let mut pred = vec![None; self.n];
         dist[source] = 0.0;
-        #[derive(Clone)]
-        struct State { dist: f64, vertex: usize }
-        impl PartialEq for State { fn eq(&self, o: &Self) -> bool { self.dist == o.dist && self.vertex == o.vertex } }
-        impl Eq for State {}
-        impl Ord for State { fn cmp(&self, o: &Self) -> Ordering { o.dist.partial_cmp(&self.dist).unwrap_or(Ordering::Equal) } }
-        impl PartialOrd for State { fn partial_cmp(&self, o: &Self) -> Option<Ordering> { Some(self.cmp(o)) } }
         let mut heap = BinaryHeap::new();
         heap.push(State { dist: 0.0, vertex: source });
         while let Some(State { dist: d, vertex: u }) = heap.pop() {
@@ -198,7 +268,9 @@ impl WeightedGraph {
     }
 
     /// Bellman-Ford shortest path. Returns `(distances, predecessors, has_negative_cycle)`.
+    /// Returns empty vectors and `false` if the graph is empty or `source` is out of bounds.
     pub fn bellman_ford(&self, source: usize) -> (Vec<f64>, Vec<Option<usize>>, bool) {
+        if self.n == 0 || source >= self.n { return (Vec::new(), Vec::new(), false); }
         let mut dist = vec![f64::INFINITY; self.n];
         let mut pred = vec![None; self.n];
         dist[source] = 0.0;
@@ -224,8 +296,10 @@ impl WeightedGraph {
     pub fn floyd_warshall(&self) -> Vec<Vec<f64>> {
         let n = self.n;
         let mut d = vec![vec![f64::INFINITY; n]; n];
-        for i in 0..n { d[i][i] = 0.0; }
-        for u in 0..n { for &(v, w) in &self.adj[u] { d[u][v] = w.min(d[u][v]); } }
+        for (i, row) in d.iter_mut().enumerate() { row[i] = 0.0; }
+        for (u, row) in d.iter_mut().enumerate() {
+            for &(v, w) in &self.adj[u] { row[v] = w.min(row[v]); }
+        }
         for k in 0..n {
             for i in 0..n {
                 for j in 0..n {
@@ -242,12 +316,6 @@ impl WeightedGraph {
         let mut visited = vec![false; self.n];
         let mut mst = Vec::new();
         let mut heap = BinaryHeap::new();
-        #[derive(Clone)]
-        struct Edge { weight: f64, u: usize, v: usize }
-        impl PartialEq for Edge { fn eq(&self, o: &Self) -> bool { self.weight == o.weight && self.u == o.u && self.v == o.v } }
-        impl Eq for Edge {}
-        impl Ord for Edge { fn cmp(&self, o: &Self) -> Ordering { o.weight.partial_cmp(&self.weight).unwrap_or(Ordering::Equal) } }
-        impl PartialOrd for Edge { fn partial_cmp(&self, o: &Self) -> Option<Ordering> { Some(self.cmp(o)) } }
         visited[0] = true;
         for &(v, w) in &self.adj[0] { heap.push(Edge { weight: w, u: 0, v }); }
         while let Some(Edge { weight, u, v }) = heap.pop() {
@@ -274,7 +342,11 @@ impl WeightedGraph {
             while parent[pu] != pu { parent[pu] = parent[parent[pu]]; pu = parent[pu]; }
             while parent[pv] != pv { parent[pv] = parent[parent[pv]]; pv = parent[pv]; }
             if pu != pv {
-                if rank[pu] < rank[pv] { parent[pu] = pv; } else if rank[pu] > rank[pv] { parent[pv] = pu; } else { parent[pv] = pu; rank[pu] += 1; }
+                match rank[pu].cmp(&rank[pv]) {
+                    Ordering::Less => parent[pu] = pv,
+                    Ordering::Greater => parent[pv] = pu,
+                    Ordering::Equal => { parent[pv] = pu; rank[pu] += 1; }
+                }
                 mst.push((u, v, w));
             }
         }
@@ -289,15 +361,30 @@ pub struct DirectedGraph {
     adj: Vec<Vec<usize>>,
 }
 
+fn dfs1(adj: &[Vec<usize>], u: usize, visited: &mut [bool], order: &mut Vec<usize>) {
+    visited[u] = true;
+    for &v in &adj[u] { if !visited[v] { dfs1(adj, v, visited, order); } }
+    order.push(u);
+}
+
 impl DirectedGraph {
     /// Creates a new directed graph with `n` vertices.
     pub fn new(n: usize) -> Self { Self { n, adj: vec![Vec::new(); n] } }
 
     /// Adds a directed edge from `u` to `v`.
-    pub fn add_edge(&mut self, u: usize, v: usize) { self.adj[u].push(v); }
+    ///
+    /// # Panics
+    /// Panics if `u` or `v` is out of bounds.
+    pub fn add_edge(&mut self, u: usize, v: usize) {
+        assert!(u < self.n && v < self.n, "vertex index out of bounds: u={}, v={}, n={}", u, v, self.n);
+        self.adj[u].push(v);
+    }
 
     /// Returns the number of vertices.
     pub fn len(&self) -> usize { self.n }
+
+    /// Returns `true` if the graph has no vertices.
+    pub fn is_empty(&self) -> bool { self.n == 0 }
 
     /// Kahn's topological sort. Returns `None` if the graph has a cycle.
     pub fn topological_sort(&self) -> Option<Vec<usize>> {
@@ -316,11 +403,6 @@ impl DirectedGraph {
     pub fn scc(&self) -> Vec<Vec<usize>> {
         let mut visited = vec![false; self.n];
         let mut order = Vec::new();
-        fn dfs1(adj: &[Vec<usize>], u: usize, visited: &mut [bool], order: &mut Vec<usize>) {
-            visited[u] = true;
-            for &v in &adj[u] { if !visited[v] { dfs1(adj, v, visited, order); } }
-            order.push(u);
-        }
         for i in 0..self.n { if !visited[i] { dfs1(&self.adj, i, &mut visited, &mut order); } }
         let mut radj = vec![Vec::new(); self.n];
         for u in 0..self.n { for &v in &self.adj[u] { radj[v].push(u); } }
@@ -387,5 +469,144 @@ mod tests {
         let mut g = DirectedGraph::new(3);
         g.add_edge(0, 1); g.add_edge(1, 2);
         assert!(g.topological_sort().is_some());
+    }
+
+    #[test]
+    fn empty_graph() {
+        let g = Graph::new(0);
+        assert!(g.is_empty());
+        assert!(g.is_connected());
+        assert!(!g.has_cycle());
+        assert!(g.is_bipartite());
+        assert!(g.bfs(0).is_empty());
+        assert!(g.dfs(0).is_empty());
+        assert!(g.shortest_path(0, 0).is_none());
+    }
+
+    #[test]
+    fn single_node() {
+        let g = Graph::new(1);
+        assert!(g.is_connected());
+        assert!(!g.has_cycle());
+        assert!(g.is_bipartite());
+        assert_eq!(g.shortest_path(0, 0), Some(vec![0]));
+    }
+
+    #[test]
+    fn cycle_detection() {
+        let mut g = Graph::new(3);
+        g.add_edge(0, 1); g.add_edge(1, 2);
+        assert!(!g.has_cycle());
+        g.add_edge(2, 0);
+        assert!(g.has_cycle());
+    }
+
+    #[test]
+    fn not_bipartite() {
+        let mut g = Graph::new(3);
+        g.add_edge(0, 1); g.add_edge(1, 2); g.add_edge(2, 0);
+        assert!(!g.is_bipartite());
+    }
+
+    #[test]
+    fn disconnected() {
+        let mut g = Graph::new(4);
+        g.add_edge(0, 1);
+        g.add_edge(2, 3);
+        assert!(!g.is_connected());
+        assert_eq!(g.connected_components().len(), 2);
+    }
+
+    #[test]
+    fn shortest_path_unreachable() {
+        let mut g = Graph::new(4);
+        g.add_edge(0, 1);
+        g.add_edge(2, 3);
+        assert!(g.shortest_path(0, 3).is_none());
+    }
+
+    #[test]
+    fn weighted_empty() {
+        let g = WeightedGraph::new(0);
+        assert!(g.is_empty());
+        assert!(g.dijkstra(0).0.is_empty());
+        assert!(g.bellman_ford(0).0.is_empty());
+        assert!(g.floyd_warshall().is_empty());
+        assert!(g.prim().unwrap().is_empty());
+        assert!(g.kruskal().is_empty());
+    }
+
+    #[test]
+    fn weighted_negative_cycle() {
+        let mut g = WeightedGraph::new(3);
+        g.add_edge(0, 1, 1.0);
+        g.add_edge(1, 2, -3.0);
+        g.add_edge(2, 0, 1.0);
+        let (_, _, has_neg) = g.bellman_ford(0);
+        assert!(has_neg);
+    }
+
+    #[test]
+    fn floyd_warshall_accuracy() {
+        let mut g = WeightedGraph::new(4);
+        g.add_edge(0, 1, 1.0);
+        g.add_edge(1, 2, 2.0);
+        g.add_edge(2, 3, 3.0);
+        g.add_edge(0, 3, 10.0);
+        let d = g.floyd_warshall();
+        assert!((d[0][3] - 6.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn prim_mst() {
+        let mut g = WeightedGraph::new(4);
+        g.add_undirected_edge(0, 1, 1.0);
+        g.add_undirected_edge(0, 2, 4.0);
+        g.add_undirected_edge(1, 2, 2.0);
+        g.add_undirected_edge(1, 3, 6.0);
+        g.add_undirected_edge(2, 3, 3.0);
+        let mst = g.prim().unwrap();
+        let total: f64 = mst.iter().map(|&(_, _, w)| w).sum();
+        assert!((total - 6.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn kruskal_mst() {
+        let mut g = WeightedGraph::new(4);
+        g.add_undirected_edge(0, 1, 1.0);
+        g.add_undirected_edge(0, 2, 4.0);
+        g.add_undirected_edge(1, 2, 2.0);
+        g.add_undirected_edge(1, 3, 6.0);
+        g.add_undirected_edge(2, 3, 3.0);
+        let mst = g.kruskal();
+        let total: f64 = mst.iter().map(|&(_, _, w)| w).sum();
+        assert!((total - 6.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn topo_cycle() {
+        let mut g = DirectedGraph::new(3);
+        g.add_edge(0, 1);
+        g.add_edge(1, 2);
+        g.add_edge(2, 0);
+        assert!(g.topological_sort().is_none());
+    }
+
+    #[test]
+    fn scc_basic() {
+        let mut g = DirectedGraph::new(5);
+        g.add_edge(0, 1); g.add_edge(1, 2); g.add_edge(2, 0);
+        g.add_edge(2, 3); g.add_edge(3, 4); g.add_edge(4, 3);
+        let sccs = g.scc();
+        assert_eq!(sccs.len(), 2);
+    }
+
+    #[test]
+    fn out_of_bounds() {
+        let g = Graph::new(3);
+        assert!(g.bfs(5).is_empty());
+        assert!(g.dfs(5).is_empty());
+        assert!(g.shortest_path(0, 5).is_none());
+        assert!(g.shortest_path(5, 0).is_none());
     }
 }

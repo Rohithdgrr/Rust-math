@@ -22,8 +22,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_violin_plot(&data, &cfg)?;
-    std::fs::write("violin.svg", svg)?;
-    println!("wrote violin.svg");
+    PlotSaver::new(svg).save_png("violin.png")?;
+    println!("wrote violin.png");
 
     Ok(())
 }

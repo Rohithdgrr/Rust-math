@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let series = CandlestickSeries::new("ACME", candles);
     let svg = render_candlestick_svg(&[series], "ACME daily OHLC", 640, 420);
-    std::fs::write("candlestick.svg", &svg)?;
+    PlotSaver::new(svg).save_png("candlestick.png")?;
     println!("wrote candlestick.svg ({} bytes)", svg.len());
     Ok(())
 }

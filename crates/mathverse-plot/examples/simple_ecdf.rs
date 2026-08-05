@@ -2,6 +2,7 @@
 
 use mathverse_plot::ecdf::{render_ecdf, EcdfConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate sample data from a normal-like distribution
@@ -20,8 +21,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_ecdf(&values, &cfg)?;
-    std::fs::write("ecdf.svg", svg)?;
-    println!("wrote ecdf.svg");
+PlotSaver::new(&svg).save_png("ecdf.png")?;
+println!("wrote ecdf.png");
 
     Ok(())
 }

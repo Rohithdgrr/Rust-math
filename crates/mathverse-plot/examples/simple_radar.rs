@@ -40,8 +40,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 450;
 
     let svg = render_radar_chart(&series, &cfg)?;
-    std::fs::write("radar.svg", svg)?;
-    println!("wrote radar.svg");
+    PlotSaver::new(svg).save_png("radar.png")?;
+    println!("wrote radar.png");
 
     Ok(())
 }

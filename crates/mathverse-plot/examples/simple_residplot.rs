@@ -18,8 +18,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_title("Residual Plot: Fit Diagnostics");
 
     let svg = render_residplot(&points, &config)?;
-    std::fs::write("residplot.svg", svg)?;
-    println!("wrote residplot.svg");
+    PlotSaver::new(svg).save_png("residplot.png")?;
+    println!("wrote residplot.png");
 
     Ok(())
 }

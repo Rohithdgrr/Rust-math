@@ -1,7 +1,7 @@
 //! SVG plotting backend
 
 use crate::axes::{axis_kernel, Range, Scale};
-use crate::backend::{BarSnapshot, BoxSnapshot, ErrorBarSnapshot, PlotData};
+use crate::backend::{BarSnapshot, BoxSnapshot, ErrorBarSnapshot, PlotData, PlotOutput};
 use crate::boxplot::BoxStats;
 use crate::common::{DataSeries, PlotConfig};
 use crate::error::PlotResult;
@@ -47,6 +47,21 @@ pub struct SvgPlot {
     theme: Option<ThemeConfig>,
     /// Optional legend configuration.
     legend: Option<crate::legend::LegendConfig>,
+    /// Annotations (arrows, text, shapes).
+    annotations: crate::annotations::Annotations,
+    /// Optional colorbar for heatmap/colormapped data.
+    colorbar: Option<ColorbarConfig>,
+}
+
+/// Configuration for a colorbar legend.
+#[derive(Debug, Clone)]
+pub struct ColorbarConfig {
+    /// Colormap to use.
+    pub colormap: crate::heatmap::Colormap,
+    /// Label for the colorbar.
+    pub label: String,
+    /// Data range for the colorbar.
+    pub range: (f64, f64),
 }
 
 impl SvgPlot {
@@ -61,6 +76,8 @@ impl SvgPlot {
             heatmaps: Vec::new(),
             theme: None,
             legend: None,
+            annotations: crate::annotations::Annotations::new(),
+            colorbar: None,
         }
     }
 
@@ -74,6 +91,36 @@ impl SvgPlot {
     pub fn with_legend(mut self, legend: crate::legend::LegendConfig) -> Self {
         self.legend = Some(legend);
         self
+    }
+
+    /// Set a colorbar for heatmap/colormapped data.
+    pub fn with_colorbar(mut self, colormap: crate::heatmap::Colormap, label: impl Into<String>, range: (f64, f64)) -> Self {
+        self.colorbar = Some(ColorbarConfig {
+            colormap,
+            label: label.into(),
+            range,
+        });
+        self
+    }
+
+    /// Add an arrow annotation.
+    pub fn add_arrow(&mut self, arrow: crate::annotations::Arrow) {
+        self.annotations.arrows.push(arrow);
+    }
+
+    /// Add a text annotation.
+    pub fn add_text(&mut self, text: crate::annotations::TextAnnotation) {
+        self.annotations.texts.push(text);
+    }
+
+    /// Add a reference line (horizontal or vertical).
+    pub fn add_ref_line(&mut self, line: crate::annotations::ReferenceLine) {
+        self.annotations.lines.push(line);
+    }
+
+    /// Add a rectangle annotation.
+    pub fn add_rect(&mut self, rect: crate::annotations::Rectangle) {
+        self.annotations.rectangles.push(rect);
     }
 
     /// Get the legend configuration (if set).
@@ -247,7 +294,7 @@ impl SvgPlot {
         let mut svg = String::new();
 
         // Get theme settings (use defaults if no theme set)
-        let (bg_color, text_color, axis_color, font_family, title_size, label_size, tick_size) = if let Some(ref theme) = self.theme {
+        let (bg_color, text_color, _axis_color, font_family, title_size, label_size, _tick_size) = if let Some(ref theme) = self.theme {
             (
                 theme.background_color.to_hex(),
                 theme.text_color.to_hex(),
@@ -271,8 +318,20 @@ impl SvgPlot {
 
         // SVG header with viewBox for responsive scaling
         svg.push_str(&format!(
-            r#"<svg width="{}" height="{}" viewBox="0 0 {} {}" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">"#,
+            r#"<svg width="{}" height="{}" viewBox="0 0 {} {}" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="optimizeLegibility">"#,
             self.config.width, self.config.height, self.config.width, self.config.height
+        ));
+        svg.push('\n');
+
+        // Basic tooltip on the plot canvas
+        let tooltip_text = if self.config.title.is_empty() {
+            "Plot".to_string()
+        } else {
+            self.config.title.clone()
+        };
+        svg.push_str(&format!(
+            r#"  <title>{}</title>"#,
+            crate::common::xml_escape(&tooltip_text)
         ));
         svg.push('\n');
 
@@ -337,17 +396,18 @@ impl SvgPlot {
             .map(|k| (k, format_tick(y_inv(k))))
             .collect();
 
-        // Draw grid if enabled
-        if self.config.show_grid {
-            svg.push_str(&self.generate_grid(
-                &x_ticks,
-                &y_ticks,
-                &x_px_k,
-                &y_px_k,
-                padding,
-                plot_height,
-            ));
-        }
+    // Draw grid if enabled (theme-driven opacity / dash pattern)
+    if self.config.show_grid {
+        svg.push_str(&self.generate_grid(
+            &x_ticks,
+            &y_ticks,
+            &x_px_k,
+            &y_px_k,
+            padding,
+            plot_height,
+        ));
+        svg.push('\n');
+    }
 
         // Draw axes
         svg.push_str(&self.generate_axes(padding, plot_width, plot_height));
@@ -392,45 +452,40 @@ impl SvgPlot {
             svg.push_str(&self.generate_error_bar(e, &x_px, &y_px));
         }
 
-        // Draw title
-        if !self.config.title.is_empty() {
-            svg.push_str(&format!(
-                r#"  <text x="{}" y="30" text-anchor="middle" font-size="{}" font-family="{}" fill="{}">{}</text>"#,
-                self.config.width as f64 / 2.0,
-                title_size,
-                font_family,
-                text_color,
-                self.config.title
-            ));
-            svg.push('\n');
-        }
+        // Draw annotations (arrows, text, shapes)
+        svg.push_str(&self.generate_annotations(&x_px, &y_px));
 
-        // Draw axis labels
-        if !self.config.x_label.is_empty() {
-            svg.push_str(&format!(
-                r#"  <text x="{}" y="{}" text-anchor="middle" font-size="{}" font-family="{}" fill="{}">{}</text>"#,
-                self.config.width as f64 / 2.0,
-                self.config.height as f64 - 10.0,
-                label_size,
-                font_family,
-                text_color,
-                self.config.x_label
-            ));
-            svg.push('\n');
-        }
+    // Draw title (matplotlib places it centered near the top with bold)
+    if !self.config.title.is_empty() {
+        svg.push_str(&format!(
+            r#" <text x="{cx}" y="{title_y}" text-anchor="middle" font-size="{title_size}" font-family="{font_family}" font-weight="bold" fill="{text_color}">{escaped}</text>"#,
+            cx = self.config.width as f64 / 2.0,
+            title_y = 32.0,
+            escaped = crate::common::xml_escape(&self.config.title),
+        ));
+        svg.push('\n');
+    }
 
-        if !self.config.y_label.is_empty() {
-            svg.push_str(&format!(
-                r#"  <text x="20" y="{}" text-anchor="middle" font-size="{}" font-family="{}" fill="{}" transform="rotate(-90, 20, {})">{}</text>"#,
-                self.config.height as f64 / 2.0,
-                label_size,
-                font_family,
-                text_color,
-                self.config.height as f64 / 2.0,
-                self.config.y_label
-            ));
-            svg.push('\n');
-        }
+    // X-axis label (bottom center, below ticks — matplotlib default)
+    if !self.config.x_label.is_empty() {
+        svg.push_str(&format!(
+            r#" <text x="{cx}" y="{label_y}" text-anchor="middle" font-size="{label_size}" font-family="{font_family}" fill="{text_color}">{escaped}</text>"#,
+            cx = self.config.width as f64 / 2.0,
+            label_y = self.config.height as f64 - 2.0,
+            escaped = crate::common::xml_escape(&self.config.x_label),
+        ));
+        svg.push('\n');
+    }
+
+    // Y-axis label (rotated 90°, centered vertically — matplotlib default)
+    if !self.config.y_label.is_empty() {
+        let cy = self.config.height as f64 / 2.0;
+        svg.push_str(&format!(
+            r#" <text x="14" y="{cy}" text-anchor="middle" dominant-baseline="central" font-size="{label_size}" font-family="{font_family}" fill="{text_color}" transform="rotate(-90, 14, {cy})">{escaped}</text>"#,
+            escaped = crate::common::xml_escape(&self.config.y_label),
+        ));
+        svg.push('\n');
+    }
 
         // Draw legend if enabled
         if self.config.show_legend && (!self.series.is_empty() || !self.boxes.is_empty()) {
@@ -445,60 +500,10 @@ impl SvgPlot {
 
     /// Bounds over series, bars, boxes and heatmaps. Falls back to `0..1` when empty.
     fn calculate_ranges(&self) -> (Range, Range) {
-        // Heatmaps override axis ranges: rows/cols as data units.
-        if !self.heatmaps.is_empty() {
-            let h = &self.heatmaps[0];
-            let rows = h.rows();
-            let cols = h.cols();
-            return (
-                Range {
-                    min: 0.0,
-                    max: cols as f64,
-                },
-                Range {
-                    min: 0.0,
-                    max: rows as f64,
-                },
-            );
-        }
-        let x = Range::compute(
-            self.series
-                .iter()
-                .flat_map(|s| s.points.iter().map(|p| p.x))
-                .chain(self.bars.iter().flat_map(|b| [b.x_lo, b.x_hi]))
-                .chain(
-                    self.boxes
-                        .iter()
-                        .enumerate()
-                        .flat_map(|(i, _)| [i as f64 - 0.5, i as f64 + 0.5]),
-                )
-                .chain(self.error_bars.iter().map(|e| e.x)),
+        (
+            crate::common::compute_x_range(&self.snapshot()),
+            crate::common::compute_y_range(&self.snapshot()),
         )
-        .unwrap_or_default();
-        let y = Range::compute(
-            self.series
-                .iter()
-                .flat_map(|s| s.points.iter().map(|p| p.y))
-                .chain(self.bars.iter().map(|b| b.y))
-                .chain(self.boxes.iter().flat_map(|b| {
-                    [
-                        b.stats.min,
-                        b.stats.q1,
-                        b.stats.median,
-                        b.stats.q3,
-                        b.stats.max,
-                    ]
-                    .into_iter()
-                    .chain(b.stats.outliers.iter().copied())
-                }))
-                .chain(
-                    self.error_bars
-                        .iter()
-                        .flat_map(|e| [e.bar.lo, e.bar.center, e.bar.hi]),
-                ),
-        )
-        .unwrap_or_default();
-        (x, y)
     }
 
     fn generate_grid(
@@ -513,77 +518,77 @@ impl SvgPlot {
         let mut grid = String::new();
         
         // Get grid color from theme or series
-        let grid_color = if let Some(ref theme) = self.theme {
-            theme.grid_color.to_hex()
-        } else {
+    let (grid_color, grid_opacity, dash_array) = if let Some(ref theme) = self.theme {
+        let opacity = match theme.grid_style {
+            crate::theme::LineStyle::Solid => "0.6",
+            _ => "0.45",
+        };
+        let dash = match theme.grid_style {
+            crate::theme::LineStyle::Solid => "none",
+            crate::theme::LineStyle::Dashed => "6,4",
+            crate::theme::LineStyle::Dotted => "2,2",
+            crate::theme::LineStyle::DashDot => "6,2,2,2",
+        };
+        (theme.grid_color.to_hex(), opacity, dash)
+    } else {
+        (
             self.series
                 .first()
                 .map(|s| s.style.grid_color.to_hex())
-                .unwrap_or_else(|| Color::GRAY.to_hex())
-        };
+                .unwrap_or_else(|| Color::GRAY.to_hex()),
+            "0.5",
+            "none",
+        )
+    };
 
-        // Vertical grid lines at x ticks
-        for (t, _) in x_ticks {
-            let x = x_px_k(*t);
-            grid.push_str(&format!(
-                r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>"#,
-                x, padding, x, padding + plot_height, grid_color
-            ));
-            grid.push('\n');
-        }
+    // Vertical grid lines
+    for (t, _) in x_ticks {
+        let x = x_px_k(*t);
+        grid.push_str(&format!(
+            r#" <line x1="{x}" y1="{padding}" x2="{x}" y2="{bottom}" stroke="{grid_color}" stroke-width="0.6" opacity="{grid_opacity}" stroke-dasharray="{dash_array}"/>"#,
+            bottom = padding + plot_height,
+        ));
+        grid.push('\n');
+    }
 
-        // Horizontal grid lines at y ticks
-        for (t, _) in y_ticks {
-            let y = y_px_k(*t);
-            grid.push_str(&format!(
-                r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>"#,
-                padding, y, padding + (self.config.width as f64 - 2.0 * padding), y, grid_color
-            ));
-            grid.push('\n');
-        }
+    // Horizontal grid lines at y ticks
+    for (t, _) in y_ticks {
+        let y = y_px_k(*t);
+        grid.push_str(&format!(
+            r#" <line x1="{padding}" y1="{y}" x2="{right}" y2="{y}" stroke="{grid_color}" stroke-width="0.6" opacity="{grid_opacity}" stroke-dasharray="{dash_array}"/>"#,
+            right = padding + (self.config.width as f64 - 2.0 * padding),
+        ));
+        grid.push('\n');
+    }
 
         grid
     }
 
-    fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
-        let mut axes = String::new();
-        let axis_color = if let Some(ref theme) = self.theme {
-            theme.axis_color.to_hex()
-        } else {
-            Color::BLACK.to_hex()
-        };
-        let border_width = if let Some(ref theme) = self.theme {
-            theme.border_width
-        } else {
-            1.0
-        };
+fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
+    let mut axes = String::new();
+    let (axis_color, border_width) = if let Some(ref theme) = self.theme {
+        (theme.axis_color.to_hex(), theme.border_width)
+    } else {
+        (Color::BLACK.to_hex(), 1.0)
+    };
 
-        // X-axis
-        axes.push_str(&format!(
-            r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="{}" stroke-linecap="round"/>"#,
-            padding,
-            padding + height,
-            padding + width,
-            padding + height,
-            axis_color,
-            border_width
-        ));
-        axes.push('\n');
+    // X-axis
+    axes.push_str(&format!(
+        r#" <line x1="{padding}" y1="{bottom}" x2="{right}" y2="{bottom}" stroke="{axis_color}" stroke-width="{border_width}" stroke-linecap="round"/>"#,
+        bottom = padding + height,
+        right = padding + width,
+    ));
+    axes.push('\n');
 
-        // Y-axis
-        axes.push_str(&format!(
-            r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="{}" stroke-linecap="round"/>"#,
-            padding,
-            padding,
-            padding,
-            padding + height,
-            axis_color,
-            border_width
-        ));
-        axes.push('\n');
+    // Y-axis
+    axes.push_str(&format!(
+        r#" <line x1="{padding}" y1="{padding}" x2="{padding}" y2="{bottom}" stroke="{axis_color}" stroke-width="{border_width}" stroke-linecap="round"/>"#,
+        bottom = padding + height,
+    ));
+    axes.push('\n');
 
-        axes
-    }
+    axes
+}
 
     fn generate_ticks(
         &self,
@@ -613,53 +618,37 @@ impl SvgPlot {
             )
         };
 
-        // X tick marks and labels below the axis
-        for (t, label) in x_ticks {
-            let x = x_px_k(*t);
-            out.push_str(&format!(
-                r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1" stroke-linecap="round"/>"#,
-                x,
-                padding + plot_height,
-                x,
-                padding + plot_height + 5.0,
-                axis_color
-            ));
-            out.push('\n');
-            out.push_str(&format!(
-                r#"  <text x="{}" y="{}" text-anchor="middle" font-size="{}" font-family="{}" fill="{}">{}</text>"#,
-                x,
-                padding + plot_height + 16.0,
-                tick_size,
-                font_family,
-                text_color,
-                label
-            ));
-            out.push('\n');
-        }
+    // X tick marks (pointing outward) and labels below the axis
+    for (t, label) in x_ticks {
+        let x = x_px_k(*t);
+        out.push_str(&format!(
+            r#" <line x1="{x}" y1="{bottom}" x2="{x}" y2="{tick_end}" stroke="{axis_color}" stroke-width="1" stroke-linecap="round"/>"#,
+            bottom = padding + plot_height,
+            tick_end = padding + plot_height + 4.0,
+        ));
+        out.push('\n');
+        out.push_str(&format!(
+            r#" <text x="{x}" y="{label_y}" text-anchor="middle" font-size="{tick_size}" font-family="{font_family}" fill="{text_color}">{label}</text>"#,
+            label_y = padding + plot_height + tick_size + 6.0,
+        ));
+        out.push('\n');
+    }
 
-        // Y tick marks and labels left of the axis
-        for (t, label) in y_ticks {
-            let y = y_px_k(*t);
-            out.push_str(&format!(
-                r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1" stroke-linecap="round"/>"#,
-                padding - 5.0,
-                y,
-                padding,
-                y,
-                axis_color
-            ));
-            out.push('\n');
-            out.push_str(&format!(
-                r#"  <text x="{}" y="{}" text-anchor="end" font-size="{}" font-family="{}" fill="{}">{}</text>"#,
-                padding - 8.0,
-                y + 4.0,
-                tick_size,
-                font_family,
-                text_color,
-                label
-            ));
-            out.push('\n');
-        }
+    // Y tick marks (pointing outward) and labels left of the axis
+    for (t, label) in y_ticks {
+        let y = y_px_k(*t);
+        out.push_str(&format!(
+            r#" <line x1="{tick_start}" y1="{y}" x2="{padding}" y2="{y}" stroke="{axis_color}" stroke-width="1" stroke-linecap="round"/>"#,
+            tick_start = padding - 4.0,
+        ));
+        out.push('\n');
+        out.push_str(&format!(
+            r#" <text x="{label_x}" y="{y_mid}" text-anchor="end" dominant-baseline="central" font-size="{tick_size}" font-family="{font_family}" fill="{text_color}">{label}</text>"#,
+            label_x = padding - 7.0,
+            y_mid = y + 1.0,
+        ));
+        out.push('\n');
+    }
 
         out
     }
@@ -708,7 +697,7 @@ impl SvgPlot {
         if let Some(fill_color) = &style.fill_color {
             if points.len() > 1 {
                 let fill_hex = fill_color.to_hex();
-                let gradient_id = format!("area-grad-{}", series.name.replace(' ', "-"));
+                let gradient_id = format!("area-grad-{}", crate::common::xml_escape(&series.name).replace(' ', "-"));
                 
                 // Create gradient definition
                 output.push_str(&format!(
@@ -746,7 +735,7 @@ impl SvgPlot {
                 }
                 
                 // Close path back to baseline
-                path_d.push_str(&format!(" L{:.1},{:.1}", points.last().unwrap().0, baseline_y));
+                path_d.push_str(&format!(" L{:.1},{:.1}", points.last().expect("points is non-empty").0, baseline_y));
                 path_d.push_str(" Z");
                 
                 output.push_str(&format!(
@@ -844,7 +833,7 @@ impl SvgPlot {
                             marker_color
                         )
                     }
-                    MarkerStyle::Cross | MarkerStyle::Plus => {
+                    MarkerStyle::Plus => {
                         format!(
                             r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="2"/>
   <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="2"/>"#,
@@ -856,6 +845,22 @@ impl SvgPlot {
                             x,
                             y - marker_size,
                             x,
+                            y + marker_size,
+                            marker_color
+                        )
+                    }
+                    MarkerStyle::Cross => {
+                        format!(
+                            r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="2"/>
+  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="2"/>"#,
+                            x - marker_size,
+                            y - marker_size,
+                            x + marker_size,
+                            y + marker_size,
+                            marker_color,
+                            x + marker_size,
+                            y - marker_size,
+                            x - marker_size,
                             y + marker_size,
                             marker_color
                         )
@@ -974,6 +979,131 @@ impl SvgPlot {
         out
     }
 
+    /// Render all annotations (arrows, text, reference lines, rectangles).
+    fn generate_annotations(
+        &self,
+        x_px: &dyn Fn(f64) -> f64,
+        y_px: &dyn Fn(f64) -> f64,
+    ) -> String {
+        let mut out = String::new();
+
+        // Reference lines (horizontal/vertical across entire plot)
+        for line in &self.annotations.lines {
+            let stroke = line.color.to_hex();
+            let width = line.width;
+            let dash = line.dash.as_deref().unwrap_or("");
+            let dash_attr = if dash.is_empty() {
+                String::new()
+            } else {
+                format!(r#" stroke-dasharray="{dash}""#)
+            };
+            match line.orientation {
+                crate::annotations::LineOrientation::Horizontal => {
+                    let y = y_px(line.position);
+                    out.push_str(&format!(
+                        r##"  <line x1="0" y1="{y}" x2="{}" y2="{y}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"##,
+                        self.config.width
+                    ));
+                }
+                crate::annotations::LineOrientation::Vertical => {
+                    let x = x_px(line.position);
+                    out.push_str(&format!(
+                        r##"  <line x1="{x}" y1="0" x2="{x}" y2="{}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"##,
+                        self.config.height
+                    ));
+                }
+            }
+            out.push('\n');
+        }
+
+        // Rectangle annotations (origin + size in data coordinates)
+        for rect in &self.annotations.rectangles {
+            let fill = rect.fill.map(|c| c.to_hex()).unwrap_or_else(|| "none".to_string());
+            let stroke = rect.stroke.to_hex();
+            let x = x_px(rect.origin.x);
+            let y = y_px(rect.origin.y + rect.height);
+            let w = x_px(rect.origin.x + rect.width) - x;
+            let h = y - y_px(rect.origin.y);
+            out.push_str(&format!(
+                r##"  <rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" stroke="{stroke}" stroke-width="{}" opacity="0.3"/>"##,
+                rect.stroke_width
+            ));
+            out.push('\n');
+        }
+
+        // Arrow annotations
+        for arrow in &self.annotations.arrows {
+            let stroke = arrow.color.to_hex();
+            let width = arrow.width;
+            let x1 = x_px(arrow.from.x);
+            let y1 = y_px(arrow.from.y);
+            let x2 = x_px(arrow.to.x);
+            let y2 = y_px(arrow.to.y);
+            let dash = arrow.dash.as_deref().unwrap_or("");
+            let dash_attr = if dash.is_empty() {
+                String::new()
+            } else {
+                format!(r#" stroke-dasharray="{dash}""#)
+            };
+            // Line
+            out.push_str(&format!(
+                r##"  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"##
+            ));
+            out.push('\n');
+            // Arrowhead
+            let dx = x2 - x1;
+            let dy = y2 - y1;
+            let len = (dx * dx + dy * dy).sqrt();
+            if len > 0.0 {
+                let hs = arrow.head_size;
+                let ux = dx / len;
+                let uy = dy / len;
+                let px = -uy;
+                let py = ux;
+out.push_str(&format!(
+                    r##"  <polygon points="{x2},{y2} {} {} {} {}" fill="{stroke}"/>"##,
+                    x2 - hs * ux + hs * 0.4 * px,
+                    y2 - hs * uy + hs * 0.4 * py,
+                    x2 - hs * ux - hs * 0.4 * px,
+                    y2 - hs * uy - hs * 0.4 * py,
+                ));
+                out.push('\n');
+            }
+        }
+
+        // Text annotations
+        for text in &self.annotations.texts {
+            let fill = text.color.to_hex();
+            let x = x_px(text.position.x) + text.x_offset;
+            let y = y_px(text.position.y) + text.y_offset;
+            let anchor = match text.anchor {
+                crate::annotations::TextAnchor::Start => "start",
+                crate::annotations::TextAnchor::Middle => "middle",
+                crate::annotations::TextAnchor::End => "end",
+            };
+            let weight = &text.font_weight;
+            if let Some(bg_color) = text.background {
+                let bg = bg_color.to_hex();
+                out.push_str(&format!(
+                    r##"  <rect x="{}" y="{}" width="{}" height="{}" fill="{bg}" rx="3"/>"##,
+                    x - 4.0,
+                    y - text.font_size,
+                    text.text.len() as f64 * text.font_size * 0.6 + 8.0,
+                    text.font_size + 8.0
+                ));
+                out.push('\n');
+            }
+            out.push_str(&format!(
+                r##"  <text x="{x}" y="{y}" text-anchor="{anchor}" font-size="{}" font-weight="{weight}" fill="{fill}">{}</text>"##,
+                text.font_size,
+                crate::common::xml_escape(&text.text)
+            ));
+            out.push('\n');
+        }
+
+        out
+    }
+
     fn generate_legend(&self) -> String {
         let mut legend_items = Vec::new();
 
@@ -1005,7 +1135,7 @@ impl SvgPlot {
             crate::legend::estimate_legend_size(&legend_items, &config);
 
         // Adjust canvas width for outside positions
-        let extra_width = matches!(
+        let _extra_width = matches!(
             config.position,
             crate::legend::LegendPosition::OutsideRight | crate::legend::LegendPosition::OutsideLeft
         )
@@ -1030,7 +1160,7 @@ impl SvgPlot {
 }
 
 impl crate::backend::Backend for SvgPlot {
-    fn generate(&self, data: &PlotData) -> PlotResult<String> {
+    fn generate(&self, data: &PlotData) -> PlotResult<PlotOutput> {
         let mut svg = SvgPlot::new(data.config.clone());
         for s in &data.series {
             svg.add_series(s.clone());
@@ -1060,7 +1190,7 @@ impl crate::backend::Backend for SvgPlot {
         for hm in &data.heatmaps {
             svg.heatmaps.push(hm.clone());
         }
-        Ok(svg.generate())
+        Ok(PlotOutput::Svg(svg.generate()))
     }
 }
 
@@ -1111,7 +1241,7 @@ mod tests {
         let config = PlotConfig::new();
         let mut plot = SvgPlot::new(config);
         plot.add_series(DataSeries::new(
-            "flat".into(),
+            "flat",
             vec![DataPoint::new(3.0, 7.0), DataPoint::new(3.0, 7.0)],
         ));
         let svg = plot.generate();
@@ -1123,7 +1253,7 @@ mod tests {
         let config = PlotConfig::new().with_tick_count(5);
         let mut plot = SvgPlot::new(config);
         plot.add_series(DataSeries::new(
-            "line".into(),
+            "line",
             vec![DataPoint::new(0.0, 0.0), DataPoint::new(10.0, 10.0)],
         ));
         let svg = plot.generate();
@@ -1136,7 +1266,7 @@ mod tests {
         let config = PlotConfig::new().with_x_scale(Scale::Log);
         let mut plot = SvgPlot::new(config);
         plot.add_series(DataSeries::new(
-            "exp".into(),
+            "exp",
             vec![
                 DataPoint::new(1.0, 1.0),
                 DataPoint::new(10.0, 2.0),

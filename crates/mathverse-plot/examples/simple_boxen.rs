@@ -26,8 +26,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     config.plot_config = config.plot_config.with_title("Boxen Plot: Value Spread");
 
     let svg = render_boxen_plot(&data, &config)?;
-    std::fs::write("boxen.svg", svg)?;
-    println!("wrote boxen.svg");
+    PlotSaver::new(svg).save_png("boxen.png")?;
+    println!("wrote boxen.png");
 
     Ok(())
 }

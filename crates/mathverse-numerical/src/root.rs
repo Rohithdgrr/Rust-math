@@ -156,7 +156,7 @@ pub fn brent(
     let mut c = a;
     let mut fc = fa;
     let mut d = c;
-    let mut e = b;
+    let _e = b;
     let mut mflag = true;
     
     for _ in 0..max_iters {
@@ -333,7 +333,7 @@ pub fn householder(
             return Ok(x);
         }
         
-        let mut numerator = fx;
+        let numerator = fx;
         let mut denominator = derivatives[0](x);
         
         if order >= 2 {

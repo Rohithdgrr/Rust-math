@@ -27,10 +27,10 @@ fn main() -> eframe::Result<()> {
         .with_y_label("f(x)");
 
     let mut svg = mathverse_plot::SvgPlot::new(config.clone());
-    svg.add_series(DataSeries::new("f".into(), points.clone()));
+    svg.add_series(DataSeries::new("f", points.clone()));
 
     // Stash an SVG for comparison with the interactive scene.
-    std::fs::write("interactive_scene.svg", svg.generate()).ok();
+    PlotSaver::new(&svg.generate()).save_png("interactive_scene.png").ok();
 
     let data: PlotData = svg.snapshot();
     run(data, "mathverse-plot interactive", 900.0, 600.0)

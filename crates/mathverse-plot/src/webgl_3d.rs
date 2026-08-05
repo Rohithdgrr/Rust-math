@@ -173,7 +173,7 @@ impl WebGL3D {
     /// Render the data to a standalone HTML file with WebGL.
     pub fn render_html(&self) -> String {
         let data_json = self.points_to_json();
-        let bg_color = self.config.background_color.to_hex();
+        let _bg_color = self.config.background_color.to_hex();
 
         // Compute data bounds and center
         let (min_x, max_x, min_y, max_y, min_z, max_z) = self.bounds();

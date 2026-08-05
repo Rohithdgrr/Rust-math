@@ -20,7 +20,7 @@ mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
 mathverse-complex = { path = "../mathverse-complex", version = "0.1.1" }
 mathverse-special = { path = "../mathverse-special", version = "0.1.1" }
-mathverse-physics = { path = "../mathverse-physics", version = "0.1.1" }
+mathverse-physics = { path = "../mathverse-physics", version = "0.2.0" }
 mathverse-finance = { path = "../mathverse-finance", version = "0.1.1" }
 mathverse-symbolic = { path = "../mathverse-symbolic", version = "0.1.1" }
 mathverse-units = { path = "../mathverse-units", version = "0.1.1" }

@@ -16,8 +16,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_title("Point Plot: Mean Response Over Time");
 
     let svg = render_pointplot(&categories, &config)?;
-    std::fs::write("pointplot.svg", svg)?;
-    println!("wrote pointplot.svg");
+    PlotSaver::new(svg).save_png("pointplot.png")?;
+    println!("wrote pointplot.png");
 
     Ok(())
 }

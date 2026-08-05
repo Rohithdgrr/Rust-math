@@ -64,7 +64,7 @@ impl SwarmConfig {
 }
 
 /// Compute swarm positions for a set of points.
-fn compute_swarm_positions(values: &[f64], max_radius: f64, width: f64) -> Vec<(f64, f64)> {
+fn compute_swarm_positions(values: &[f64], max_radius: f64, _width: f64) -> Vec<(f64, f64)> {
     if values.is_empty() {
         return vec![];
     }
@@ -77,7 +77,7 @@ fn compute_swarm_positions(values: &[f64], max_radius: f64, width: f64) -> Vec<(
 
     for (orig_idx, val) in &sorted {
         let mut x = 0.0;
-        let mut y = *val;
+        let y = *val;
         let mut attempts = 0;
 
         loop {
@@ -182,7 +182,7 @@ pub fn render_swarm_plot(categories: &[SwarmCategory], config: &SwarmConfig) -> 
 
         for (i, &val) in cat.values.iter().enumerate() {
             let y = to_y(val);
-            let (x_idx, x_offset) = positions[i];
+            let (_x_idx, x_offset) = positions[i];
             let x = cx + x_offset;
 
             svg.push_str("  <circle cx=\"");

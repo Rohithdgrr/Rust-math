@@ -13,23 +13,42 @@ here cleanly.
 ```
 crates/mathverse-plot/src/
   lib.rs          re-exports + crate docs
-  common.rs       DataPoint, DataSeries, PlotConfig
-  style.rs        Color, LineStyle, MarkerStyle, ChartStyle
+  common.rs       DataPoint, DataSeries, PlotConfig, xml_escape, downsample_lttb
+  style.rs        Color, LineStyle, MarkerStyle, PlotStyle
   svg.rs          SvgPlot      -- SVG vector output
   html.rs         HtmlPlot     -- embeds SvgPlot into a page
   terminal.rs     TerminalPlot -- ASCII output
+  backend.rs      Backend trait + PlotData snapshot
+  axes.rs         Range, Scale, axis_kernel, nice tick selection
+  color.rs        Colormaps (Viridis, Plasma, Inferno, Magma, Cividis)
+  figure.rs       Figure + Axes multi-axes layout
+  error.rs        PlotError enum (InvalidData, Math, Io)
+  theme.rs        9 themes with 6+ color palettes
+  legend.rs       Flexible legend positioning
+  animation.rs    Multi-frame SVG animation
+  export.rs       Unified export API (SVG, PNG, PDF, HTML)
 ```
 
-Planned modules (next phases):
+Additional modules behind Cargo features:
 
-```
-  axes.rs         Axes: data-space <-> pixel-space transform + tick selection
-  scales.rs       Scale trait: Linear, Log, SymLog, Sqrt
-  charts/         one file per chart type (line, scatter, histogram, ...)
-  color.rs        ColorSpace conversions + perceptual colormaps
-  figure.rs       Figure: multi-axes layout + title/legend aggregation
-  backend.rs      Backend trait (extracted when a 2nd real backend lands)
-```
+| Feature | Module | Dependency |
+|---------|--------|-----------|
+| `png` | `png_backend.rs` | `tiny-skia`, `resvg`, `usvg` |
+| `pdf` | `pdf_backend.rs` | `printpdf` |
+| `interactive` | `interactive.rs` | `eframe` |
+| `canvas` | `canvas.rs` | `wasm-bindgen`, `web-sys` |
+
+Specialized domain modules (gated on workspace sibling crates):
+
+| Module | Dependency | Purpose |
+|--------|-----------|---------|
+| `candlestick.rs` | `mathverse-finance` | OHLC candlestick charts |
+| `ml_plots.rs` | `mathverse-machine-learning` | Confusion matrix, ROC curve |
+| `graph_layout.rs` | `mathverse-graph` | Network/graph visualization |
+| `spectrogram.rs` | `mathverse-transforms`, `mathverse-signal` | FFT-based spectrogram |
+| `surface.rs` | `mathverse-graphics` | 3D wireframe surface |
+| `complex_plane.rs` | `mathverse-complex` | Argand diagram, domain coloring |
+| `pdf_overlay.rs` | `mathverse-probability` | Theoretical PDF overlays |
 
 ## Dependency Rules (mandatory)
 
@@ -43,27 +62,30 @@ library and other crates provide only IO, temporals, and rendering glue.
 | Transforms, projection, fitting | `mathverse-matrix`, `mathverse-linear-algebra`, `mathverse-graphics` | hand math |
 | Descriptive stats, binning, CI, KDE | `mathverse-statistics` | ad-hoc loops |
 | Theoretical PDF/CDF overlays | `mathverse-probability` | hardcoded curves |
-| Tangent lines, area fills, meshes | `mathverse-calculus` | per-chart integrals |
 | Smoothing / interpolation / roots | `mathverse-numerical` | hand-rolled splines |
 | FFT / signal plots | `mathverse-transforms`, `mathverse-signal` | custom DFT |
-| Scientific overlays (gamma, erf, bessel) | `mathverse-special` | approximations |
 | Heatmap data / image display | `mathverse-image` | raw pixel loops |
 | Complex-plane / Argand plots | `mathverse-complex` | manual re/im juggling |
 | Candlesticks / time-series | `mathverse-finance` | duplicated indicators |
 | Network / graph layout | `mathverse-graph` | manual node edges |
-| Typed axis ranges | `mathverse-units` | bare f64 labels |
-| LaTeX-ish labels | `mathverse-symbolic`, `mathverse-algebra` | hand parsers |
 
 Rule of thumb: if a number is computed, it comes from mathverse. Rendering glue
 (e.g. SVG element string assembly) is ours.
 
 ## Backend Abstraction
 
-Backends share one `Backend` trait contract (size, draw_line / draw_rect /
-draw_circle / draw_path / draw_text / draw_image, save). Until a second real
-backend exists (raster/PDF), the trait is an internal module, not public API:
-premature abstraction is avoided and `SvgPlot` remains the single concrete
-renderer. HTML wraps SVG. Terminal renders to a `Vec<char>` grid then prints.
+The `Backend` trait in `backend.rs` defines a single method:
+
+```rust
+pub trait Backend {
+    fn generate(&self, data: &PlotData) -> PlotResult<String>;
+}
+```
+
+`SvgPlot` implements `Backend` directly. `PngBackend` and `PdfBackend`
+implement `Backend` behind feature flags. `TerminalPlot` implements `Backend`
+for ASCII output. The `PlotData` snapshot decouples data preparation from
+rendering so any backend can consume the same pre-computed data.
 
 ## Rendering Pipeline
 
@@ -71,7 +93,7 @@ renderer. HTML wraps SVG. Terminal renders to a `Vec<char>` grid then prints.
 data -> [chart type] -> mathverse computation (stats, calculus, ...)
      -> Axes (scale + nice ticks) -> pixel coordinates
      -> render primitives (lines, rects, markers, text, fill)
-     -> Backend (Svg / Html / Terminal)
+     -> Backend (Svg / Html / Terminal / Png / Pdf)
 ```
 
 Two transforms matter:
@@ -88,10 +110,9 @@ conversions so mathverse errors surface unchanged:
 
 ```rust
 pub enum PlotError {
-    Math(mathverse_core::MathError),
-    InvalidRange(String),   // zero-width axis, empty data where shape required
-    Backend(String),
-    Io(std::io::Error),
+    InvalidData(String),
+    Math(#[from] mathverse_core::MathError),
+    Io(#[from] std::io::Error),
 }
 ```
 
@@ -103,7 +124,6 @@ guard ranges; invalid data yields a typed error.
 - Zero-copy data views for large series (`&[f64]`, no per-point `DataPoint`
   allocation in hot loops).
 - Reusable pixel buffers on the plot struct to avoid per-frame `Vec` churn.
-- Binned charts optionally use `rayon` behind feature `parallel`, delegating
-  the histogram kernel to `mathverse-statistics`.
+- LTTB downsampling (`downsample_lttb`) for series exceeding target point count.
 - Rendering never blocks on mathverse compute; charts are precomputed, then
   drawn.

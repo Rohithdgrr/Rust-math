@@ -148,8 +148,12 @@ pub fn integer_part<T: Real>(x: T) -> T {
 /// assert!((nth_root(16.0_f64, 4) - 2.0).abs() < 1e-12);
 /// ```
 #[must_use]
+#[inline]
 pub fn nth_root<T: Real>(x: T, n: i32) -> T {
-    x.powf(T::one() / T::from_f64(f64::from(n)))
+    if n == 0 {
+        return T::one();
+    }
+    x.powf(T::from_f64(f64::from(n)).recip())
 }
 
 /// Cube root of `x`.
@@ -165,7 +169,11 @@ pub fn nth_root<T: Real>(x: T, n: i32) -> T {
 #[must_use]
 #[inline]
 pub fn cbrt<T: Real>(x: T) -> T {
-    x.powf(T::from_f64(1.0 / 3.0))
+    if x >= T::zero() {
+        x.powf(T::from_f64(1.0 / 3.0))
+    } else {
+        -(-x).powf(T::from_f64(1.0 / 3.0))
+    }
 }
 
 /// Overflow-safe `sqrt(a^2 + b^2)`, generic over reals.
@@ -419,13 +427,16 @@ pub fn wrap<T: Real + Rem<Output = T>>(x: T, lo: T, hi: T) -> T {
 /// ```
 /// use mathverse_core::ops::ping_pong;
 ///
-/// assert_eq!(ping_pong(15.0, 10.0), 5.0);
-/// assert_eq!(ping_pong(25.0, 10.0), 5.0);
+/// assert_eq!(ping_pong(0.0, 10.0), 0.0);
+/// assert_eq!(ping_pong(7.5, 10.0), 7.5);
+/// assert_eq!(ping_pong(12.5, 10.0), 7.5);
+/// assert_eq!(ping_pong(20.0, 10.0), 0.0);
 /// ```
 #[must_use]
+#[inline]
 pub fn ping_pong<T: Real>(x: T, length: T) -> T {
-    let t = wrap(x, T::zero(), length);
-    length - (length - t).abs()
+    let t = wrap(x, T::zero(), length * T::from_f64(2.0));
+    length - (t - length).abs()
 }
 
 /// Repeat `x` into `[0, length)`.
@@ -876,7 +887,7 @@ pub fn mean<T: Real>(xs: &[T]) -> T {
         return T::zero();
     }
     let sum: T = xs.iter().copied().fold(T::zero(), |acc, x| acc + x);
-    sum / T::from_f64(f64::from(xs.len() as u32))
+    sum / T::from_f64(xs.len() as f64)
 }
 
 /// Cumulative sum of a slice. Returns an empty vector for an empty input.
@@ -1024,16 +1035,18 @@ mod tests {
         assert_eq!(distance(3.0, 7.0), 4.0);
     }
 
-    #[test]
-    fn wrap_and_angle() {
-        assert_eq!(wrap(15.0, 0.0, 10.0), 5.0);
-        assert_eq!(wrap(-3.0, 0.0, 10.0), 7.0);
-        assert_eq!(repeat(15.0, 10.0), 5.0);
-        assert_eq!(ping_pong(15.0, 10.0), 5.0);
-        assert_eq!(ping_pong(25.0, 10.0), 5.0);
-        assert!((wrap_angle(core::f64::consts::PI + 0.1) - (-core::f64::consts::PI + 0.1)).abs() < 1e-15);
-        assert!((wrap_angle_positive(-0.1) - (2.0 * core::f64::consts::PI - 0.1)).abs() < 1e-15);
-    }
+#[test]
+fn wrap_and_angle() {
+    assert_eq!(wrap(15.0, 0.0, 10.0), 5.0);
+    assert_eq!(wrap(-3.0, 0.0, 10.0), 7.0);
+    assert_eq!(repeat(15.0, 10.0), 5.0);
+    assert_eq!(ping_pong(0.0, 10.0), 0.0);
+    assert_eq!(ping_pong(7.5, 10.0), 7.5);
+    assert_eq!(ping_pong(12.5, 10.0), 7.5);
+    assert_eq!(ping_pong(20.0, 10.0), 0.0);
+    assert!((wrap_angle(core::f64::consts::PI + 0.1) - (-core::f64::consts::PI + 0.1)).abs() < 1e-15);
+    assert!((wrap_angle_positive(-0.1) - (2.0 * core::f64::consts::PI - 0.1)).abs() < 1e-15);
+}
 
     #[test]
     fn normalize_vec() {

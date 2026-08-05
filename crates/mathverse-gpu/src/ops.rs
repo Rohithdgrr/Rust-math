@@ -16,7 +16,7 @@ pub fn gpu_mat_mul(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matri
     }
 
     let m = a.rows;
-    let k = a.cols;
+    let _k = a.cols;
     let n = b.cols;
 
     // Create buffers
@@ -285,11 +285,11 @@ pub fn gpu_dot(ctx: &GpuContext, a: &Vector, b: &Vector) -> MathResult<f64> {
         return Err(MathError::DimensionMismatch);
     }
 
-    let buf_a = ctx.create_buffer_init(&a.data);
-    let buf_b = ctx.create_buffer_init(&b.data);
+    let _buf_a = ctx.create_buffer_init(&a.data);
+    let _buf_b = ctx.create_buffer_init(&b.data);
 
     // For dot product, we need a reduction. For simplicity, use a staging buffer.
-    let buf_out = ctx.device.create_buffer(&wgpu::BufferDescriptor {
+    let _buf_out = ctx.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Dot Output"),
         size: 8,
         usage: wgpu::BufferUsages::STORAGE

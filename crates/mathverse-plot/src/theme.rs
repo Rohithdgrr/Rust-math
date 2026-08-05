@@ -17,12 +17,15 @@ pub enum Theme {
     HighContrast,
     /// Classic matplotlib style.
     Classic,
-    ///学术论文风格.
+    /// Academic paper style.
     Academic,
     /// Presentation style (larger fonts).
     Presentation,
     /// Blueprint style.
     Blueprint,
+    /// Matplotlib default (v3.x / v2.x) — replicates the classic default style:
+    /// grey grid, white axes, blue(ish) tick labels, default tab10 colors.
+    Matplotlib,
 }
 
 impl Default for Theme {
@@ -274,8 +277,9 @@ impl ThemeConfig {
             Theme::Classic => Self::classic(),
             Theme::Academic => Self::academic(),
             Theme::Presentation => Self::presentation(),
-            Theme::Blueprint => Self::blueprint(),
-        }
+        Theme::Blueprint => Self::blueprint(),
+        Theme::Matplotlib => Self::matplotlib(),
+    }
     }
 
     /// Minimal theme.
@@ -547,41 +551,93 @@ impl ThemeConfig {
     /// Blueprint theme.
     pub fn blueprint() -> Self {
         Self {
-            theme: Theme::Blueprint,
-            background_color: Color::rgb(0, 40, 80),
-            plot_background: Color::rgb(0, 50, 100),
-            text_color: Color::rgb(200, 220, 255),
-            axis_color: Color::rgb(100, 150, 200),
-            grid_color: Color::rgb(50, 100, 150),
-            grid_style: LineStyle::Solid,
-            font_family: "Consolas, monospace".into(),
-            title_size: 16.0,
-            label_size: 12.0,
-            tick_size: 10.0,
-            legend_size: 11.0,
-            line_width: 2.0,
-            border_width: 1.0,
-            show_grid: true,
-            show_border: true,
-            show_ticks: true,
-            show_spine: SpineVisibility::all(),
-            palette: ColorPalette::new("blueprint", vec![
-                Color::rgb(100, 200, 255),
-                Color::rgb(255, 200, 100),
-                Color::rgb(100, 255, 150),
-                Color::rgb(255, 150, 200),
-            ]),
-            figure_facecolor: Color::rgb(0, 40, 80),
-            axes_facecolor: Color::rgb(0, 50, 100),
-            axes_edgecolor: Color::rgb(100, 150, 200),
-            xgrid: true,
-            ygrid: true,
-            grid_axis: GridAxis::Both,
-        }
+        theme: Theme::Blueprint,
+        background_color: Color::rgb(0, 40, 80),
+        plot_background: Color::rgb(0, 50, 100),
+        text_color: Color::rgb(200, 220, 255),
+        axis_color: Color::rgb(100, 150, 200),
+        grid_color: Color::rgb(50, 100, 150),
+        grid_style: LineStyle::Solid,
+        font_family: "Consolas, monospace".into(),
+        title_size: 16.0,
+        label_size: 12.0,
+        tick_size: 10.0,
+        legend_size: 11.0,
+        line_width: 2.0,
+        border_width: 1.0,
+        show_grid: true,
+        show_border: true,
+        show_ticks: true,
+        show_spine: SpineVisibility::all(),
+        palette: ColorPalette::new("blueprint", vec![
+            Color::rgb(100, 200, 255),
+            Color::rgb(255, 200, 100),
+            Color::rgb(100, 255, 150),
+            Color::rgb(255, 150, 200),
+        ]),
+        figure_facecolor: Color::rgb(0, 40, 80),
+        axes_facecolor: Color::rgb(0, 50, 100),
+        axes_edgecolor: Color::rgb(100, 150, 200),
+        xgrid: true,
+        ygrid: true,
+        grid_axis: GridAxis::Both,
     }
+}
+
+/// Matplotlib default style.
+///
+/// Closely mirrors `matplotlib.pyplot.rcParams` from matplotlib ≤ 3.x:
+/// - tweak the default colormap away from pure `#1f77b4` blue
+/// - set a slightly darker grid so it reads on white
+/// - `seaborn-deep`-style qualitative palette (same 8-color cycle as the default
+///   `tab10` table, which matplotlib ships from 2.0 onward)
+pub fn matplotlib() -> Self {
+    Self {
+        theme: Theme::Matplotlib,
+        background_color: Color::WHITE,
+        plot_background: Color::WHITE,
+        text_color: Color::rgb(60, 60, 60),
+        axis_color: Color::rgb(120, 120, 120),
+        grid_color: Color::rgb(210, 210, 210),
+        grid_style: LineStyle::Solid,
+        font_family: "DejaVu Sans, Arial, sans-serif".into(),
+        title_size: 16.0,
+        label_size: 13.0,
+        tick_size: 10.0,
+        legend_size: 10.5,
+        line_width: 1.5,
+        border_width: 0.8,
+        show_grid: true,
+        show_border: true,
+        show_ticks: true,
+        show_spine: SpineVisibility::all(),
+        palette: ColorPalette::new(
+            "matplotlib",
+            vec![
+                // tab10 — the default matplotlib qualitative colors
+                Color::rgb(31, 119, 180),
+                Color::rgb(255, 127, 14),
+                Color::rgb(44, 160, 44),
+                Color::rgb(214, 39, 40),
+                Color::rgb(148, 103, 189),
+                Color::rgb(140, 86, 75),
+                Color::rgb(227, 119, 194),
+                Color::rgb(127, 127, 127),
+                Color::rgb(188, 189, 34),
+                Color::rgb(23, 190, 207),
+            ],
+        ),
+        figure_facecolor: Color::WHITE,
+        axes_facecolor: Color::WHITE,
+        axes_edgecolor: Color::rgb(120, 120, 120),
+        xgrid: false,
+        ygrid: true,
+        grid_axis: GridAxis::Y,
+    }
+}
 
     /// Apply theme to SVG header.
-    pub fn svg_header(&self, width: u32, height: u32) -> String {
+    pub fn svg_header(&self, _width: u32, _height: u32) -> String {
         let mut svg = String::new();
 
         // Style definitions
@@ -667,8 +723,9 @@ mod tests {
         let _ = ThemeConfig::classic();
         let _ = ThemeConfig::academic();
         let _ = ThemeConfig::presentation();
-        let _ = ThemeConfig::blueprint();
-    }
+    let _ = ThemeConfig::blueprint();
+    let _ = ThemeConfig::matplotlib();
+}
 
     #[test]
     fn palette_colors() {

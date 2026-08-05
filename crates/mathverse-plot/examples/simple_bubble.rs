@@ -20,8 +20,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 500;
 
     let svg = render_bubble_chart(&bubbles, &cfg)?;
-    std::fs::write("bubble.svg", svg)?;
-    println!("wrote bubble.svg");
+    PlotSaver::new(svg).save_png("bubble.png")?;
+    println!("wrote bubble.png");
 
     Ok(())
 }

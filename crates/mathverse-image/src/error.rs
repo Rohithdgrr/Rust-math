@@ -30,9 +30,12 @@ pub enum ImageError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
-    /// Image encoding/decoding error.
-    #[error("image encoding/decoding error: {0}")]
-    ImageError(#[from] image::ImageError),
+/// Image encoding/decoding error.
+#[error("image encoding/decoding error: {0}")]
+ImageError(#[from] image::ImageError),
+/// Invalid image data (e.g. dimensions or pixel buffer length mismatch).
+#[error("invalid image data: {0}")]
+InvalidImageData(String),
 }
 
 /// Result type alias for image operations.

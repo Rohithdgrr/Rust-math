@@ -28,8 +28,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 500;
 
     let svg = render_hist2d(&x_data, &y_data, &cfg)?;
-    std::fs::write("hist2d.svg", svg)?;
-    println!("wrote hist2d.svg");
+    PlotSaver::new(svg).save_png("hist2d.png")?;
+    println!("wrote hist2d.png");
 
     Ok(())
 }

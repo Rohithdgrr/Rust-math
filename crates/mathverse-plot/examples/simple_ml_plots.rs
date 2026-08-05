@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_y_label("Actual");
 
     let svg = render_confusion_matrix(&pred, &target, 2, config)?;
-    std::fs::write("confusion_matrix.svg", &svg)?;
+    PlotSaver::new(svg).save_png("confusion_matrix.png")?;
     println!("Wrote confusion_matrix.svg ({} bytes)", svg.len());
 
     // Example 2: ROC curve
@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_y_label("True Positive Rate");
 
     let svg = render_roc_curve(&scores, &labels, config)?;
-    std::fs::write("roc_curve.svg", &svg)?;
+    PlotSaver::new(svg).save_png("roc_curve.png")?;
     println!("Wrote roc_curve.svg ({} bytes)", svg.len());
 
     Ok(())

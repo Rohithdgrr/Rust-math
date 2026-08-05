@@ -2,7 +2,6 @@
 
 use crate::common::PlotConfig;
 use crate::error::{PlotError, PlotResult};
-use crate::style::Color;
 
 /// Configuration for a 2D histogram.
 #[derive(Debug, Clone)]

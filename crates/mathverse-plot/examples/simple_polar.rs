@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     data.add_series(PolarSeries::new("rose", points));
 
     let svg = render_polar_svg(&data, 600, 600);
-    std::fs::write("polar.svg", &svg)?;
+    PlotSaver::new(svg).save_png("polar.png")?;
     println!("wrote polar.svg ({} bytes)", svg.len());
     Ok(())
 }

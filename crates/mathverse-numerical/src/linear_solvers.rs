@@ -465,12 +465,12 @@ impl GMRES {
         Ok(x)
     }
 
-    fn cs(i: usize) -> f64 {
+    fn cs(_i: usize) -> f64 {
         // Simplified - in practice, store rotation parameters
         1.0
     }
 
-    fn sn(i: usize) -> f64 {
+    fn sn(_i: usize) -> f64 {
         // Simplified - in practice, store rotation parameters
         0.0
     }
@@ -556,7 +556,7 @@ impl BiCGSTAB {
             let alpha = rho / r0_hat.iter().zip(&ap).map(|(&r0i, &api)| r0i * api).sum::<f64>();
             
             // s = r - alpha * Ap
-            let mut s: Vec<f64> = r.iter().zip(&ap).map(|(&ri, &api)| ri - alpha * api).collect();
+            let s: Vec<f64> = r.iter().zip(&ap).map(|(&ri, &api)| ri - alpha * api).collect();
             
             let s_norm: f64 = s.iter().map(|&si| si * si).sum::<f64>().sqrt();
             if s_norm < self.tolerance {

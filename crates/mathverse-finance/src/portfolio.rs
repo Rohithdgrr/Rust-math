@@ -58,11 +58,11 @@ pub fn portfolio_std_dev(weights: &[f64], covariance_matrix: &[Vec<f64>]) -> f64
 /// Vector of minimum variance portfolio weights
 pub fn minimum_variance_portfolio(covariance_matrix: &[Vec<f64>]) -> Vec<f64> {
     let n = covariance_matrix.len();
-    let mut ones = vec![1.0; n];
+    let _ones = vec![1.0; n];
     
     // Simplified approach: inverse covariance matrix times ones, normalized
     // For a proper implementation, would use a linear algebra library
-    let mut weights = vec![1.0 / n as f64; n];
+    let weights = vec![1.0 / n as f64; n];
     
     let sum: f64 = weights.iter().sum();
     weights.iter().map(|&w| w / sum).collect()
@@ -79,13 +79,13 @@ pub fn minimum_variance_portfolio(covariance_matrix: &[Vec<f64>]) -> Vec<f64> {
 /// Vector of portfolio weights for target return
 pub fn efficient_portfolio(
     expected_returns: &[f64],
-    covariance_matrix: &[Vec<f64>],
+    _covariance_matrix: &[Vec<f64>],
     target_return: f64,
 ) -> Vec<f64> {
     let n = expected_returns.len();
     
     // Simplified approach: equal weights adjusted for target
-    let mut weights = vec![1.0 / n as f64; n];
+    let weights = vec![1.0 / n as f64; n];
     let current_return = portfolio_return(&weights, expected_returns);
     
     if current_return != 0.0 {

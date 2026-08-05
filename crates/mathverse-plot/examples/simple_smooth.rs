@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Generate SVG
     let svg = plot.generate();
-    std::fs::write("smooth.svg", &svg)?;
+    PlotSaver::new(svg).save_png("smooth.png")?;
     println!("Wrote smooth.svg ({} bytes)", svg.len());
 
     Ok(())

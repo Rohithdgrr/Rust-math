@@ -29,8 +29,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     plot.add_box_plot("narrow", &c, Color::GREEN)?;
 
     let svg = plot.generate();
-    std::fs::write("boxplot.svg", svg)?;
-    println!("wrote boxplot.svg");
+    PlotSaver::new(svg).save_png("boxplot.png")?;
+    println!("wrote boxplot.png");
 
     Ok(())
 }

@@ -1,7 +1,7 @@
 //! Image I/O operations for loading and saving grayscale images.
 
 use crate::{error::Result, GrayImage, ImageError};
-use image::{DynamicImage, GrayImage as ImageGrayImage, ImageBuffer, Luma};
+use image::{DynamicImage, ImageBuffer, Luma};
 use std::path::Path;
 
 /// Load an image from a file and convert to grayscale `GrayImage`.
@@ -47,7 +47,7 @@ pub fn load<P: AsRef<Path>>(path: P) -> Result<GrayImage> {
 /// # }
 /// ```
 pub fn save<P: AsRef<Path>>(img: &GrayImage, path: P) -> Result<()> {
-    let gray_img = convert_from_grayimage(img);
+    let gray_img = convert_from_grayimage(img)?;
     gray_img.save(path)?;
     Ok(())
 }
@@ -68,15 +68,17 @@ fn convert_to_grayimage(dyn_img: DynamicImage) -> Result<GrayImage> {
 }
 
 /// Convert our `GrayImage` to an `image::GrayImage` for saving.
-fn convert_from_grayimage(img: &GrayImage) -> ImageBuffer<Luma<u8>, Vec<u8>> {
+fn convert_from_grayimage(img: &GrayImage) -> Result<ImageBuffer<Luma<u8>, Vec<u8>>> {
     let pixels: Vec<u8> = img
         .data
         .iter()
         .map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)
         .collect();
-    
     ImageBuffer::from_raw(img.w as u32, img.h as u32, pixels)
-        .expect("Invalid image dimensions or data length")
+        .ok_or_else(|| ImageError::InvalidImageData(format!(
+            "dimensions {}x{} do not match pixel buffer length {}",
+            img.w, img.h, img.data.len()
+        )))
 }
 
 /// Load from raw bytes (PNG, JPEG, etc.) and convert to grayscale.
@@ -95,7 +97,7 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<GrayImage> {
 ///
 /// Returns an error if the image cannot be encoded in the specified format.
 pub fn save_to_bytes(img: &GrayImage, format: image::ImageFormat) -> Result<Vec<u8>> {
-    let gray_img = convert_from_grayimage(img);
+    let gray_img = convert_from_grayimage(img)?;
     let mut bytes = Vec::new();
     gray_img.write_to(&mut std::io::Cursor::new(&mut bytes), format)?;
     Ok(bytes)
@@ -114,8 +116,8 @@ mod tests {
             }
         }
 
-        let gray_img = convert_from_grayimage(&original);
-        let converted = convert_to_grayimage(DynamicImage::ImageLuma8(gray_img)).unwrap();
+    let gray_img = convert_from_grayimage(&original).unwrap();
+    let converted = convert_to_grayimage(DynamicImage::ImageLuma8(gray_img)).unwrap();
 
         assert_eq!(original.w, converted.w);
         assert_eq!(original.h, converted.h);

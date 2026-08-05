@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut plot = SvgPlot::new(config);
     plot.add_series(DataSeries::new("Standard".to_string(), points.clone()));
     let svg_standard = plot.generate();
-    std::fs::write("highdpi_standard.svg", &svg_standard)?;
+    PlotSaver::new(svg_standard).save_png("highdpi_standard.png")?;
     println!("Wrote highdpi_standard.svg ({} bytes)", svg_standard.len());
 
     // High resolution (300 DPI) for print
@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
     );
 
-    std::fs::write("highdpi_300.svg", &svg_high)?;
+    PlotSaver::new(svg_high).save_png("highdpi_300.png")?;
     println!("Wrote highdpi_300.svg ({} bytes)", svg_high.len());
 
     // Show physical dimensions

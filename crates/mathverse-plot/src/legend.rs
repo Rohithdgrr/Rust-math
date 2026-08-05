@@ -312,7 +312,7 @@ pub fn render_legend(
             let text_y = iy + swatch_size * 0.8;
             svg.push_str(&format!(
                 r#"  <text x="{text_x}" y="{text_y}" font-size="{}">{}</text>"#,
-                config.font_size, item.name
+                config.font_size, crate::common::xml_escape(&item.name)
             ));
             svg.push('\n');
         }
@@ -333,7 +333,7 @@ pub fn render_legend(
             let text_y = iy + swatch_size * 0.8;
             svg.push_str(&format!(
                 r#"  <text x="{text_x}" y="{text_y}" font-size="{}">{}</text>"#,
-                config.font_size, item.name
+                config.font_size, crate::common::xml_escape(&item.name)
             ));
             svg.push('\n');
         }

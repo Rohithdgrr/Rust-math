@@ -1,0 +1,72 @@
+<svg width="800" height="500" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+  <title>Product Revenue (Q1-Q4)</title>
+  <defs>
+    <clipPath id="plot-area">
+      <rect x="50" y="50" width="700" height="400"/>
+    </clipPath>
+    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <line x1="81.81818181818181" y1="50" x2="81.81818181818181" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="187.87878787878788" y1="50" x2="187.87878787878788" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="293.9393939393939" y1="50" x2="293.9393939393939" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="399.99999999999994" y1="50" x2="399.99999999999994" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="506.06060606060595" y1="50" x2="506.06060606060595" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="612.1212121212121" y1="50" x2="612.1212121212121" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="718.1818181818181" y1="50" x2="718.1818181818181" y2="450" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="431.8181818181818" x2="750" y2="431.8181818181818" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="359.0909090909091" x2="750" y2="359.0909090909091" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="286.3636363636364" x2="750" y2="286.3636363636364" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="213.63636363636363" x2="750" y2="213.63636363636363" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="140.90909090909093" x2="750" y2="140.90909090909093" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="68.18181818181819" x2="750" y2="68.18181818181819" stroke="#808080" stroke-width="0.5" opacity="0.5" stroke-dasharray="4,2"/>
+  <line x1="50" y1="450" x2="750" y2="450" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <line x1="50" y1="50" x2="50" y2="450" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <line x1="81.81818181818181" y1="450" x2="81.81818181818181" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="81.81818181818181" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">1</text>
+  <line x1="187.87878787878788" y1="450" x2="187.87878787878788" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="187.87878787878788" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">1.5</text>
+  <line x1="293.9393939393939" y1="450" x2="293.9393939393939" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="293.9393939393939" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">2</text>
+  <line x1="399.99999999999994" y1="450" x2="399.99999999999994" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="399.99999999999994" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">2.5</text>
+  <line x1="506.06060606060595" y1="450" x2="506.06060606060595" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="506.06060606060595" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">3</text>
+  <line x1="612.1212121212121" y1="450" x2="612.1212121212121" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="612.1212121212121" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">3.5</text>
+  <line x1="718.1818181818181" y1="450" x2="718.1818181818181" y2="455" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="718.1818181818181" y="466" text-anchor="middle" font-size="11" font-family="Arial, sans-serif" fill="#000000">4</text>
+  <line x1="45" y1="431.8181818181818" x2="50" y2="431.8181818181818" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="435.8181818181818" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">120</text>
+  <line x1="45" y1="359.0909090909091" x2="50" y2="359.0909090909091" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="363.0909090909091" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">140</text>
+  <line x1="45" y1="286.3636363636364" x2="50" y2="286.3636363636364" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="290.3636363636364" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">160</text>
+  <line x1="45" y1="213.63636363636363" x2="50" y2="213.63636363636363" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="217.63636363636363" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">180</text>
+  <line x1="45" y1="140.90909090909093" x2="50" y2="140.90909090909093" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="144.90909090909093" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">200</text>
+  <line x1="45" y1="68.18181818181819" x2="50" y2="68.18181818181819" stroke="#000000" stroke-width="1" stroke-linecap="round"/>
+  <text x="42" y="72.18181818181819" text-anchor="end" font-size="11" font-family="Arial, sans-serif" fill="#000000">220</text>
+  <path d="M81.8,431.8 C152.5,431.8 223.2,213.6 293.9,213.6 C364.6,213.6 435.4,322.7 506.1,322.7 C576.8,322.7 647.5,68.2 718.2,68.2" fill="none" stroke="#0000ff" stroke-width="2" stroke-dasharray="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="81.81818181818181" cy="431.8181818181818" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="293.9393939393939" cy="213.63636363636363" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="506.06060606060595" cy="322.72727272727275" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <circle cx="718.1818181818181" cy="68.18181818181819" r="5" fill="#ff0000" stroke="#ff0000" stroke-width="1"/>
+  <text x="400" y="30" text-anchor="middle" font-size="20" font-family="Arial, sans-serif" fill="#000000">Product Revenue (Q1-Q4)</text>
+  <text x="400" y="490" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="#000000">Quarter</text>
+  <text x="20" y="250" text-anchor="middle" font-size="14" font-family="Arial, sans-serif" fill="#000000" transform="rotate(-90, 20, 250)">Revenue ($K)</text>
+  <rect x="744" y="60" width="96" height="32" fill="#ffffffe6" rx="4"/>
+  <rect x="744" y="60" width="96" height="32" fill="none" stroke="#cccccc" stroke-width="1" rx="4"/>
+  <rect x="752" y="68" width="8.8" height="8.8" fill="#0000ff" rx="2"/>
+  <text x="764.8" y="75.04" font-size="11">Revenue</text>
+</svg>

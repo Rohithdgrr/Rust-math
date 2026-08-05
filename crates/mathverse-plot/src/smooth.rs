@@ -198,7 +198,7 @@ fn catmull_rom_points(
             result.push(catmull_rom_interpolate(&p0, &p1, &p2, &p3, t, tension, alpha));
         }
     }
-    result.push(*points.last().unwrap());
+    result.push(*points.last().expect("points is non-empty"));
     result
 }
 
@@ -319,7 +319,7 @@ fn cubic_bezier_points(points: &[DataPoint], subdivisions: usize) -> Vec<DataPoi
             result.push(cubic_bezier_eval(&p0, &cp1, &cp2, &p1, t));
         }
     }
-    result.push(*points.last().unwrap());
+    result.push(*points.last().expect("points is non-empty"));
     result
 }
 

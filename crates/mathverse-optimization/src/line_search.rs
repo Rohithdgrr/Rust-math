@@ -3,7 +3,7 @@
 /// Backtracking line search satisfying the Armijo sufficient decrease condition.
 pub fn backtracking(f: &dyn Fn(&[f64]) -> f64, grad: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64], direction: &[f64], alpha0: f64, rho: f64, c: f64) -> f64 {
     let fx = f(x);
-    let g: f64 = x.iter().zip(grad(x)).zip(direction).map(|((xi, gi), di)| gi * di).sum();
+    let g: f64 = x.iter().zip(grad(x)).zip(direction).map(|((_xi, gi), di)| gi * di).sum();
     let mut alpha = alpha0;
     loop {
         let mut next = x.to_vec();
@@ -57,7 +57,7 @@ pub fn golden_section_search(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -
     (l + r) / 2.0
 }
 
-pub fn fibonacci_search(f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
+pub fn fibonacci_search(_f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
     let (mut l, mut r) = (a, b);
     let (mut x1, mut x2) = (0.0, 0.0);
     for i in (1..n).rev() {

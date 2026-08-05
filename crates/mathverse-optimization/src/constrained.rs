@@ -4,7 +4,7 @@ pub fn lagrangian(f: &dyn Fn(&[f64]) -> f64, g: &[Box<dyn Fn(&[f64]) -> f64>], x
     let mut x = x0.to_vec();
     let mut lambda = vec![0.0; m];
     for _ in 0..max_iters {
-        let gx: Vec<f64> = g.iter().map(|gi| gi(&x)).collect();
+        let _gx: Vec<f64> = g.iter().map(|gi| gi(&x)).collect();
         let mut grad_x = vec![0.0; n];
         for i in 0..n {
             let dx = 1e-6;

@@ -1,7 +1,6 @@
 //! Inset axes (zoom panels) for showing detail of a region.
 
-use crate::axes::Range;
-use crate::common::{DataPoint, DataSeries, PlotConfig};
+use crate::common::DataSeries;
 use crate::style::Color;
 
 /// Configuration for an inset axes panel.
@@ -133,7 +132,7 @@ impl InsetAxes {
         let (ix, iy) = self.config.position;
         let w = self.config.width;
         let h = self.config.height;
-        let pad = self.config.padding;
+        let _pad = self.config.padding;
 
         // Connector lines from main plot region to inset
         if self.config.show_connector {
@@ -290,6 +289,7 @@ impl Insets {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::DataPoint;
     use crate::style::PlotStyle;
 
     #[test]

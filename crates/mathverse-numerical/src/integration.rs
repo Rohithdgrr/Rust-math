@@ -1,6 +1,5 @@
 //! Numerical integration: Gaussian quadrature, Romberg, adaptive methods.
 
-use mathverse_core::error::{MathError, MathResult};
 
 /// Gaussian quadrature with Legendre polynomials.
 pub struct GaussianQuadrature;

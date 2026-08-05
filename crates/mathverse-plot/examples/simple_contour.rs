@@ -1,6 +1,7 @@
 //! Contour plot example: 2D Gaussian peak.
 
 use mathverse_plot::contour::{render_contour, ContourConfig};
+use mathverse_plot::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let n = 30;
@@ -24,8 +25,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 500;
 
     let svg = render_contour(&grid, (-2.0, 2.0), (-2.0, 2.0), &cfg)?;
-    std::fs::write("contour.svg", svg)?;
-    println!("wrote contour.svg");
+PlotSaver::new(&svg).save_png("contour.png")?;
+println!("wrote contour.png");
 
     Ok(())
 }

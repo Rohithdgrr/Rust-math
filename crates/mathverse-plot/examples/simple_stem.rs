@@ -24,8 +24,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_stem_plot(&points, &cfg)?;
-    std::fs::write("stem.svg", svg)?;
-    println!("wrote stem.svg");
+    PlotSaver::new(svg).save_png("stem.png")?;
+    println!("wrote stem.png");
 
     Ok(())
 }

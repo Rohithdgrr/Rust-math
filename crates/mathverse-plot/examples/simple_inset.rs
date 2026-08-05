@@ -57,7 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Add inset to the main SVG
     svg = svg.replace("</svg>", &format!("{}\n</svg>", inset_svg));
 
-    std::fs::write("inset.svg", &svg)?;
+    PlotSaver::new(svg).save_png("inset.png")?;
     println!("Wrote inset.svg ({} bytes)", svg.len());
 
     Ok(())

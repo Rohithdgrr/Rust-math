@@ -1,7 +1,24 @@
 //! Common plotting data structures
 
 use crate::axes::{Range, Scale};
+use crate::backend::PlotData;
 use crate::style::PlotStyle;
+
+/// Escape XML special characters in text content for safe SVG insertion.
+#[must_use]
+pub fn xml_escape(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for ch in text.chars() {
+        match ch {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' => escaped.push_str("&quot;"),
+            _ => escaped.push(ch),
+        }
+    }
+    escaped
+}
 
 /// Data point
 #[derive(Debug, Clone, Copy)]
@@ -27,18 +44,18 @@ pub struct DataSeries {
 
 impl DataSeries {
     /// Create a new data series
-    pub fn new(name: String, points: Vec<DataPoint>) -> Self {
+    pub fn new(name: impl Into<String>, points: Vec<DataPoint>) -> Self {
         DataSeries {
-            name,
+            name: name.into(),
             points,
             style: PlotStyle::default(),
         }
     }
 
     /// Create a new data series with custom style
-    pub fn with_style(name: String, points: Vec<DataPoint>, style: PlotStyle) -> Self {
+    pub fn with_style(name: impl Into<String>, points: Vec<DataPoint>, style: PlotStyle) -> Self {
         DataSeries {
-            name,
+            name: name.into(),
             points,
             style,
         }
@@ -103,19 +120,19 @@ pub struct PlotConfig {
 
 impl Default for PlotConfig {
     fn default() -> Self {
-        PlotConfig {
-            title: String::new(),
-            x_label: String::new(),
-            y_label: String::new(),
-            width: 800,
-            height: 600,
-            show_grid: true,
-            show_legend: true,
-            padding: 50.0,
-            x_scale: Scale::Linear,
-            y_scale: Scale::Linear,
-            tick_count: 6,
-        }
+PlotConfig {
+        title: String::new(),
+        x_label: String::new(),
+        y_label: String::new(),
+        width: 800,
+        height: 600,
+        show_grid: true,
+        show_legend: true,
+        padding: 55.0,
+        x_scale: Scale::Linear,
+        y_scale: Scale::Linear,
+        tick_count: 8,
+    }
     }
 }
 
@@ -197,6 +214,62 @@ pub fn plot_bounds(series: &[DataSeries]) -> (Range, Range) {
     (x, y)
 }
 
+/// Compute the x-axis range from all data sources in a `PlotData` snapshot.
+/// Falls back to `0..1` when no data is present.
+/// Heatmaps use index-based ranges (0..cols).
+pub fn compute_x_range(data: &PlotData) -> Range {
+    if !data.heatmaps.is_empty() {
+        let cols = data.heatmaps[0].cols();
+        return Range {
+            min: 0.0,
+            max: cols as f64,
+        };
+    }
+    data.series
+        .iter()
+        .flat_map(|s| s.points.iter().map(|p| p.x))
+        .chain(data.bars.iter().flat_map(|b| [b.x_lo, b.x_hi]))
+        .chain(data.boxes.iter().enumerate().map(|(i, _)| i as f64))
+        .chain(data.error_bars.iter().map(|e| e.x))
+        .fold(None::<(f64, f64)>, |acc, x| match acc {
+            None => Some((x, x)),
+            Some((lo, hi)) => Some((lo.min(x), hi.max(x))),
+        })
+        .map(|(lo, hi)| Range { min: lo, max: hi })
+        .unwrap_or(Range { min: 0.0, max: 1.0 })
+}
+
+/// Compute the y-axis range from all data sources in a `PlotData` snapshot.
+/// Falls back to `0..1` when no data is present.
+/// Heatmaps use index-based ranges (0..rows).
+pub fn compute_y_range(data: &PlotData) -> Range {
+    if !data.heatmaps.is_empty() {
+        let rows = data.heatmaps[0].rows();
+        return Range {
+            min: 0.0,
+            max: rows as f64,
+        };
+    }
+    data.series
+        .iter()
+        .flat_map(|s| s.points.iter().map(|p| p.y))
+        .chain(data.bars.iter().map(|b| b.y))
+        .chain(
+            data.boxes
+                .iter()
+                .flat_map(|bx| [bx.stats.q1, bx.stats.q3, bx.stats.min, bx.stats.max]
+                    .into_iter()
+                    .chain(bx.stats.outliers.iter().copied())),
+        )
+        .chain(data.error_bars.iter().flat_map(|e| [e.bar.lo, e.bar.hi]))
+        .fold(None::<(f64, f64)>, |acc, y| match acc {
+            None => Some((y, y)),
+            Some((lo, hi)) => Some((lo.min(y), hi.max(y))),
+        })
+        .map(|(lo, hi)| Range { min: lo, max: hi })
+        .unwrap_or(Range { min: 0.0, max: 1.0 })
+}
+
 /// Largest-Triangle-Three-Buckets downsampling.
 ///
 /// Reduces `points` to at most `target` points while preserving visual shape.
@@ -253,6 +326,60 @@ pub fn downsample_lttb(points: &[DataPoint], target: usize) -> Vec<DataPoint> {
 
     result.push(points[n - 1]);
     result
+}
+
+/// Encode bytes as a base64 string.
+pub fn base64_encode(data: &[u8]) -> String {
+    let alphabet = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
+    for chunk in data.chunks(3) {
+        let b0 = u32::from(chunk[0]);
+        let b1 = if chunk.len() > 1 { u32::from(chunk[1]) } else { 0 };
+        let b2 = if chunk.len() > 2 { u32::from(chunk[2]) } else { 0 };
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+        let significant = (chunk.len() * 8).div_ceil(6);
+        for i in 0..4 {
+            if i >= significant {
+                out.push('=');
+            } else {
+                let shift = 18 - i * 6;
+                let idx = ((triple >> shift) & 0x3F) as usize;
+                out.push(alphabet[idx] as char);
+            }
+        }
+    }
+    out
+}
+
+/// Decode a base64 string to bytes.
+pub fn base64_decode(input: &str) -> Vec<u8> {
+    let alphabet: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut buf: Vec<u32> = Vec::new();
+    for c in input.bytes() {
+        if c == b'=' {
+            continue;
+        }
+        if let Some(val) = alphabet.iter().position(|&b| b == c) {
+            buf.push(val as u32);
+        }
+    }
+    let mut bytes = Vec::new();
+    for chunk in buf.chunks(4) {
+        let mut triple: u32 = 0;
+        for &v in chunk {
+            triple = (triple << 6) | v;
+        }
+        if chunk.len() >= 2 {
+            bytes.push((triple >> 16) as u8);
+        }
+        if chunk.len() >= 3 {
+            bytes.push((triple >> 8) as u8);
+        }
+        if chunk.len() >= 4 {
+            bytes.push(triple as u8);
+        }
+    }
+    bytes
 }
 
 #[cfg(test)]
@@ -321,5 +448,24 @@ mod tests {
     fn lttb_empty_input() {
         let ds = downsample_lttb(&[], 50);
         assert!(ds.is_empty());
+    }
+
+    #[test]
+    fn base64_known_vectors() {
+        assert_eq!(base64_encode(b""), "");
+        assert_eq!(base64_encode(b"f"), "Zg==");
+        assert_eq!(base64_encode(b"fo"), "Zm8=");
+        assert_eq!(base64_encode(b"foo"), "Zm9v");
+        assert_eq!(base64_encode(b"foob"), "Zm9vYg==");
+        assert_eq!(base64_encode(b"fooba"), "Zm9vYmE=");
+        assert_eq!(base64_encode(b"foobar"), "Zm9vYmFy");
+    }
+
+    #[test]
+    fn base64_roundtrip() {
+        for len in 0..=512 {
+            let data: Vec<u8> = (0..len).map(|i| (i * 31) as u8).collect();
+            assert_eq!(base64_decode(&base64_encode(&data)), data, "len={len}");
+        }
     }
 }

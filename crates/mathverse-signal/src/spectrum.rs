@@ -121,7 +121,7 @@ pub fn energy(x: &[f64]) -> f64 { x.iter().map(|v| v * v).sum() }
 pub fn parseval(x: &[f64]) -> f64 {
     let n = x.len() as f64;
     let time_energy: f64 = x.iter().map(|v| v * v).sum();
-    let mean: f64 = x.iter().sum::<f64>() / n;
+    let _mean: f64 = x.iter().sum::<f64>() / n;
     let freq_energy: f64 = periodogram(x).iter().sum();
     (time_energy - freq_energy).abs()
 }

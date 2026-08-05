@@ -70,6 +70,9 @@ use crate::GrayImage;
 /// // edges should detect the vertical line at x=32
 /// ```
 pub fn canny(img: &GrayImage, sigma: f64, low: f64, high: f64) -> GrayImage {
+    if img.w < 3 || img.h < 3 {
+        return GrayImage::new(img.w, img.h);
+    }
     let blurred = img.gaussian_blur(3, sigma);
     let (mag, dir) = blurred.sobel();
 

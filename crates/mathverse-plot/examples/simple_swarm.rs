@@ -17,8 +17,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config = cfg.plot_config.with_title("Swarm Plot: Score Distribution");
 
     let svg = render_swarm_plot(&categories, &cfg)?;
-    std::fs::write("swarm.svg", svg)?;
-    println!("wrote swarm.svg");
+    PlotSaver::new(svg).save_png("swarm.png")?;
+    println!("wrote swarm.png");
 
     Ok(())
 }

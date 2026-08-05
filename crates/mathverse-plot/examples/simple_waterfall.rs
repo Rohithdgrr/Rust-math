@@ -26,8 +26,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_waterfall(&bars, &cfg)?;
-    std::fs::write("waterfall.svg", svg)?;
-    println!("wrote waterfall.svg");
+    PlotSaver::new(svg).save_png("waterfall.png")?;
+    println!("wrote waterfall.png");
 
     Ok(())
 }

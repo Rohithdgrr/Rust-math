@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Insert colorbar before closing </svg>
     svg = svg.replace("</svg>", &format!("{}\n</svg>", colorbar_svg));
 
-    std::fs::write("colorbar.svg", &svg)?;
+    PlotSaver::new(svg).save_png("colorbar.png")?;
     println!("Wrote colorbar.svg ({} bytes)", svg.len());
 
     Ok(())

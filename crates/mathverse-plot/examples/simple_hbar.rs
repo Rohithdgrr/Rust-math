@@ -23,8 +23,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 350;
 
     let svg = render_hbar_chart(&bars, &cfg)?;
-    std::fs::write("hbar.svg", svg)?;
-    println!("wrote hbar.svg");
+PlotSaver::new(&svg).save_png("hbar.png")?;
+println!("wrote hbar.png");
 
     Ok(())
 }

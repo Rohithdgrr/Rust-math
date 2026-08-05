@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     plot.add_heatmap("sin*cos", grid, viridis)?;
 
-    std::fs::write("heatmap.svg", plot.generate())?;
-    println!("wrote heatmap.svg");
+    PlotSaver::new(&plot.generate()).save_png("heatmap.png")?;
+    println!("wrote heatmap.png");
     Ok(())
 }

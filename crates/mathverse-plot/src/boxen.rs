@@ -191,7 +191,7 @@ pub fn render_boxen_plot(data: &[BoxenData], config: &BoxenConfig) -> PlotResult
 
         // Whiskers (min to max)
         let min_val = sorted[0];
-        let max_val = *sorted.last().unwrap();
+        let max_val = *sorted.last().ok_or_else(|| PlotError::InvalidData("empty data".into()))?;
         svg.push_str("  <line x1=\"");
         svg.push_str(&cx.to_string());
         svg.push_str("\" y1=\"");

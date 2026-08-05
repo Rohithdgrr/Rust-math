@@ -4,8 +4,7 @@
 //! For the full suite including Adam, RMSProp, linear programming, and genetic algorithms,
 //! use [`mathverse_optimization`] directly.
 
-use mathverse_core::error::{MathError, MathResult};
-use rand::Rng;
+use mathverse_core::error::MathResult;
 
 // Re-export the canonical optimization implementations
 pub use mathverse_optimization::gradient::{

@@ -74,18 +74,15 @@ pub struct FormatSet {
 }
 
 impl FormatSet {
-    /// Create with PNG only (default).
-    pub fn new() -> Self {
-        Self::png()
-    }
+/// Create with PNG only (default).
+pub fn new() -> Self {
+Self::png()
+}
 
-    /// Create with specific formats.
-    pub fn with(formats: Vec<OutputFormat>) -> Self {
-        Self {
-            formats,
-            ..Self::default_set()
-        }
-    }
+/// Create with specific formats. When no formats given, defaults to PNG.
+pub fn with(formats: Vec<OutputFormat>) -> Self {
+Self { formats, ..Self::default_set() }
+}
 
     /// PNG-only format set at 96 DPI.
     pub fn png() -> Self {
@@ -234,6 +231,8 @@ pub struct PlotSaver {
     title: String,
     /// Description (for HTML).
     description: String,
+    /// Plot data for PDF/advanced backends.
+    plot_data: Option<crate::backend::PlotData>,
 }
 
 impl PlotSaver {
@@ -245,6 +244,21 @@ impl PlotSaver {
             height: 600,
             title: String::new(),
             description: String::new(),
+            plot_data: None,
+        }
+    }
+
+    /// Create from PlotData for full backend support (PDF, etc.).
+    pub fn from_plot_data(data: crate::backend::PlotData) -> Self {
+        let width = data.config.width;
+        let height = data.config.height;
+        Self {
+            svg_content: String::new(),
+            width,
+            height,
+            title: data.config.title.clone(),
+            description: String::new(),
+            plot_data: Some(data),
         }
     }
 
@@ -262,6 +276,7 @@ impl PlotSaver {
             height,
             title: String::new(),
             description: String::new(),
+            plot_data: None,
         }
     }
 
@@ -269,6 +284,12 @@ impl PlotSaver {
     pub fn with_dimensions(mut self, width: u32, height: u32) -> Self {
         self.width = width;
         self.height = height;
+        self
+    }
+
+    /// Set plot data for PDF/advanced backend support.
+    pub fn with_plot_data(mut self, data: crate::backend::PlotData) -> Self {
+        self.plot_data = Some(data);
         self
     }
 
@@ -304,7 +325,7 @@ impl PlotSaver {
     }
 
     /// Export to a specific format.
-    fn export_format(&self, format: OutputFormat, path: &Path, formats: &FormatSet) -> ExportResult {
+    fn export_format(&self, format: OutputFormat, path: &Path, _formats: &FormatSet) -> ExportResult {
         let content = match format {
             OutputFormat::Svg => self.generate_svg(),
             OutputFormat::Png => {
@@ -417,12 +438,14 @@ impl PlotSaver {
     /// Generate PDF (requires pdf feature).
     #[cfg(feature = "pdf")]
     fn generate_pdf(&self) -> Result<Vec<u8>, String> {
-        // Use printpdf for PDF generation
-        let mut doc = printpdf::PdfDocument::empty("Plot");
-
-        // TODO: Render SVG elements to PDF
-        // For now, return empty PDF
-        Ok(vec![])
+        if let Some(ref data) = self.plot_data {
+            let width_mm = self.width as f32 * 0.264583;
+            let height_mm = self.height as f32 * 0.264583;
+            let backend = crate::pdf_backend::PdfBackend::new(width_mm, height_mm);
+            backend.render(data).map_err(|e| e.to_string())
+        } else {
+            Err("PDF export requires plot data; use from_plot_data() or with_plot_data()".into())
+        }
     }
 
     /// Generate HTML wrapper.

@@ -27,7 +27,10 @@ impl Color {
         match self {
             Color::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
             Color::Rgba(r, g, b, a) => format!("#{r:02x}{g:02x}{b:02x}{a:02x}"),
-            Color::Named(name) => name.to_string(),
+            Color::Named(_name) => {
+                let (r, g, b) = self.to_rgb();
+                format!("#{r:02x}{g:02x}{b:02x}")
+            }
         }
     }
 

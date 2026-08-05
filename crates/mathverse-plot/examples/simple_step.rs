@@ -25,8 +25,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 350;
 
     let svg = render_step_plot(&points, &cfg)?;
-    std::fs::write("step.svg", svg)?;
-    println!("wrote step.svg");
+    PlotSaver::new(svg).save_png("step.png")?;
+    println!("wrote step.png");
 
     Ok(())
 }

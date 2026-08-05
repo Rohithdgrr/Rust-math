@@ -77,7 +77,7 @@ pub fn lcm_n(xs: &[u64]) -> u64 {
 }
 
 /// Extended Euclidean algorithm: returns `(g, x, y)` such that
-/// `a*x + b*y = g = gcd(a, b)`.
+/// `a*x + b*y = g = gcd(|a|, |b|)`. `g` is always non-negative.
 ///
 /// # Examples
 ///
@@ -90,11 +90,19 @@ pub fn lcm_n(xs: &[u64]) -> u64 {
 /// ```
 #[must_use]
 pub fn extended_gcd(a: i64, b: i64) -> (u64, i64, i64) {
-    if b == 0 {
-        return (u64::try_from(a).unwrap_or(0), 1, 0);
+    fn inner(a: u64, b: u64) -> (u64, i64, i64) {
+        if b == 0 {
+            return (a, 1, 0);
+        }
+        let (g, x1, y1) = inner(b, a % b);
+        (g, y1, x1 - (a / b) as i64 * y1)
     }
-    let (g, x1, y1) = extended_gcd(b, a % b);
-    (g, y1, x1 - (a / b) * y1)
+    let a_abs = a.unsigned_abs();
+    let b_abs = b.unsigned_abs();
+    let (g, x, y) = inner(a_abs, b_abs);
+    let sign_a = a.signum();
+    let sign_b = b.signum();
+    (g, x * sign_a, y * sign_b)
 }
 
 /// Bezout coefficients: returns `(x, y)` such that `a*x + b*y = gcd(a, b)`.
@@ -132,11 +140,15 @@ pub fn modular_inverse(a: u64, m: u64) -> Option<u64> {
         return None;
     }
     let a = a % m;
+    if a == 0 {
+        return None;
+    }
     let (g, x, _) = extended_gcd(a as i64, m as i64);
     if g != 1 {
         return None;
     }
-    let result = ((x % m as i64) + m as i64) % m as i64;
+    let m_i64 = m as i64;
+    let result = ((x % m_i64) + m_i64) % m_i64;
     Some(result as u64)
 }
 
@@ -386,18 +398,19 @@ pub fn is_cube(n: u64) -> bool {
         return true;
     }
     let mut lo = 1u64;
-    let mut hi = n.min(u64::MAX / 2 + 1);
+    let mut hi = n;
     while lo <= hi {
         let mid = u64::midpoint(lo, hi);
-        let cube = mid.saturating_mul(mid).saturating_mul(mid);
-        if cube == n {
-            return true;
-        } else if cube < n {
-            lo = mid + 1;
-        } else if mid == 0 {
-            break;
-        } else {
-            hi = mid - 1;
+        let cube = u128::from(mid).saturating_mul(u128::from(mid)).saturating_mul(u128::from(mid));
+        match cube.cmp(&u128::from(n)) {
+            core::cmp::Ordering::Equal => return true,
+            core::cmp::Ordering::Less => lo = mid + 1,
+            core::cmp::Ordering::Greater => {
+                if mid == 0 {
+                    break;
+                }
+                hi = mid - 1;
+            }
         }
     }
     false
@@ -618,6 +631,8 @@ pub const fn is_power_of_two(n: u64) -> bool {
 
 /// `n`-th Mersenne number: `2^n - 1`.
 ///
+/// Returns `u64::MAX` for `n >= 64` (would overflow).
+///
 /// # Examples
 ///
 /// ```
@@ -628,10 +643,16 @@ pub const fn is_power_of_two(n: u64) -> bool {
 #[must_use]
 #[inline]
 pub const fn mersenne_number(n: u32) -> u64 {
-    (1u64 << n) - 1
+    if n >= 64 {
+        u64::MAX
+    } else {
+        (1u64 << n) - 1
+    }
 }
 
 /// `n`-th Fermat number: `2^(2^n) + 1`.
+///
+/// Returns `u128::MAX` for `n >= 7` (would overflow: `2^(2^7) = 2^128`).
 ///
 /// # Examples
 ///
@@ -644,7 +665,12 @@ pub const fn mersenne_number(n: u32) -> u64 {
 #[must_use]
 #[inline]
 pub const fn fermat_number(n: u32) -> u128 {
-    (1u128 << (1u32 << n)) + 1
+    let exp = 1u32 << n;
+    if exp >= 128 {
+        u128::MAX
+    } else {
+        (1u128 << exp) + 1
+    }
 }
 
 /// Check if `n` is a power of `base`.
@@ -999,11 +1025,11 @@ pub fn is_triangular(n: u64) -> bool {
     if n == 0 {
         return true;
     }
-    let d = 8 * n + 1;
-    is_square(d) && {
-        let s = isqrt(d);
-        (s - 1).is_multiple_of(2)
-    }
+    let d = match 8u64.checked_mul(n).and_then(|v| v.checked_add(1)) {
+        Some(v) => v,
+        None => return false,
+    };
+    is_square(d)
 }
 
 /// Check if `n` is a Harshad (Niven) number: divisible by sum of its digits.
@@ -1039,10 +1065,13 @@ pub fn is_harshad(n: u64) -> bool {
 /// ```
 #[must_use]
 pub fn is_armstrong(n: u64) -> bool {
+    if n == 0 {
+        return true;
+    }
     let digits = to_digits(n);
     let k = digits.len() as u32;
-    let sum: u64 = digits.iter().map(|&d| d.pow(k)).sum();
-    sum == n
+    let sum: u128 = digits.iter().map(|&d| u128::from(d).pow(k)).sum();
+    sum == u128::from(n)
 }
 
 /// Check if `n` is a perfect number: sum of its proper divisors equals `n`.
@@ -1140,9 +1169,14 @@ pub fn is_squarefree(n: u64) -> bool {
 /// assert_eq!(digit_sum(12345), 15);
 /// ```
 #[must_use]
-#[inline]
 pub fn digit_sum(n: u64) -> u64 {
-    to_digits(n).iter().sum()
+    let mut sum = 0;
+    let mut n = n;
+    while n > 0 {
+        sum += n % 10;
+        n /= 10;
+    }
+    sum
 }
 
 /// Number of decimal digits in `n`.
@@ -1880,18 +1914,24 @@ mod tests {
         assert_eq!(lcm_n(&[4, 6, 8]), 24);
     }
 
-    #[test]
-    fn extended_gcd_tests() {
-        let (g, x, y) = extended_gcd(48, 18);
-        assert_eq!(g, 6);
-        assert_eq!(48 * x + 18 * y, 6);
-    }
+#[test]
+fn extended_gcd_tests() {
+    assert_eq!(extended_gcd(48, 18).0, 6);
+    assert_eq!(extended_gcd(18, 48).0, 6);
+    assert_eq!(extended_gcd(0, 5).0, 5);
+    assert_eq!(extended_gcd(5, 0).0, 5);
+    assert_eq!(extended_gcd(13, 17).0, 1);
+}
 
-    #[test]
-    fn bezout_tests() {
-        let (x, y) = bezout_coefficients(48, 18);
-        assert_eq!(48 * x + 18 * y, 6);
-    }
+#[test]
+fn bezout_tests() {
+    let (x, y) = bezout_coefficients(48, 18);
+    assert_eq!(48 * x + 18 * y, 6);
+    let (x, y) = bezout_coefficients(13, 17);
+    assert_eq!(13 * x + 17 * y, 1);
+    assert_eq!(extended_gcd(0, 5).0, 5);
+    assert_eq!(extended_gcd(5, 0).0, 5);
+}
 
     #[test]
     fn modular_inverse_tests() {
@@ -1899,11 +1939,12 @@ mod tests {
         assert_eq!(modular_inverse(2, 4), None);
     }
 
-    #[test]
-    fn mod_pow_tests() {
-        assert_eq!(mod_pow(2, 10, 1000), 24);
-        assert_eq!(mod_pow(3, 0, 7), 1);
-    }
+#[test]
+fn mod_pow_tests() {
+    assert_eq!(mod_pow(2, 10, 1000), 24);
+    assert_eq!(mod_pow(3, 0, 7), 1);
+    assert_eq!(mod_pow(0, 5, 7), 0);
+}
 
     #[test]
     fn isqrt_tests() {
@@ -1962,16 +2003,17 @@ mod tests {
         assert!(!is_odd(4));
     }
 
-    #[test]
-    fn is_cube_tests() {
-        assert!(is_cube(0));
-        assert!(is_cube(1));
-        assert!(is_cube(8));
-        assert!(is_cube(27));
-        assert!(is_cube(64));
-        assert!(!is_cube(10));
-        assert!(!is_cube(9));
-    }
+#[test]
+fn is_cube_tests() {
+    assert!(is_cube(0));
+    assert!(is_cube(1));
+    assert!(is_cube(8));
+    assert!(is_cube(27));
+    assert!(is_cube(64));
+    assert!(!is_cube(9));
+    assert!(!is_cube(10));
+    assert!(!is_cube(u64::MAX));
+}
 
     #[test]
     fn nearest_power_of_two_tests() {
@@ -2103,12 +2145,18 @@ mod tests {
         assert_eq!(prime_factors(60), vec![2, 3, 5]);
     }
 
-    #[test]
-    fn triangular_test() {
-        assert!(is_triangular(0));
-        assert!(is_triangular(6));
-        assert!(!is_triangular(5));
-    }
+#[test]
+fn triangular_test() {
+    assert!(is_triangular(0));
+    assert!(is_triangular(1));
+    assert!(is_triangular(3));
+    assert!(is_triangular(6));
+    assert!(is_triangular(10));
+    assert!(!is_triangular(2));
+    assert!(!is_triangular(4));
+    assert!(!is_triangular(5));
+    assert!(!is_triangular(9));
+}
 
     #[test]
     fn harshad_test() {
@@ -2116,11 +2164,15 @@ mod tests {
         assert!(!is_harshad(16));
     }
 
-    #[test]
-    fn armstrong_test() {
-        assert!(is_armstrong(153));
-        assert!(!is_armstrong(154));
-    }
+#[test]
+fn armstrong_test() {
+    assert!(is_armstrong(153));
+    assert!(is_armstrong(370));
+    assert!(is_armstrong(371));
+    assert!(is_armstrong(407));
+    assert!(!is_armstrong(154));
+    assert!(!is_armstrong(10));
+}
 
     #[test]
     fn perfect_abundant_deficient() {

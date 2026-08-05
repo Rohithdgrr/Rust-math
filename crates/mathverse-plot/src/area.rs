@@ -158,7 +158,7 @@ pub fn render_area_chart(series: &[AreaSeries], config: &AreaConfig) -> PlotResu
         }
 
         // Close path back to baseline
-        let last_x = padding + (s.points.last().unwrap().x - min_x) / (max_x - min_x) * chart_width;
+        let last_x = padding + (s.points.last().ok_or_else(|| PlotError::InvalidData("empty series".into()))?.x - min_x) / (max_x - min_x) * chart_width;
         fill_path.push_str(&format!(" L {last_x},{base_y} Z"));
 
         svg.push_str(&format!(

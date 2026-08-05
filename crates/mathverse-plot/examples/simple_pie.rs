@@ -20,8 +20,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_percentages();
 
     let svg = render_pie_chart(&slices, &config)?;
-    std::fs::write("pie.svg", svg)?;
-    println!("wrote pie.svg");
+    PlotSaver::new(svg).save_png("pie.png")?;
+    println!("wrote pie.png");
 
     Ok(())
 }

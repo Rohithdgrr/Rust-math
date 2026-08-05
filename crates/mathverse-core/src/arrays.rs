@@ -37,7 +37,7 @@ use core::ops::{Add, Div, Mul, Sub};
 /// assert_eq!(c, Array::from([2.0, 3.0, 4.0]));
 /// assert!((a.dot(&b) - 6.0).abs() < 1e-12);
 /// ```
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Array<T, const N: usize> {
     data: [T; N],
 }
@@ -75,11 +75,13 @@ impl<T: Num, const N: usize> Array<T, N> {
     /// use mathverse_core::arrays::Array;
     /// assert_eq!(Array::<f64, 3>::zeros(), Array::from([0.0; 3]));
     /// ```
+    #[must_use]
     pub fn zeros() -> Self {
         Self::from_fn(|_| T::zero())
     }
 
     /// All elements set to `T::one()`.
+    #[must_use]
     pub fn ones() -> Self {
         Self::from_fn(|_| T::one())
     }
@@ -181,12 +183,11 @@ impl<T: Num, const N: usize> Array<T, N> {
     /// Reverse the elements.
     pub fn reversed(&self) -> Self {
         let mut out = [T::zero(); N];
-        for i in 0..N {
-            out[i] = self.data[N - 1 - i];
+        for (i, item) in out.iter_mut().enumerate() {
+            *item = self.data[N - 1 - i];
         }
         Self { data: out }
     }
-
     /// True when every element compares equal to the corresponding one in `other`.
     pub fn all_eq(&self, other: &Self) -> bool
     where

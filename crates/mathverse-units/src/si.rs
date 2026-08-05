@@ -1,7 +1,5 @@
 //! SI unit definitions and base units.
 
-use crate::dimensions::*;
-use std::marker::PhantomData;
 
 /// SI base unit marker trait
 pub trait SiUnit: Copy + Default + std::fmt::Debug {

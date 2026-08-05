@@ -1,6 +1,6 @@
 //! Count plot example.
 
-use mathverse_plot::{render_countplot, CountConfig};
+use mathverse_plot::{render_countplot, CountConfig, PlotSaver};
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let categories = vec![
@@ -16,8 +16,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_title("Count Plot: Pet Ownership");
 
     let svg = render_countplot(&cats, &config)?;
-    std::fs::write("countplot.svg", svg)?;
-    println!("wrote countplot.svg");
+PlotSaver::new(&svg).save_png("countplot.png")?;
+println!("wrote countplot.png");
 
     Ok(())
 }

@@ -1,6 +1,5 @@
 //! Unit conversion factors and utilities.
 
-use crate::si::*;
 
 /// Conversion factors between common units.
 pub struct ConversionFactors;

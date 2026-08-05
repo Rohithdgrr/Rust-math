@@ -4,7 +4,7 @@
 use mathverse_plot::common::{DataPoint, DataSeries, PlotConfig};
 use mathverse_plot::errorbar::ErrorBar;
 use mathverse_plot::style::Color;
-use mathverse_plot::SvgPlot;
+use mathverse_plot::{PlotSaver, SvgPlot};
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let mut plot = SvgPlot::new(
@@ -37,7 +37,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
             .with_marker_style(mathverse_plot::style::MarkerStyle::Circle),
     ));
 
-    std::fs::write("errorbars.svg", plot.generate())?;
-    println!("wrote errorbars.svg");
+PlotSaver::new(&plot.generate()).save_png("errorbars.png")?;
+println!("wrote errorbars.png");
     Ok(())
 }

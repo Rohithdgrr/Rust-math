@@ -2,7 +2,6 @@
 
 use core::ops::{Index, Range, RangeFrom, RangeInclusive};
 use alloc::vec::Vec;
-use mathverse_core::error::{MathError, MathResult};
 
 /// A borrowed, zero-copy view into a `f64` slice.
 ///

@@ -1,7 +1,8 @@
 //! PNG raster backend (behind `png` feature flag).
 
 use crate::axes::Range;
-use crate::backend::PlotData;
+use crate::backend::{Backend, PlotData, PlotOutput};
+use crate::common;
 use crate::error::{PlotError, PlotResult};
 use crate::style::Color;
 
@@ -39,6 +40,12 @@ impl PngBackend {
         let plot_w = self.width as f64 - 2.0 * pad;
         let plot_h = self.height as f64 - 2.0 * pad;
 
+        if plot_w <= 0.0 || plot_h <= 0.0 {
+            return Err(PlotError::InvalidData(
+                "plot area is non-positive (padding too large for canvas)".into(),
+            ));
+        }
+
         let x_range = self.compute_x_range(data).pad(0.05);
         let y_range = self.compute_y_range(data).pad(0.05);
 
@@ -75,7 +82,7 @@ impl PngBackend {
                     let mut pb = tiny_skia::PathBuilder::new();
                     pb.move_to(to_px_x(w[0].x), to_px_y(w[0].y));
                     pb.line_to(to_px_x(w[1].x), to_px_y(w[1].y));
-                    let path = pb.finish().unwrap();
+                    let path = pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build series path".into()))?;
                     let mut p = tiny_skia::Paint::default();
                     p.set_color(c);
                     pixmap.stroke_path(
@@ -92,7 +99,7 @@ impl PngBackend {
             }
 
             for pt in &series.points {
-                let circle = circle_path(to_px_x(pt.x), to_px_y(pt.y), 4.0);
+                let circle = circle_path(to_px_x(pt.x), to_px_y(pt.y), 4.0)?;
                 let mut p = tiny_skia::Paint::default();
                 p.set_color(c);
                 pixmap.fill_path(
@@ -119,7 +126,7 @@ impl PngBackend {
             pb.line_to(cx + 4.0, y_lo);
             pb.move_to(cx - 4.0, y_hi);
             pb.line_to(cx + 4.0, y_hi);
-            let path = pb.finish().unwrap();
+            let path = pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build error bar path".into()))?;
             let mut p = tiny_skia::Paint::default();
             p.set_color(c);
             pixmap.stroke_path(
@@ -134,7 +141,7 @@ impl PngBackend {
             );
 
             // center dot
-            let dot = circle_path(cx, to_px_y(eb.bar.center), 2.5);
+            let dot = circle_path(cx, to_px_y(eb.bar.center), 2.5)?;
             pixmap.fill_path(
                 &dot,
                 &p,
@@ -163,7 +170,7 @@ impl PngBackend {
             pb.line_to(cx + 5.0, y_lo);
             pb.move_to(cx - 5.0, y_hi);
             pb.line_to(cx + 5.0, y_hi);
-            let path = pb.finish().unwrap();
+            let path = pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build whisker path".into()))?;
             let mut p = tiny_skia::Paint::default();
             p.set_color(c);
             pixmap.stroke_path(
@@ -187,7 +194,7 @@ impl PngBackend {
                 pb.line_to(rect.right(), rect.bottom());
                 pb.line_to(rect.left(), rect.bottom());
                 pb.close();
-                let rp = pb.finish().unwrap();
+                let rp = pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build box rect path".into()))?;
                 pixmap.stroke_path(
                     &rp,
                     &p,
@@ -204,7 +211,7 @@ impl PngBackend {
             let mut pb2 = tiny_skia::PathBuilder::new();
             pb2.move_to(x0, y_med);
             pb2.line_to(x0 + box_w, y_med);
-            let med = pb2.finish().unwrap();
+            let med = pb2.finish().ok_or_else(|| PlotError::InvalidData("failed to build median path".into()))?;
             pixmap.stroke_path(
                 &med,
                 &p,
@@ -218,7 +225,7 @@ impl PngBackend {
 
             // outliers
             for &outlier in &bx.stats.outliers {
-                let c = circle_path(cx, to_px_y(outlier), 3.0);
+                let c = circle_path(cx, to_px_y(outlier), 3.0)?;
                 pixmap.fill_path(
                     &c,
                     &p,
@@ -235,36 +242,11 @@ impl PngBackend {
     }
 
     fn compute_x_range(&self, data: &PlotData) -> Range {
-        data.series
-            .iter()
-            .flat_map(|s| s.points.iter().map(|p| p.x))
-            .chain(data.boxes.iter().enumerate().map(|(i, _)| i as f64))
-            .chain(data.error_bars.iter().map(|e| e.x))
-            .fold(None::<(f64, f64)>, |acc, x| match acc {
-                None => Some((x, x)),
-                Some((lo, hi)) => Some((lo.min(x), hi.max(x))),
-            })
-            .map(|(lo, hi)| Range { min: lo, max: hi })
-            .unwrap_or(Range { min: 0.0, max: 1.0 })
+        crate::common::compute_x_range(data)
     }
 
     fn compute_y_range(&self, data: &PlotData) -> Range {
-        data.series
-            .iter()
-            .flat_map(|s| s.points.iter().map(|p| p.y))
-            .chain(data.bars.iter().map(|b| b.y))
-            .chain(data.error_bars.iter().flat_map(|e| [e.bar.lo, e.bar.hi]))
-            .chain(
-                data.boxes
-                    .iter()
-                    .flat_map(|bx| [bx.stats.q1, bx.stats.q3, bx.stats.min, bx.stats.max]),
-            )
-            .fold(None::<(f64, f64)>, |acc, y| match acc {
-                None => Some((y, y)),
-                Some((lo, hi)) => Some((lo.min(y), hi.max(y))),
-            })
-            .map(|(lo, hi)| Range { min: lo, max: hi })
-            .unwrap_or(Range { min: 0.0, max: 1.0 })
+        crate::common::compute_y_range(data)
     }
 
     fn render_heatmap(
@@ -306,31 +288,13 @@ impl PngBackend {
 }
 
 impl crate::backend::Backend for PngBackend {
-    fn generate(&self, data: &PlotData) -> PlotResult<String> {
+    fn generate(&self, data: &PlotData) -> PlotResult<PlotOutput> {
         let png_bytes = self.render(data)?;
-        let mut out = String::from("data:image/png;base64,");
-        let alphabet = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        for chunk in png_bytes.chunks(3) {
-            let b0 = chunk[0] as u32;
-            let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
-            let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
-            let triple = (b0 << 16) | (b1 << 8) | b2;
-            for i in (0..4).rev() {
-                let idx = ((triple >> (i * 6)) & 0x3F) as usize;
-                if i == 1 && chunk.len() == 2 {
-                    out.push('=');
-                } else if i == 0 && chunk.len() == 1 {
-                    out.push_str("==");
-                } else {
-                    out.push(alphabet[idx] as char);
-                }
-            }
-        }
-        Ok(out)
+        Ok(PlotOutput::Binary(png_bytes, "image/png"))
     }
 }
 
-fn circle_path(cx: f32, cy: f32, r: f32) -> tiny_skia::Path {
+fn circle_path(cx: f32, cy: f32, r: f32) -> PlotResult<tiny_skia::Path> {
     let k = 0.5522847;
     let mut pb = tiny_skia::PathBuilder::new();
     pb.move_to(cx + r, cy);
@@ -339,14 +303,14 @@ fn circle_path(cx: f32, cy: f32, r: f32) -> tiny_skia::Path {
     pb.cubic_to(cx - r, cy - r * k, cx - r * k, cy - r, cx, cy - r);
     pb.cubic_to(cx + r * k, cy - r, cx + r, cy - r * k, cx + r, cy);
     pb.close();
-    pb.finish().unwrap()
+    pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build circle path".into()))
 }
 
 fn color_to_skia(c: Color) -> tiny_skia::Color {
     match c {
         Color::Rgb(r, g, b) => {
             tiny_skia::Color::from_rgba(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0)
-                .unwrap()
+                .unwrap_or(tiny_skia::Color::BLACK)
         }
         Color::Rgba(r, g, b, a) => tiny_skia::Color::from_rgba(
             r as f32 / 255.0,
@@ -354,7 +318,7 @@ fn color_to_skia(c: Color) -> tiny_skia::Color {
             b as f32 / 255.0,
             a as f32 / 255.0,
         )
-        .unwrap(),
+        .unwrap_or(tiny_skia::Color::BLACK),
         Color::Named(name) => match name {
             "red" => tiny_skia::Color::from_rgba(1.0, 0.0, 0.0, 1.0).unwrap(),
             "green" => tiny_skia::Color::from_rgba(0.0, 0.6, 0.0, 1.0).unwrap(),
@@ -376,12 +340,12 @@ fn color_to_skia(c: Color) -> tiny_skia::Color {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::backend::Backend;
+    use crate::backend::{Backend, PlotOutput};
     use crate::common::{DataPoint, DataSeries, PlotConfig};
     use crate::style::PlotStyle;
 
     #[test]
-    fn png_backend_returns_data_uri() {
+    fn png_backend_returns_binary() {
         let mut data = PlotData {
             config: PlotConfig::new(),
             series: Vec::new(),
@@ -396,11 +360,14 @@ mod tests {
             PlotStyle::default(),
         ));
         let backend = PngBackend::new(100, 100);
-        let uri = backend.generate(&data).unwrap();
-        assert!(uri.starts_with("data:image/png;base64,"));
-        let b64 = &uri["data:image/png;base64,".len()..];
-        let decoded = base64_decode(b64);
-        assert_eq!(&decoded[..8], b"\x89PNG\r\n\x1a\n");
+        let result = backend.generate(&data).unwrap();
+        match result {
+            PlotOutput::Binary(bytes, mime) => {
+                assert_eq!(mime, "image/png");
+                assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+            }
+            PlotOutput::Svg(_) | PlotOutput::Text(_) => panic!("expected Binary output"),
+        }
     }
 
     #[test]
@@ -414,8 +381,14 @@ mod tests {
             heatmaps: Vec::new(),
         };
         let backend = PngBackend::new(50, 50);
-        let uri = backend.generate(&data).unwrap();
-        assert!(uri.starts_with("data:image/png;base64,"));
+        let result = backend.generate(&data).unwrap();
+        match result {
+            PlotOutput::Binary(bytes, mime) => {
+                assert_eq!(mime, "image/png");
+                assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+            }
+            PlotOutput::Svg(_) | PlotOutput::Text(_) => panic!("expected Binary output"),
+        }
     }
 
     /// Phase 3 acceptance: the PNG and SVG backends must agree on the same
@@ -449,10 +422,12 @@ mod tests {
         assert!(svg_text.contains("<polyline"));
 
         let backend = PngBackend::new(200, 150);
-        let uri = backend.generate(&data).unwrap();
-        let b64 = &uri["data:image/png;base64,".len()..];
-        let decoded = base64_decode(b64);
-        assert_eq!(&decoded[..8], b"\x89PNG\r\n\x1a\n");
+        let result = backend.generate(&data).unwrap();
+        let png_bytes = match result {
+            PlotOutput::Binary(bytes, _) => bytes,
+            PlotOutput::Svg(_) | PlotOutput::Text(_) => panic!("expected Binary output"),
+        };
+        assert_eq!(&png_bytes[..8], b"\x89PNG\r\n\x1a\n");
 
         // A blank scene of the same size must render differently: if the PNG
         // backend drew the series, the two PNGs cannot be byte-identical.
@@ -464,39 +439,11 @@ mod tests {
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
         };
-        let blank_uri = backend.generate(&blank).unwrap();
-        let blank_b64 = &blank_uri["data:image/png;base64,".len()..];
-        let blank_decoded = base64_decode(blank_b64);
-        assert_ne!(decoded, blank_decoded, "PNG backend ignored the series");
-    }
-
-    fn base64_decode(input: &str) -> Vec<u8> {
-        let alphabet: &[u8; 64] =
-            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        let mut buf: Vec<u32> = Vec::new();
-        for c in input.bytes() {
-            if c == b'=' {
-                continue;
-            }
-            let val = alphabet.iter().position(|&b| b == c).unwrap() as u32;
-            buf.push(val);
-        }
-        let mut bytes = Vec::new();
-        for chunk in buf.chunks(4) {
-            let mut triple: u32 = 0;
-            for &v in chunk {
-                triple = (triple << 6) | v;
-            }
-            if chunk.len() >= 2 {
-                bytes.push((triple >> 16) as u8);
-            }
-            if chunk.len() >= 3 {
-                bytes.push((triple >> 8) as u8);
-            }
-            if chunk.len() >= 4 {
-                bytes.push(triple as u8);
-            }
-        }
-        bytes
+        let blank_result = backend.generate(&blank).unwrap();
+        let blank_bytes = match blank_result {
+            PlotOutput::Binary(bytes, _) => bytes,
+            PlotOutput::Svg(_) | PlotOutput::Text(_) => panic!("expected Binary output"),
+        };
+        assert_ne!(png_bytes, blank_bytes, "PNG backend ignored the series");
     }
 }
