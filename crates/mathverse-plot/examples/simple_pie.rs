@@ -2,6 +2,7 @@
 
 use mathverse_plot::pie::{render_pie_chart, PieConfig, PieSlice};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let slices = vec![
@@ -20,7 +21,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_percentages();
 
     let svg = render_pie_chart(&slices, &config)?;
-    PlotSaver::new(svg).save_png("pie.png")?;
+    PlotSaver::new(&svg).save_png("pie.png")?;
     println!("wrote pie.png");
 
     Ok(())

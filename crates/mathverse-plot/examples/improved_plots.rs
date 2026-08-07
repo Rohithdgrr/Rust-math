@@ -4,6 +4,8 @@
 //!
 //! Output: target/plot_images/*.svg (all viewable in any browser).
 
+use std::f64::consts::PI;
+
 use mathverse_plot::*;
 
 fn main() {
@@ -16,7 +18,7 @@ fn main() {
 
     macro_rules! save {
         ($name:expr, $plot:expr) => {
-            std::fs::write(format!("{out}/{name}.svg"), $plot.generate())
+            std::fs::write(format!("{out}/{}.svg", $name), $plot.generate())
                 .expect("write svg");
         };
     }
@@ -87,8 +89,12 @@ fn main() {
                 DataPoint::new(hours, score)
             })
             .collect();
-        let style = PlotStyle::new(Color::BLUE, 2.0)
-            .with_marker(MarkerStyle::Circle, 4.0, Color::BLUE);
+        let style = PlotStyle::new()
+            .with_line_color(Color::BLUE)
+            .with_line_width(2.0)
+            .with_marker_style(MarkerStyle::Circle)
+            .with_marker_size(4.0)
+            .with_marker_color(Color::BLUE);
         plot.add_series(DataSeries::with_style("Students", pts, style));
         save!("04_scatter", plot);
     }

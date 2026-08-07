@@ -31,6 +31,9 @@ pub fn row_reduce(matrix: &mut Vec<Vec<f64>>) -> bool {
     let n = matrix.len();
     if n == 0 { return true; }
     let m = matrix[0].len();
+    // A zero-column matrix has nothing to reduce; it is only "full rank"
+    // when it also has no rows (which is handled above).
+    if m == 0 { return n == 0; }
     let mut row = 0;
     for col in 0..m-1 {
         if row >= n { break; }
@@ -85,5 +88,15 @@ mod tests {
             vec![-2.0, 1.0, 2.0, -3.0],
         ];
         assert!(row_reduce(&mut m));
+    }
+
+    #[test]
+    fn row_reduce_zero_columns_does_not_panic() {
+        // A matrix with rows but zero columns is degenerate; must not panic.
+        let mut m = vec![Vec::<f64>::new(), Vec::<f64>::new()];
+        assert!(!row_reduce(&mut m));
+        // Zero rows is trivially reduced.
+        let mut empty = Vec::<Vec<f64>>::new();
+        assert!(row_reduce(&mut empty));
     }
 }

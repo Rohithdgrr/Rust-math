@@ -6,7 +6,7 @@ use mathverse_image::{io::{load, save}, GrayImage};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a test image
-    let mut img = GrayImage::new(64, 64);
+    let mut img = GrayImage::new(64, 64).unwrap();
     for y in 0..64 {
         for x in 0..64 {
             let value = ((x * y) % 64) as f64 / 64.0;

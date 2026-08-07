@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-machine-learning"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ keywords = ["machine-learning", "ml", "classification", "regression", "clusterin
 categories = ["algorithms", "science"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
-mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.2" }
 
 
 [lints]

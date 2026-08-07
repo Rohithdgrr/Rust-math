@@ -228,8 +228,12 @@ impl RayleighQuotientIteration {
                 a_shift[i][i] -= lambda;
             }
             
-            // Solve (A - lambda*I) * y = x
-            let y = InversePowerMethod::solve_linear(&a_shift, &x)?;
+            // Solve (A - lambda*I) * y = x. A singular shifted matrix means
+            // lambda has converged to an eigenvalue, so treat that as success.
+            let y = match InversePowerMethod::solve_linear(&a_shift, &x) {
+                Ok(y) => y,
+                Err(_) => break,
+            };
             
             let norm: f64 = y.iter().map(|&yi| yi * yi).sum::<f64>().sqrt();
             if norm < 1e-15 {

@@ -339,7 +339,8 @@ pub fn monte_carlo_option_price(
     }
     let drift = (risk_free_rate - 0.5 * volatility * volatility) * time_to_expiry;
     let diffusion = volatility * time_to_expiry.sqrt();
-    // LCG with a fixed seed: deterministic across runs.
+    // SplitMix64 with a fixed seed: deterministic across runs and statistically
+    // much stronger than the previous LCG. Not cryptographically secure.
     let mut state: u64 = 42;
     let mut sum = 0.0;
     for _ in 0..paths {
@@ -357,12 +358,21 @@ pub fn monte_carlo_option_price(
     (-risk_free_rate * time_to_expiry).exp() * sum / paths as f64
 }
 
-/// Next uniform in (0, 1) from an LCG (Numerical Recipes constants).
+/// `SplitMix64` mixing step (public-domain reference implementation).
+#[inline]
+fn splitmix64(state: &mut u64) -> u64 {
+    let mut z = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    *state = z;
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
+}
+
+/// Next uniform in (0, 1) from a SplitMix64 stream, never exactly `0.0`
+/// (so `u1.ln()` in Box-Muller stays finite).
 fn next_uniform(state: &mut u64) -> f64 {
-    *state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-    // Top 26 bits → (0, 1) with no zero (u1.ln() is taken on it).
     const SCALE: f64 = 1.0 / (1u64 << 53) as f64;
-    ((*state >> 11) as f64 + 0.5) * SCALE
+    (((splitmix64(state) >> 11) as f64) + 0.5) * SCALE
 }
 
 #[cfg(test)]

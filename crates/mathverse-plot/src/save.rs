@@ -237,9 +237,11 @@ pub struct PlotSaver {
 
 impl PlotSaver {
     /// Create a new saver with SVG content.
-    pub fn new(svg_content: &str) -> Self {
+    ///
+    /// Accepts any string-like value (`&str`, `String`, `&String`).
+    pub fn new(svg_content: impl AsRef<str>) -> Self {
         Self {
-            svg_content: svg_content.to_string(),
+            svg_content: svg_content.as_ref().to_string(),
             width: 800,
             height: 600,
             title: String::new(),
@@ -453,13 +455,13 @@ impl PlotSaver {
         let title = if self.title.is_empty() {
             "Plot".to_string()
         } else {
-            self.title.clone()
+            escape_html(&self.title)
         };
 
         let description = if self.description.is_empty() {
             format!("{}x{} plot", self.width, self.height)
         } else {
-            self.description.clone()
+            escape_html(&self.description)
         };
 
         format!(
@@ -534,14 +536,36 @@ impl PlotSaver {
     }
 
     /// Save to PNG by default (default format).
-    pub fn save_png(&self, path: &str) -> ExportResult {
-        self.save_as(path, OutputFormat::Png, &FormatSet::png())
+    ///
+    /// Returns `Ok(())` on success, or an I/O error describing the failure.
+    pub fn save_png(&self, path: &str) -> std::io::Result<()> {
+        let result = self.save_as(path, OutputFormat::Png, &FormatSet::png());
+        if result.success {
+            Ok(())
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                result.error.unwrap_or_else(|| "PNG export failed".to_string()),
+            ))
+        }
     }
 
     /// Get dimensions.
     pub fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
     }
+}
+
+/// Escape user-provided text for safe embedding in HTML output.
+///
+/// Prevents HTML injection / XSS when titles, descriptions, or labels
+/// contain markup characters.
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
 }
 
 /// Convenience function to save a plot in all formats.
@@ -569,8 +593,9 @@ mod tests {
 
     #[test]
     fn format_set_creation() {
+        // `new()` defaults to a PNG-only set.
         let fs = FormatSet::new();
-        assert!(fs.formats().is_empty());
+        assert_eq!(fs.formats(), &[OutputFormat::Png]);
 
         let fs = FormatSet::all();
         assert_eq!(fs.formats().len(), 4);
@@ -625,6 +650,25 @@ mod tests {
         assert!(result.success);
         let content = std::fs::read_to_string(&result.path).unwrap();
         assert!(content.contains("Test Plot"));
+    }
+
+    #[test]
+    fn html_escapes_user_text() {
+        // Titles/descriptions with markup must be escaped to prevent XSS.
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>";
+        let saver = PlotSaver::new(svg)
+            .with_title("<script>alert('xss')</script>")
+            .with_description("a & b < c");
+        let html = saver.generate_html();
+        assert!(!html.contains("<script>"));
+        assert!(html.contains("&lt;script&gt;"));
+        assert!(html.contains("a &amp; b &lt; c"));
+    }
+
+    #[test]
+    fn escape_html_basic() {
+        assert_eq!(escape_html("<>&\"'"), "&lt;&gt;&amp;&quot;&#39;");
+        assert_eq!(escape_html("plain text"), "plain text");
     }
 
     #[test]

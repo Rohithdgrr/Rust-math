@@ -1,6 +1,6 @@
 //! k-Nearest Neighbors for classification and regression.
 
-use mathverse_core::error::MathResult;
+use mathverse_core::error::{MathError, MathResult};
 
 /// KNN classifier. Predicts the majority class among k nearest neighbors.
 #[must_use]
@@ -10,7 +10,7 @@ pub fn classify(
     x_test: &[Vec<f64>],
     k: usize,
 ) -> MathResult<Vec<f64>> {
-    assert_eq!(x_train.len(), y_train.len());
+    validate_knn(x_train, y_train, x_test, k)?;
     let mut results = Vec::with_capacity(x_test.len());
     for query in x_test {
         let mut dists: Vec<(f64, f64)> = x_train
@@ -43,7 +43,7 @@ pub fn regress(
     x_test: &[Vec<f64>],
     k: usize,
 ) -> MathResult<Vec<f64>> {
-    assert_eq!(x_train.len(), y_train.len());
+    validate_knn(x_train, y_train, x_test, k)?;
     let mut results = Vec::with_capacity(x_test.len());
     for query in x_test {
         let mut dists: Vec<(f64, f64)> = x_train
@@ -56,6 +56,30 @@ pub fn regress(
         results.push(sum / k as f64);
     }
     Ok(results)
+}
+
+/// Validates KNN inputs: non-empty training set, matching lengths, consistent
+/// feature counts, and a valid `k`.
+fn validate_knn(x_train: &[Vec<f64>], y_train: &[f64], x_test: &[Vec<f64>], k: usize) -> MathResult<()> {
+    if x_train.is_empty() {
+        return Err(MathError::InvalidArgument("training set is empty"));
+    }
+    if x_train.len() != y_train.len() {
+        return Err(MathError::DimensionMismatch);
+    }
+    if k == 0 || k > x_train.len() {
+        return Err(MathError::InvalidArgument("k must be between 1 and the training size"));
+    }
+    let n_features = x_train[0].len();
+    if n_features == 0 {
+        return Err(MathError::InvalidArgument("training rows have zero features"));
+    }
+    for row in x_train.iter().chain(x_test) {
+        if row.len() != n_features {
+            return Err(MathError::DimensionMismatch);
+        }
+    }
+    Ok(())
 }
 
 /// Euclidean distance between two vectors.
@@ -98,5 +122,18 @@ mod tests {
         let x_test = vec![vec![5.5]];
         let preds = classify(&x_train, &y_train, &x_test, 3).unwrap();
         assert_eq!(preds, vec![1.0]);
+    }
+
+    #[test]
+    fn empty_input_errors() {
+        assert!(classify(&[], &[], &[vec![1.0]], 1).is_err());
+        assert!(classify(&[vec![1.0]], &[1.0, 2.0], &[vec![1.0]], 1).is_err());
+        assert!(classify(&[vec![1.0]], &[1.0], &[vec![1.0]], 0).is_err());
+        assert!(classify(&[vec![1.0]], &[1.0], &[vec![1.0]], 2).is_err());
+    }
+
+    #[test]
+    fn ragged_test_input_errors() {
+        assert!(classify(&[vec![1.0]], &[1.0], &[vec![1.0, 2.0]], 1).is_err());
     }
 }

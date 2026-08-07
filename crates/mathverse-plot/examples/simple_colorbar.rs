@@ -2,6 +2,7 @@
 
 use mathverse_plot::{ColorbarConfig, PlotConfig, SvgPlot, render_colorbar};
 use mathverse_plot::color::viridis;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a simple heatmap
@@ -43,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Insert colorbar before closing </svg>
     svg = svg.replace("</svg>", &format!("{}\n</svg>", colorbar_svg));
 
-    PlotSaver::new(svg).save_png("colorbar.png")?;
+    PlotSaver::new(&svg).save_png("colorbar.png")?;
     println!("Wrote colorbar.svg ({} bytes)", svg.len());
 
     Ok(())

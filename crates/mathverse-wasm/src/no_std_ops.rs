@@ -1,7 +1,6 @@
 //! no_std compatible math operations.
 
 use alloc::vec::Vec;
-use mathverse_core::traits::Real;
 
 /// no_std compatible vector dot product.
 pub fn dot_nostd(a: &[f64], b: &[f64]) -> f64 {
@@ -97,15 +96,20 @@ pub fn softmax_nostd(a: &[f64]) -> Vec<f64> {
 }
 
 /// no_std compatible matrix multiply (row-major).
+///
+/// Loops are ordered i-p-j so both `a`'s row and `b`'s row are traversed
+/// sequentially (cache-friendly); the i-j-p form strides `b` by `n` in the
+/// inner loop, which is roughly an order of magnitude slower for large `k`.
 pub fn matmul_nostd(a: &[f64], b: &[f64], m: usize, k: usize, n: usize) -> Vec<f64> {
     let mut out = vec![0.0; m * n];
     for i in 0..m {
-        for j in 0..n {
-            let mut sum = 0.0;
-            for p in 0..k {
-                sum += a[i * k + p] * b[p * n + j];
+        let out_row = &mut out[i * n..i * n + n];
+        for p in 0..k {
+            let aip = a[i * k + p];
+            let b_row = &b[p * n..p * n + n];
+            for j in 0..n {
+                out_row[j] += aip * b_row[j];
             }
-            out[i * n + j] = sum;
         }
     }
     out

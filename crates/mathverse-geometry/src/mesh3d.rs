@@ -184,6 +184,11 @@ fn build_tree_recursive(tris: &mut [(usize, AABB3)]) -> Option<AABBTreeNode> {
 // ---------------------------------------------------------------------------
 
 /// Möller-Trumbore ray-triangle intersection. Returns `t` if hit (t > 0).
+///
+/// The test is **two-sided**: rays intersect the triangle from either side
+/// (no back-face culling), which is the expected behavior for volume
+/// rendering and collision queries. Callers that need culling should check
+/// `dot(dir, tri.normal())` themselves before trusting the hit.
 pub fn ray_triangle_intersect(origin: Point3, dir: Point3, tri: Triangle3) -> Option<f64> {
     let eps = 1e-7;
     let ab = Point3::new(tri.b.x - tri.a.x, tri.b.y - tri.a.y, tri.b.z - tri.a.z);
@@ -423,6 +428,23 @@ mod tests {
     fn ray_triangle_miss() {
         let tri = Triangle3::new(pt3(-1.0, -1.0, 0.0), pt3(1.0, -1.0, 0.0), pt3(0.0, 1.0, 0.0));
         let t = ray_triangle_intersect(pt3(5.0, 5.0, -5.0), pt3(0.0, 0.0, 1.0), tri);
+        assert!(t.is_none());
+    }
+
+    #[test]
+    fn ray_triangle_two_sided() {
+        // Hit from behind (opposite face) still registers — two-sided test.
+        let tri = Triangle3::new(pt3(-1.0, -1.0, 0.0), pt3(1.0, -1.0, 0.0), pt3(0.0, 1.0, 0.0));
+        let t = ray_triangle_intersect(pt3(0.0, 0.0, 5.0), pt3(0.0, 0.0, -1.0), tri);
+        assert!(t.is_some());
+        assert!((t.unwrap() - 5.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn ray_triangle_edge_on_parallel() {
+        // Ray parallel to the triangle plane → no hit.
+        let tri = Triangle3::new(pt3(-1.0, -1.0, 0.0), pt3(1.0, -1.0, 0.0), pt3(0.0, 1.0, 0.0));
+        let t = ray_triangle_intersect(pt3(0.0, 0.0, 5.0), pt3(1.0, 0.0, 0.0), tri);
         assert!(t.is_none());
     }
 

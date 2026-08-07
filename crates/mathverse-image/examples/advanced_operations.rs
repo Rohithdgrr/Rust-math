@@ -7,7 +7,7 @@ use mathverse_image::GrayImage;
 
 fn main() {
     // Create a test image
-    let mut img = GrayImage::new(64, 64);
+    let mut img = GrayImage::new(64, 64).unwrap();
     for y in 0..64 {
         for x in 0..64 {
             let value = ((x + y) % 32) as f64 / 32.0;

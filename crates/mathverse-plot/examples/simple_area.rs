@@ -3,6 +3,7 @@
 use mathverse_plot::area::{render_area_chart, AreaConfig, AreaSeries};
 use mathverse_plot::common::DataPoint;
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let morning: Vec<DataPoint> = (0..=12)

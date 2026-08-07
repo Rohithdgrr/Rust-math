@@ -4,6 +4,7 @@ use mathverse_plot::{
     DataPoint, DataSeries, Interpolation, PlotConfig, SmoothConfig, SvgPlot,
 };
 use mathverse_plot::style::PlotStyle;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create some data points
@@ -64,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Generate SVG
     let svg = plot.generate();
-    PlotSaver::new(svg).save_png("smooth.png")?;
+    PlotSaver::new(&svg).save_png("smooth.png")?;
     println!("Wrote smooth.svg ({} bytes)", svg.len());
 
     Ok(())

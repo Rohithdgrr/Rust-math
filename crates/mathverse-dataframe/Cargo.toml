@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-dataframe"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse DataFrame: pandas-like tabular data structures with zero external dependencies"
@@ -10,15 +10,17 @@ keywords = ["math", "dataframe", "tabular", "pandas", "data"]
 categories = ["science", "mathematics", "data-structures"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1", default-features = false }
 
 [dev-dependencies]
-mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.1" }
 
 [lints]
 workspace = true
 
 [features]
-default = ["csv", "json"]
+default = ["csv", "json", "std"]
 csv = []
 json = []
+std = ["mathverse-core/std"]
+libm = ["mathverse-core/libm"]

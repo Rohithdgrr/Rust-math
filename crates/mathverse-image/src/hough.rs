@@ -67,9 +67,11 @@ mod tests {
         }
         let lines = hough_lines(&img, 5, 180, 200);
         assert!(!lines.is_empty(), "should detect at least one line");
-        // θ near π/2 (vertical line), ρ near 10
+        // With the ρ = x·cos θ + y·sin θ convention, a vertical line at
+        // x = 10 peaks at θ ≈ 0 with ρ ≈ 10.
         let has_vertical = lines.iter().any(|&(theta, rho)| {
-            (theta - std::f64::consts::FRAC_PI_2).abs() < 0.1 && (rho - 10.0).abs() < 2.0
+            let dtheta = (theta - 0.0).abs().min((theta - std::f64::consts::PI).abs());
+            dtheta < 0.1 && (rho - 10.0).abs() < 2.0
         });
         assert!(has_vertical, "expected a near-vertical line at ρ≈10, got: {:?}", &lines[..lines.len().min(5)]);
     }

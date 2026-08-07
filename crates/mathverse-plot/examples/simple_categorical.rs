@@ -2,6 +2,7 @@
 
 use mathverse_plot::{CategoryMap, DataPoint, DataSeries, PlotConfig, SvgPlot};
 use mathverse_plot::style::PlotStyle;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create categorical data
@@ -49,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     labeled_svg = labeled_svg.replace("</svg>", &format!("{}\n</svg>", category_labels));
 
-    PlotSaver::new(labeled_svg).save_png("categorical.png")?;
+    PlotSaver::new(&labeled_svg).save_png("categorical.png")?;
     println!("Wrote categorical.svg ({} bytes)", labeled_svg.len());
 
     Ok(())

@@ -93,9 +93,12 @@ mod tests {
 
     #[test]
     fn test_orbital_period() {
-        // Earth: a = 1 AU, M_sun = 1.989e30 kg → T ≈ 365.25 days
+        // Earth: a = 1 AU, M_sun = 1.989e30 kg → T ≈ 365.2 days. The Julian
+        // year (365.25 d) differs from the Kepler result by ~0.013% because
+        // the nominal solar mass is an approximation, so use a 0.1% relative
+        // tolerance (`max_relative`, since `epsilon` is an absolute bound).
         let t = orbital_period(1.989e30, AU).unwrap();
-        assert_relative_eq!(t, 365.25 * 24.0 * 3600.0, epsilon = 1e-4);
+        assert_relative_eq!(t, 365.25 * 24.0 * 3600.0, max_relative = 1e-3);
     }
 
     #[test]

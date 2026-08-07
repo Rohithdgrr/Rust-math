@@ -23,13 +23,26 @@ pub mod fluid_dynamics;
 pub mod astrophysics;
 pub mod nuclear;
 
+// Glob re-exports intentionally expose every public item at the crate root;
+// items only referenced through the glob trigger the unused-imports lint, so
+// it is allowed here.
+#[allow(unused_imports)]
 pub use mechanics::*;
+#[allow(unused_imports)]
 pub use thermodynamics::*;
+#[allow(unused_imports)]
 pub use electromagnetism::*;
+#[allow(unused_imports)]
 pub use waves::*;
+#[allow(unused_imports)]
 pub use constants::*;
+#[allow(unused_imports)]
 pub use relativity::*;
+#[allow(unused_imports)]
 pub use quantum::*;
+#[allow(unused_imports)]
 pub use fluid_dynamics::*;
+#[allow(unused_imports)]
 pub use astrophysics::*;
+#[allow(unused_imports)]
 pub use nuclear::*;

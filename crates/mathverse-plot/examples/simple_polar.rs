@@ -5,6 +5,7 @@
 
 use mathverse_plot::polar::render_polar_svg;
 use mathverse_plot::{PolarData, PolarPoint, PolarSeries};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     const N: usize = 360;
@@ -19,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     data.add_series(PolarSeries::new("rose", points));
 
     let svg = render_polar_svg(&data, 600, 600);
-    PlotSaver::new(svg).save_png("polar.png")?;
+    PlotSaver::new(&svg).save_png("polar.png")?;
     println!("wrote polar.svg ({} bytes)", svg.len());
     Ok(())
 }

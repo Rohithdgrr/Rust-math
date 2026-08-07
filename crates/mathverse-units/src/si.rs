@@ -218,7 +218,7 @@ impl SiUnit for Becquerel {
 /// SI scaling prefixes (powers of 10).
 ///
 /// ```rust
-/// use mathverse_units::prefix::{Prefix, prefix_factor};
+/// use mathverse_units::{Prefix, prefix_factor};
 /// assert_eq!(prefix_factor(Prefix::Kilo), 1e3);
 /// assert_eq!(prefix_factor(Prefix::Milli), 1e-3);
 /// ```

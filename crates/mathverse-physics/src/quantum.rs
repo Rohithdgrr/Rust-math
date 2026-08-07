@@ -1,6 +1,6 @@
 //! Quantum mechanics constants and formulas.
 
-use crate::constants::{E, H, H_BAR, M_E, R_INF};
+use crate::constants::{E, H, H_BAR, M_E};
 
 /// Bohr radius: a₀ = 4πε₀ħ² / (mₑ e²) ≈ 5.29177210903 × 10⁻¹¹ m.
 pub fn bohr_radius() -> f64 {
@@ -74,7 +74,8 @@ mod tests {
         let e1 = hydrogen_energy_level_j(1);
         assert!(e1 < 0.0);
         let e2 = hydrogen_energy_level_j(2);
-        assert_relative_eq!(e2 / e1, 4.0, epsilon = 1e-10);
+        // E_n = −R_y/n² ⇒ E₂/E₁ = (1/2²)/(1/1²) = 1/4
+        assert_relative_eq!(e2 / e1, 0.25, epsilon = 1e-10);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-calculus"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 description = "Numerical calculus: derivatives, integration, vector calculus, ODE solvers"
@@ -14,8 +14,8 @@ categories = ["science", "mathematics", "algorithms"]
 exclude = [".github/", "benches/", "examples/", "tests/", "docs/"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
-mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
+mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.2" }
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }

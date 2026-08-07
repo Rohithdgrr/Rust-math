@@ -1,4 +1,17 @@
 #![allow(missing_docs)]
+#![allow(clippy::approx_constant)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::float_cmp)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::many_single_char_names)]
+#![allow(clippy::similar_names)]
+#![allow(clippy::return_self_not_must_use)]
+#![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::needless_range_loop)]
 //! Plotting with SVG, HTML, and terminal output backends.
 //!
 //! This crate provides:

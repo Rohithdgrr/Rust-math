@@ -1,6 +1,7 @@
 //! Simple 3D wireframe surface example.
 
 use mathverse_plot::{SurfaceConfig, render_surface_wireframe};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate a test surface: z = sin(x) * cos(y)
@@ -20,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         y_range,
         config,
     )?;
-    PlotSaver::new(svg).save_png("surface.png")?;
+    PlotSaver::new(&svg).save_png("surface.png")?;
     println!("Wrote surface.svg ({} bytes)", svg.len());
 
     Ok(())

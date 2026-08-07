@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-wasm"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse WASM support: no_std and WebAssembly-compatible math operations"
@@ -15,11 +15,11 @@ std = []
 wasm = ["dep:wasm-bindgen", "dep:js-sys"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0", default-features = false }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.0", default-features = false }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0", default-features = false }
-mathverse-simd = { path = "../mathverse-simd", version = "0.1.0", default-features = false }
-mathverse-views = { path = "../mathverse-views", version = "0.1.0", default-features = false }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1", default-features = false }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.1", default-features = false }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1", default-features = false }
+mathverse-simd = { path = "../mathverse-simd", version = "0.1.1", default-features = false }
+mathverse-views = { path = "../mathverse-views", version = "0.1.1", default-features = false }
 wasm-bindgen = { version = "0.2", optional = true }
 js-sys = { version = "0.3", optional = true }
 

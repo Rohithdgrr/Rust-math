@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-ndarray-interop"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse ndarray interop: zero-copy conversions between MathVerse and ndarray types"
@@ -14,9 +14,9 @@ default = []
 std = ["ndarray/std"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
 ndarray = { version = "0.15", default-features = false }
 
 [lints]

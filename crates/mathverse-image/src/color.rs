@@ -60,6 +60,7 @@ pub fn hsv_to_rgb(h: f64, s: f64, v: f64) -> (f64, f64, f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
 
     #[test]
     fn test_rgb_to_gray() {

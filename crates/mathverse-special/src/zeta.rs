@@ -59,11 +59,13 @@ pub fn zeta(s: f64) -> f64 {
     for n in 1..=N {
         sum += (n as f64).powf(-s);
     }
-    // Tail estimate: Σ_{n=N+1}^{∞} n^{-s} ≈ ∫_N^∞ x^{-s} dx + ½·N^{-s}
-    // = N^{1-s}/(s-1) + ½·N^{-s}
+    // Euler–Maclaurin tail estimate for Σ_{n=N+1}^{∞} f(n) with f(x) = x^{-s}:
+    //   ∫_N^∞ f(x) dx − f(N)/2 − f′(N)/12 + …
+    // = N^{1-s}/(s-1) − ½·N^{-s} + s·N^{-s-1}/12 − …
     let nm = N as f64;
     sum += nm.powf(1.0 - s) / (s - 1.0);
-    sum += 0.5 * nm.powf(-s);
+    sum -= 0.5 * nm.powf(-s);
+    sum += s * nm.powf(-s - 1.0) / 12.0;
     sum
 }
 

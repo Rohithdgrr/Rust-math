@@ -1,3 +1,14 @@
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
+
 //! Geometry: 2D and 3D shapes, measures, transforms, distances, intersections.
 //!
 //! All values are `f64`. Constructors panic on invalid shapes

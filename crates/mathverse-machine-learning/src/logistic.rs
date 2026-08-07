@@ -1,6 +1,6 @@
 //! Logistic regression via gradient descent.
 
-use mathverse_core::error::MathResult;
+use mathverse_core::error::{MathError, MathResult};
 
 /// Logistic regression result.
 #[derive(Debug, Clone)]
@@ -37,8 +37,27 @@ pub fn fit(
     tol: f64,
     c: f64,
 ) -> MathResult<LogisticResult> {
+    let p = crate::validate::validate_xy(x, y)?;
+    if !lr.is_finite() || lr <= 0.0 {
+        return Err(MathError::InvalidArgument("learning rate must be positive"));
+    }
+    if max_iters == 0 {
+        return Err(MathError::InvalidArgument("max_iters must be at least 1"));
+    }
+    if !tol.is_finite() || tol < 0.0 {
+        return Err(MathError::InvalidArgument("tol must be non-negative"));
+    }
+    if !(c > 0.0 || c.is_infinite()) {
+        return Err(MathError::InvalidArgument("c must be positive or infinite"));
+    }
+    for &yi in y {
+        if yi != 0.0 && yi != 1.0 {
+            return Err(MathError::InvalidArgument(
+                "logistic regression labels must be 0 or 1",
+            ));
+        }
+    }
     let n = y.len();
-    let p = x[0].len();
     let mut coef = vec![0.0; p];
     let mut intercept = 0.0;
     let inv_c = if c.is_infinite() { 0.0 } else { 1.0 / c };
@@ -177,5 +196,25 @@ mod tests {
         let coef = vec![1.0];
         let ce = cross_entropy(&x, &y, &coef, 0.0);
         assert!(ce < 0.1);
+    }
+
+    #[test]
+    fn empty_input_errors() {
+        assert!(fit(&[], &[], 0.1, 100, 1e-6, f64::INFINITY).is_err());
+    }
+
+    #[test]
+    fn invalid_labels_error() {
+        let x = vec![vec![1.0], vec![2.0]];
+        let y = vec![0.5, 1.0];
+        assert!(fit(&x, &y, 0.1, 100, 1e-6, f64::INFINITY).is_err());
+    }
+
+    #[test]
+    fn invalid_hyperparams_error() {
+        let (x, y) = separable_data();
+        assert!(fit(&x, &y, 0.0, 100, 1e-6, f64::INFINITY).is_err());
+        assert!(fit(&x, &y, 0.1, 0, 1e-6, f64::INFINITY).is_err());
+        assert!(fit(&x, &y, 0.1, 100, 1e-6, -1.0).is_err());
     }
 }

@@ -5,6 +5,7 @@
 
 use mathverse_finance::investment::holding_period_return;
 use mathverse_plot::{render_candlestick_svg, Candlestick, CandlestickSeries};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let candles = vec![
@@ -27,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let series = CandlestickSeries::new("ACME", candles);
     let svg = render_candlestick_svg(&[series], "ACME daily OHLC", 640, 420);
-    PlotSaver::new(svg).save_png("candlestick.png")?;
+    PlotSaver::new(&svg).save_png("candlestick.png")?;
     println!("wrote candlestick.svg ({} bytes)", svg.len());
     Ok(())
 }

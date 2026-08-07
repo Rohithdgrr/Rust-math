@@ -2,6 +2,7 @@
 
 use mathverse_plot::grouped_bar::{render_grouped_bar, GroupedBarConfig, GroupedSeries};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let series = vec![

@@ -3,6 +3,7 @@
 use mathverse_plot::common::DataPoint;
 use mathverse_plot::stem::{render_stem_plot, StemConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let points: Vec<DataPoint> = (0..=10)
@@ -24,7 +25,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_stem_plot(&points, &cfg)?;
-    PlotSaver::new(svg).save_png("stem.png")?;
+    PlotSaver::new(&svg).save_png("stem.png")?;
     println!("wrote stem.png");
 
     Ok(())

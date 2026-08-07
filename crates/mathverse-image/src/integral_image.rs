@@ -50,7 +50,6 @@ impl IntegralImage {
 pub fn fast_box_blur(img: &GrayImage, radius: usize) -> GrayImage {
     let integral = IntegralImage::from_image(img);
     let mut out = GrayImage::new(img.w, img.h).unwrap();
-    let side = 2 * radius + 1;
     for y in 0..img.h {
         for x in 0..img.w {
             let x0 = x.saturating_sub(radius);
@@ -59,7 +58,9 @@ pub fn fast_box_blur(img: &GrayImage, radius: usize) -> GrayImage {
             let y1 = (y + radius + 1).min(img.h);
             let actual_area = (x1 - x0) * (y1 - y0);
             let sum = integral.sum_region(x0, y0, x1, y1);
-            out.set(x, y, sum / (actual_area * side * side) as f64);
+            // `actual_area` already accounts for border clamping; dividing by
+            // `side²` as well would darken edge pixels by a factor of `side²`.
+            out.set(x, y, sum / actual_area as f64);
         }
     }
     out
@@ -89,5 +90,16 @@ mod tests {
         let img = GrayImage::from_data(8, 8, vec![0.5; 64]).unwrap();
         let blurred = fast_box_blur(&img, 3);
         assert!(blurred.data.iter().all(|v| (v - 0.5).abs() < 1e-12));
+    }
+
+    #[test]
+    fn test_fast_box_blur_edge_brightness_preserved() {
+        // A uniform image must stay uniform after blurring, including edges:
+        // a wrong division (by area·side²) would darken border pixels.
+        let img = GrayImage::from_data(6, 6, vec![0.7; 36]).unwrap();
+        let blurred = fast_box_blur(&img, 2);
+        for (i, v) in blurred.data.iter().enumerate() {
+            assert!((v - 0.7).abs() < 1e-9, "pixel {i} darkens to {v}");
+        }
     }
 }

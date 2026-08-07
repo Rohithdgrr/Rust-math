@@ -5,6 +5,7 @@ use mathverse_plot::{
     TextAnnotation,
 };
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create some data
@@ -123,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     svg = svg.replace("<svg", &format!("<svg\n{}", marker_def));
     svg = svg.replace("</svg>", &format!("{}\n</svg>", annotation_svg));
 
-    PlotSaver::new(svg).save_png("annotations.png")?;
+    PlotSaver::new(&svg).save_png("annotations.png")?;
     println!("Wrote annotations.svg ({} bytes)", svg.len());
 
     Ok(())

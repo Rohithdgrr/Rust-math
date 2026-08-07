@@ -8,6 +8,7 @@
 use mathverse_plot::common::{DataPoint, DataSeries, PlotConfig};
 use mathverse_plot::interactive::run;
 use mathverse_plot::PlotData;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> eframe::Result<()> {
     let xs: Vec<f64> = (0..1000).map(|i| f64::from(i) * 0.01).collect();

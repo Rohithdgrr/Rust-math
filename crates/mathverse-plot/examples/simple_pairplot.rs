@@ -1,6 +1,7 @@
 //! Pair plot example.
 
 use mathverse_plot::{render_pairplot, PairConfig};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let n = 30;
@@ -18,7 +19,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_title("Pair Plot: Variable Relationships");
 
     let svg = render_pairplot(&data, &labels, &config)?;
-    PlotSaver::new(svg).save_png("pairplot.png")?;
+    PlotSaver::new(&svg).save_png("pairplot.png")?;
     println!("wrote pairplot.png");
 
     Ok(())

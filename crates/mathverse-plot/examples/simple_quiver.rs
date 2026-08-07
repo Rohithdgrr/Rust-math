@@ -2,6 +2,7 @@
 
 use mathverse_plot::quiver::{render_quiver, QuiverConfig, QuiverVector};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let mut vectors = Vec::new();
@@ -25,7 +26,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 500;
 
     let svg = render_quiver(&vectors, &cfg)?;
-    PlotSaver::new(svg).save_png("quiver.png")?;
+    PlotSaver::new(&svg).save_png("quiver.png")?;
     println!("wrote quiver.png");
 
     Ok(())

@@ -1,3 +1,5 @@
+#[cfg(not(feature = "std"))]
+use alloc::vec;
 use alloc::vec::Vec;
 
 /// A compact bitmap tracking which elements are null (1 = null, 0 = valid).

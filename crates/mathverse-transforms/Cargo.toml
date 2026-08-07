@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-transforms"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse transforms: FFT, DCT-II, Haar wavelets"
@@ -10,7 +10,7 @@ keywords = ["math", "fft", "dct", "wavelet", "signal-processing"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
 mathverse-complex = { path = "../mathverse-complex", version = "0.2.0" }
 
 [lints]

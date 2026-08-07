@@ -2,6 +2,7 @@
 
 use mathverse_plot::stacked_bar::{render_stacked_bar, StackedBarConfig, StackedSeries};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let series = vec![
@@ -24,7 +25,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_stacked_bar(&series, &cfg)?;
-    PlotSaver::new(svg).save_png("stacked_bar.png")?;
+    PlotSaver::new(&svg).save_png("stacked_bar.png")?;
     println!("wrote stacked_bar.png");
 
     Ok(())

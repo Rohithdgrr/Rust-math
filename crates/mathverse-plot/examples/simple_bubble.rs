@@ -2,6 +2,7 @@
 
 use mathverse_plot::bubble::{render_bubble_chart, Bubble, BubbleConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bubbles = vec![
@@ -20,7 +21,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 500;
 
     let svg = render_bubble_chart(&bubbles, &cfg)?;
-    PlotSaver::new(svg).save_png("bubble.png")?;
+    PlotSaver::new(&svg).save_png("bubble.png")?;
     println!("wrote bubble.png");
 
     Ok(())

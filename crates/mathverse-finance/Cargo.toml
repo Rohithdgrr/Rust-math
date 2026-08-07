@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-finance"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 authors = ["MathVerse Contributors"]
@@ -9,10 +9,10 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
-mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.1" }
-mathverse-probability = { path = "../mathverse-probability", version = "0.1.1" }
-mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
+mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.2" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.2" }
+mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.2" }
 
 
 [lints]

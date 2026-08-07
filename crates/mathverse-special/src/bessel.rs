@@ -64,24 +64,34 @@ pub fn bessel_j1(x: f64) -> f64 {
     x / 2.0 * series_block(x.abs(), 1, true)
 }
 
-/// Bessel J_n(x), first kind, integer order n ≥ 0, by forward recurrence
-/// J_{ν+1} = (2ν/x) J_ν − J_{ν−1}. Stable for x ≳ n; for x < n the upward
-/// recurrence loses accuracy (use Miller's algorithm for small-x large-n).
+/// Bessel J_n(x), first kind, integer order n ≥ 0.
+///
+/// Uses forward recurrence `J_{ν+1} = (2ν/x) J_ν − J_{ν−1}` for `x ≳ n`
+/// (the stable regime) and Miller's backward algorithm for `x < n`, where
+/// the upward recurrence amplifies rounding error catastrophically (e.g. the
+/// forward recurrence returns J₁₀(1) with the wrong sign).
 ///
 /// ```
 /// use mathverse_special::{bessel_j0, bessel_jn};
 /// // J₀(2) = 0.2238907791, J₁(2) = 0.5767248078
 /// assert!((bessel_jn(0, 2.0) - 0.223_890_779_141_236).abs() < 1e-10);
 /// assert!((bessel_jn(2, 2.0) - 0.352_834_028_615_606).abs() < 1e-8);
+/// // Small-x large-n (Miller regime): J₁₀(1) ≈ 2.63e-10
+/// assert!((bessel_jn(10, 1.0) - 2.630_615_123_687_453e-10).abs() < 1e-14);
 /// ```
 pub fn bessel_jn(n: u64, x: f64) -> f64 {
     if x.is_nan() || x.is_infinite() {
         return f64::NAN;
     }
+    // J₀(0) = 1 and Jₙ(0) = 0 for n ≥ 1.
+    if x == 0.0 {
+        return if n == 0 { 1.0 } else { 0.0 };
+    }
     match n {
         0 => bessel_j0(x),
         1 => bessel_j1(x),
-        _ => {
+        _ if x.abs() >= n as f64 => {
+            // Forward recurrence, stable for x ≳ n.
             let mut j_prev = bessel_j0(x);
             let mut j_cur = bessel_j1(x);
             for nu in 1..n {
@@ -91,6 +101,81 @@ pub fn bessel_jn(n: u64, x: f64) -> f64 {
             }
             j_cur
         }
+        _ => bessel_jn_small_x(n, x),
+    }
+}
+
+/// J_n(x) for `x < n` via Miller's (backward) algorithm (NR §6.5).
+///
+/// Seeds the recurrence from a high order `M ≈ n + √(40n)`, where J_M ≈ 0,
+/// then normalizes with the sum identity `J₀ + 2Σₖ J₂ₖ = 1`.
+fn bessel_jn_small_x(n: u64, x: f64) -> f64 {
+    let ax = x.abs();
+    // For |x| < 1 the backward recurrence would overflow (the (2k/x) factors
+    // are enormous for tiny x), while the power series converges immediately.
+    if ax < 1.0 {
+        return bessel_jn_series(n, x);
+    }
+    let nf = n as f64;
+    // Order where the tail has decayed below double precision.
+    let start: usize = n as usize + (40.0 * nf).sqrt() as usize + 10;
+    let mut j = vec![0.0f64; start + 2];
+    j[start + 1] = 0.0;
+    j[start] = 1.0;
+    for k in (1..=start).rev() {
+        j[k - 1] = (2.0 * k as f64 / ax) * j[k] - j[k + 1];
+        // The backward values grow like J₀(x)/J_start(x) and can overflow
+        // for large orders; the recurrence is homogeneous, so rescaling all
+        // entries uniformly leaves the final normalized ratio unchanged.
+        if j[k - 1].abs() > 1e150 {
+            for v in &mut j {
+                *v *= 1e-150;
+            }
+        }
+    }
+    // Normalize: J₀(x) + 2·(J₂(x) + J₄(x) + …) = 1.
+    let mut norm = j[0];
+    for k in (2..=start).step_by(2) {
+        norm += 2.0 * j[k];
+    }
+    let mut jn = j[n as usize] / norm;
+    // Odd orders are odd functions: J_{2m+1}(−x) = −J_{2m+1}(x).
+    if x < 0.0 && n % 2 == 1 {
+        jn = -jn;
+    }
+    jn
+}
+
+/// J_n(x) via its power series `(x/2)ⁿ Σₖ (−1)ᵏ (x²/4)ᵏ / (k!(n+k)!)`,
+/// used when `|x| < 1` where it converges in a handful of terms and the
+/// backward recurrence would overflow. The leading factor is accumulated as
+/// `∏ᵢ (x/2)/i` so neither it nor `n!` can overflow; results that are below
+/// `f64` precision simply underflow to `0.0`.
+fn bessel_jn_series(n: u64, x: f64) -> f64 {
+    let ax = x.abs();
+    let half = ax / 2.0;
+    let nf = n as f64;
+    // (x/2)ⁿ / n!  without materializing n!.
+    let mut term = 1.0;
+    for i in 1..=n {
+        term *= half / i as f64;
+    }
+    let mut sum = term;
+    let c = ax * ax / 4.0;
+    let mut k = 1u64;
+    loop {
+        term *= c / ((k as f64) * (nf + k as f64));
+        sum += if k % 2 == 1 { -term } else { term };
+        if term == 0.0 || term.abs() < sum.abs() * 1e-16 || k > 1000 {
+            break;
+        }
+        k += 1;
+    }
+    // Odd orders are odd functions: J_{2m+1}(−x) = −J_{2m+1}(x).
+    if x < 0.0 && n % 2 == 1 {
+        -sum
+    } else {
+        sum
     }
 }
 
@@ -151,7 +236,8 @@ pub fn bessel_y1(x: f64) -> f64 {
         m += 1;
     }
     let two_over_pi = 2.0 / PI;
-    two_over_pi * (bessel_j1(x) * ((x / 2.0).ln() + EULER_GAMMA) - bessel_j0(x) / x + d_series)
+    // Y₁ = −Y₀′ = (2/π)·[J₁·(ln(x/2) + γ) − J₀/x − S′(x)]
+    two_over_pi * (bessel_j1(x) * ((x / 2.0).ln() + EULER_GAMMA) - bessel_j0(x) / x - d_series)
 }
 
 /// Modified Bessel I₀(x). Even, I₀(0) = 1.
@@ -269,6 +355,34 @@ mod tests {
         assert!((bessel_k0(2.0) - 0.113_893_872_749_533).abs() < 1e-8);
         assert!((bessel_k1(0.5) - 1.656_441_120_003_531).abs() < 1e-8);
         assert!((bessel_k1(2.0) - 0.139_865_881_816_973).abs() < 1e-8);
+    }
+
+    #[test]
+    fn jn_miller_small_x_large_n() {
+        // Reference values in the regime where forward recurrence is unstable
+        // (J₁₀(1) = 2.630615123687453e-10; J₁₅(0.5) = Σ series ≈ 7.094207e-22)
+        assert!((bessel_jn(10, 1.0) - 2.630_615_123_687_453e-10).abs() < 1e-14);
+        let j15 = bessel_jn(15, 0.5);
+        assert!((j15 - 7.094_207e-22).abs() < 1e-26, "J15(0.5) = {j15:e}");
+        // J_n(n) continuity across the forward/Miller switch
+        assert!((bessel_jn(6, 6.0) - 0.245_836_864_362_188).abs() < 1e-8);
+        // Odd-order sign for negative argument
+        assert!((bessel_jn(5, -1.0) + bessel_jn(5, 1.0)).abs() < 1e-12);
+        assert!((bessel_jn(10, -1.0) - bessel_jn(10, 1.0)).abs() < 1e-14);
+        // Sign also holds in the |x| < 1 series branch
+        assert!((bessel_jn(3, -0.5) + bessel_jn(3, 0.5)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn jn_zero_and_tiny_x() {
+        // Jₙ(0) = 0 for n ≥ 1 (and J₀(0) = 1 via bessel_j0)
+        assert_eq!(bessel_jn(2, 0.0), 0.0);
+        assert_eq!(bessel_jn(5, 0.0), 0.0);
+        // Subnormal-ish x must not overflow to NaN; the series underflows to 0.
+        assert_eq!(bessel_jn(2, 1e-300), 0.0);
+        assert!(bessel_jn(4, 0.5).is_finite());
+        // J₄(0.5) = 0.000160735387227… via the |x| < 1 series branch
+        assert!((bessel_jn(4, 0.5) - 1.607_353_872_27e-4).abs() < 1e-8);
     }
 
     #[test]

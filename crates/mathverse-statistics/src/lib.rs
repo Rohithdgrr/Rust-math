@@ -65,8 +65,8 @@ pub use descriptive::{
     coefficient_of_variation, covariance, describe, fd_rule, geometric_mean, harmonic_mean, iqr,
     kurtosis, linear_regression, mad, mean, mean_ci, median, mode, pearson, percentile, quantile,
     quartiles, range, scott_rule, skewness, sqrt_rule, standard_error, std_dev_pop, std_dev_sample,
-    sturges_rule, trimmed_mean, variance_pop, variance_sample, weighted_mean, winsorized_mean,
-    z_test, Summary,
+    sturges_rule, trimmed_mean, variance_pop, variance_sample, weighted_mean, weighted_std_dev,
+    weighted_variance, winsorized_mean, z_test, RunningStats, Summary,
 };
 
 pub use density::{

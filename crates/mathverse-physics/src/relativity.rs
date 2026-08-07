@@ -1,6 +1,5 @@
 //! Relativistic mechanics: Lorentz transformations and relativistic kinematics.
 
-use std::f64::consts::PI;
 use crate::constants::C;
 
 /// Lorentz factor γ = 1 / √(1 − v²/c²).
@@ -83,7 +82,7 @@ mod tests {
         assert_relative_eq!(lorentz_factor(0.0).unwrap(), 1.0, epsilon = 1e-15);
         assert_relative_eq!(
             lorentz_factor(0.6 * C).unwrap(),
-            1.0 / (1.0 - 0.36).sqrt(),
+            1.0_f64 / (1.0_f64 - 0.36_f64).sqrt(),
             epsilon = 1e-9
         );
         assert!(lorentz_factor(C).is_none());

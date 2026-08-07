@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-serde"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse serde serialization: save/load matrices, vectors, models, and tensors"
@@ -16,9 +16,9 @@ safetensors = ["dep:safetensors"]
 bincode = ["dep:bincode"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
 serde = { version = "1", default-features = false, features = ["derive"] }
 serde_json = { version = "1", optional = true }
 safetensors = { version = "0.4", optional = true }

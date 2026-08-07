@@ -1,4 +1,8 @@
 pub fn fibonacci_search(f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
+    // Fibonacci search needs at least 3 evaluations (k ≥ 2) to bracket.
+    if n < 3 {
+        return (a + b) / 2.0;
+    }
     let fibs: Vec<f64> = {
         let mut f = vec![1.0f64, 1.0];
         for _ in 2..n { let l = f.len(); f.push(f[l-1] + f[l-2]); }
@@ -117,6 +121,19 @@ mod tests {
     fn brent() {
         let x = brent_min(|x| (x - 1.5).powi(2), 0.0, 3.0, 1e-10);
         assert!((x - 1.5).abs() < 1e-8);
+    }
+
+    #[test]
+    fn fibonacci_degnerate_iterations() {
+        // n < 3 returns the interval midpoint without panicking.
+        let f = |x: f64| (x - 2.0).powi(2);
+        for n in [0usize, 1, 2] {
+            let x = fibonacci_search(f, 0.0, 4.0, n);
+            assert!((x - 2.0).abs() < 2.0, "n={n} gave x={x}");
+        }
+        // A real run still finds the minimum.
+        let x = fibonacci_search(f, 0.0, 4.0, 40);
+        assert!((x - 2.0).abs() < 1e-6);
     }
 
     #[test]

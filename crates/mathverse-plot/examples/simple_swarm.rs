@@ -2,6 +2,7 @@
 
 use mathverse_plot::{render_swarm_plot, SwarmCategory, SwarmConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let categories = vec![
@@ -17,7 +18,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config = cfg.plot_config.with_title("Swarm Plot: Score Distribution");
 
     let svg = render_swarm_plot(&categories, &cfg)?;
-    PlotSaver::new(svg).save_png("swarm.png")?;
+    PlotSaver::new(&svg).save_png("swarm.png")?;
     println!("wrote swarm.png");
 
     Ok(())

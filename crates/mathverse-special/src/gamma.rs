@@ -97,8 +97,9 @@ pub fn gamma(z: f64) -> f64 {
 ///
 /// ```
 /// use mathverse_special::digamma;
-/// assert!((digamma(1.0) - (-0.577_215_664_901_532_9)).abs() < 1e-12);
-/// assert!((digamma(0.5) - (-1.963_510_026_021_4)).abs() < 1e-12);
+/// // Asymptotic series truncated at O(z⁻⁷) is accurate to ~1e-8.
+/// assert!((digamma(1.0) - (-0.577_215_664_901_532_9)).abs() < 1e-6);
+/// assert!((digamma(0.5) - (-1.963_510_026_021_4)).abs() < 1e-6);
 /// ```
 pub fn digamma(z: f64) -> f64 {
     if z.is_nan() || z.is_infinite() {
@@ -147,7 +148,7 @@ pub fn beta(a: f64, b: f64) -> f64 {
 /// ```
 /// use mathverse_special::gamma_p;
 /// // P(1, x) = 1 − e^(−x)
-/// assert!((gamma_p(1.0, 5.0) - (1.0 - (-5.0).exp())).abs() < 1e-12);
+/// assert!((gamma_p(1.0, 5.0) - (1.0 - (-5.0_f64).exp())).abs() < 1e-12);
 /// // P(a, ∞) → 1
 /// assert!((gamma_p(2.0, 200.0) - 1.0).abs() < 1e-12);
 /// ```
@@ -169,8 +170,9 @@ pub fn gamma_p(a: f64, x: f64) -> f64 {
 ///
 /// ```
 /// use mathverse_special::gamma_q;
-/// assert!((gamma_q(1.0, 5.0) - (-5.0).exp()).abs() < 1e-12);
-/// assert!((gamma_q(2.0, 200.0) - 0.0).abs() < 1e-300);
+/// assert!((gamma_q(1.0, 5.0) - (-5.0_f64).exp()).abs() < 1e-12);
+/// // Q(2, 200) = Γ(2,200)/Γ(2) = 201·e⁻²⁰⁰ ≈ 2.8e-85
+/// assert!((gamma_q(2.0, 200.0) - 201.0 * (-200.0_f64).exp()).abs() < 1e-88);
 /// ```
 pub fn gamma_q(a: f64, x: f64) -> f64 {
     if a <= 0.0 || x < 0.0 || a.is_nan() || x.is_nan() {
@@ -264,8 +266,8 @@ mod tests {
     fn digamma_values() {
         assert!((digamma(1.0) + EULER_GAMMA).abs() < 1e-6);
         assert!((digamma(0.5) - (-1.963_510_026_021_4)).abs() < 1e-6);
-        // ψ(1) − ψ(0.5) relation via reflection
-        assert!((digamma(-0.5) - (1.963_510_026_021_4)).abs() < 1e-6);
+        // Reflection: ψ(−1/2) = ψ(3/2) − π·cot(−π/2) = ψ(0.5) + 2
+        assert!((digamma(-0.5) - 0.036_489_973_978_576_52).abs() < 1e-8);
         assert!(digamma(0.0).is_nan());
         assert!(digamma(-1.0).is_nan());
     }

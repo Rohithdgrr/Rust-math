@@ -770,6 +770,184 @@ pub fn describe(xs: &[f64]) -> Summary {
     }
 }
 
+/// Weighted sample variance (ddof = 1): `sum(w_i (x_i - x̄_w)²) / (sum(w_i) - 1)`.
+///
+/// # Errors
+///
+/// Returns `MathError::DimensionMismatch` if the inputs differ in length, or
+/// `MathError::InvalidArgument` when the total weight is <= 1 (variance
+/// undefined) or any weight is negative.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::weighted_variance;
+///
+/// let xs = [1.0, 2.0, 3.0];
+/// let w = [1.0, 1.0, 1.0]; // equals plain sample variance
+/// assert!((weighted_variance(&xs, &w).unwrap() - 1.0).abs() < 1e-12);
+/// ```
+pub fn weighted_variance(xs: &[f64], weights: &[f64]) -> MathResult<f64> {
+    if xs.len() != weights.len() {
+        return Err(MathError::DimensionMismatch);
+    }
+    if weights.iter().any(|&w| w < 0.0) {
+        return Err(MathError::InvalidArgument(
+            "weighted_variance: weights must be non-negative",
+        ));
+    }
+    let total_w: f64 = weights.iter().sum();
+    if total_w <= 1.0 {
+        return Err(MathError::InvalidArgument(
+            "weighted_variance: total weight must exceed 1",
+        ));
+    }
+    let mean_w: f64 = xs.iter().zip(weights).map(|(x, w)| x * w).sum::<f64>() / total_w;
+    let var: f64 = xs
+        .iter()
+        .zip(weights)
+        .map(|(x, w)| w * (x - mean_w).powi(2))
+        .sum::<f64>()
+        / (total_w - 1.0);
+    Ok(var)
+}
+
+/// Weighted sample standard deviation: `sqrt(weighted_variance)`.
+///
+/// # Errors
+///
+/// Same error conditions as [`weighted_variance`].
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::weighted_std_dev;
+///
+/// let xs = [1.0, 2.0, 3.0];
+/// let w = [1.0, 1.0, 1.0];
+/// assert!((weighted_std_dev(&xs, &w).unwrap() - 1.0).abs() < 1e-12);
+/// ```
+pub fn weighted_std_dev(xs: &[f64], weights: &[f64]) -> MathResult<f64> {
+    weighted_variance(xs, weights).map(f64::sqrt)
+}
+
+/// Streaming (online) descriptive statistics using Welford's algorithm.
+///
+/// Computes the mean and variance in a single pass with O(1) memory and
+/// excellent numerical stability — suitable for live data feeds, very large
+/// datasets, or `no_std`-style single-pass pipelines.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_statistics::RunningStats;
+///
+/// let mut stats = RunningStats::new();
+/// for x in [1.0, 2.0, 3.0, 4.0, 5.0] {
+///     stats.update(x);
+/// }
+/// assert_eq!(stats.count(), 5);
+/// assert!((stats.mean() - 3.0).abs() < 1e-12);
+/// assert!((stats.sample_variance() - 2.5).abs() < 1e-12);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[must_use]
+pub struct RunningStats {
+    n: u64,
+    mean: f64,
+    m2: f64,
+}
+
+impl RunningStats {
+    /// Creates an empty accumulator.
+    pub fn new() -> Self {
+        Self { n: 0, mean: 0.0, m2: 0.0 }
+    }
+
+    /// Adds a single observation.
+    pub fn update(&mut self, x: f64) {
+        self.n += 1;
+        let delta = x - self.mean;
+        self.mean += delta / self.n as f64;
+        self.m2 += delta * (x - self.mean);
+    }
+
+    /// Adds a batch of observations.
+    pub fn update_batch(&mut self, xs: &[f64]) {
+        for &x in xs {
+            self.update(x);
+        }
+    }
+
+    /// Merges another accumulator into this one (parallel/partitioned merge).
+    ///
+    /// Useful for combining statistics computed on separate chunks.
+    pub fn merge(&mut self, other: &RunningStats) {
+        if other.n == 0 {
+            return;
+        }
+        let total = self.n + other.n;
+        let delta = other.mean - self.mean;
+        let f = other.n as f64 / total as f64;
+        self.mean += delta * f;
+        self.m2 += other.m2 + delta * delta * (self.n as f64 * other.n as f64) / total as f64;
+        self.n = total;
+    }
+
+    /// Number of observations seen so far.
+    pub fn count(&self) -> u64 {
+        self.n
+    }
+
+    /// True if no observations have been added.
+    pub fn is_empty(&self) -> bool {
+        self.n == 0
+    }
+
+    /// Running arithmetic mean; NaN when empty.
+    pub fn mean(&self) -> f64 {
+        if self.n == 0 {
+            f64::NAN
+        } else {
+            self.mean
+        }
+    }
+
+    /// Population variance (n denominator); NaN when n == 0.
+    pub fn variance(&self) -> f64 {
+        if self.n == 0 {
+            f64::NAN
+        } else {
+            self.m2 / self.n as f64
+        }
+    }
+
+    /// Sample variance (n - 1 denominator); NaN when n <= 1.
+    pub fn sample_variance(&self) -> f64 {
+        if self.n <= 1 {
+            f64::NAN
+        } else {
+            self.m2 / (self.n - 1) as f64
+        }
+    }
+
+    /// Population standard deviation; NaN when empty.
+    pub fn std_dev(&self) -> f64 {
+        self.variance().sqrt()
+    }
+
+    /// Sample standard deviation; NaN when n <= 1.
+    pub fn sample_std_dev(&self) -> f64 {
+        self.sample_variance().sqrt()
+    }
+}
+
+impl Default for RunningStats {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -894,6 +1072,73 @@ mod tests {
         assert!((s - 2.0).abs() < 1e-12);
         assert!((i - 1.0).abs() < 1e-12);
         assert!((r2 - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn weighted_variance_test() {
+        let xs = [1.0, 2.0, 3.0];
+        let w = [1.0, 1.0, 1.0];
+        assert!((weighted_variance(&xs, &w).unwrap() - 1.0).abs() < 1e-12);
+        // Highly skewed weight: the dominant point pins the mean, so the
+        // variance collapses toward the residual spread of the outlier.
+        let xs = [1.0, 100.0];
+        let w = [1e9, 1.0];
+        let v = weighted_variance(&xs, &w).unwrap();
+        assert!(v < 1e-4, "expected near-zero variance, got {v}");
+    }
+
+    #[test]
+    fn weighted_variance_errors() {
+        assert_eq!(
+            weighted_variance(&[1.0, 2.0], &[1.0]),
+            Err(MathError::DimensionMismatch)
+        );
+        assert!(weighted_variance(&[1.0, 2.0], &[1.0, -1.0]).is_err());
+        assert!(weighted_variance(&[1.0], &[1.0]).is_err()); // total weight <= 1
+    }
+
+    #[test]
+    fn weighted_std_dev_test() {
+        let xs = [1.0, 2.0, 3.0];
+        let w = [1.0, 1.0, 1.0];
+        assert!((weighted_std_dev(&xs, &w).unwrap() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn running_stats_matches_two_pass() {
+        let data = [3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0, 6.0];
+        let mut stats = RunningStats::new();
+        stats.update_batch(&data);
+        assert_eq!(stats.count(), 8);
+        assert!((stats.mean() - mean(&data)).abs() < 1e-12);
+        assert!((stats.sample_variance() - variance_sample(&data)).abs() < 1e-12);
+        assert!((stats.std_dev() - variance_pop(&data).sqrt()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn running_stats_merge_matches_single_pass() {
+        let all: Vec<f64> = (0..1000).map(|i| (i as f64 * 0.37).sin() * 100.0).collect();
+        let mut single = RunningStats::new();
+        single.update_batch(&all);
+
+        let mut merged = RunningStats::new();
+        for chunk in all.chunks(250) {
+            let mut part = RunningStats::new();
+            part.update_batch(chunk);
+            merged.merge(&part);
+        }
+        assert_eq!(merged.count(), single.count());
+        assert!((merged.mean() - single.mean()).abs() < 1e-9);
+        assert!((merged.sample_variance() - single.sample_variance()).abs() < 1e-6);
+    }
+
+    #[test]
+    fn running_stats_empty() {
+        let stats = RunningStats::new();
+        assert!(stats.is_empty());
+        assert!(stats.mean().is_nan());
+        assert!(stats.variance().is_nan());
+        assert!(stats.sample_variance().is_nan());
     }
 
     #[test]

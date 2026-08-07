@@ -2,6 +2,7 @@
 
 use mathverse_plot::radar::{render_radar_chart, RadarConfig, RadarPoint, RadarSeries};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let axes = vec![
@@ -40,7 +41,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 450;
 
     let svg = render_radar_chart(&series, &cfg)?;
-    PlotSaver::new(svg).save_png("radar.png")?;
+    PlotSaver::new(&svg).save_png("radar.png")?;
     println!("wrote radar.png");
 
     Ok(())

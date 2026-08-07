@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-ai"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.87"
 license = "MIT OR Apache-2.0"
@@ -12,7 +12,7 @@ keywords = ["ai", "machine-learning", "tensor", "neural-network", "deep-learning
 categories = ["science", "mathematics", "algorithms"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
 serde = { version = "1", features = ["derive"], optional = true }
 thiserror = { version = "2", optional = true }
 tracing = { version = "0.1", optional = true }

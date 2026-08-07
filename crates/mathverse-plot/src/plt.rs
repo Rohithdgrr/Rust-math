@@ -663,7 +663,9 @@ mod tests {
         let c1 = ax.color();
         assert_ne!(c0, c1);
         let n = ax.palette.colors.len();
-        for _ in 0..n {
+        assert!(n >= 2);
+        // Consume the rest of the palette; the next draw wraps to the start.
+        for _ in 2..n {
             ax.color();
         }
         let c_again = ax.color();

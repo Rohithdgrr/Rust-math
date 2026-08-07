@@ -2,6 +2,7 @@
 
 use mathverse_graph::Graph;
 use mathverse_plot::{GraphLayoutConfig, render_graph, render_bfs_tree};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a simple graph: 0-1-2-3-4 (linear chain)

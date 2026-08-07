@@ -36,13 +36,11 @@ pub fn par_map_slice(a: &[f64], f: impl Fn(f64) -> f64 + Send + Sync, out: &mut 
         .for_each(|(o, &a)| *o = f(a));
 }
 
-/// Parallel prefix sum (inclusive scan).
+/// Prefix sum (inclusive scan).
+///
+/// Currently a sequential scan (rayon has no stable parallel scan), but the
+/// interface is identical to the other `par_*` helpers.
 pub fn par_prefix_sum(a: &[f64]) -> Vec<f64> {
-    let _ = rayon::join(
-        || {},
-        || {},
-    );
-    // Simple sequential prefix sum (rayon scan requires nightly)
     let mut result = Vec::with_capacity(a.len());
     let mut acc = 0.0;
     for &v in a {

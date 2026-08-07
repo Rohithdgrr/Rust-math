@@ -242,6 +242,41 @@ impl MidpointRule {
     }
 }
 
+/// Solve `A x = b` (square, non-singular) by Gaussian elimination with
+/// partial pivoting. Used internally for quadrature weight construction.
+fn solve_system(a: &[Vec<f64>], b: &[f64]) -> Vec<f64> {
+    let n = a.len();
+    let mut m = a.to_vec();
+    let mut rhs = b.to_vec();
+    for col in 0..n {
+        let mut pivot = col;
+        for r in col + 1..n {
+            if m[r][col].abs() > m[pivot][col].abs() {
+                pivot = r;
+            }
+        }
+        m.swap(col, pivot);
+        rhs.swap(col, pivot);
+        let pv = m[col][col];
+        for r in col + 1..n {
+            let factor = m[r][col] / pv;
+            for c in col..n {
+                m[r][c] -= factor * m[col][c];
+            }
+            rhs[r] -= factor * rhs[col];
+        }
+    }
+    let mut x = vec![0.0; n];
+    for r in (0..n).rev() {
+        let mut acc = rhs[r];
+        for c in r + 1..n {
+            acc -= m[r][c] * x[c];
+        }
+        x[r] = acc / m[r][r];
+    }
+    x
+}
+
 /// Boole's rule (4th order Newton-Cotes).
 pub struct BooleRule;
 
@@ -274,36 +309,58 @@ pub struct ClenshawCurtis;
 
 impl ClenshawCurtis {
     /// Integrate using Clenshaw-Curtis quadrature.
+    ///
+    /// Uses the `n` Chebyshev-extrema nodes `x_k = cos(πk/(n−1))` and the
+    /// standard Clenshaw-Curtis weights (exact for polynomials up to degree
+    /// `n−1`). The weights are computed from the discrete cosine transform
+    /// of the moment sequence `2/(1−k²)` for even `k`.
     pub fn integrate(f: &dyn Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
-        let mut weights = vec![0.0; n];
+        assert!(n >= 2, "Clenshaw-Curtis requires at least 2 nodes");
+        let m = n - 1;
         let mut nodes = vec![0.0; n];
-        
         for i in 0..n {
-            nodes[i] = (core::f64::consts::PI * i as f64 / (n - 1) as f64).cos();
+            nodes[i] = (core::f64::consts::PI * i as f64 / m as f64).cos();
         }
-        
-        // Clenshaw-Curtis weights
-        for k in 0..n {
-            let mut sum = 0.0;
-            for j in 0..n {
-                if k == 0 || k == n - 1 {
-                    sum += 2.0 / (n - 1) as f64;
-                } else {
-                    sum += 2.0 * (2.0 * core::f64::consts::PI * j as f64 / (n - 1) as f64).cos()
-                        * (core::f64::consts::PI * k as f64 * j as f64 / (n - 1) as f64).cos()
-                        / (n - 1) as f64;
-                }
-            }
-            weights[k] = sum / n as f64;
-        }
-        
+        let weights = Self::cc_weights(n);
+
         let mut sum = 0.0;
         for i in 0..n {
             let x = 0.5 * (b - a) * nodes[i] + 0.5 * (a + b);
             sum += weights[i] * f(x);
         }
-        
+
         0.5 * (b - a) * sum
+    }
+
+    /// Clenshaw-Curtis weights for `n` Chebyshev-extrema nodes.
+    ///
+    /// The weights are the unique solution of the moment system
+    /// `Σ_j w_j x_j^k = ∫₋₁¹ x^k dx` for `k = 0..n−1`, i.e. the rule is exact
+    /// for all polynomials of degree `< n`. Solving the Vandermonde system
+    /// directly avoids transcription errors in closed-form weight formulas
+    /// and is numerically stable for the modest `n` used in practice.
+    fn cc_weights(n: usize) -> Vec<f64> {
+        let mut a = vec![vec![0.0; n]; n];
+        let mut b = vec![0.0; n];
+        for i in 0..n {
+            let x = (core::f64::consts::PI * i as f64 / (n - 1) as f64).cos();
+            let mut pow = 1.0;
+            for k in 0..n {
+                a[i][k] = pow;
+                pow *= x;
+            }
+            // ∫₋₁¹ x^i dx = 0 for odd i, 2/(i+1) for even i.
+            b[i] = if i % 2 == 0 { 2.0 / (i as f64 + 1.0) } else { 0.0 };
+        }
+        // Solve Aᵀ w = b (the system is V·w = b with V[i][k] = x_i^k;
+        // transpose since we index rows by node).
+        let mut at = vec![vec![0.0; n]; n];
+        for i in 0..n {
+            for j in 0..n {
+                at[i][j] = a[j][i];
+            }
+        }
+        solve_system(&at, &b)
     }
 }
 
@@ -311,22 +368,32 @@ impl ClenshawCurtis {
 pub struct DoubleExponential;
 
 impl DoubleExponential {
-    /// Integrate using double exponential quadrature.
+    /// Integrate using double exponential (tanh-sinh) quadrature.
+    ///
+    /// Maps `t ∈ [-L, L]` onto `[a, b]` via `x = (a+b)/2 + (b−a)/2 · tanh(π/2·sinh t)`
+    /// and applies the trapezoidal rule with step `h`. The quadrature
+    /// converges geometrically for integrands with endpoint singularities.
     pub fn integrate(f: &dyn Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
         let h = 1.0 / n as f64;
+        // Cover t ∈ [-L, L] with L ≈ 4: beyond that, tanh(π/2·sinh t) is
+        // indistinguishable from ±1 and the jacobian underflows to 0.
+        let steps = (4.0 / h) as usize;
         let mut sum = 0.0;
-        
-        for k in -(n as isize)..=(n as isize) {
+
+        for k in -(steps as isize)..=(steps as isize) {
             let t = k as f64 * h;
             let phi = core::f64::consts::PI / 2.0 * t.sinh();
             let x = (b + a) / 2.0 + (b - a) / 2.0 * phi.tanh();
-            
-            let weight = core::f64::consts::PI / 2.0 * phi.cosh();
-            let jacobian = (b - a) / 2.0 * weight;
-            
+
+            // dx/dt = (b−a)/2 · d/dt[tanh(φ(t))]
+            //       = (b−a)/2 · φ'(t) · sech²(φ) with φ'(t) = π/2·cosh t
+            let jacobian = (b - a) / 2.0
+                * (core::f64::consts::PI / 2.0 * t.cosh())
+                * (1.0 - phi.tanh().powi(2));
+
             sum += jacobian * f(x);
         }
-        
+
         sum * h
     }
 }

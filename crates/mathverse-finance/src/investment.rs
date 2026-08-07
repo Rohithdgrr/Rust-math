@@ -101,7 +101,7 @@ pub fn treynor_ratio(portfolio_return: f64, risk_free_rate: f64, beta: f64) -> f
     (portfolio_return - risk_free_rate) / beta
 }
 
-/// Calculate information ratio
+/// Calculate information ratio from pre-computed scalars
 /// 
 /// # Arguments
 /// * `portfolio_return` - Portfolio return (as decimal)
@@ -110,7 +110,11 @@ pub fn treynor_ratio(portfolio_return: f64, risk_free_rate: f64, beta: f64) -> f
 /// 
 /// # Returns
 /// Information ratio
-pub fn information_ratio(portfolio_return: f64, benchmark_return: f64, tracking_error: f64) -> f64 {
+///
+/// Prefer [`super::portfolio::information_ratio`] when the underlying return
+/// series are available; this scalar form exists for callers that already
+/// have the tracking error computed.
+pub fn information_ratio_from_scalars(portfolio_return: f64, benchmark_return: f64, tracking_error: f64) -> f64 {
     (portfolio_return - benchmark_return) / tracking_error
 }
 

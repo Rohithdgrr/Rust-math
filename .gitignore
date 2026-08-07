@@ -1,6 +1,7 @@
 /target
 .opencode/
 claude-skills/
+.freebuff/
 
 # OS
 .DS_Store

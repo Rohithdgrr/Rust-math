@@ -1,9 +1,10 @@
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt;
 
 use crate::dtype::DType;
 use crate::errors::{DataFrameError, DataFrameResult};
+use crate::null::NullBitmap;
 use crate::series::Series;
 
 /// A type- erased column that can hold any supported `Series<T>`.
@@ -198,11 +199,12 @@ impl AnyColumn {
     /// Collects the f64 values into a new series, converting from this column's type.
     ///
     /// Integer types are cast to f64. Bool is cast to 0.0/1.0. Utf8 is not convertible.
+    /// Null positions are preserved in the output series.
     #[must_use]
     pub fn to_f64(&self) -> DataFrameResult<Series<f64>> {
         let name = self.name().to_string();
         let data = match self {
-            Self::Float64(s) => s.data().clone(),
+            Self::Float64(s) => s.data().to_vec(),
             Self::Float32(s) => s.data().iter().map(|&v| f64::from(v)).collect(),
             Self::Int64(s) => s.data().iter().map(|&v| v as f64).collect(),
             Self::Int32(s) => s.data().iter().map(|&v| f64::from(v)).collect(),
@@ -213,54 +215,121 @@ impl AnyColumn {
                 ))
             }
         };
-        Ok(Series::new(name, data))
+        let mut series = Series::new(name, data);
+        for i in 0..self.len() {
+            if self.is_null(i) {
+                series.set_null(i);
+            }
+        }
+        Ok(series)
     }
 
-    /// Selects rows by position, returning a new `AnyColumn`.
+    /// Selects rows by position, returning a new `AnyColumn` with the same
+    /// validity (null) pattern as the source rows.
     #[must_use]
     pub fn select_rows(&self, positions: &[usize]) -> DataFrameResult<Self> {
+        if let Some(&p) = positions.iter().find(|&&p| p >= self.len()) {
+            return Err(DataFrameError::IndexOutOfBounds {
+                index: p,
+                length: self.len(),
+            });
+        }
+        let gather = |s: &Series<f64>| -> DataFrameResult<Vec<f64>> {
+            positions
+                .iter()
+                .map(|&p| {
+                    s.data()
+                        .get(p)
+                        .copied()
+                        .ok_or(DataFrameError::IndexOutOfBounds {
+                            index: p,
+                            length: s.len(),
+                        })
+                })
+                .collect()
+        };
+        let nulls: Vec<bool> = positions.iter().map(|&p| self.is_null(p)).collect();
+        let validity = NullBitmap::from_bools(&nulls);
         match self {
-            Self::Float64(s) => {
-                let data: DataFrameResult<Vec<f64>> = positions
-                    .iter()
-                    .map(|&p| s.data().get(p).copied().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: s.len() }))
-                    .collect();
-                Ok(Self::Float64(Series::new(s.name(), data?)))
-            }
+            Self::Float64(s) => Ok(Self::Float64(Series::with_validity(
+                s.name(),
+                gather(s)?,
+                validity,
+            ))),
             Self::Float32(s) => {
                 let data: DataFrameResult<Vec<f32>> = positions
                     .iter()
-                    .map(|&p| s.data().get(p).copied().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: s.len() }))
+                    .map(|&p| {
+                        s.data()
+                            .get(p)
+                            .copied()
+                            .ok_or(DataFrameError::IndexOutOfBounds {
+                                index: p,
+                                length: s.len(),
+                            })
+                    })
                     .collect();
-                Ok(Self::Float32(Series::new(s.name(), data?)))
+                Ok(Self::Float32(Series::with_validity(s.name(), data?, validity)))
             }
             Self::Int64(s) => {
                 let data: DataFrameResult<Vec<i64>> = positions
                     .iter()
-                    .map(|&p| s.data().get(p).copied().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: s.len() }))
+                    .map(|&p| {
+                        s.data()
+                            .get(p)
+                            .copied()
+                            .ok_or(DataFrameError::IndexOutOfBounds {
+                                index: p,
+                                length: s.len(),
+                            })
+                    })
                     .collect();
-                Ok(Self::Int64(Series::new(s.name(), data?)))
+                Ok(Self::Int64(Series::with_validity(s.name(), data?, validity)))
             }
             Self::Int32(s) => {
                 let data: DataFrameResult<Vec<i32>> = positions
                     .iter()
-                    .map(|&p| s.data().get(p).copied().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: s.len() }))
+                    .map(|&p| {
+                        s.data()
+                            .get(p)
+                            .copied()
+                            .ok_or(DataFrameError::IndexOutOfBounds {
+                                index: p,
+                                length: s.len(),
+                            })
+                    })
                     .collect();
-                Ok(Self::Int32(Series::new(s.name(), data?)))
+                Ok(Self::Int32(Series::with_validity(s.name(), data?, validity)))
             }
             Self::Bool(s) => {
                 let data: DataFrameResult<Vec<bool>> = positions
                     .iter()
-                    .map(|&p| s.data().get(p).copied().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: s.len() }))
+                    .map(|&p| {
+                        s.data()
+                            .get(p)
+                            .copied()
+                            .ok_or(DataFrameError::IndexOutOfBounds {
+                                index: p,
+                                length: s.len(),
+                            })
+                    })
                     .collect();
-                Ok(Self::Bool(Series::new(s.name(), data?)))
+                Ok(Self::Bool(Series::with_validity(s.name(), data?, validity)))
             }
             Self::Utf8(s) => {
                 let data: DataFrameResult<Vec<String>> = positions
                     .iter()
-                    .map(|&p| s.data().get(p).cloned().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: s.len() }))
+                    .map(|&p| {
+                        s.data()
+                            .get(p)
+                            .cloned()
+                            .ok_or(DataFrameError::IndexOutOfBounds {
+                                index: p,
+                                length: s.len(),
+                            })
+                    })
                     .collect();
-                Ok(Self::Utf8(Series::new(s.name(), data?)))
+                Ok(Self::Utf8(Series::with_validity(s.name(), data?, validity)))
             }
         }
     }

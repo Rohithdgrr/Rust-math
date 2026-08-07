@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-gpu"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse GPU compute backend: wgpu-based GPU acceleration for matrix and tensor ops"
@@ -14,9 +14,9 @@ default = []
 std = []
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.0" }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
 wgpu = { version = "24", features = ["naga-ir"] }
 pollster = "0.4"
 bytemuck = { version = "1", features = ["derive"] }

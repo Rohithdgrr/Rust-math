@@ -6,7 +6,7 @@ use mathverse_image::{GrayImage, morphology::{binarize, erode, dilate, open, clo
 
 fn main() {
     // Create a test image with a square
-    let mut img = GrayImage::new(64, 64);
+    let mut img = GrayImage::new(64, 64).unwrap();
     for y in 16..48 {
         for x in 16..48 {
             img.set(x, y, 1.0);

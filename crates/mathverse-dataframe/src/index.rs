@@ -153,6 +153,12 @@ impl Index {
     }
 }
 
+impl Default for Index {
+    fn default() -> Self {
+        Self::default_range(0)
+    }
+}
+
 impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

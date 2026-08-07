@@ -126,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_to_array1() {
+    fn test_vector_to_array1() {
         let v = Vector::new(vec![10.0, 20.0, 30.0]);
         let arr = vector_to_array1(v);
         assert_eq!(arr.len(), 3);
@@ -135,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn matrix_to_array2() {
+    fn test_matrix_to_array2() {
         let m = Matrix::from_rows(&[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
         let arr = matrix_to_array2(m);
         assert_eq!(arr.dim(), (2, 2));

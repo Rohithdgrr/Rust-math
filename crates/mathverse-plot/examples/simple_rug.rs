@@ -2,6 +2,7 @@
 
 use mathverse_plot::rug::{render_rug_plot, RugConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let values = vec![
@@ -23,7 +24,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg2.color = Color::rgb(66, 133, 244);
 
     let svg = render_rug_plot(&values, &cfg2)?;
-    PlotSaver::new(svg).save_png("rug.png")?;
+    PlotSaver::new(&svg).save_png("rug.png")?;
     println!("wrote rug.png");
 
     Ok(())

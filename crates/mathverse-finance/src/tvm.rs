@@ -87,7 +87,15 @@ pub fn present_value_annuity_due(payment: f64, rate: f64, periods: f64) -> f64 {
 /// 
 /// # Returns
 /// Payment per period
+///
+/// With a zero rate the payment is simply `PV / periods` (no interest).
 pub fn annuity_payment(present_value: f64, rate: f64, periods: f64) -> f64 {
+    if rate == 0.0 {
+        if periods == 0.0 {
+            return f64::NAN;
+        }
+        return present_value / periods;
+    }
     present_value * rate / (1.0 - (1.0 + rate).powf(-periods))
 }
 
@@ -100,8 +108,23 @@ pub fn annuity_payment(present_value: f64, rate: f64, periods: f64) -> f64 {
 /// 
 /// # Returns
 /// Number of periods
+///
+/// Uses `n = −ln(1 − PV·r / PMT) / ln(1 + r)`. Returns `f64::INFINITY` when
+/// the payment never exceeds the per-period interest accrual (no finite
+/// payoff exists), and `PV / PMT` when the rate is zero.
 pub fn annuity_periods(present_value: f64, payment: f64, rate: f64) -> f64 {
-    (-((present_value * rate / payment - 1.0).ln()) / (1.0 + rate).ln()).ln()
+    if rate == 0.0 {
+        if payment == 0.0 {
+            return f64::NAN;
+        }
+        return present_value / payment;
+    }
+    let base = 1.0 - present_value * rate / payment;
+    if base <= 0.0 {
+        // PMT ≤ PV·r: interest outgrows the payments, the loan is never repaid.
+        return f64::INFINITY;
+    }
+    -base.ln() / (1.0 + rate).ln()
 }
 
 /// Calculate effective annual rate from nominal rate
@@ -226,5 +249,23 @@ mod tests {
     fn test_net_present_value() {
         let cash_flows = vec![-1000.0, 300.0, 300.0, 300.0, 300.0];
         assert_relative_eq!(net_present_value(&cash_flows, 0.1), -49.0403660952122, epsilon = 1e-4);
+    }
+
+    #[test]
+    fn test_annuity_periods_roundtrip() {
+        // n = −ln(1 − 1000·0.1/150) / ln(1.1) ≈ 11.5267
+        let n = annuity_periods(1000.0, 150.0, 0.1);
+        assert_relative_eq!(n, 11.526_72, epsilon = 1e-3);
+        // Round-trips: the same payment must reproduce the PV.
+        assert_relative_eq!(present_value_annuity(150.0, 0.1, n), 1000.0, epsilon = 1e-6);
+        // Zero rate: no interest, so n = PV / PMT.
+        assert_relative_eq!(annuity_periods(1000.0, 200.0, 0.0), 5.0, epsilon = 1e-12);
+        // Payment ≤ interest accrual: never paid off.
+        assert!(annuity_periods(1000.0, 50.0, 0.1).is_infinite());
+    }
+
+    #[test]
+    fn test_annuity_payment_zero_rate() {
+        assert_relative_eq!(annuity_payment(1000.0, 0.0, 5.0), 200.0, epsilon = 1e-12);
     }
 }

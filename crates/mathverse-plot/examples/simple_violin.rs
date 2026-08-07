@@ -2,6 +2,7 @@
 
 use mathverse_plot::style::Color;
 use mathverse_plot::violin::{render_violin_plot, ViolinConfig, ViolinData};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let group_a: Vec<f64> = (0..200).map(|i| 3.0 + (i as f64 * 0.05).sin() * 1.0).collect();
@@ -22,7 +23,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_violin_plot(&data, &cfg)?;
-    PlotSaver::new(svg).save_png("violin.png")?;
+    PlotSaver::new(&svg).save_png("violin.png")?;
     println!("wrote violin.png");
 
     Ok(())

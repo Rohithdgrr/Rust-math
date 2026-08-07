@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-equations"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version.workspace = true
 description = "MathVerse equations: scalar and linear-system solvers"
@@ -10,11 +10,11 @@ keywords = ["math", "equations", "linear-systems", "solver", "polynomial"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
-mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.1" }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
-mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
+mathverse-algebra = { path = "../mathverse-algebra", version = "0.1.2" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.2" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.2" }
+mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.2" }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

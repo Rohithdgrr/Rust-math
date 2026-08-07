@@ -434,7 +434,7 @@ impl SvgPlot {
 
         // Draw bars (histogram) under series
         for bar in &self.bars {
-            svg.push_str(&self.generate_bar(bar, &x_px, &y_px, padding, plot_height));
+            svg.push_str(&Self::generate_bar(bar, &x_px, &y_px, padding, plot_height));
         }
 
         // Draw data series
@@ -444,12 +444,12 @@ impl SvgPlot {
 
         // Draw box plots
         for (i, b) in self.boxes.iter().enumerate() {
-            svg.push_str(&self.generate_box(i, b, &x_px, &y_px));
+            svg.push_str(&Self::generate_box(i, b, &x_px, &y_px));
         }
 
         // Draw error bars (above series so they stay visible)
         for e in &self.error_bars {
-            svg.push_str(&self.generate_error_bar(e, &x_px, &y_px));
+            svg.push_str(&Self::generate_error_bar(e, &x_px, &y_px));
         }
 
         // Draw annotations (arrows, text, shapes)
@@ -654,7 +654,6 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
     }
 
     fn generate_bar(
-        &self,
         bar: &BarData,
         x_px: &dyn Fn(f64) -> f64,
         y_px: &dyn Fn(f64) -> f64,
@@ -890,7 +889,6 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
     }
 
     fn generate_box(
-        &self,
         i: usize,
         b: &BoxData,
         x_px: &dyn Fn(f64) -> f64,
@@ -951,7 +949,6 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
     }
 
     fn generate_error_bar(
-        &self,
         e: &ErrorBarData,
         x_px: &dyn Fn(f64) -> f64,
         y_px: &dyn Fn(f64) -> f64,
@@ -1306,7 +1303,7 @@ mod tests {
         let config = PlotConfig::new();
         let mut plot = SvgPlot::new(config);
         plot.add_series(DataSeries::with_style(
-            "cross".into(),
+            String::from("cross"),
             vec![DataPoint::new(1.0, 2.0)],
             style,
         ));

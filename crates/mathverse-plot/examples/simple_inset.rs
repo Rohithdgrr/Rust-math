@@ -4,6 +4,7 @@ use mathverse_plot::{
     DataPoint, DataSeries, InsetAxes, InsetConfig, PlotConfig, SvgPlot,
 };
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create data with interesting detail
@@ -57,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Add inset to the main SVG
     svg = svg.replace("</svg>", &format!("{}\n</svg>", inset_svg));
 
-    PlotSaver::new(svg).save_png("inset.png")?;
+    PlotSaver::new(&svg).save_png("inset.png")?;
     println!("Wrote inset.svg ({} bytes)", svg.len());
 
     Ok(())

@@ -148,7 +148,6 @@ pub fn render_candlestick_svg(
     let wick_w = (candle_w * 0.1).max(1.0);
 
     // Draw candles
-    let mut idx = 0;
     for s in series {
         for c in &s.candles {
             let cx = to_x(c.x);
@@ -172,8 +171,6 @@ pub fn render_candlestick_svg(
                 r#"  <rect x="{:.2}" y="{body_top:.2}" width="{candle_w:.1}" height="{body_h:.2}" fill="{color}"/>"#,
                 cx - candle_w / 2.0
             ));
-
-            idx += 1;
         }
     }
 

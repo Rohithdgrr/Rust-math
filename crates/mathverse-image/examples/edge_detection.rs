@@ -6,7 +6,7 @@ use mathverse_image::{canny::canny, GrayImage};
 
 fn main() {
     // Create a test image with a step edge
-    let mut img = GrayImage::new(64, 64);
+    let mut img = GrayImage::new(64, 64).unwrap();
     for y in 0..64 {
         for x in 0..64 {
             img.set(x, y, if x < 32 { 0.0 } else { 1.0 });

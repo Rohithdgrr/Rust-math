@@ -16,8 +16,8 @@
 //! let mut plot = StreamingPlot::new(config);
 //!
 //! // In a real application, you'd feed data from a stream
-//! plot.push(1.0, 2.0);
-//! plot.push(2.0, 4.0);
+//! plot.push_xy(1.0, 2.0);
+//! plot.push_xy(2.0, 4.0);
 //!
 //! let html = plot.render_html();
 //! ```

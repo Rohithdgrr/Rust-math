@@ -1,35 +1,70 @@
+/// Minimizes `f(x)` subject to the *equality* constraints `g_j(x) = 0` using
+/// the augmented-Lagrangian method of multipliers.
+///
+/// The plain Lagrangian `L(x, λ) = f(x) + Σ_j λ_j g_j(x)` is a saddle point
+/// of the primal–dual dynamics, and a naive one-step primal–dual gradient
+/// update is marginally unstable for quadratic problems (it oscillates and
+/// drifts instead of converging). This implementation instead minimizes the
+/// *augmented* Lagrangian
+///
+/// ```text
+/// L_μ(x, λ) = f(x) + Σ_j λ_j g_j(x) + (μ/2) Σ_j g_j(x)²
+/// ```
+///
+/// over `x` (inner gradient descent with an Armijo backtracking line search),
+/// then updates the multipliers with the method-of-multipliers rule
+/// `λ_j ← λ_j + μ g_j(x)` and increases the penalty `μ`, which converges
+/// even with fixed step sizes.
 pub fn lagrangian(f: &dyn Fn(&[f64]) -> f64, g: &[Box<dyn Fn(&[f64]) -> f64>], x0: &[f64], lr: f64, tol: f64, max_iters: usize) -> Vec<f64> {
     let n = x0.len();
     let m = g.len();
     let mut x = x0.to_vec();
     let mut lambda = vec![0.0; m];
+    let mut mu = 1.0_f64;
     for _ in 0..max_iters {
-        let _gx: Vec<f64> = g.iter().map(|gi| gi(&x)).collect();
-        let mut grad_x = vec![0.0; n];
-        for i in 0..n {
-            let dx = 1e-6;
-            let mut f_plus = f(&x);
-            let mut f_minus = f(&x);
-            let mut x_plus = x.clone();
-            let mut x_minus = x.clone();
-            x_plus[i] += dx;
-            x_minus[i] -= dx;
-            f_plus = f(&x_plus);
-            f_minus = f(&x_minus);
-            grad_x[i] = (f_plus - f_minus) / (2.0 * dx);
+        // Augmented Lagrangian for the current multiplier estimate and penalty.
+        let lmu = |x: &[f64]| -> f64 {
+            let mut val = f(x);
             for j in 0..m {
-                let mut g_plus = x.clone();
-                let mut g_minus = x.clone();
-                g_plus[i] += dx;
-                g_minus[i] -= dx;
-                grad_x[i] -= lambda[j] * (g[j](&g_plus) - g[j](&g_minus)) / (2.0 * dx);
+                let gj = g[j](x);
+                val += lambda[j] * gj + 0.5 * mu * gj * gj;
             }
+            val
+        };
+        // Inner minimization of L_μ over x (finite-difference gradient with
+        // Armijo backtracking so the step stays stable as μ grows).
+        for _ in 0..500 {
+            let mut grad_x = vec![0.0; n];
+            let dx = 1e-7;
+            for i in 0..n {
+                let mut xp = x.clone();
+                let mut xm = x.clone();
+                xp[i] += dx;
+                xm[i] -= dx;
+                grad_x[i] = (lmu(&xp) - lmu(&xm)) / (2.0 * dx);
+            }
+            let gnorm: f64 = grad_x.iter().map(|v| v * v).sum::<f64>().sqrt();
+            if gnorm < 1e-8 { break; }
+            let fx = lmu(&x);
+            let mut alpha = lr;
+            let mut next: Vec<f64> = x.iter().zip(&grad_x).map(|(xi, gi)| xi - alpha * gi).collect();
+            for _ in 0..24 {
+                if lmu(&next) <= fx - 1e-4 * alpha * gnorm * gnorm { break; }
+                alpha *= 0.5;
+                next = x.iter().zip(&grad_x).map(|(xi, gi)| xi - alpha * gi).collect();
+            }
+            if alpha < 1e-12 { break; }
+            x = next;
         }
-        let mut next = x.clone();
-        for i in 0..n { next[i] -= lr * grad_x[i]; }
-        for j in 0..m { lambda[j] += lr * g[j](&next); }
-        if next.iter().zip(&x).map(|(a, b)| (a - b).powi(2)).sum::<f64>().sqrt() < tol { return next; }
-        x = next;
+        // Dual update: λ_j ← λ_j + μ g_j(x).
+        let mut max_viol: f64 = 0.0;
+        for j in 0..m {
+            let gj = g[j](&x);
+            max_viol = max_viol.max(gj.abs());
+            lambda[j] += mu * gj;
+        }
+        if max_viol < tol { break; }
+        mu = (mu * 2.0).min(1e10);
     }
     x
 }

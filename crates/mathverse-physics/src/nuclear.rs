@@ -1,6 +1,6 @@
 //! Nuclear physics: radioactive decay and the semi-empirical mass formula.
 
-use crate::constants::{H, H_BAR, M_E, M_N, M_P};
+
 
 /// Radioactive decay: N(t) = N₀ · exp(−λ · t).
 ///
@@ -33,7 +33,7 @@ pub fn half_life(lambda: f64) -> Option<f64> {
 /// BE/A ≈ 15.75
 ///        − 17.8·A⁻¹/³          (surface)
 ///        − 0.711·Z²/A⁴/³        (Coulomb)
-///        − 23.7·(A−2Z)²/A       (asymmetry)
+///        − 23.7·(A−2Z)²/A²      (asymmetry)
 ///        ± 12.0·δ/A             (pairing; δ = +1 even-even, −1 odd-odd, 0 mixed)
 /// ```
 ///
@@ -51,7 +51,10 @@ pub fn binding_energy_per_nucleon(a: u32, z: u32) -> f64 {
     let volume = 15.75;
     let surface = -17.8 * a.powf(-1.0 / 3.0);
     let coulomb = -0.711 * z * z / a.powf(4.0 / 3.0);
-    let asymmetry = -23.7 * (a - 2.0 * z).powi(2) / a;
+    // All terms here are per-nucleon; the asymmetry term of the total binding
+    // energy is −a_A·(A−2Z)²/A, so dividing by A again yields the per-nucleon
+    // form −a_A·(A−2Z)²/A².
+    let asymmetry = -23.7 * (a - 2.0 * z).powi(2) / a.powi(2);
     let pairing = {
         let a_usize = a as usize;
         if a_usize % 2 == 0 {
@@ -86,8 +89,8 @@ mod tests {
 
     #[test]
     fn test_decay_remaining() {
-        // After exactly one half-life, half should remain
-        assert_relative_eq!(decay_remaining(1.0, std::f64::consts::LN_2), 0.5, epsilon = 1e-15);
+        // After exactly one half-life (t = t½ = 1 s), half should remain
+        assert_relative_eq!(decay_remaining(1.0, 1.0), 0.5, epsilon = 1e-15);
         // At t = 0, all remain
         assert_relative_eq!(decay_remaining(10.0, 0.0), 1.0, epsilon = 1e-15);
     }

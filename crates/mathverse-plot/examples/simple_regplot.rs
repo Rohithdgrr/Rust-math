@@ -2,6 +2,7 @@
 
 use mathverse_plot::{render_regplot, RegPlotConfig, common::DataPoint};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate points with a linear trend plus noise
@@ -21,7 +22,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     config.show_equation = true;
 
     let svg = render_regplot(&points, &config)?;
-    PlotSaver::new(svg).save_png("regplot.png")?;
+    PlotSaver::new(&svg).save_png("regplot.png")?;
     println!("wrote regplot.png");
 
     Ok(())

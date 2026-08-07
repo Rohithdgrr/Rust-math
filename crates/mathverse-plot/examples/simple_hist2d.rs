@@ -1,6 +1,7 @@
 //! 2D histogram example: Correlated random data.
 
 use mathverse_plot::hist2d::{render_hist2d, Hist2DConfig};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate correlated x,y pairs using a simple LCG
@@ -28,7 +29,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 500;
 
     let svg = render_hist2d(&x_data, &y_data, &cfg)?;
-    PlotSaver::new(svg).save_png("hist2d.png")?;
+    PlotSaver::new(&svg).save_png("hist2d.png")?;
     println!("wrote hist2d.png");
 
     Ok(())

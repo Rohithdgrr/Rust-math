@@ -2,6 +2,7 @@
 
 use mathverse_core::error::{MathError, MathResult};
 
+
 /// Linear regression result.
 #[derive(Debug, Clone)]
 pub struct LinearResult {
@@ -19,8 +20,8 @@ pub struct LinearResult {
 /// `x`: \[n_samples × n_features\], `y`: \[n_samples\].
 #[must_use]
 pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<LinearResult> {
+    let p = crate::validate::validate_xy(x, y)?;
     let n = y.len();
-    let p = x[0].len();
     // Build X^T X and X^T y (with intercept column)
     let mut xtx = vec![vec![0.0; p + 1]; p + 1];
     let mut xty = vec![0.0; p + 1];
@@ -69,10 +70,15 @@ pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<LinearResult> {
 }
 
 /// Predict using fitted coefficients.
+///
+/// # Errors
+///
+/// Returns an error if `x` is empty or any row does not match the number of
+/// coefficients.
 #[must_use]
-#[inline]
-pub fn predict(x: &[Vec<f64>], coefficients: &[f64], intercept: f64) -> Vec<f64> {
-    x.iter()
+pub fn predict(x: &[Vec<f64>], coefficients: &[f64], intercept: f64) -> MathResult<Vec<f64>> {
+    crate::validate::validate_x(x, coefficients.len())?;
+    Ok(x.iter()
         .map(|row| {
             intercept
                 + row
@@ -81,14 +87,17 @@ pub fn predict(x: &[Vec<f64>], coefficients: &[f64], intercept: f64) -> Vec<f64>
                     .map(|(xi, ci)| xi * ci)
                     .sum::<f64>()
         })
-        .collect()
+        .collect())
 }
 
 /// Ridge regression (L2 penalty).
 #[must_use]
 pub fn fit_ridge(x: &[Vec<f64>], y: &[f64], alpha: f64) -> MathResult<LinearResult> {
+    let p = crate::validate::validate_xy(x, y)?;
+    if !alpha.is_finite() || alpha < 0.0 {
+        return Err(MathError::InvalidArgument("alpha must be non-negative"));
+    }
     let n = y.len();
-    let p = x[0].len();
     let mut xtx = vec![vec![0.0; p + 1]; p + 1];
     let mut xty = vec![0.0; p + 1];
     for i in 0..n {
@@ -148,8 +157,17 @@ pub fn fit_lasso(
     max_iters: usize,
     tol: f64,
 ) -> MathResult<LinearResult> {
+    let p = crate::validate::validate_xy(x, y)?;
+    if !alpha.is_finite() || alpha < 0.0 {
+        return Err(MathError::InvalidArgument("alpha must be non-negative"));
+    }
+    if max_iters == 0 {
+        return Err(MathError::InvalidArgument("max_iters must be at least 1"));
+    }
+    if !tol.is_finite() || tol < 0.0 {
+        return Err(MathError::InvalidArgument("tol must be non-negative"));
+    }
     let n = y.len();
-    let p = x[0].len();
     let mut coef = vec![0.0; p];
     let mut intercept = y.iter().sum::<f64>() / n as f64;
     // Precompute column means and residual
@@ -303,7 +321,35 @@ mod tests {
         let x = vec![vec![1.0], vec![2.0], vec![3.0]];
         let coef = vec![2.0];
         let intercept = 1.0;
-        let preds = predict(&x, &coef, intercept);
+        let preds = predict(&x, &coef, intercept).unwrap();
         assert_eq!(preds, vec![3.0, 5.0, 7.0]);
+    }
+
+    #[test]
+    fn empty_input_errors() {
+        assert!(fit(&[], &[]).is_err());
+        assert!(fit(&[vec![1.0]], &[]).is_err());
+        assert!(fit(&[], &[1.0]).is_err());
+    }
+
+    #[test]
+    fn mismatched_shapes_error() {
+        let x = vec![vec![1.0], vec![2.0]];
+        let y = vec![1.0, 2.0, 3.0];
+        assert!(fit(&x, &y).is_err());
+        assert!(fit_ridge(&x, &y, 0.1).is_err());
+    }
+
+    #[test]
+    fn ragged_rows_error() {
+        let x = vec![vec![1.0, 2.0], vec![1.0]];
+        let y = vec![1.0, 2.0];
+        assert!(fit(&x, &y).is_err());
+    }
+
+    #[test]
+    fn predict_shape_error() {
+        let x = vec![vec![1.0, 2.0]];
+        assert!(predict(&x, &[1.0], 0.0).is_err());
     }
 }

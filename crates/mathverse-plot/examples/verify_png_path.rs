@@ -16,9 +16,13 @@ fn main() {
         let pts: Vec<DataPoint> = xs.iter().zip(ys.iter()).map(|(x, y)| DataPoint::new(*x, *y)).collect();
         plot.add_series(DataSeries::new("sin(x)".to_string(), pts));
         let svg = plot.generate();
-        let r = PlotSaver::new(&svg).save_png("target/verify_png/titled_line");
+        let r = PlotSaver::new(&svg).save_as(
+            "target/verify_png/titled_line",
+            OutputFormat::Png,
+            &FormatSet::png(),
+        );
         println!("titled_line: {:?}", r.success);
-        PlotSaver::new(svg).save_png("target/verify_png/titled_line.png").unwrap();
+        PlotSaver::new(&svg).save_png("target/verify_png/titled_line.png").unwrap();
     }
 
     // 2. Heatmap via resvg path
@@ -35,9 +39,13 @@ fn main() {
         ];
         plot.add_heatmap("hm", grid, viridis).unwrap();
         let svg = plot.generate();
-        let r = PlotSaver::new(&svg).save_png("target/verify_png/heatmap");
+        let r = PlotSaver::new(&svg).save_as(
+            "target/verify_png/heatmap",
+            OutputFormat::Png,
+            &FormatSet::png(),
+        );
         println!("heatmap: {:?}", r.success);
-        PlotSaver::new(svg).save_png("target/verify_png/heatmap.png").unwrap();
+        PlotSaver::new(&svg).save_png("target/verify_png/heatmap.png").unwrap();
     }
 
     // 3. Log scale via resvg path
@@ -52,8 +60,12 @@ fn main() {
         let pts: Vec<DataPoint> = xs.iter().zip(ys.iter()).map(|(x, y)| DataPoint::new(*x, *y)).collect();
         plot.add_series(DataSeries::new("x^2".to_string(), pts));
         let svg = plot.generate();
-        let r = PlotSaver::new(&svg).save_png("target/verify_png/log");
+        let r = PlotSaver::new(&svg).save_as(
+            "target/verify_png/log",
+            OutputFormat::Png,
+            &FormatSet::png(),
+        );
         println!("log: {:?}", r.success);
-        PlotSaver::new(svg).save_png("target/verify_png/log.png").unwrap();
+        PlotSaver::new(&svg).save_png("target/verify_png/log.png").unwrap();
     }
 }

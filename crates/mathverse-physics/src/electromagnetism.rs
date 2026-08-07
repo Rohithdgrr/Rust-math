@@ -1,6 +1,6 @@
 //! Electromagnetism
 
-use crate::constants::{C, EPSILON_0, MU_0};
+use crate::constants::{EPSILON_0, MU_0};
 
 /// Calculate electric field from point charge
 /// 

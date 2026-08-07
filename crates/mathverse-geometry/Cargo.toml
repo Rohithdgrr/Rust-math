@@ -1,11 +1,10 @@
 [package]
 name = "mathverse-geometry"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 rust-version = "1.87"
 description = "Production-grade 2D/3D geometry library: shapes, spatial structures, transforms, intersections, distances, mesh ray tracing"
 license = "MIT OR Apache-2.0"
-license-file = "LICENSE.md"
 repository = "https://github.com/Rohithdgrr/Rust-math"
 homepage = "https://github.com/Rohithdgrr/Rust-math"
 documentation = "https://docs.rs/mathverse-geometry"
@@ -15,7 +14,6 @@ categories = ["science", "mathematics", "graphics", "algorithms"]
 
 # Production metadata
 authors = ["MathVerse Contributors <security@mathverse.dev>"]
-build = "build.rs"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -29,8 +27,8 @@ thiserror = { version = "2", optional = true }
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [features]
-default = ["std"]
-std = ["thiserror?/std"]
+default = ["std", "thiserror"]
+std = ["thiserror"]
 full = ["std", "thiserror"]
 
 [lib]

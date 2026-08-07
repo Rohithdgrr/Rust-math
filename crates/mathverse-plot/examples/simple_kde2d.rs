@@ -1,6 +1,7 @@
 //! 2D KDE plot example.
 
 use mathverse_plot::{render_kde_plot, KdeConfig};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate two correlated clusters
@@ -30,7 +31,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     config.plot_config = config.plot_config.with_title("2D KDE: Two Clusters");
 
     let svg = render_kde_plot(&x, &y, &config)?;
-    PlotSaver::new(svg).save_png("kde2d.png")?;
+    PlotSaver::new(&svg).save_png("kde2d.png")?;
     println!("wrote kde2d.png");
 
     Ok(())

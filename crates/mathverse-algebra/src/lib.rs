@@ -56,6 +56,15 @@
 //! - `#![forbid(unsafe_code)]` — no unsafe code in the entire crate
 
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
 
 use core::fmt;
 

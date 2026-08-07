@@ -203,6 +203,54 @@ impl Polygon {
         }
         Point2::new(cx / (3.0 * a2), cy / (3.0 * a2))
     }
+
+    /// Returns `true` if the point lies inside the polygon.
+    ///
+    /// Uses the even-odd ray-casting rule; points exactly on the boundary
+    /// are considered inside. Works for both convex and concave simple
+    /// polygons (self-intersecting polygons are not well-defined).
+    pub fn contains(&self, p: Point2) -> bool {
+        let n = self.points.len();
+        if n < 3 {
+            return false;
+        }
+
+        // Boundary check: if the point lies on any edge, treat it as inside.
+        for i in 0..n {
+            if Self::point_on_segment(p, self.points[i], self.points[(i + 1) % n]) {
+                return true;
+            }
+        }
+
+        // Even-odd ray casting along +x.
+        let mut inside = false;
+        let mut j = n - 1;
+        for i in 0..n {
+            let (a, b) = (self.points[i], self.points[j]);
+            let crosses_half_plane = (a.y > p.y) != (b.y > p.y);
+            if crosses_half_plane {
+                let x_intersect = (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x;
+                if p.x < x_intersect {
+                    inside = !inside;
+                }
+            }
+            j = i;
+        }
+        inside
+    }
+
+    /// Returns `true` if `p` lies on the closed segment `a`-`b`.
+    fn point_on_segment(p: Point2, a: Point2, b: Point2) -> bool {
+        const EPS: f64 = 1e-12;
+        let cross = (p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x);
+        if cross.abs() > EPS {
+            return false;
+        }
+        p.x >= a.x.min(b.x) - EPS
+            && p.x <= a.x.max(b.x) + EPS
+            && p.y >= a.y.min(b.y) - EPS
+            && p.y <= a.y.max(b.y) + EPS
+    }
 }
 
 /// Ellipse with semi-axes `rx`, `ry`, axis-aligned about `center`.
@@ -310,6 +358,37 @@ mod tests {
         assert_eq!(sq.area(), 4.0);
         assert_eq!(sq.perimeter(), 8.0);
         assert_eq!(sq.centroid(), Point2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn polygon_contains() {
+        let sq = Polygon::new(vec![
+            Point2::new(0.0, 0.0),
+            Point2::new(2.0, 0.0),
+            Point2::new(2.0, 2.0),
+            Point2::new(0.0, 2.0),
+        ]);
+        assert!(sq.contains(Point2::new(1.0, 1.0)));
+        assert!(!sq.contains(Point2::new(3.0, 1.0)));
+        assert!(!sq.contains(Point2::new(1.0, -1.0)));
+        // Boundary counts as inside.
+        assert!(sq.contains(Point2::new(0.0, 1.0)));
+        assert!(sq.contains(Point2::new(2.0, 2.0)));
+        // Concave polygon (L-shape).
+        let l = Polygon::new(vec![
+            Point2::new(0.0, 0.0),
+            Point2::new(3.0, 0.0),
+            Point2::new(3.0, 3.0),
+            Point2::new(2.0, 3.0),
+            Point2::new(2.0, 1.0),
+            Point2::new(0.0, 1.0),
+        ]);
+        assert!(l.contains(Point2::new(0.5, 0.5)));
+        assert!(l.contains(Point2::new(2.5, 2.5)));
+        assert!(l.contains(Point2::new(2.5, 0.5)));
+        // Outside the notch of the L.
+        assert!(!l.contains(Point2::new(1.0, 2.0)));
+        assert!(!l.contains(Point2::new(2.5, 3.5)));
     }
 
     #[test]

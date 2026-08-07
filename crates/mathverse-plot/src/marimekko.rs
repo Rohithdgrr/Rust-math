@@ -93,6 +93,11 @@ pub fn render_marimekko(
     let height = config.plot_config.height as f64;
 
     let total_weight: f64 = columns.iter().map(|c| c.width_weight).sum();
+    if total_weight <= 0.0 {
+        return Err(PlotError::InvalidData(
+            "column width weights must sum to a positive value".into(),
+        ));
+    }
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;
 
@@ -110,6 +115,11 @@ pub fn render_marimekko(
     for col in columns {
         let col_width = (col.width_weight / total_weight) * chart_width;
         let total_value: f64 = col.segments.iter().map(|s| s.value).sum();
+        if total_value <= 0.0 {
+            return Err(PlotError::InvalidData(
+                "each column's segment values must sum to a positive value".into(),
+            ));
+        }
 
         let mut y_offset = padding + 30.0;
 
@@ -197,6 +207,28 @@ mod tests {
     #[test]
     fn marimekko_empty_error() {
         let columns = vec![];
+        let config = MarimekkoConfig::new();
+        assert!(render_marimekko(&columns, &config).is_err());
+    }
+
+    #[test]
+    fn marimekko_zero_weight_error() {
+        let columns = vec![MarimekkoColumn::new(
+            "A",
+            0.0,
+            vec![MarimekkoSegment::new("P1", 10.0, Color::BLUE)],
+        )];
+        let config = MarimekkoConfig::new();
+        assert!(render_marimekko(&columns, &config).is_err());
+    }
+
+    #[test]
+    fn marimekko_zero_value_error() {
+        let columns = vec![MarimekkoColumn::new(
+            "A",
+            10.0,
+            vec![MarimekkoSegment::new("P1", 0.0, Color::BLUE)],
+        )];
         let config = MarimekkoConfig::new();
         assert!(render_marimekko(&columns, &config).is_err());
     }

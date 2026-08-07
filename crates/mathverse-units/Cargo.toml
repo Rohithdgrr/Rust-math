@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-units"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 authors = ["MathVerse Contributors"]
@@ -11,7 +11,7 @@ keywords = ["units", "dimensional-analysis", "physics", "si-units"]
 categories = ["science", "mathematics", "no-std"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
 typenum = "1.17"
 frunk = "0.4"
 

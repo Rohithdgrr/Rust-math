@@ -1,4 +1,8 @@
 //! Linear programming via the simplex method.
+//!
+//! Solves `max c^T x` subject to `A x ≤ b`, `x ≥ 0` using the standard
+//! tableau simplex algorithm with most-negative reduced-cost pivoting and
+//! the minimum-ratio test (ties broken toward the smallest index).
 
 /// Solves `max c^T x` subject to `Ax ≤ b, x ≥ 0`.
 pub fn simplex(c: &[f64], a: &[Vec<f64>], b: &[f64]) -> Option<(f64, Vec<f64>)> {
@@ -47,7 +51,10 @@ pub fn simplex(c: &[f64], a: &[Vec<f64>], b: &[f64]) -> Option<(f64, Vec<f64>)> 
         }
         if one_count == 1 { x[j] = tableau[row.unwrap()][n + m]; }
     }
-    Some((-obj, x))
+    // With row 0 initialized to `-c` and maintained through the usual row
+    // operations, the RHS of row 0 ends at the *positive* optimal objective
+    // value, so no sign flip is applied here.
+    Some((obj, x))
 }
 
 #[cfg(test)]

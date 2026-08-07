@@ -1,10 +1,10 @@
 use alloc::string::String;
+#[cfg(not(feature = "std"))]
 use alloc::vec;
 use alloc::vec::Vec;
 use core::fmt;
 
 use crate::dtype::DType;
-use crate::errors::{DataFrameError, DataFrameResult};
 use crate::null::NullBitmap;
 
 /// A named, typed, nullable column of data — the fundamental building block.
@@ -27,7 +27,6 @@ impl<T> Series<T> {
     /// Creates a new series from raw data (no nulls).
     #[must_use]
     pub fn new(name: impl Into<String>, data: Vec<T>) -> Self {
-        let len = data.len();
         Self {
             name: name.into(),
             data,
@@ -385,9 +384,9 @@ impl SeriesDType for String {
     const DTYPE: DType = DType::Utf8;
 }
 
-impl<T: fmt::Display> fmt::Display for Series<T> {
+impl<T: fmt::Display + SeriesDType> fmt::Display for Series<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Series(\"{}\" [{}]): ", self.name, self.dtype_name())?;
+        write!(f, "Series(\"{}\" [{}]): ", self.name, T::DTYPE.name())?;
         let max_display = 5;
         let len = self.len();
         for i in 0..len.min(max_display) {
@@ -404,56 +403,6 @@ impl<T: fmt::Display> fmt::Display for Series<T> {
             write!(f, ", ... ({len} total)")?;
         }
         Ok(())
-    }
-}
-
-impl<T> Series<T> {
-    /// Returns the dtype name for display (avoids requiring `SeriesDType`).
-    fn dtype_name(&self) -> &'static str {
-        // Default; overridden by the DataFrame when it knows the type.
-        "any"
-    }
-}
-
-impl Series<f64> {
-    /// Returns the dtype name for f64.
-    fn dtype_name(&self) -> &'static str {
-        "f64"
-    }
-}
-
-impl Series<f32> {
-    /// Returns the dtype name for f32.
-    fn dtype_name(&self) -> &'static str {
-        "f32"
-    }
-}
-
-impl Series<i64> {
-    /// Returns the dtype name for i64.
-    fn dtype_name(&self) -> &'static str {
-        "i64"
-    }
-}
-
-impl Series<i32> {
-    /// Returns the dtype name for i32.
-    fn dtype_name(&self) -> &'static str {
-        "i32"
-    }
-}
-
-impl Series<bool> {
-    /// Returns the dtype name for bool.
-    fn dtype_name(&self) -> &'static str {
-        "bool"
-    }
-}
-
-impl Series<String> {
-    /// Returns the dtype name for String.
-    fn dtype_name(&self) -> &'static str {
-        "str"
     }
 }
 

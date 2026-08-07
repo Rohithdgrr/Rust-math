@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-complex"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse complex numbers: arithmetic, powers, transcendental functions"
@@ -13,7 +13,7 @@ keywords = ["math", "complex-numbers", "imaginary", "mandelbrot", "fft"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.3" }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

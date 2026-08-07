@@ -153,11 +153,28 @@ pub enum Schedule {
     /// Constant learning rate of `1.0` (scale externally if needed).
     Constant,
     /// Multiply the learning rate by `gamma` every `step_size` steps.
-    StepDecay { step_size: usize, gamma: f64 },
+    StepDecay {
+        /// Number of steps between each decay.
+        step_size: usize,
+        /// Multiplicative decay factor applied each period.
+        gamma: f64,
+    },
     /// Cosine annealing between `1.0` and `eta_min` with period `t_max`.
-    CosineAnnealing { t_max: usize, eta_min: f64 },
+    CosineAnnealing {
+        /// Number of steps in one annealing cycle.
+        t_max: usize,
+        /// Minimum learning rate at the trough of each cycle.
+        eta_min: f64,
+    },
     /// Linear warmup from `base_lr` to `target_lr` for `warmup_steps` steps.
-    LinearWarmup { warmup_steps: usize, base_lr: f64, target_lr: f64 },
+    LinearWarmup {
+        /// Number of steps over which the learning rate ramps up.
+        warmup_steps: usize,
+        /// Starting learning rate at step zero.
+        base_lr: f64,
+        /// Final learning rate reached after warmup completes.
+        target_lr: f64,
+    },
 }
 
 /// Learning rate scheduler driven by a [`Schedule`].

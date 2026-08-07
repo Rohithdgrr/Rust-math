@@ -2,6 +2,7 @@
 
 use mathverse_plot::{render_boxen_plot, BoxenData, BoxenConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let data = vec![
@@ -26,7 +27,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     config.plot_config = config.plot_config.with_title("Boxen Plot: Value Spread");
 
     let svg = render_boxen_plot(&data, &config)?;
-    PlotSaver::new(svg).save_png("boxen.png")?;
+    PlotSaver::new(&svg).save_png("boxen.png")?;
     println!("wrote boxen.png");
 
     Ok(())

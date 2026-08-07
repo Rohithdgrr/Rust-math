@@ -1,6 +1,20 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
+#![allow(clippy::approx_constant)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::float_cmp)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::many_single_char_names)]
+#![allow(clippy::similar_names)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::return_self_not_must_use)]
+#![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::unreadable_literal)]
 #![allow(clippy::needless_range_loop)]
 
 //! Classical machine learning: supervised, unsupervised, ensemble, model evaluation.
@@ -40,5 +54,6 @@ pub mod pipeline;
 pub mod preprocessing_adv;
 pub mod svm;
 pub mod tree;
+mod validate;
 /// XGBoost gradient boosting implementation.
 pub mod xgboost;

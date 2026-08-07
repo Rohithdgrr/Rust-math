@@ -14,11 +14,11 @@
 //! # Examples
 //!
 //! ```
-//! use mathverse_parallel::{par_dot, par_sum, par_map};
+//! use mathverse_parallel::{par_dot_slice, par_sum_slice, par_map_slice};
 //!
 //! let a = vec![1.0; 100_000];
 //! let b = vec![2.0; 100_000];
-//! let dot = par_dot(&a, &b);
+//! let dot = par_dot_slice(&a, &b);
 //! assert!((dot - 200_000.0).abs() < 1e-6);
 //! ```
 

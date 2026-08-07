@@ -1,3 +1,4 @@
+use alloc::string::{String, ToString};
 use core::fmt;
 
 /// Errors that can occur in DataFrame operations.
@@ -81,6 +82,7 @@ impl fmt::Display for DataFrameError {
     }
 }
 
+#[cfg(feature = "std")]
 impl From<std::io::Error> for DataFrameError {
     fn from(e: std::io::Error) -> Self {
         Self::Io(e.to_string())

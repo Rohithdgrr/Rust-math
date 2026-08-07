@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-graphics"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse graphics math: affine transforms, quaternions, projection"
@@ -8,9 +8,9 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
-mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
-mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
+mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.2" }
+mathverse-vector = { path = "../mathverse-vector", version = "0.1.2" }
 
 [lints]
 workspace = true

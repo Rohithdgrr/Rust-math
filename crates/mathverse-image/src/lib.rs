@@ -25,7 +25,7 @@
 //! use mathverse_image::{GrayImage, box_blur, sharpen};
 //!
 //! // Create a new blank image
-//! let mut img = GrayImage::new(64, 64);
+//! let mut img = GrayImage::new(64, 64).unwrap();
 //!
 //! // Set some pixel values
 //! img.set(10, 10, 0.5);
@@ -608,8 +608,6 @@ pub fn sharpen(img: &GrayImage) -> GrayImage {
 pub fn fast_box_blur(img: &GrayImage, radius: usize) -> GrayImage {
     let integral = integral_image::IntegralImage::from_image(img);
     let mut out = GrayImage::new(img.w, img.h).unwrap();
-    let side = 2 * radius + 1;
-    let area = side * side;
     for y in 0..img.h {
         for x in 0..img.w {
             let x0 = x.saturating_sub(radius);
@@ -618,7 +616,9 @@ pub fn fast_box_blur(img: &GrayImage, radius: usize) -> GrayImage {
             let y1 = (y + radius + 1).min(img.h);
             let sum = integral.sum_region(x0, y0, x1, y1);
             let actual_area = (x1 - x0) * (y1 - y0);
-            out.set(x, y, sum / (actual_area * area) as f64);
+            // `actual_area` already accounts for border clamping; dividing by
+            // `area` as well would darken edge pixels by a factor of `area`.
+            out.set(x, y, sum / actual_area as f64);
         }
     }
     out

@@ -100,7 +100,7 @@ BS call price: $10.45
 | `sharpe_ratio(port_return, rf, std_dev)` | Sharpe ratio |
 | `sortino_ratio(port_return, rf, downside_dev)` | Sortino ratio |
 | `treynor_ratio(port_return, rf, beta)` | Treynor ratio |
-| `information_ratio(port_return, bench_return, tracking_error)` | Information ratio |
+| `information_ratio_from_scalars(port_return, bench_return, tracking_error)` | Information ratio (scalar inputs) |
 | `maximum_drawdown(values)` | Max drawdown % |
 | `calmar_ratio(annual_return, max_drawdown)` | Calmar ratio |
 | `jensens_alpha(port_return, rf, beta, market_return)` | Jensen's alpha |
@@ -146,7 +146,7 @@ BS call price: $10.45
 | `efficient_portfolio(expected_returns, cov_matrix, target)` | Efficient frontier |
 | `tracking_error(port_returns, bench_returns)` | Tracking error |
 | `portfolio_beta(port_returns, market_returns)` | Portfolio β |
-| `information_ratio(port_returns, bench_returns)` | Information ratio |
+| `information_ratio(port_returns, bench_returns)` | Information ratio (from return series) |
 | `portfolio_turnover(old_weights, new_weights)` | Turnover |
 
 ## Dependencies

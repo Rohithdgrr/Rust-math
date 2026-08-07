@@ -3,6 +3,7 @@
 use mathverse_plot::common::DataPoint;
 use mathverse_plot::step::{render_step_plot, StepConfig, StepPosition};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let points = vec![
@@ -25,7 +26,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 350;
 
     let svg = render_step_plot(&points, &cfg)?;
-    PlotSaver::new(svg).save_png("step.png")?;
+    PlotSaver::new(&svg).save_png("step.png")?;
     println!("wrote step.png");
 
     Ok(())

@@ -4,7 +4,7 @@ use crate::GrayImage;
 
 /// Threshold `[0,1]` image to 0/1.
 pub fn binarize(img: &GrayImage, t: f64) -> GrayImage {
-    let mut out = GrayImage::new(img.w, img.h);
+    let mut out = GrayImage::new(img.w, img.h).unwrap();
     for (i, &v) in img.data.iter().enumerate() {
         out.data[i] = if v >= t { 1.0 } else { 0.0 };
     }
@@ -13,7 +13,7 @@ pub fn binarize(img: &GrayImage, t: f64) -> GrayImage {
 
 /// Erode with 3×3 cross: 1 if center and 4-neighbors are 1.
 pub fn erode(img: &GrayImage) -> GrayImage {
-    let mut out = GrayImage::new(img.w, img.h);
+    let mut out = GrayImage::new(img.w, img.h).unwrap();
     for y in 0..img.h {
         for x in 0..img.w {
             if img.get(x, y) < 0.5 {
@@ -35,7 +35,7 @@ pub fn erode(img: &GrayImage) -> GrayImage {
 
 /// Dilate with 3×3 cross: 1 if any 4-neighbor is 1.
 pub fn dilate(img: &GrayImage) -> GrayImage {
-    let mut out = GrayImage::new(img.w, img.h);
+    let mut out = GrayImage::new(img.w, img.h).unwrap();
     for y in 0..img.h {
         for x in 0..img.w {
             if img.get(x, y) >= 0.5 {
@@ -75,7 +75,7 @@ mod tests {
     #[test]
     fn erode_dilate() {
         // 4x4 square, single-pixel border removed by erode, restored by close
-        let mut img = GrayImage::new(16, 16);
+        let mut img = GrayImage::new(16, 16).unwrap();
         for y in 5..10 {
             for x in 5..10 {
                 img.set(x, y, 1.0);
@@ -89,7 +89,7 @@ mod tests {
         assert!((sum(&close(&img)) - 25.0).abs() < 1e-9);
         assert!((sum(&open(&img)) - 21.0).abs() < 1e-9);
         // erode of a 2x2 block vanishes
-        let mut tiny = GrayImage::new(8, 8);
+        let mut tiny = GrayImage::new(8, 8).unwrap();
         tiny.set(4, 4, 1.0);
         tiny.set(4, 5, 1.0);
         tiny.set(5, 4, 1.0);

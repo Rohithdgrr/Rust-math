@@ -2,6 +2,7 @@
 
 use mathverse_plot::hbar::{render_hbar_chart, HBar, HBarConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bars = vec![

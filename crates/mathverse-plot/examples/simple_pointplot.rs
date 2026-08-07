@@ -2,6 +2,7 @@
 
 use mathverse_plot::{render_pointplot, PointCategory, PointConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let categories = vec![
@@ -16,7 +17,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .with_title("Point Plot: Mean Response Over Time");
 
     let svg = render_pointplot(&categories, &config)?;
-    PlotSaver::new(svg).save_png("pointplot.png")?;
+    PlotSaver::new(&svg).save_png("pointplot.png")?;
     println!("wrote pointplot.png");
 
     Ok(())

@@ -4,6 +4,7 @@ use mathverse_plot::{
     DataPoint, DataSeries, LegendConfig, LegendPosition, PlotConfig, SvgPlot,
 };
 use mathverse_plot::style::{Color, PlotStyle};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create multiple data series
@@ -47,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
 
     let svg = plot.generate();
-    PlotSaver::new(svg).save_png("legend_upper_right.png")?;
+    PlotSaver::new(&svg).save_png("legend_upper_right.png")?;
     println!("Wrote legend_upper_right.png");
 
     // Example 2: Legend at bottom left
@@ -80,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     svg = svg.replace("</svg>", &format!("{}\n</svg>", legend_svg));
-    PlotSaver::new(svg).save_png("legend_lower_left.png")?;
+    PlotSaver::new(&svg).save_png("legend_lower_left.png")?;
     println!("Wrote legend_lower_left.png");
 
     // Example 3: Legend outside right
@@ -120,7 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     svg = svg.replace("</svg>", &format!("{}\n</svg>", legend_svg));
-    PlotSaver::new(svg).save_png("legend_outside_right.png")?;
+    PlotSaver::new(&svg).save_png("legend_outside_right.png")?;
     println!("Wrote legend_outside_right.png");
 
     Ok(())

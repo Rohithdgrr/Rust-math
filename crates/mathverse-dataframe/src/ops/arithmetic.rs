@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::column::AnyColumn;
 use crate::errors::{DataFrameError, DataFrameResult};
 use crate::series::Series;

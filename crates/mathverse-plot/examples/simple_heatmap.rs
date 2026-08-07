@@ -2,6 +2,7 @@
 
 use mathverse_plot::color::viridis;
 use mathverse_plot::{PlotConfig, SvgPlot};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rows = 20;

@@ -383,8 +383,13 @@ impl MultilinearInterpolation {
             let i = indices[0];
             let j = indices[1];
             
-            let t = indices[0] as f64;
-            let s = indices[1] as f64;
+            // Fractional offsets within the cell, exactly as in the 1-D case.
+            let n0 = self.grid_dims[0];
+            let n1 = self.grid_dims[1];
+            let (min0, max0) = (self.grid_min[0], self.grid_max[0]);
+            let (min1, max1) = (self.grid_min[1], self.grid_max[1]);
+            let t = (x[0] - min0) / (max0 - min0) * (n0 - 1) as f64 - i as f64;
+            let s = (x[1] - min1) / (max1 - min1) * (n1 - 1) as f64 - j as f64;
             
             let v00 = self.get_value(&[i, j]);
             let v01 = self.get_value(&[i, j + 1]);
@@ -414,6 +419,8 @@ impl ChebyshevInterpolation {
     pub fn from_function(f: &dyn Fn(f64) -> f64, a: f64, b: f64, n: usize) -> Self {
         let mut coeffs = vec![0.0; n];
         
+        // Discrete cosine transform (DCT-II) over the Chebyshev nodes:
+        //   c_j = (2/n) Σ_i f(x_i) T_j(x_i),  c_0 halved.
         for i in 0..n {
             let theta = core::f64::consts::PI * (i as f64 + 0.5) / n as f64;
             let x = (a + b) / 2.0 + (b - a) / 2.0 * theta.cos();
@@ -424,11 +431,10 @@ impl ChebyshevInterpolation {
             }
         }
         
-        for coeff in &mut coeffs {
-            *coeff /= n as f64;
+        for (j, coeff) in coeffs.iter_mut().enumerate() {
+            let scale = if j == 0 { 1.0 } else { 2.0 } / n as f64;
+            *coeff *= scale;
         }
-        
-        coeffs[0] /= 2.0;
         
         ChebyshevInterpolation { coeffs, a, b }
     }

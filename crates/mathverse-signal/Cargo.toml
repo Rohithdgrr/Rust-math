@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-signal"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse signal processing: FIR/IIR filters, convolution, correlation"
@@ -10,9 +10,9 @@ keywords = ["math", "signal-processing", "filters", "convolution", "spectral"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
 mathverse-complex = { path = "../mathverse-complex", version = "0.2.0" }
-mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.1" }
+mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.2" }
 
 [lints]
 workspace = true

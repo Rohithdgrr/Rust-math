@@ -6,7 +6,7 @@ use mathverse_image::{box_blur, sharpen, GrayImage};
 
 fn main() {
     // Create a new blank image
-    let mut img = GrayImage::new(64, 64);
+    let mut img = GrayImage::new(64, 64).unwrap();
     
     // Create a simple pattern
     for y in 0..64 {

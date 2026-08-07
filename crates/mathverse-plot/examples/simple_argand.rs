@@ -4,6 +4,7 @@ use mathverse_complex::Complex;
 use mathverse_plot::{
     ComplexPlaneConfig, ComplexPlaneMode, render_argand, render_domain_coloring,
 };
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Argand diagram with complex numbers on the unit circle
@@ -19,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_resolution(400);
 
     let svg = render_argand(&points, config)?;
-    PlotSaver::new(svg).save_png("argand.png")?;
+    PlotSaver::new(&svg).save_png("argand.png")?;
     println!("Wrote argand.svg ({} bytes)", svg.len());
 
     // Example 2: Domain coloring of f(z) = 1/z
@@ -38,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let svg = render_domain_coloring(f, domain_config)?;
-    PlotSaver::new(svg).save_png("domain_coloring.png")?;
+    PlotSaver::new(&svg).save_png("domain_coloring.png")?;
     println!("Wrote domain_coloring.svg ({} bytes)", svg.len());
 
     Ok(())

@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-probability"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 description = "Probability: distributions, Bayes, Monte Carlo, Markov chains, queueing, extreme value theory"
@@ -10,7 +10,7 @@ keywords = ["math", "probability", "distributions", "bayesian", "monte-carlo"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
 
 
 [lints]

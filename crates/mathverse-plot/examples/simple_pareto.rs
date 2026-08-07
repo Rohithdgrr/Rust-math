@@ -2,6 +2,7 @@
 
 use mathverse_plot::pareto::{render_pareto, ParetoBar, ParetoConfig};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bars = vec![
@@ -22,7 +23,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.line_color = Color::rgb(220, 20, 60);
 
     let svg = render_pareto(&bars, &cfg)?;
-    PlotSaver::new(svg).save_png("pareto.png")?;
+    PlotSaver::new(&svg).save_png("pareto.png")?;
     println!("wrote pareto.png");
 
     Ok(())

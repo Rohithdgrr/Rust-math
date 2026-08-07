@@ -369,6 +369,9 @@ pub fn base64_decode(input: &str) -> Vec<u8> {
         for &v in chunk {
             triple = (triple << 6) | v;
         }
+        // Left-align the accumulated bits: missing 6-bit groups are zero-padded
+        // on the right, mirroring the encoder's padding behavior.
+        triple <<= (4 - chunk.len()) * 6;
         if chunk.len() >= 2 {
             bytes.push((triple >> 16) as u8);
         }

@@ -155,10 +155,10 @@ mod tests {
     fn len_hint() {
         assert_eq!(Expr::Slice(&[1.0, 2.0]).len_hint(), Some(2));
         assert_eq!(Expr::Owned(vec![1.0]).len_hint(), Some(1));
-        let复合 = Expr::Add(
+        let composite = Expr::Add(
             Box::new(Expr::Slice(&[1.0])),
             Box::new(Expr::Slice(&[2.0])),
         );
-        assert_eq!(复合.len_hint(), None);
+        assert_eq!(composite.len_hint(), None);
     }
 }

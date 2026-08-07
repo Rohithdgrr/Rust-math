@@ -1,6 +1,6 @@
 //! Terminal (ASCII) plotting backend
 
-use crate::backend::{Backend, PlotData, PlotOutput};
+use crate::backend::{PlotData, PlotOutput};
 use crate::common::{compute_x_range, compute_y_range, DataSeries, PlotConfig};
 use crate::error::PlotResult;
 

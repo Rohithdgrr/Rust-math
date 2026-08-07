@@ -104,22 +104,26 @@ impl RKF45 {
             .zip(&k3)
             .map(|(((&yi, &k1i), &k2i), &k3i)| yi + h * (1932.0 * k1i - 7200.0 * k2i + 7296.0 * k3i) / 2197.0)
             .collect();
-        let k4 = f(t + 12.0 * h / 13.0, &y4);
-        
-        let y5: Vec<f64> = y.iter()
+        let k4 = f(t + 12.0 * h / 13.0, &y4);        let y5: Vec<f64> = y.iter()
             .zip(&k1)
+            .zip(&k2)
             .zip(&k3)
             .zip(&k4)
-            .map(|(((&yi, &k1i), &k3i), &k4i)| yi + h * (439.0 * k1i / 216.0 - 8.0 * k3i + 3680.0 * k4i / 513.0))
+            .map(|((((&yi, &k1i), &k2i), &k3i), &k4i)| {
+                yi + h * (439.0 * k1i / 216.0 - 8.0 * k2i + 3680.0 * k3i / 513.0 - 845.0 * k4i / 4104.0)
+            })
             .collect();
         let k5 = f(t + h, &y5);
-        
+
         let y6: Vec<f64> = y.iter()
             .zip(&k1)
+            .zip(&k2)
             .zip(&k3)
             .zip(&k4)
             .zip(&k5)
-            .map(|((((&yi, &k1i), &k3i), &k4i), &k5i)| yi + h * (-8.0 * k1i / 27.0 + 2.0 * k3i - 3544.0 * k4i / 2565.0 + 1859.0 * k5i / 4104.0))
+            .map(|(((((&yi, &k1i), &k2i), &k3i), &k4i), &k5i)| {
+                yi + h * (-8.0 * k1i / 27.0 + 2.0 * k2i - 3544.0 * k3i / 2565.0 + 1859.0 * k4i / 4104.0 - 11.0 * k5i / 40.0)
+            })
             .collect();
         let k6 = f(t + h / 2.0, &y6);
         
@@ -243,29 +247,34 @@ impl DormandPrince {
             .zip(&k2)
             .map(|((&yi, &k1i), &k2i)| yi + h * (3.0 * k1i + 9.0 * k2i) / 40.0)
             .collect();
-        let k3 = f(t + 3.0 * h / 10.0, &y3);
-        
-        let y4: Vec<f64> = y.iter()
+        let k3 = f(t + 3.0 * h / 10.0, &y3);        let y4: Vec<f64> = y.iter()
             .zip(&k1)
+            .zip(&k2)
             .zip(&k3)
-            .map(|((&yi, &k1i), &k3i)| yi + h * (44.0 * k1i / 45.0 - 56.0 * k3i / 15.0))
+            .map(|(((&yi, &k1i), &k2i), &k3i)| yi + h * (44.0 * k1i / 45.0 - 56.0 * k2i / 15.0 + 32.0 * k3i / 9.0))
             .collect();
         let k4 = f(t + 4.0 * h / 5.0, &y4);
-        
+
         let y5: Vec<f64> = y.iter()
             .zip(&k1)
+            .zip(&k2)
             .zip(&k3)
             .zip(&k4)
-            .map(|(((&yi, &k1i), &k3i), &k4i)| yi + h * (19372.0 * k1i / 6561.0 - 25360.0 * k3i / 2187.0 + 64448.0 * k4i / 6561.0))
+            .map(|((((&yi, &k1i), &k2i), &k3i), &k4i)| {
+                yi + h * (19372.0 * k1i / 6561.0 - 25360.0 * k2i / 2187.0 + 64448.0 * k3i / 6561.0 - 212.0 * k4i / 729.0)
+            })
             .collect();
         let k5 = f(t + 8.0 * h / 9.0, &y5);
-        
+
         let y6: Vec<f64> = y.iter()
             .zip(&k1)
+            .zip(&k2)
             .zip(&k3)
             .zip(&k4)
             .zip(&k5)
-            .map(|((((&yi, &k1i), &k3i), &k4i), &k5i)| yi + h * (9017.0 * k1i / 3168.0 - 355.0 * k3i / 33.0 + 46732.0 * k4i / 5247.0 + 49.0 * k5i / 176.0))
+            .map(|(((((&yi, &k1i), &k2i), &k3i), &k4i), &k5i)| {
+                yi + h * (9017.0 * k1i / 3168.0 - 355.0 * k2i / 33.0 + 46732.0 * k3i / 5247.0 + 49.0 * k4i / 176.0 - 5103.0 * k5i / 18656.0)
+            })
             .collect();
         let k6 = f(t + h, &y6);
         

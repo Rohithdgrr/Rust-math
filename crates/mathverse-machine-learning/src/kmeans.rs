@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 
 use crate::knn::euclidean;
-use mathverse_core::error::MathResult;
+use mathverse_core::error::{MathError, MathResult};
 
 /// K-means result.
 #[derive(Debug, Clone)]
@@ -64,9 +64,37 @@ fn init_centroids(x: &[Vec<f64>], k: usize) -> Vec<Vec<f64>> {
 /// K-means clustering.
 #[must_use]
 pub fn kmeans(x: &[Vec<f64>], k: usize, max_iters: usize, tol: f64) -> MathResult<KMeansResult> {
-    assert!(!x.is_empty() && k > 0 && k <= x.len());
+    if x.is_empty() {
+        return Err(MathError::InvalidArgument("feature matrix is empty"));
+    }
+    if k == 0 {
+        return Err(MathError::InvalidArgument("k must be at least 1"));
+    }
+    if k > x.len() {
+        return Err(MathError::InvalidArgument(
+            "k cannot exceed the number of samples",
+        ));
+    }
+    if max_iters == 0 {
+        return Err(MathError::InvalidArgument("max_iters must be at least 1"));
+    }
+    if !tol.is_finite() || tol < 0.0 {
+        return Err(MathError::InvalidArgument("tol must be non-negative"));
+    }
     let n = x.len();
     let p = x[0].len();
+    if p == 0 {
+        return Err(MathError::InvalidArgument(
+            "feature matrix has zero features",
+        ));
+    }
+    for row in x {
+        if row.len() != p {
+            return Err(MathError::InvalidArgument(
+                "feature matrix rows have inconsistent lengths",
+            ));
+        }
+    }
     let mut centroids = init_centroids(x, k);
     let mut labels = vec![0usize; n];
 
@@ -160,5 +188,23 @@ mod tests {
         let r1 = kmeans(&x, 3, 1, 1e-6).unwrap();
         let r2 = kmeans(&x, 3, 10, 1e-6).unwrap();
         assert!(r2.inertia <= r1.inertia + 1e-6);
+    }
+
+    #[test]
+    fn empty_input_errors() {
+        assert!(kmeans(&[], 2, 10, 1e-6).is_err());
+    }
+
+    #[test]
+    fn k_too_large_errors() {
+        let x: Vec<Vec<f64>> = vec![vec![1.0], vec![2.0]];
+        assert!(kmeans(&x, 5, 10, 1e-6).is_err());
+        assert!(kmeans(&x, 0, 10, 1e-6).is_err());
+    }
+
+    #[test]
+    fn ragged_rows_error() {
+        let x = vec![vec![1.0, 2.0], vec![1.0]];
+        assert!(kmeans(&x, 2, 10, 1e-6).is_err());
     }
 }

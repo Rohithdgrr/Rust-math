@@ -1,3 +1,14 @@
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
+
 //! Arithmetic: percentage, powers, roots, modulus, absolute value,
 //! rounding modes, financial TVM, and checked/saturating operations.
 //!
@@ -30,6 +41,54 @@ pub use checked_ops::{
     saturating_add, saturating_sub, saturating_mul,
     approx_eq, approx_eq_rel, inverse_lerp, remap,
 };
+
+/// Compensated (Neumaier) summation of a slice — accurate to near machine
+/// precision even for large, cancellative, or widely-scaled inputs.
+///
+/// Equivalent to Python's `math.fsum`. Returns `0.0` for empty input.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_arithmetic::fsum;
+///
+/// let xs = [1e16, 1.0, -1e16];
+/// assert_eq!(fsum(&xs), 1.0);          // naive sum gives 0.0
+/// assert_eq!(fsum(&[1.0, 2.0, 3.0]), 6.0);
+/// assert_eq!(fsum(&[]), 0.0);
+/// ```
+#[must_use]
+pub fn fsum(xs: &[f64]) -> f64 {
+    let mut sum = 0.0;
+    let mut compensation = 0.0;
+    for &x in xs {
+        let t = sum + x;
+        if sum.abs() >= x.abs() {
+            compensation += (sum - t) + x;
+        } else {
+            compensation += (x - t) + sum;
+        }
+        sum = t;
+    }
+    sum + compensation
+}
+
+/// Copy the sign of `sign` onto `magnitude`, like Python's `math.copysign`.
+///
+/// # Examples
+///
+/// ```
+/// use mathverse_arithmetic::copysign;
+///
+/// assert_eq!(copysign(3.0, -1.0), -3.0);
+/// assert_eq!(copysign(-3.0, 1.0), 3.0);
+/// assert!(copysign(1.0, -0.0).is_sign_negative());
+/// ```
+#[inline]
+#[must_use]
+pub fn copysign(magnitude: f64, sign: f64) -> f64 {
+    magnitude.copysign(sign)
+}
 
 /// `x` scaled by a percentage: `percentage(200, 10)` = 20.
 pub fn percentage<T: Real>(x: T, percent: T) -> T {
@@ -124,5 +183,27 @@ mod tests {
         assert_eq!(modulus(17, 5).unwrap(), 2);
         assert_eq!(modulus(17, 0), Err(mathverse_core::error::MathError::DivisionByZero));
         assert_eq!(absolute(-4.5), 4.5);
+    }
+
+    #[test]
+    fn compensated_sum() {
+        // Cancellation that a naive sum gets wrong.
+        let xs = [1e16, 1.0, -1e16];
+        assert_eq!(fsum(&xs), 1.0);
+        // Sum of 10_000 copies of 0.1 must be exact-ish.
+        let many = vec![0.1; 10_000];
+        let s = fsum(&many);
+        assert!((s - 1000.0).abs() < 1e-9);
+        assert_eq!(fsum(&[]), 0.0);
+        // Matches naive sum for simple cases.
+        assert_eq!(fsum(&[1.0, 2.0, 3.0]), 6.0);
+    }
+
+    #[test]
+    fn copysign_test() {
+        assert_eq!(copysign(3.0, -1.0), -3.0);
+        assert_eq!(copysign(-3.0, 1.0), 3.0);
+        assert!(copysign(1.0, -0.0).is_sign_negative());
+        assert!(copysign(-1.0, 0.0).is_sign_positive());
     }
 }

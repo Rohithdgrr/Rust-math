@@ -7,9 +7,14 @@ use crate::Image;
 /// Returns `(horizontal_flow, vertical_flow)` as two grayscale `Image` instances.
 pub fn lucas_kanade(a: &Image, b: &Image) -> (Image, Image) {
     assert_eq!((a.w, a.h), (b.w, b.h));
+    let (w, h) = (a.w, a.h);
+    // The 5×5 window cannot be placed in images smaller than 2×2; the
+    // gradient stencil also needs a 3×3 interior, so return zero flow.
+    if w < 3 || h < 3 {
+        return (Image::new(w, h), Image::new(w, h));
+    }
     const GX: [f64; 9] = [-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0];
     const GY: [f64; 9] = [-1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0];
-    let (w, h) = (a.w, a.h);
     let ax = a.convolve3(&GX);
     let ay = a.convolve3(&GY);
     let mut u = Image::new(w, h);
@@ -20,9 +25,12 @@ pub fn lucas_kanade(a: &Image, b: &Image) -> (Image, Image) {
             for dy in -2..=2i32 {
                 for dx in -2..=2i32 {
                     let (px, py) = ((x as i32 + dx) as usize, (y as i32 + dy) as usize);
-                    let gx = ax.get(px, py);
-                    let gy = ay.get(px, py);
-                    let it = b.get(px, py) - a.get(px, py);
+                    // The window stays inside the image (x ∈ 2..w−2), so index
+                    // directly instead of paying the bounds check in `get`.
+                    let off = py * w + px;
+                    let gx = ax.data[off];
+                    let gy = ay.data[off];
+                    let it = b.data[off] - a.data[off];
                     sxx += gx * gx;
                     syy += gy * gy;
                     sxy += gx * gy;

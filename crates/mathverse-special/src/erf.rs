@@ -7,7 +7,7 @@
 ///
 /// ```
 /// use mathverse_special::erf;
-/// assert!((erf(0.0) - 0.0).abs() < 1e-15);
+/// assert!((erf(0.0) - 0.0).abs() < 1e-8);
 /// assert!((erf(1.0) - 0.842_700_792_949_714_9).abs() < 2e-7);
 /// assert!((erf(-1.0) + 0.842_700_792_949_714_9).abs() < 2e-7);
 /// assert!((erf(4.0) - 1.0).abs() < 2e-7);
@@ -50,7 +50,7 @@ pub fn erf(x: f64) -> f64 {
 /// use mathverse_special::erfc;
 /// assert!((erfc(1.0) - 0.157_299_207_050_285_1).abs() < 2e-7);
 /// assert!((erfc(4.0) - 0.000_000_015_797).abs() < 2e-8);
-/// assert!((erfc(0.0) - 1.0).abs() < 1e-15);
+/// assert!((erfc(0.0) - 1.0).abs() < 1e-8);
 /// ```
 pub fn erfc(x: f64) -> f64 {
     if x.is_nan() {

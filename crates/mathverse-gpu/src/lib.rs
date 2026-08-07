@@ -26,6 +26,8 @@ extern crate alloc;
 
 pub mod context;
 pub mod ops;
+
+/// Inlined WGSL shader sources used by the compute kernels.
 pub mod shaders;
 
 pub use context::GpuContext;

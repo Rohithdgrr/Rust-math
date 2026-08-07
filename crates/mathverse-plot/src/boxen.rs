@@ -94,13 +94,25 @@ pub fn render_boxen_plot(data: &[BoxenData], config: &BoxenConfig) -> PlotResult
     let width = config.plot_config.width as f64;
     let height = config.plot_config.height as f64;
 
+    // Reject empty per-series values: `sorted[0]` below must never be hit
+    // on an empty series (this used to panic).
+    if data.iter().any(|d| d.values.is_empty()) {
+        return Err(PlotError::InvalidData(
+            "each boxen series must contain at least one value".into(),
+        ));
+    }
+
     // Find global y range
     let all_min = data.iter().flat_map(|d| &d.values).fold(f64::INFINITY, |a, &b| a.min(b));
     let all_max = data.iter().flat_map(|d| &d.values).fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;
-    let y_range = all_max - all_min;
+    let y_range = if all_max - all_min > 0.0 {
+        all_max - all_min
+    } else {
+        1.0 // constant data: avoid division by zero
+    };
 
     let to_y = |v| padding + 30.0 + chart_height * (1.0 - (v - all_min) / y_range);
 
@@ -246,5 +258,25 @@ mod tests {
         let data = vec![];
         let config = BoxenConfig::new();
         assert!(render_boxen_plot(&data, &config).is_err());
+    }
+
+    #[test]
+    fn boxen_plot_empty_series_error() {
+        // Regression: empty per-series values used to panic on `sorted[0]`.
+        let data = vec![
+            BoxenData::new("A", vec![1.0, 2.0, 3.0], Color::BLUE),
+            BoxenData::new("B", vec![], Color::GREEN),
+        ];
+        let config = BoxenConfig::new();
+        assert!(render_boxen_plot(&data, &config).is_err());
+    }
+
+    #[test]
+    fn boxen_plot_constant_data() {
+        // All-identical values previously produced NaN via zero range.
+        let data = vec![BoxenData::new("A", vec![5.0, 5.0, 5.0], Color::BLUE)];
+        let config = BoxenConfig::new();
+        let svg = render_boxen_plot(&data, &config).unwrap();
+        assert!(svg.contains("<svg"));
     }
 }

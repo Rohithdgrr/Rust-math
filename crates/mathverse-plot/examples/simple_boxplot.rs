@@ -3,6 +3,7 @@
 use mathverse_plot::common::PlotConfig;
 use mathverse_plot::style::Color;
 use mathverse_plot::SvgPlot;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let mut plot = SvgPlot::new(
@@ -29,7 +30,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     plot.add_box_plot("narrow", &c, Color::GREEN)?;
 
     let svg = plot.generate();
-    PlotSaver::new(svg).save_png("boxplot.png")?;
+    PlotSaver::new(&svg).save_png("boxplot.png")?;
     println!("wrote boxplot.png");
 
     Ok(())

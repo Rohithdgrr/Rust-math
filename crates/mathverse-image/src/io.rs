@@ -41,7 +41,7 @@ pub fn load<P: AsRef<Path>>(path: P) -> Result<GrayImage> {
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use mathverse_image::{GrayImage, io::save};
 ///
-/// let img = GrayImage::new(64, 64);
+/// let img = GrayImage::new(64, 64).unwrap();
 /// save(&img, "output.png")?;
 /// # Ok(())
 /// # }
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_convert_roundtrip() {
-        let mut original = GrayImage::new(32, 32);
+        let mut original = GrayImage::new(32, 32).unwrap();
         for y in 0..32 {
             for x in 0..32 {
                 original.set(x, y, ((x + y) % 32) as f64 / 32.0);
@@ -130,14 +130,14 @@ mod tests {
 
     #[test]
     fn test_save_to_bytes() {
-        let img = GrayImage::new(16, 16);
+        let img = GrayImage::new(16, 16).unwrap();
         let bytes = save_to_bytes(&img, image::ImageFormat::Png).unwrap();
         assert!(!bytes.is_empty());
     }
 
     #[test]
     fn test_load_from_bytes() {
-        let img = GrayImage::new(16, 16);
+        let img = GrayImage::new(16, 16).unwrap();
         let bytes = save_to_bytes(&img, image::ImageFormat::Png).unwrap();
         let loaded = load_from_bytes(&bytes).unwrap();
         assert_eq!(img.w, loaded.w);

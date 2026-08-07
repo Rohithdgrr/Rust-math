@@ -2,6 +2,7 @@
 
 use mathverse_plot::marimekko::{render_marimekko, MarimekkoColumn, MarimekkoConfig, MarimekkoSegment};
 use mathverse_plot::style::Color;
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let columns = vec![
@@ -42,7 +43,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 450;
 
     let svg = render_marimekko(&columns, &cfg)?;
-    PlotSaver::new(svg).save_png("marimekko.png")?;
+    PlotSaver::new(&svg).save_png("marimekko.png")?;
     println!("wrote marimekko.png");
 
     Ok(())

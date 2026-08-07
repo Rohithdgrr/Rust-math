@@ -218,7 +218,7 @@ mod tests {
     fn test_physical_constant_relative_uncertainty() {
         assert!((G_CONST.relative_uncertainty() - 0.000_15e-11 / 6.674_30e-11).abs() < 1e-12);
         assert_eq!(C_CONST.relative_uncertainty(), 0.0);
-        assert_eq!(PHYSICAL_CONSTANTS.len(), 16);
+        assert_eq!(PHYSICAL_CONSTANTS.len(), 18);
     }
 
     #[test]

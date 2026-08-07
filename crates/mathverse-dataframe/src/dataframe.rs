@@ -1,11 +1,9 @@
 use alloc::format;
 use alloc::string::{String, ToString};
-use alloc::vec;
 use alloc::vec::Vec;
 use core::fmt;
 
 use crate::column::AnyColumn;
-use crate::dtype::DType;
 use crate::errors::{DataFrameError, DataFrameResult};
 use crate::index::Index;
 use crate::schema::Schema;
@@ -198,10 +196,12 @@ impl DataFrame {
         }
 
         self.schema.add_field(crate::schema::Field::new(name, col.dtype()))?;
+        let col_len = col.len();
+        let is_first = self.columns.is_empty();
         self.columns.push(col);
 
-        if self.columns.len() == 1 {
-            self.index = Index::default_range(col.len());
+        if is_first {
+            self.index = Index::default_range(col_len);
         }
 
         Ok(())
@@ -213,7 +213,8 @@ impl DataFrame {
     ///
     /// Returns an error if the column name already exists or lengths don't match.
     pub fn add_any_column(&mut self, col: AnyColumn) -> DataFrameResult<()> {
-        self.add_column(col.name(), col)
+        let name = col.name().to_string();
+        self.add_column(&name, col)
     }
 
     /// Removes a column by name, returning it.
@@ -261,14 +262,29 @@ impl DataFrame {
     }
 
     /// Returns a new DataFrame with only the specified row positions.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any position is out of bounds. Positions must be in the
+    /// range `0..self.nrows()`.
     #[must_use]
     pub fn select_rows(&self, positions: &[usize]) -> Self {
+        let nrows = self.nrows();
+        if let Some(&p) = positions.iter().find(|&&p| p >= nrows) {
+            panic!("select_rows: position {p} out of bounds for length {nrows}");
+        }
         let columns: Vec<AnyColumn> = self
             .columns
             .iter()
-            .filter_map(|col| col.select_rows(positions).ok())
+            .map(|col| {
+                col.select_rows(positions)
+                    .expect("positions validated against DataFrame length")
+            })
             .collect();
-        let index = self.index.select(positions).unwrap_or_default();
+        let index = self
+            .index
+            .select(positions)
+            .expect("positions validated against DataFrame length");
         Self {
             columns,
             schema: self.schema.clone(),
@@ -537,7 +553,6 @@ impl fmt::Display for DataFrame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let max_rows = 10;
         let nrows = self.nrows();
-        let ncols = self.ncols();
 
         // Column widths
         let mut widths: Vec<usize> = self.column_names().iter().map(|n| n.len()).collect();
@@ -616,6 +631,8 @@ impl fmt::Display for DataFrame {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::vec;
 
     #[test]
     fn empty_dataframe() {
@@ -681,7 +698,8 @@ mod tests {
     #[test]
     fn sort_by() {
         let mut df = DataFrame::new();
-        df.add_column("name", vec!["c".into(), "a".into(), "b".into()]).unwrap();
+        df.add_column("name", vec![String::from("c"), String::from("a"), String::from("b")])
+            .unwrap();
         df.add_column("val", vec![3, 1, 2]).unwrap();
 
         let sorted = df.sort_by("val", true).unwrap();

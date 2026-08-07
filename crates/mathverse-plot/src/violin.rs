@@ -139,10 +139,20 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
     let width = config.plot_config.width as f64;
     let height = config.plot_config.height as f64;
 
+    if data.iter().any(|d| d.values.is_empty()) {
+        return Err(PlotError::InvalidData(
+            "each violin series must contain at least one value".into(),
+        ));
+    }
+
     // Find global bounds
     let all_min = data.iter().flat_map(|d| &d.values).fold(f64::INFINITY, |a, &b| a.min(b));
     let all_max = data.iter().flat_map(|d| &d.values).fold(f64::NEG_INFINITY, |a, &b| a.max(b));
-    let range = all_max - all_min;
+    let range = if all_max - all_min > 0.0 {
+        all_max - all_min
+    } else {
+        1.0 // constant data: avoid division by zero
+    };
 
     let chart_height = height - padding * 2.0 - 30.0;
     let to_y = |v| padding + 30.0 + chart_height * (1.0 - (v - all_min) / range);
@@ -328,5 +338,23 @@ mod tests {
         let data = vec![];
         let config = ViolinConfig::new();
         assert!(render_violin_plot(&data, &config).is_err());
+    }
+
+    #[test]
+    fn violin_plot_empty_series_error() {
+        let data = vec![
+            ViolinData::new("A", vec![1.0, 2.0], Color::BLUE),
+            ViolinData::new("B", vec![], Color::GREEN),
+        ];
+        let config = ViolinConfig::new();
+        assert!(render_violin_plot(&data, &config).is_err());
+    }
+
+    #[test]
+    fn violin_plot_constant_data() {
+        let data = vec![ViolinData::new("A", vec![3.0, 3.0, 3.0], Color::BLUE)];
+        let config = ViolinConfig::new();
+        let svg = render_violin_plot(&data, &config).unwrap();
+        assert!(svg.contains("<svg"));
     }
 }

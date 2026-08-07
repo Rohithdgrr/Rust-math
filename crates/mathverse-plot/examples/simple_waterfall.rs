@@ -2,6 +2,7 @@
 
 use mathverse_plot::style::Color;
 use mathverse_plot::waterfall::{render_waterfall, WaterfallBar, WaterfallConfig};
+use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bars = vec![
@@ -26,7 +27,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 400;
 
     let svg = render_waterfall(&bars, &cfg)?;
-    PlotSaver::new(svg).save_png("waterfall.png")?;
+    PlotSaver::new(&svg).save_png("waterfall.png")?;
     println!("wrote waterfall.png");
 
     Ok(())

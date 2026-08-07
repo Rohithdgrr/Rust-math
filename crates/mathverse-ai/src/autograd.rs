@@ -57,7 +57,9 @@ pub fn clear_graph() {
 /// A tensor with gradient tracking.
 #[derive(Clone)]
 pub struct GradTensor {
+    /// The forward-pass value of this node.
     pub tensor: Tensor,
+    /// Accumulated gradient after [`backward`]; `None` until a backward pass.
     pub grad: Option<Tensor>,
     node_id: usize,
 }

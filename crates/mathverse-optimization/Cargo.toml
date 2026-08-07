@@ -1,6 +1,6 @@
 [package]
 name = "mathverse-optimization"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version.workspace = true
 description = "MathVerse optimization: gradient descent, SGD, Adam, RMSProp, annealing, genetic"
@@ -10,8 +10,8 @@ keywords = ["math", "optimization", "gradient-descent", "adam", "genetic"]
 categories = ["science", "mathematics"]
 
 [dependencies]
-mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
-mathverse-probability = { path = "../mathverse-probability", version = "0.1.1" }
+mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
+mathverse-probability = { path = "../mathverse-probability", version = "0.1.2" }
 
 [lints]
 workspace = true

@@ -87,13 +87,26 @@ pub fn muller(
     let mut fx = [f(x0), f(x1), f(x2)];
     
     for _ in 0..max_iters {
+        // Converge on the function value as well as the step size: a root
+        // landing exactly on a node (fx[2] ≈ 0) otherwise breaks the
+        // interpolation formulas below.
+        if fx[2].abs() < tol {
+            return Ok(x[2]);
+        }
+        
         let h1 = x[1] - x[0];
         let h2 = x[2] - x[1];
+        if h1.abs() < 1e-15 || h2.abs() < 1e-15 {
+            return Err(MathError::NotConverged("Muller's method"));
+        }
         
         let delta1 = (fx[1] - fx[0]) / h1;
         let delta2 = (fx[2] - fx[1]) / h2;
         
         let d = (delta2 - delta1) / (h2 + h1);
+        if !d.is_finite() {
+            return Err(MathError::NotConverged("Muller's method"));
+        }
         
         let b = delta2 + h2 * d;
         let discriminant = b * b - 4.0 * fx[2] * d;
@@ -111,7 +124,14 @@ pub fn muller(
             b + sqrt_disc
         };
         
+        if e.abs() < 1e-15 {
+            return Err(MathError::NotConverged("Muller's method"));
+        }
+        
         let dx = -2.0 * fx[2] / e;
+        if !dx.is_finite() {
+            return Err(MathError::NotConverged("Muller's method"));
+        }
         
         let x_new = x[2] + dx;
         
@@ -415,8 +435,12 @@ mod tests {
 
     #[test]
     fn test_muller() {
+        // x² − 4 has roots at ±2; depending on the initial points Muller may
+        // land on either one. Both are valid.
         let root = muller(&|x| x * x - 4.0, 0.0, 1.0, 3.0, 1e-10, 100).unwrap();
-        assert!((root - 2.0).abs() < 1e-8);
+        let dist = (root - 2.0).abs().min((root + 2.0).abs());
+        assert!(dist < 1e-8, "root {root} is far from both ±2");
+        assert!((root * root - 4.0).abs() < 1e-8, "root {root} does not satisfy x²=4");
     }
 
     #[test]
