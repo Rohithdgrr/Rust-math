@@ -9,7 +9,7 @@ repository = "https://github.com/Rohithdgrr/Rust-math"
 homepage = "https://github.com/Rohithdgrr/Rust-math"
 documentation = "https://docs.rs/mathverse-calculus"
 readme = "README.md"
-keywords = ["math", "calculus", "derivative", "integral", "ode", "numerical"]
+keywords = ["math", "calculus", "derivative", "integral", "ode"]
 categories = ["science", "mathematics", "algorithms"]
 exclude = [".github/", "benches/", "examples/", "tests/", "docs/"]
 
