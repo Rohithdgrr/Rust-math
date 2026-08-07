@@ -9,7 +9,7 @@ repository = "https://github.com/Rohithdgrr/Rust-math"
 homepage = "https://github.com/Rohithdgrr/Rust-math"
 documentation = "https://docs.rs/mathverse-geometry"
 readme = "README.md"
-keywords = ["geometry", "math", "2d", "3d", "mesh", "spatial", "ray-tracing"]
+keywords = ["geometry", "math", "2d", "3d", "mesh"]
 categories = ["science", "mathematics", "graphics", "algorithms"]
 
 # Production metadata

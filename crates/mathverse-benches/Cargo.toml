@@ -6,6 +6,7 @@ rust-version.workspace = true
 description = "MathVerse unified benchmark suite: Criterion benchmarks for all math operations"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
+publish = false
 
 [dependencies]
 
