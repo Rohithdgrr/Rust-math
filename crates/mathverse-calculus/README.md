@@ -1,32 +1,23 @@
-# MathVerse Calculus
+# mathverse-calculus
 
 [![Crates.io](https://img.shields.io/crates/v/mathverse-calculus.svg)](https://crates.io/crates/mathverse-calculus)
 [![docs.rs](https://docs.rs/mathverse-calculus/badge.svg)](https://docs.rs/mathverse-calculus)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 [![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
-Numerical calculus: derivatives, integration, vector calculus, ODEs, and root finding.
+Numerical calculus for Rust: derivatives, integration, vector calculus, and ODE solvers.
 
----
+Part of the [MathVerse](https://github.com/Rohithdgrr/Rust-math) ecosystem.
 
 ## Features
 
-- **Numerical derivatives** — first, second, nth (central differences), partial derivatives
-- **Integration** — adaptive Simpson, Gaussian quadrature, composite trapezoid/Simpson
-- **Vector calculus** — gradient, divergence, curl, Laplacian, Jacobian, Hessian, directional derivatives
-- **ODE solvers** — Euler, Midpoint, RK4 for scalar ODEs and systems
-- **Root finding** — Bisection, Newton-Raphson, Secant, False Position, auto-derivative Newton
-- All functions accept closures for natural composition
-
-## Module Overview
-
-| Module | Purpose |
-|--------|---------|
-| `derivative` | First, second, nth derivatives; partial derivatives (central differences) |
-| `integrate` | Trapezoid, Simpson, adaptive Simpson, Gaussian quadrature |
-| `vector_calculus` | Gradient, divergence, curl, Laplacian, Jacobian, Hessian, directional derivative |
-| `ode` | Euler, Midpoint, RK4 for scalar ODEs; RK4 for systems |
-| `root_finding` | Bisection, Newton-Raphson, Secant, False Position, auto-derivative Newton |
+- **Derivatives**: Central differences, partial derivatives, nth-order, discrete gradient
+- **Integration**: Trapezoid, Simpson, adaptive, Gaussian quadrature, Romberg, 2D
+- **ODE Solvers**: Euler, midpoint, RK4 with builder API
+- **Vector Calculus**: Gradient, divergence, curl, Laplacian, Jacobian, Hessian
+- **Root Finding**: Newton-Raphson with auto-differentiation, critical point finding
+- `#![forbid(unsafe_code)]` — fully safe Rust
+- `no_std` compatible (with feature flag)
 
 ## Installation
 
@@ -38,134 +29,134 @@ mathverse-calculus = "0.1"
 ## Quick Start
 
 ```rust
-use mathverse_calculus::derivative::derivative;
-use mathverse_calculus::integrate::integrate;
-use mathverse_calculus::ode::runge_kutta_4;
-use mathverse_calculus::root_finding::newton_raphson;
+use mathverse_calculus::prelude::*;
 
 fn main() {
-    // Derivative of sin(x) at x=0
-    let slope = derivative(&f64::sin, 0.0);
-    println!("sin'(0) = {:.6}", slope);  // 1.000000
+    // Derivative of sin at 0 ≈ 1
+    let d = derivative(&f64::sin, 0.0);
+    assert!((d - 1.0).abs() < 1e-8);
 
-    // Integrate sin(x) from 0 to π → should be 2.0
-    let area = integrate(&f64::sin, 0.0, std::f64::consts::PI, 1e-10);
-    println!("∫₀^π sin(x) dx = {:.6}", area);  // 2.000000
+    // Integral of sin from 0 to π ≈ 2
+    let i = integrate(&f64::sin, 0.0, core::f64::consts::PI, 1e-10);
+    assert!((i - 2.0).abs() < 1e-8);
 
-    // Solve dy/dt = y, y(0)=1 → y = e^t
-    let result = runge_kutta_4(&|_t, y| y, 0.0, 1.0, 1.0, 10);
-    let y_final = result.last().unwrap().1;
-    println!("y(1) = {:.6}", y_final);  // ≈ 2.718282
-
-    // Find root of x² - 4 = 0 starting from 3
-    let root = newton_raphson(
-        &|x| x * x - 4.0,
-        &|x| 2.0 * x,
-        3.0, 1e-10, 100,
-    ).unwrap();
-    println!("√4 = {:.6}", root);  // 2.000000
+    // Solve dy/dt = y, y(0) = 1 → y = e^t
+    let sol = OdeProblem::new(&|_, y| y, (0.0, 1.0), 1.0).solve().unwrap();
+    let y_final = sol.last().unwrap().1;
+    assert!((y_final - 1.0_f64.exp()).abs() < 1e-6);
 }
 ```
 
----
+## Usage
 
-## Per-Module Documentation
-
-### Derivative (`derivative`)
-
-Central-difference numerical derivatives with adaptive step size.
+### Derivatives
 
 ```rust
 use mathverse_calculus::derivative::*;
 
 // First derivative: f'(x)
-let slope = derivative(&f64::sin, 0.0);
+let d = derivative(&|x| x * x * x, 2.0);  // ≈ 12.0
 
 // Second derivative: f''(x)
-let concavity = second_derivative(&|x| x * x * x, 2.0);
+let d2 = second_derivative(&f64::sin, 0.0);  // ≈ 0.0
+
+// Nth derivative with error estimate
+let (val, err) = nth_derivative(&|x| x.powi(5), 1.0, 5);  // ≈ 120.0
 
 // Partial derivative: ∂f/∂x_i
-let f = |x: &[f64]| x[0] * x[0] * x[1];
-let df_dx0 = partial_derivative(&f, &[2.0, 3.0], 0);
-
-// nth derivative: f⁽ⁿ⁾(x)
-let d3 = nth_derivative(&|x| x * x * x, 2.0, 3);
+let pd = partial_derivative(&|x| x[0] * x[1], &[2.0, 3.0], 0);  // ≈ 3.0
 ```
 
-### Integration (`integrate`)
+### Integration
 
 ```rust
 use mathverse_calculus::integrate::*;
 
-// Composite trapezoid rule
-let area = trapezoid(&f64::sin, 0.0, PI, 1024);
+// Trapezoid rule
+let t = trapezoid(&f64::sin, 0.0, PI, 1000).unwrap();
 
-// Composite Simpson's rule (n must be even)
-let area = simpson(&f64::sin, 0.0, PI, 64);
+// Simpson's rule
+let s = simpson(&f64::sin, 0.0, PI, 100).unwrap();
 
-// Adaptive Simpson (auto-refines to tolerance)
-let area = integrate(&f64::sin, 0.0, PI, 1e-10);
+// Adaptive Simpson (recommended for most uses)
+let a = integrate(&f64::sin, 0.0, PI, 1e-10);
 
-// Gaussian quadrature (n points, exact for degree ≤ 2n-1)
-let area = gaussian_quadrature(&|x| x * x, 0.0, 1.0, 3);
+// Gaussian quadrature (exact for polynomials up to degree 2n-1)
+let g = gaussian_quadrature(&|x| x * x, 0.0, 1.0, 5).unwrap();
+
+// Romberg integration
+let r = romberg(&f64::sin, 0.0, PI, 10, 1e-12).unwrap();
+
+// 2D integration
+let i2d = integrate_2d(&|x, y| x * y, 0.0, 1.0, 0.0, 1.0, 5).unwrap();
 ```
 
-### Vector Calculus (`vector_calculus`)
-
-```rust
-use mathverse_calculus::vector_calculus::*;
-
-// Gradient: ∇f = [∂f/∂x₀, ∂f/∂x₁, ...]
-let f = |x: &[f64]| x[0] * x[0] + x[1] * x[1];
-let g = gradient(&f, &[1.0, 2.0]); // [2.0, 4.0]
-
-// Laplacian: ∇²f
-let lap = laplacian(&f, &[1.0, 2.0]); // 4.0
-
-// Jacobian, Hessian, divergence, curl also available
-```
-
-### ODE Solvers (`ode`)
+### ODE Solvers
 
 ```rust
 use mathverse_calculus::ode::*;
 
-// RK4: 4th-order, excellent accuracy
-let result = runge_kutta_4(&|_t, y| y, 0.0, 1.0, 1.0, 10);
-// y(1) ≈ 2.718282 (error < 1e-6 with just 10 steps)
+// Direct function calls
+let sol = runge_kutta_4(&|_, y| -y, 0.0, 1.0, 1.0, 100).unwrap();
 
-// System of ODEs: harmonic oscillator d²x/dt² = -x
-let f = |t: f64, y: &[f64]| vec![y[1], -y[0]];
-let result = runge_kutta_4_system(&f, 0.0, &[1.0, 0.0], 2.0 * PI, 100);
+// Builder API (scipy-like)
+let sol = OdeProblem::new(&|_, y| y, (0.0, 1.0), 1.0)
+    .method(OdeMethod::Rk4)
+    .steps(1000)
+    .solve()
+    .unwrap();
+
+// Systems of ODEs (harmonic oscillator)
+let osc = runge_kutta_4_system(
+    &|_, y| vec![y[1], -y[0]],
+    0.0, &[1.0, 0.0], 2.0 * PI, 1000,
+).unwrap();
 ```
 
-### Root Finding (`root_finding`)
+### Vector Calculus
 
 ```rust
-use mathverse_calculus::root_finding::*;
+use mathverse_calculus::vector_calculus::*;
 
-// Newton-Raphson: quadratic convergence, needs f'
-let root = newton_raphson(
-    &|x| x * x - 4.0,
-    &|x| 2.0 * x,
-    3.0, 1e-10, 100,
-).unwrap();
+let f = |x: &[f64]| x[0] * x[0] + x[1] * x[1];
 
-// Secant: superlinear, no derivative needed
-let root = secant(&|x| x * x - 4.0, 1.0, 3.0, 1e-10, 100).unwrap();
+// Gradient: ∇f
+let g = gradient(&f, &[1.0, 2.0]);  // ≈ [2.0, 4.0]
+
+// Laplacian: ∇²f
+let l = laplacian(&f, &[1.0, 2.0]);  // ≈ 4.0
+
+// Directional derivative: ∇f · v
+let d = directional_derivative(&f, &[1.0, 2.0], &[1.0, 0.0]).unwrap();  // ≈ 2.0
 ```
 
----
+## Feature Flags
 
-## Future Scope
+| Flag | Default | Description |
+|------|---------|-------------|
+| `std` | Yes | Enable standard library; disabling gives `no_std` |
 
-- Symbolic differentiation (integration with `mathverse-symbolic`)
-- Multi-dimensional integration (Monte Carlo, cubature)
-- Stochastic ODE solvers (Euler-Maruyama, Milstein)
-- Boundary value problem solvers (shooting method, finite differences)
-- Automatic differentiation (forward/reverse mode)
-- Adaptive step-size ODE solvers (Dormand-Prince, Adams-Bashforth)
+## Performance
+
+- All algorithms are cache-friendly with minimal allocations
+- Hot paths designed for future SIMD acceleration
+- Benchmarks available via `cargo bench`
+
+## Python Parity
+
+| Rust function | SciPy/NumPy equivalent |
+|---|---|
+| `nth_derivative` | `scipy.misc.derivative` |
+| `gaussian_quadrature` | `scipy.integrate.fixed_quad` |
+| `romberg` | `scipy.integrate.romberg` |
+| `integrate_2d` | `scipy.integrate.dblquad` |
+| `OdeProblem` | `scipy.integrate.solve_ivp` |
+| `discrete_gradient` | `numpy.gradient` |
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Licensed under [MIT](../LICENSE) OR [Apache-2.0](../LICENSE-APACHE).
+
+## Contributing
+
+See the [MathVerse contributing guide](../CONTRIBUTING.md).

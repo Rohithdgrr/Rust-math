@@ -39,7 +39,7 @@ pub use crate::precision::{
     next_float, prev_float, relative_diff, round_to, round_to_multiple,
     significant_figures, ulp, EPS, F32_EPS,
 };
-pub use crate::traits::{Field, Normed, Num, Real, Signed};
+pub use crate::traits::{Field, FloatClass, Normed, Num, Real, RealFull, Signed, Transcendental, Trig, Hyperbolic};
 pub use crate::constants::{
     APERY, CATALAN, CUBE_ROOT_2, CUBE_ROOT_3, DEG_TO_GRAD, DEG_TO_RAD, E,
     EULER_GAMMA, E_INV, E_SQ, E_SQRT, FEIGENBAUM, FEIGENBAUM2, GRAD_TO_DEG, GRAD_TO_RAD,

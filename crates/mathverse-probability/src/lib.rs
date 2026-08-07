@@ -39,7 +39,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::option_if_let_else)]
-#![allow(clippy::float_cmp)]
+
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::cloned_instead_of_copied)]
 #![allow(clippy::unused_self)]
@@ -48,9 +48,9 @@
 #![allow(clippy::comparison_chain)]
 #![allow(clippy::if_not_else)]
 #![allow(clippy::redundant_clone)]
-#![allow(clippy::similar_names)]
+
 #![allow(clippy::many_single_char_names)]
-#![allow(clippy::suspicious_operation_groupings)]
+
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::assigning_clones)]
 #![allow(clippy::implicit_clone)]

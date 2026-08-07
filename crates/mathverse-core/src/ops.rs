@@ -4,7 +4,9 @@
 //! with both `f32` and `f64`.
 
 use crate::constants::{DEG_TO_GRAD, GRAD_TO_DEG, GRAD_TO_RAD};
-use crate::traits::{Num, Real};
+use crate::traits::{FloatClass, Num, Real};
+use alloc::vec;
+use alloc::vec::Vec;
 use core::ops::Rem;
 
 /// Clamp `x` into `[lo, hi]`.
@@ -149,11 +151,12 @@ pub fn integer_part<T: Real>(x: T) -> T {
 /// ```
 #[must_use]
 #[inline]
+#[allow(clippy::cast_lossless)] // From<i32> for f64 is unavailable in no_std
 pub fn nth_root<T: Real>(x: T, n: i32) -> T {
     if n == 0 {
         return T::one();
     }
-    x.powf(T::from_f64(f64::from(n)).recip())
+    x.powf(T::from_f64(n as f64).recip())
 }
 
 /// Cube root of `x`.
@@ -228,6 +231,7 @@ pub fn hypot3<T: Real>(a: T, b: T, c: T) -> T {
 /// assert_eq!(sum::<i32>(&[]), 0);
 /// ```
 #[must_use]
+#[inline]
 pub fn sum<T: Num>(xs: &[T]) -> T {
     xs.iter().copied().fold(T::zero(), |acc, x| acc + x)
 }
@@ -243,6 +247,7 @@ pub fn sum<T: Num>(xs: &[T]) -> T {
 /// assert_eq!(product::<f64>(&[]), 1.0);
 /// ```
 #[must_use]
+#[inline]
 pub fn product<T: Num>(xs: &[T]) -> T {
     xs.iter().copied().fold(T::one(), |acc, x| acc * x)
 }
@@ -355,7 +360,7 @@ pub fn rad_to_grad<T: Real>(r: T) -> T {
 #[inline]
 pub fn copysign<T: Real>(a: T, b: T) -> T {
     if b.is_negative() {
-        a.abs().neg()
+        -a.abs()
     } else {
         a.abs()
     }
@@ -406,7 +411,10 @@ pub fn map_range<T: Real>(x: T, in_lo: T, in_hi: T, out_lo: T, out_hi: T) -> T {
 /// assert_eq!(wrap(-3.0, 0.0, 10.0), 7.0);
 /// ```
 #[must_use]
-pub fn wrap<T: Real + Rem<Output = T>>(x: T, lo: T, hi: T) -> T {
+pub fn wrap<T: Real + FloatClass + Rem<Output = T>>(x: T, lo: T, hi: T) -> T {
+    if !x.is_finite() {
+        return x;
+    }
     let range = hi - lo;
     if range == T::zero() {
         return lo;
@@ -434,7 +442,7 @@ pub fn wrap<T: Real + Rem<Output = T>>(x: T, lo: T, hi: T) -> T {
 /// ```
 #[must_use]
 #[inline]
-pub fn ping_pong<T: Real>(x: T, length: T) -> T {
+pub fn ping_pong<T: Real + FloatClass>(x: T, length: T) -> T {
     let t = wrap(x, T::zero(), length * T::from_f64(2.0));
     length - (t - length).abs()
 }
@@ -451,7 +459,7 @@ pub fn ping_pong<T: Real>(x: T, length: T) -> T {
 /// ```
 #[must_use]
 #[inline]
-pub fn repeat<T: Real>(x: T, length: T) -> T {
+pub fn repeat<T: Real + FloatClass>(x: T, length: T) -> T {
     wrap(x, T::zero(), length)
 }
 
@@ -529,6 +537,7 @@ pub fn distance<T: Real>(a: T, b: T) -> T {
 /// assert!((v[0] - 0.6).abs() < 1e-12);
 /// assert!((v[1] - 0.8).abs() < 1e-12);
 /// ```
+#[must_use]
 pub fn normalize<T: Real>(xs: &[T]) -> Vec<T> {
     let norm_sq: T = xs.iter().copied().fold(T::zero(), |acc, x| acc + x * x);
     let norm = norm_sq.sqrt();
@@ -705,6 +714,8 @@ pub fn midpoint<T: Real>(a: T, b: T) -> T {
 pub fn lerp_angle<T: Real + Rem<Output = T>>(a: T, b: T, t: T) -> T {
     let pi = T::from_f64(core::f64::consts::PI);
     let two_pi = T::from_f64(core::f64::consts::TAU);
+    let a = wrap_angle(a);
+    let b = wrap_angle(b);
     let mut diff = (b - a) % two_pi;
     if diff > pi {
         diff = diff - two_pi;
@@ -837,6 +848,7 @@ pub fn bilinear<T: Real>(x: T, y: T, v00: T, v01: T, v10: T, v11: T) -> T {
 /// assert!(is_sorted(&[42]));
 /// ```
 #[must_use]
+#[inline]
 pub fn is_sorted<T: PartialOrd>(xs: &[T]) -> bool {
     xs.windows(2).all(|w| w[0] <= w[1])
 }
@@ -852,6 +864,7 @@ pub fn is_sorted<T: PartialOrd>(xs: &[T]) -> bool {
 /// assert_eq!(min_value::<i32>(&[]), None);
 /// ```
 #[must_use]
+#[inline]
 pub fn min_value<T: PartialOrd>(xs: &[T]) -> Option<&T> {
     xs.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
 }
@@ -867,27 +880,28 @@ pub fn min_value<T: PartialOrd>(xs: &[T]) -> Option<&T> {
 /// assert_eq!(max_value::<i32>(&[]), None);
 /// ```
 #[must_use]
+#[inline]
 pub fn max_value<T: PartialOrd>(xs: &[T]) -> Option<&T> {
     xs.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
 }
 
-/// Mean (average) of a slice. Returns `T::zero()` for an empty slice.
+/// Mean (average) of a slice. Returns `None` for an empty slice.
 ///
 /// # Examples
 ///
 /// ```
 /// use mathverse_core::ops::mean;
 ///
-/// assert_eq!(mean(&[1.0, 2.0, 3.0, 4.0]), 2.5);
-/// assert_eq!(mean::<f64>(&[]), 0.0);
+/// assert_eq!(mean(&[1.0, 2.0, 3.0, 4.0]), Some(2.5));
+/// assert_eq!(mean::<f64>(&[]), None);
 /// ```
 #[must_use]
-pub fn mean<T: Real>(xs: &[T]) -> T {
+pub fn mean<T: Real>(xs: &[T]) -> Option<T> {
     if xs.is_empty() {
-        return T::zero();
+        return None;
     }
     let sum: T = xs.iter().copied().fold(T::zero(), |acc, x| acc + x);
-    sum / T::from_f64(xs.len() as f64)
+    Some(sum / T::from_f64(xs.len() as f64))
 }
 
 /// Cumulative sum of a slice. Returns an empty vector for an empty input.
@@ -933,7 +947,7 @@ pub fn cumprod<T: Num + Copy + core::ops::Mul<Output = T>>(xs: &[T]) -> Vec<T> {
 }
 
 /// Dot product of two slices. Returns `T::zero()` if either is empty.
-/// Panics if lengths differ.
+/// Truncates to the shorter length if they differ.
 ///
 /// # Examples
 ///
@@ -944,6 +958,7 @@ pub fn cumprod<T: Num + Copy + core::ops::Mul<Output = T>>(xs: &[T]) -> Vec<T> {
 /// assert_eq!(dot_product(&[2, 3], &[4, 5]), 23);
 /// ```
 #[must_use]
+#[inline]
 pub fn dot_product<T: Num + Copy + core::ops::Add<Output = T> + core::ops::Mul<Output = T>>(
     a: &[T],
     b: &[T],
@@ -972,6 +987,9 @@ pub fn dot_product<T: Num + Copy + core::ops::Add<Output = T> + core::ops::Mul<O
 /// ```
 #[must_use]
 pub fn smoothstep_between<T: Real>(edge0: T, edge1: T, x: T) -> T {
+    if edge0 == edge1 {
+        return if x >= edge0 { T::one() } else { T::zero() };
+    }
     let t = clamp((x - edge0) / (edge1 - edge0), T::zero(), T::one());
     t * t * (T::from_f64(3.0) - T::from_f64(2.0) * t)
 }
@@ -1046,7 +1064,21 @@ fn wrap_and_angle() {
     assert_eq!(ping_pong(20.0, 10.0), 0.0);
     assert!((wrap_angle(core::f64::consts::PI + 0.1) - (-core::f64::consts::PI + 0.1)).abs() < 1e-15);
     assert!((wrap_angle_positive(-0.1) - (2.0 * core::f64::consts::PI - 0.1)).abs() < 1e-15);
+    // NaN/Inf passthrough
+    assert!(wrap(f64::NAN, 0.0, 1.0).is_nan());
+    assert!(wrap(f64::INFINITY, 0.0, 1.0).is_infinite());
+    assert!(wrap(f64::NEG_INFINITY, 0.0, 1.0).is_infinite());
 }
+
+    #[test]
+    fn lerp_angle_normalization() {
+        // Both inputs outside [-pi, pi] should still take shortest path
+        let a = core::f64::consts::PI * 3.0;  // equivalent to pi
+        let b = core::f64::consts::PI * 5.0;  // equivalent to pi
+        let result = lerp_angle(a, b, 0.5);
+        // Both normalize to ~pi, so midpoint should be ~pi
+        assert!((result - core::f64::consts::PI).abs() < 1e-10);
+    }
 
     #[test]
     fn normalize_vec() {
@@ -1088,6 +1120,10 @@ fn wrap_and_angle() {
         assert_eq!(smoothstep_between(2.0, 5.0, 3.5), 0.5);
         assert_eq!(smoothstep_between(0.0, 1.0, -1.0), 0.0);
         assert_eq!(smoothstep_between(0.0, 1.0, 2.0), 1.0);
+        // edge0 == edge1: should not panic or return NaN
+        assert_eq!(smoothstep_between(0.0, 0.0, 0.5), 1.0);
+        assert_eq!(smoothstep_between(5.0, 5.0, 3.0), 0.0);
+        assert_eq!(smoothstep_between(5.0, 5.0, 5.0), 1.0);
     }
 
     #[test]
@@ -1140,9 +1176,9 @@ fn wrap_and_angle() {
 
     #[test]
     fn mean_tests() {
-        assert_eq!(mean(&[1.0, 2.0, 3.0, 4.0]), 2.5);
-        assert_eq!(mean::<f64>(&[]), 0.0);
-        assert_eq!(mean(&[5.0]), 5.0);
+        assert_eq!(mean(&[1.0, 2.0, 3.0, 4.0]), Some(2.5));
+        assert_eq!(mean::<f64>(&[]), None);
+        assert_eq!(mean(&[5.0]), Some(5.0));
     }
 
     #[test]

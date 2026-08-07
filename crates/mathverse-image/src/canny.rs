@@ -17,7 +17,7 @@
 //! ```rust
 //! use mathverse_image::{canny::canny, GrayImage};
 //!
-//! let mut img = GrayImage::new(32, 16);
+//! let mut img = GrayImage::new(32, 16).unwrap();
 //! for y in 0..16 {
 //!     for x in 0..32 {
 //!         img.set(x, y, if x < 16 { 0.0 } else { 1.0 });
@@ -39,19 +39,26 @@ use crate::GrayImage;
 ///
 /// # Arguments
 ///
-/// * `img` - Input grayscale image
-/// * `sigma` - Standard deviation for Gaussian blur (typical values: 1.0-2.0)
-/// * `low` - Lower threshold for weak edges (typical values: 0.01-0.1)
-/// * `high` - Upper threshold for strong edges (typical values: 0.1-0.3)
+/// * `img` — Input grayscale image
+/// * `sigma` — Standard deviation for Gaussian blur (typical values: 1.0–2.0)
+/// * `low` — Lower threshold for weak edges (typical values: 0.01–0.1)
+/// * `high` — Upper threshold for strong edges (typical values: 0.1–0.3)
 ///
 /// # Returns
 ///
-/// A binary edge map where edge pixels have value 1.0 and non-edge pixels have value 0.0.
+/// A binary edge map where edge pixels have value 1.0 and non-edge pixels
+/// have value 0.0.
 ///
 /// # Algorithm Details
 ///
-/// The algorithm uses a fixed blur radius of 3 pixels. The gradient direction is
-/// quantized into 4 directions (0°, 45°, 90°, 135°) for non-maximum suppression.
+/// The algorithm uses a fixed blur radius of 3 pixels. The gradient direction
+/// is quantised into 4 sectors for non-maximum suppression:
+///
+/// - `[0°, 22.5°)` ∪ `[157.5°, 180°)` — horizontal edge, compare left/right
+/// - `[22.5°, 67.5°)` — diagonal `\`, compare top-left/bottom-right
+/// - `[67.5°, 112.5°)` — vertical edge, compare top/bottom
+/// - `[112.5°, 157.5°)` — diagonal `/`, compare top-right/bottom-left
+///
 /// Hysteresis uses 8-connectivity to link weak edges to strong edges.
 ///
 /// # Examples
@@ -59,7 +66,7 @@ use crate::GrayImage;
 /// ```rust
 /// use mathverse_image::{canny::canny, GrayImage};
 ///
-/// let mut img = GrayImage::new(64, 64);
+/// let mut img = GrayImage::new(64, 64).unwrap();
 /// // Create a step edge
 /// for y in 0..64 {
 ///     for x in 0..64 {
@@ -71,37 +78,56 @@ use crate::GrayImage;
 /// ```
 pub fn canny(img: &GrayImage, sigma: f64, low: f64, high: f64) -> GrayImage {
     if img.w < 3 || img.h < 3 {
-        return GrayImage::new(img.w, img.h);
+        return GrayImage::new(img.w, img.h).unwrap();
     }
+
     let blurred = img.gaussian_blur(3, sigma);
     let (mag, dir) = blurred.sobel();
 
-    // non-maximum suppression: keep gradient peaks along the normal
-    let mut nms = GrayImage::new(img.w, img.h);
+    // Non-maximum suppression: keep gradient peaks along the edge tangent.
+    // The quantisation uses the standard 4-direction scheme where:
+    //   - |θ| ∈ [0, π/8) ∪ [7π/8, π):   horizontal edge → compare left/right
+    //   - |θ| ∈ [π/8,  3π/8):             diagonal \     → compare TL/BR
+    //   - |θ| ∈ [3π/8, 5π/8):             vertical edge → compare top/bottom
+    //   - |θ| ∈ [5π/8, 7π/8):             diagonal /     → compare TR/BL
+    let mut nms = GrayImage::new(img.w, img.h).unwrap();
+    let pi = std::f64::consts::PI;
+    let pi_8 = pi / 8.0;
+
     for y in 1..img.h - 1 {
         for x in 1..img.w - 1 {
-            let a = dir[y * img.w + x];
-            let (q, r) = if !(-3.0 * core::f64::consts::FRAC_PI_8..3.0 * core::f64::consts::FRAC_PI_8).contains(&a) {
-                (mag.get(x, y - 1), mag.get(x, y + 1))
-            } else if a < -core::f64::consts::FRAC_PI_8 {
-                (mag.get(x - 1, y - 1), mag.get(x + 1, y + 1))
-            } else if a < core::f64::consts::FRAC_PI_8 {
-                (mag.get(x - 1, y), mag.get(x + 1, y))
+            let a = dir[y * img.w + x].abs(); // normalise to [0, π)
+
+            let (qx, qy, rx, ry) = if a < pi_8 || a >= 7.0 * pi_8 {
+                // Horizontal edge: neighbours to left and right
+                (x - 1, y, x + 1, y)
+            } else if a < 3.0 * pi_8 {
+                // Diagonal \ : neighbours (x-1, y-1) and (x+1, y+1)
+                (x - 1, y - 1, x + 1, y + 1)
+            } else if a < 5.0 * pi_8 {
+                // Vertical edge: neighbours above and below
+                (x, y - 1, x, y + 1)
             } else {
-                (mag.get(x - 1, y + 1), mag.get(x + 1, y - 1))
+                // Diagonal / : neighbours (x-1, y+1) and (x+1, y-1)
+                (x - 1, y + 1, x + 1, y - 1)
             };
+
             let m = mag.get(x, y);
+            let q = mag.get(qx, qy);
+            let r = mag.get(rx, ry);
+
             if m >= q && m >= r {
                 nms.set(x, y, m);
             }
         }
     }
 
-    // hysteresis: strong seeds, weak kept if touching a strong neighbor
+    // Hysteresis: strong seeds, weak kept if touching a strong neighbour
     let strong = |v: f64| v >= high;
     let weak = |v: f64| v >= low && v < high;
-    let mut out = GrayImage::new(img.w, img.h);
+    let mut out = GrayImage::new(img.w, img.h).unwrap();
     let mut stack: Vec<(usize, usize)> = Vec::new();
+
     for y in 0..img.h {
         for x in 0..img.w {
             if strong(nms.get(x, y)) {
@@ -110,10 +136,15 @@ pub fn canny(img: &GrayImage, sigma: f64, low: f64, high: f64) -> GrayImage {
             }
         }
     }
+
     while let Some((x, y)) = stack.pop() {
         for dy in -1..=1i64 {
             for dx in -1..=1i64 {
-                let (nx, ny) = (x as i64 + dx, y as i64 + dy);
+                if dx == 0 && dy == 0 {
+                    continue;
+                }
+                let nx = x as i64 + dx;
+                let ny = y as i64 + dy;
                 if nx < 0 || ny < 0 || nx >= img.w as i64 || ny >= img.h as i64 {
                     continue;
                 }
@@ -125,6 +156,7 @@ pub fn canny(img: &GrayImage, sigma: f64, low: f64, high: f64) -> GrayImage {
             }
         }
     }
+
     out
 }
 
@@ -134,18 +166,16 @@ mod tests {
 
     #[test]
     fn detects_step_edge() {
-        let mut img = GrayImage::new(64, 32);
+        let mut img = GrayImage::new(64, 32).unwrap();
         for y in 0..32 {
             for x in 0..64 {
                 img.set(x, y, if x < 32 { 0.0 } else { 1.0 });
             }
         }
         let e = canny(&img, 1.5, 0.05, 0.15);
-        // exactly one vertical line of edges
         assert!(e.get(32, 16) > 0.0);
         assert!(e.get(33, 16) > 0.0);
         assert!(e.get(10, 16) < 0.5 && e.get(50, 16) < 0.5);
-        // rows far from any edge are empty
         let count: usize = e.data.iter().filter(|v| **v > 0.5).count();
         assert!(count < 200, "edge pixels: {}", count);
     }

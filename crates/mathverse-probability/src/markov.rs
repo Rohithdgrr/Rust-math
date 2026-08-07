@@ -2,6 +2,33 @@
 
 use crate::rng::Rng;
 
+/// Numerically stable log-sum-exp for two values.
+fn log_sum_exp(a: f64, b: f64) -> f64 {
+    if a == f64::NEG_INFINITY {
+        return b;
+    }
+    if b == f64::NEG_INFINITY {
+        return a;
+    }
+    let max = a.max(b);
+    max + ((a - max).exp() + (b - max).exp()).ln()
+}
+
+/// Numerically stable log-sum-exp over a slice.
+fn log_sum_exp_slice(values: &[f64]) -> f64 {
+    let mut max = f64::NEG_INFINITY;
+    for &v in values {
+        if v > max {
+            max = v;
+        }
+    }
+    if max == f64::NEG_INFINITY {
+        return f64::NEG_INFINITY;
+    }
+    let sum: f64 = values.iter().map(|&v| (v - max).exp()).sum();
+    max + sum.ln()
+}
+
 /// Hidden Markov Model.
 #[must_use]
 pub struct HiddenMarkovModel {
@@ -54,32 +81,42 @@ impl HiddenMarkovModel {
 
     /// Forward algorithm: compute probability of observations.
     pub fn forward(&self, observations: &[usize]) -> f64 {
+        let log_prob = self.forward_log(observations);
+        if log_prob == f64::NEG_INFINITY {
+            0.0
+        } else {
+            log_prob.exp()
+        }
+    }
+
+    /// Forward algorithm in log-space: avoids underflow for long sequences.
+    pub fn forward_log(&self, observations: &[usize]) -> f64 {
         let t = observations.len();
         if t == 0 {
-            return 0.0;
+            return f64::NEG_INFINITY;
         }
 
-        let mut alpha = vec![0.0; self.n_states];
+        let mut log_alpha = vec![f64::NEG_INFINITY; self.n_states];
 
         // Initialization
         for i in 0..self.n_states {
-            alpha[i] = self.initial[i] * self.emission[i][observations[0]];
+            log_alpha[i] = self.initial[i].ln() + self.emission[i][observations[0]].ln();
         }
 
         // Induction
         for t in 1..observations.len() {
-            let mut new_alpha = vec![0.0; self.n_states];
+            let mut new_log_alpha = vec![f64::NEG_INFINITY; self.n_states];
             for j in 0..self.n_states {
                 for i in 0..self.n_states {
-                    new_alpha[j] += alpha[i] * self.transition[i][j];
+                    let log_prob = log_alpha[i] + self.transition[i][j].ln();
+                    new_log_alpha[j] = log_sum_exp(new_log_alpha[j], log_prob);
                 }
-                new_alpha[j] *= self.emission[j][observations[t]];
+                new_log_alpha[j] += self.emission[j][observations[t]].ln();
             }
-            alpha = new_alpha;
+            log_alpha = new_log_alpha;
         }
 
-        // Termination
-        alpha.iter().sum()
+        log_sum_exp_slice(&log_alpha)
     }
 
     /// Viterbi algorithm: find most likely state sequence.
@@ -201,9 +238,19 @@ impl MetropolisHastings {
     }
 
     /// Run MCMC chain.
+    ///
+    /// # Panics
+    /// If the initial state has a non-finite target log-probability.
     pub fn sample(&self, initial: &[f64], n_samples: usize, rng: &mut Rng) -> Vec<Vec<f64>> {
         let mut current = initial.to_vec();
         let mut current_log_prob = (self.target_log_prob)(&current);
+
+        if !current_log_prob.is_finite() {
+            panic!(
+                "MetropolisHastings: initial state has non-finite log probability {current_log_prob}"
+            );
+        }
+
         let mut samples = Vec::new();
 
         for _ in 0..n_samples {

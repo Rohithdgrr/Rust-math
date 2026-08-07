@@ -79,6 +79,8 @@ jobs:
             --target thumbv7em-none-eabihf
       - name: Check core with libm on the host (no std)
         run: cargo check -p mathverse-core --no-default-features --features libm
+      - name: Check trigonometry with libm on the host (no std)
+        run: cargo check -p mathverse-trigonometry --no-default-features --features libm
       - name: Confirm no_std without libm is a compile error
         run: |
           if cargo check -p mathverse-core --no-default-features 2>/dev/null; then
@@ -86,6 +88,24 @@ jobs:
             exit 1
           fi
           echo "compile_error! guard works as intended"
+
+  complex:
+    name: mathverse-complex (crate-scoped)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Clippy
+        run: cargo clippy -p mathverse-complex --all-targets
+      - name: Test (unit + integration + doctests)
+        run: cargo test -p mathverse-complex
+      - name: Examples compile
+        run: cargo build -p mathverse-complex --examples
+      - name: Docs
+        run: cargo doc -p mathverse-complex --no-deps
 
   msrv:
     name: MSRV (Rust 1.87)

@@ -78,7 +78,42 @@ impl GrayImage {
         out
     }
 
-    /// Add two images element-wise with clamping.
+    
+pub fn add_gaussian_noise_seeded(&self, mean: f64, std_dev: f64, seed: u64) -> GrayImage {
+    use rand::{SeedableRng, rngs::StdRng};
+    let mut rng = StdRng::seed_from_u64(seed);
+    let mut out = self.clone();
+    for v in out.data.iter_mut() {
+        let noise: f64 = normal_sample(&mut rng, mean, std_dev);
+        *v = (*v + noise).clamp(0.0, 1.0);
+    }
+    out
+}
+
+/// Apply median filter with the given radius (kernel size = 2*radius + 1).
+pub fn median_filter(&self, radius: usize) -> GrayImage {
+    let mut out = GrayImage::new(self.w, self.h).unwrap();
+    let size = 2 * radius + 1;
+    let mut window: Vec<f64> = Vec::with_capacity(size * size);
+    for y in 0..self.h {
+        for x in 0..self.w {
+            window.clear();
+            for dy in -(radius as i64)..=(radius as i64) {
+                for dx in -(radius as i64)..=(radius as i64) {
+                    let nx = (x as i64 + dx).clamp(0, self.w as i64 - 1) as usize;
+                    let ny = (y as i64 + dy).clamp(0, self.h as i64 - 1) as usize;
+                    window.push(self.get(nx, ny));
+                }
+            }
+            window.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            let median = window[window.len() / 2];
+            out.set(x, y, median);
+        }
+    }
+    out
+}
+
+/// Add two images element-wise with clamping.
     pub fn add(&self, other: &GrayImage) -> GrayImage {
         assert_eq!(self.w, other.w);
         assert_eq!(self.h, other.h);

@@ -1,10 +1,11 @@
 //! Geometric laws: law of sines, law of cosines, Heron's formula.
 
-use mathverse_core::traits::Real;
+use mathverse_core::ops::deg_to_rad;
+use mathverse_core::traits::{Real, Trig};
 
 /// Law of sines: a/sin(A) = b/sin(B) = c/sin(C).
 /// Given angle A and opposite side a, compute side b opposite angle B.
-pub fn law_of_sines_side<T: Real>(a: T, angle_a: T, angle_b: T) -> T {
+pub fn law_of_sines_side<T: Real + Trig>(a: T, angle_a: T, angle_b: T) -> T {
     a * angle_b.sin() / angle_a.sin()
 }
 
@@ -12,7 +13,7 @@ pub fn law_of_sines_side<T: Real>(a: T, angle_a: T, angle_b: T) -> T {
 /// Returns the angle in radians.
 /// Note: This returns only the principal value. For the ambiguous SSA case,
 /// use `law_of_sines_angle_both` to get both possible angles.
-pub fn law_of_sines_angle<T: Real>(a: T, b: T, angle_a: T) -> T {
+pub fn law_of_sines_angle<T: Real + Trig>(a: T, b: T, angle_a: T) -> T {
     let sin_b = b * angle_a.sin() / a;
     sin_b.asin()
 }
@@ -28,7 +29,7 @@ pub fn law_of_sines_angle<T: Real>(a: T, b: T, angle_a: T) -> T {
 /// - a < b (side opposite given angle is shorter than other side)
 /// - angle_a is acute (less than π/2)
 /// - sin_b < 1 (so both B and π-B are valid)
-pub fn law_of_sines_angle_both<T: Real>(a: T, b: T, angle_a: T) -> (T, Option<T>) {
+pub fn law_of_sines_angle_both<T: Real + Trig>(a: T, b: T, angle_a: T) -> (T, Option<T>) {
     let sin_b = b * angle_a.sin() / a;
     let sin_b_f64 = sin_b.to_f64();
 
@@ -61,7 +62,7 @@ pub fn law_of_sines_angle_both<T: Real>(a: T, b: T, angle_a: T) -> (T, Option<T>
 /// Law of cosines: c² = a² + b² - 2ab·cos(C).
 /// Given sides a, b and included angle C, compute opposite side c.
 /// Returns NaN for geometrically impossible inputs (e.g., when the computed c² < 0).
-pub fn law_of_cosines_side<T: Real>(a: T, b: T, angle_c: T) -> T {
+pub fn law_of_cosines_side<T: Real + Trig>(a: T, b: T, angle_c: T) -> T {
     let c2 = a * a + b * b - T::from_f64(2.0) * a * b * angle_c.cos();
     if c2 < T::zero() {
         T::from_f64(f64::NAN)
@@ -72,7 +73,7 @@ pub fn law_of_cosines_side<T: Real>(a: T, b: T, angle_c: T) -> T {
 
 /// Law of cosines: given sides a, b, c, compute the angle C opposite c.
 /// Returns the angle in radians.
-pub fn law_of_cosines_angle<T: Real>(a: T, b: T, c: T) -> T {
+pub fn law_of_cosines_angle<T: Real + Trig>(a: T, b: T, c: T) -> T {
     let cos_c = (a * a + b * b - c * c) / (T::from_f64(2.0) * a * b);
     let cos_c = cos_c.max(-T::one()).min(T::one());
     cos_c.acos()
@@ -91,7 +92,7 @@ pub fn heron<T: Real>(a: T, b: T, c: T) -> T {
 }
 
 /// Area of a triangle from two sides and included angle: ½ab·sin(C).
-pub fn triangle_area_sas<T: Real>(a: T, b: T, angle_c: T) -> T {
+pub fn triangle_area_sas<T: Real + Trig>(a: T, b: T, angle_c: T) -> T {
     T::from_f64(0.5) * a * b * angle_c.sin()
 }
 
@@ -102,16 +103,28 @@ pub fn triangle_area_base_height<T: Real>(base: T, height: T) -> T {
 
 /// Bearing (forward azimuth) from point A to point B.
 /// Returns angle in radians clockwise from north.
-pub fn bearing<T: Real>(lat1: T, lon1: T, lat2: T, lon2: T) -> T {
+pub fn bearing<T: Real + Trig>(lat1: T, lon1: T, lat2: T, lon2: T) -> T {
     let dlon = lon2 - lon1;
     let y = dlon.sin() * lat2.cos();
     let x = lat1.cos() * lat2.sin() - lat1.sin() * lat2.cos() * dlon.cos();
     y.atan2(x)
 }
 
+/// Haversine distance between two points on a sphere (lat/lon in degrees).
+/// Returns the great-circle distance. A GIS convenience for degree inputs.
+pub fn haversine_distance_deg<T: Real + Trig>(lat1: T, lon1: T, lat2: T, lon2: T, radius: T) -> T {
+    haversine_distance(
+        deg_to_rad(lat1),
+        deg_to_rad(lon1),
+        deg_to_rad(lat2),
+        deg_to_rad(lon2),
+        radius,
+    )
+}
+
 /// Haversine distance between two points on a sphere (lat/lon in radians).
 /// Returns the great-circle distance.
-pub fn haversine_distance<T: Real>(lat1: T, lon1: T, lat2: T, lon2: T, radius: T) -> T {
+pub fn haversine_distance<T: Real + Trig>(lat1: T, lon1: T, lat2: T, lon2: T, radius: T) -> T {
     let dlat = lat2 - lat1;
     let dlon = lon2 - lon1;
     let dlat2 = dlat / T::from_f64(2.0);

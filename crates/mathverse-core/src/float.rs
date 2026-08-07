@@ -86,8 +86,9 @@ pub fn fsum(xs: &[f64]) -> f64 {
 /// ```
 #[inline]
 #[must_use]
+#[allow(clippy::suboptimal_flops)] // mul_add is a std-only inherent; keep portable
 pub fn isclose(a: f64, b: f64, rel_tol: f64, abs_tol: f64) -> bool {
-    (a - b).abs() <= rel_tol.mul_add(b.abs().max(a.abs()), abs_tol)
+    (a - b).abs() <= rel_tol * b.abs().max(a.abs()) + abs_tol
 }
 
 /// Split `x` into a mantissa `m` in `[0.5, 1)` (sign preserved) and an
@@ -110,7 +111,7 @@ pub fn frexp(x: f64) -> (f64, i32) {
     let exponent = ((bits >> 52) & 0x7FF) as i32;
     if exponent == 0 {
         // Subnormal: normalize by scaling up, then adjust the exponent.
-        let (m, e) = frexp(x * 2_f64.powi(52));
+        let (m, e) = frexp(x * 4503599627370496.0); // 2^52
         return (m, e - 52);
     }
     let mantissa = (bits & !(0x7FFu64 << 52)) | (1022u64 << 52);
@@ -135,7 +136,7 @@ pub fn ldexp(x: f64, e: i32) -> f64 {
     let exponent = ((bits >> 52) & 0x7FF) as i32;
     if exponent == 0 {
         // Subnormal input: normalize first, then recurse with adjusted exponent.
-        return ldexp(x * 2_f64.powi(52), e - 52);
+        return ldexp(x * 4503599627370496.0, e - 52); // 2^52
     }
     let new_exp = exponent + e;
     if new_exp <= 0 {
@@ -174,8 +175,35 @@ pub fn modf(x: f64) -> (f64, f64) {
     if x.is_nan() || x.is_infinite() {
         return (x, 0.0);
     }
-    let integral = x.trunc();
+    let integral = trunc_f64(x);
     (x - integral, integral)
+}
+
+/// Truncate toward zero using bit surgery, so it works without `std`.
+///
+/// The low fraction bits are cleared; subnormals and values below 1 truncate
+/// to signed zero.
+#[inline]
+#[must_use]
+fn trunc_f64(x: f64) -> f64 {
+    if x == 0.0 || x.is_nan() || x.is_infinite() {
+        return x;
+    }
+    let bits = x.to_bits();
+    let exponent = ((bits >> 52) & 0x7FF) as i32;
+    if exponent == 0 {
+        return f64::from_bits(bits & (1u64 << 63)); // subnormal -> signed zero
+    }
+    let unbiased = exponent - 1023;
+    if unbiased >= 52 {
+        return x;
+    }
+    if unbiased < 0 {
+        return f64::from_bits(bits & (1u64 << 63)); // |x| < 1 -> signed zero
+    }
+    let keep = 52 - unbiased; // fraction bits live below bit `keep`
+    let mask = !((1u64 << keep) - 1);
+    f64::from_bits(bits & mask)
 }
 
 /// Next representable `f64` stepping from `x` toward `y`.
@@ -259,7 +287,7 @@ mod tests {
         assert_eq!(modf(2.7).1, 2.0);
         assert_eq!(modf(-2.7).1, -2.0);
         assert_eq!(modf(0.0).1, 0.0);
-        assert!(modf(f64::INFINITY).1 == 0.0);
+        assert_eq!(modf(f64::INFINITY).1, 0.0);
     }
 
     #[test]

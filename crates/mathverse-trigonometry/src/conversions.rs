@@ -1,10 +1,6 @@
 //! Coordinate conversions: polar/cartesian, spherical, angle normalization, turns/grads.
 
-use mathverse_core::traits::Real;
-
-fn atan2_f<T: Real>(y: T, x: T) -> T {
-    y.atan2(x)
-}
+use mathverse_core::traits::{Real, Trig};
 
 // ---------------------------------------------------------------------------
 // Angle normalization
@@ -44,6 +40,31 @@ pub fn wrap_angle_positive<T: Real>(x: T) -> T {
         v + tau
     } else {
         v
+    }
+}
+
+/// Smallest signed difference between two angles; result in `[-π, π)`.
+pub fn angle_difference<T: Real>(a: T, b: T) -> T {
+    wrap_angle(a - b)
+}
+
+/// Smallest absolute difference between two angles; result in `[0, π]`.
+pub fn angle_distance<T: Real>(a: T, b: T) -> T {
+    angle_difference(a, b).abs()
+}
+
+/// Unwrap a sequence of phase angles, adding/subtracting full turns to
+/// maintain continuity. Equivalent to `numpy.unwrap`.
+pub fn unwrap_angles<T: Real>(angles: &mut [T]) {
+    let tau = T::from_f64(core::f64::consts::TAU);
+    let half = tau / T::from_f64(2.0);
+    for i in 1..angles.len() {
+        let diff = angles[i] - angles[i - 1];
+        if diff > half {
+            angles[i] = angles[i] - tau;
+        } else if diff < -half {
+            angles[i] = angles[i] + tau;
+        }
     }
 }
 
@@ -90,25 +111,26 @@ pub fn grad_to_rad<T: Real>(grads: T) -> T {
 // ---------------------------------------------------------------------------
 
 /// Polar to Cartesian: `(r, θ)` → `(x, y)`.
-pub fn polar_to_cartesian<T: Real>(r: T, theta: T) -> (T, T) {
+pub fn polar_to_cartesian<T: Real + Trig>(r: T, theta: T) -> (T, T) {
     (r * theta.cos(), r * theta.sin())
 }
 
 /// Cartesian to polar: `(x, y)` → `(r, θ)`.
-pub fn cartesian_to_polar<T: Real>(x: T, y: T) -> (T, T) {
+pub fn cartesian_to_polar<T: Real + Trig>(x: T, y: T) -> (T, T) {
     let r = (x * x + y * y).sqrt();
-    let theta = atan2_f(y, x);
+    let theta = y.atan2(x);
     (r, theta)
 }
 
 /// Magnitude (radius) from cartesian coordinates.
-pub fn magnitude<T: Real>(x: T, y: T) -> T {
-    (x * x + y * y).sqrt()
+/// Uses `hypot` for overflow/underflow safety.
+pub fn magnitude<T: Real + Trig>(x: T, y: T) -> T {
+    x.hypot(y)
 }
 
 /// Phase angle from cartesian coordinates.
-pub fn phase<T: Real>(x: T, y: T) -> T {
-    atan2_f(y, x)
+pub fn phase<T: Real + Trig>(x: T, y: T) -> T {
+    y.atan2(x)
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +139,7 @@ pub fn phase<T: Real>(x: T, y: T) -> T {
 
 /// Spherical to Cartesian (physics convention).
 /// `r` = radius, `theta` = polar angle from z-axis, `phi` = azimuthal angle in xy-plane.
-pub fn spherical_to_cartesian<T: Real>(r: T, theta: T, phi: T) -> (T, T, T) {
+pub fn spherical_to_cartesian<T: Real + Trig>(r: T, theta: T, phi: T) -> (T, T, T) {
     let st = theta.sin();
     let ct = theta.cos();
     let cp = phi.cos();
@@ -127,18 +149,18 @@ pub fn spherical_to_cartesian<T: Real>(r: T, theta: T, phi: T) -> (T, T, T) {
 
 /// Cartesian to Spherical (physics convention).
 /// Returns `(r, theta, phi)`.
-pub fn cartesian_to_spherical<T: Real>(x: T, y: T, z: T) -> (T, T, T) {
+pub fn cartesian_to_spherical<T: Real + Trig>(x: T, y: T, z: T) -> (T, T, T) {
     let r = (x * x + y * y + z * z).sqrt();
     if r == T::zero() {
         return (T::zero(), T::zero(), T::zero());
     }
     let theta = (z / r).acos();
-    let phi = atan2_f(y, x);
+    let phi = y.atan2(x);
     (r, theta, phi)
 }
 
 /// Spherical to Cartesian (math convention: θ = polar from y-axis).
-pub fn spherical_to_cartesian_math<T: Real>(r: T, theta: T, phi: T) -> (T, T, T) {
+pub fn spherical_to_cartesian_math<T: Real + Trig>(r: T, theta: T, phi: T) -> (T, T, T) {
     let st = theta.sin();
     let ct = theta.cos();
     let cp = phi.cos();
@@ -148,13 +170,13 @@ pub fn spherical_to_cartesian_math<T: Real>(r: T, theta: T, phi: T) -> (T, T, T)
 
 /// Cartesian to Spherical (math convention).
 /// Returns `(r, theta, phi)`.
-pub fn cartesian_to_spherical_math<T: Real>(x: T, y: T, z: T) -> (T, T, T) {
+pub fn cartesian_to_spherical_math<T: Real + Trig>(x: T, y: T, z: T) -> (T, T, T) {
     let r = (x * x + y * y + z * z).sqrt();
     if r == T::zero() {
         return (T::zero(), T::zero(), T::zero());
     }
     let theta = (y / r).acos();
-    let phi = atan2_f(z, x);
+    let phi = z.atan2(x);
     (r, theta, phi)
 }
 
@@ -163,14 +185,14 @@ pub fn cartesian_to_spherical_math<T: Real>(x: T, y: T, z: T) -> (T, T, T) {
 // ---------------------------------------------------------------------------
 
 /// Cylindrical to Cartesian: `(r, θ, z)` → `(x, y, z)`.
-pub fn cylindrical_to_cartesian<T: Real>(r: T, theta: T, z: T) -> (T, T, T) {
+pub fn cylindrical_to_cartesian<T: Real + Trig>(r: T, theta: T, z: T) -> (T, T, T) {
     (r * theta.cos(), r * theta.sin(), z)
 }
 
 /// Cartesian to Cylindrical: `(x, y, z)` → `(r, θ, z)`.
-pub fn cartesian_to_cylindrical<T: Real>(x: T, y: T, z: T) -> (T, T, T) {
+pub fn cartesian_to_cylindrical<T: Real + Trig>(x: T, y: T, z: T) -> (T, T, T) {
     let r = (x * x + y * y).sqrt();
-    let theta = atan2_f(y, x);
+    let theta = y.atan2(x);
     (r, theta, z)
 }
 
@@ -248,5 +270,21 @@ mod tests {
         assert!((r - 2.0).abs() < EPS);
         assert!((theta - PI).abs() < EPS);
         assert!((zz - 3.0).abs() < EPS);
+    }
+
+    #[test]
+    fn angle_diff_unwrap() {
+        // π and -π are the same angle: difference 0.
+        assert!(angle_difference(PI, -PI).abs() < EPS);
+        assert!(angle_distance(PI, -PI).abs() < EPS);
+        assert!((angle_difference(0.0, 1.5_f64) - (-1.5)).abs() < 1e-12);
+        assert!((angle_distance(0.0f64, 3.0) - 3.0).abs() < EPS);
+
+        // numpy.unwrap(-π, π, 3π) = (-π, -π, π): jumps > π are removed.
+        let mut a = [-PI, PI, 3.0 * PI];
+        unwrap_angles(&mut a);
+        assert!((a[0] + PI).abs() < 1e-9);
+        assert!((a[1] + PI).abs() < 1e-9);
+        assert!((a[2] - PI).abs() < 1e-9);
     }
 }

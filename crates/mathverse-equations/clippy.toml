@@ -1,0 +1,1 @@
+warn-on = ["clippy::all", "clippy::pedantic"]

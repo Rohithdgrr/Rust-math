@@ -177,3 +177,112 @@ fn is_palindrome_reverse() {
         prop_assert_eq!(p, n == rev, "is_palindrome should match n == reverse_digits(n)");
     });
 }
+
+// ── Sub-trait property tests ───────────────────────────────────────
+
+#[test]
+fn trig_pythagorean_identity() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in -10.0f64..10.0f64)| {
+        let s = x.sin();
+        let c = x.cos();
+        let val = s * s + c * c;
+        prop_assert!((val - 1.0).abs() < 1e-10, "sin²+cos² should be 1, got {val}");
+    });
+}
+
+#[test]
+fn trig_tan_is_sin_over_cos() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in -1.5f64..1.5f64)| {
+        let t = x.tan();
+        let sc = x.sin() / x.cos();
+        prop_assert!((t - sc).abs() < 1e-10, "tan should equal sin/cos");
+    });
+}
+
+#[test]
+fn trig_periodicity() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in -100.0f64..100.0f64)| {
+        let two_pi = 2.0 * core::f64::consts::PI;
+        prop_assert!((x.sin() - (x + two_pi).sin()).abs() < 1e-10, "sin should be 2π-periodic");
+        prop_assert!((x.cos() - (x + two_pi).cos()).abs() < 1e-10, "cos should be 2π-periodic");
+    });
+}
+
+#[test]
+fn trig_inverse_roundtrip() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in -1.0f64..1.0f64)| {
+        prop_assert!((x.asin().sin() - x).abs() < 1e-10, "asin(sin(x)) should roundtrip");
+        prop_assert!((x.acos().cos() - x).abs() < 1e-10, "acos(cos(x)) should roundtrip");
+    });
+}
+
+#[test]
+fn hyperbolic_identity() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in -5.0f64..5.0f64)| {
+        let c = x.cosh();
+        let s = x.sinh();
+        let val = c * c - s * s;
+        prop_assert!((val - 1.0).abs() < 1e-10, "cosh²-sinh² should be 1, got {val}");
+    });
+}
+
+#[test]
+fn hyperbolic_tanh_bounded() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in -100.0f64..100.0f64)| {
+        let t = x.tanh();
+        prop_assert!(t >= -1.0 && t <= 1.0, "tanh should be in [-1,1], got {t}");
+    });
+}
+
+#[test]
+fn hyperbolic_inverse_roundtrip() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in -5.0f64..5.0f64)| {
+        prop_assert!((x.asinh().sinh() - x).abs() < 1e-10, "asinh(sinh(x)) roundtrip");
+    });
+    proptest!(config, |(x in 1.0f64..5.0f64)| {
+        prop_assert!((x.acosh().cosh() - x).abs() < 1e-10, "acosh(cosh(x)) roundtrip");
+    });
+}
+
+#[test]
+fn transcendental_exp_ln_roundtrip() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in 0.1f64..100.0f64)| {
+        prop_assert!((x.ln().exp() - x).abs() < 1e-10, "ln(exp(x)) roundtrip");
+        prop_assert!((x.exp().ln() - x).abs() < 1e-10, "exp(ln(x)) roundtrip");
+    });
+}
+
+#[test]
+fn transcendental_log_consistency() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in 0.1f64..100.0f64)| {
+        let l10 = x.log10();
+        let l2 = x.log2();
+        let ln = x.ln();
+        let two = 2.0_f64;
+        let ten = 10.0_f64;
+        prop_assert!((l10 - ln / ten.ln()).abs() < 1e-10, "log10 should equal ln/ln(10)");
+        prop_assert!((l2 - ln / two.ln()).abs() < 1e-10, "log2 should equal ln/ln(2)");
+    });
+}
+
+#[test]
+fn float_class_consistency() {
+    let config = Config::with_cases(100);
+    proptest!(config, |(x in -1000.0f64..1000.0f64)| {
+        prop_assert!(x.is_finite(), "normal finite numbers should be is_finite");
+        prop_assert!(!x.is_nan(), "normal numbers should not be NaN");
+        prop_assert!(!x.is_infinite(), "normal numbers should not be infinite");
+    });
+    proptest!(config, |(x in 0.1f64..1000.0f64)| {
+        prop_assert!(x.is_normal(), "non-zero finite should be is_normal");
+    });
+}

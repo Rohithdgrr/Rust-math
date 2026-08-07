@@ -1,13 +1,13 @@
 //! Special trigonometric functions: sinc, haversine, Gudermannian, Chebyshev, versine, exsecant.
 
-use mathverse_core::traits::Real;
+use mathverse_core::traits::{Real, Trig, Hyperbolic, Transcendental};
 
 // ---------------------------------------------------------------------------
 // Sinc
 // ---------------------------------------------------------------------------
 
 /// Normalized sinc: sin(πx) / (πx). Returns 1 at x=0.
-pub fn sinc<T: Real>(x: T) -> T {
+pub fn sinc<T: Real + Trig>(x: T) -> T {
     if x.abs() < T::from_f64(1e-15) {
         T::one()
     } else {
@@ -17,7 +17,7 @@ pub fn sinc<T: Real>(x: T) -> T {
 }
 
 /// Unnormalized sinc: sin(x) / x. Returns 1 at x=0.
-pub fn sinc_unnorm<T: Real>(x: T) -> T {
+pub fn sinc_unnorm<T: Real + Trig>(x: T) -> T {
     if x.abs() < T::from_f64(1e-15) {
         T::one()
     } else {
@@ -30,52 +30,52 @@ pub fn sinc_unnorm<T: Real>(x: T) -> T {
 // ---------------------------------------------------------------------------
 
 /// Versine(x) = 1 - cos(x).
-pub fn versine<T: Real>(x: T) -> T {
+pub fn versine<T: Real + Trig>(x: T) -> T {
     T::one() - x.cos()
 }
 
 /// Coversine(x) = 1 - sin(x).
-pub fn coversine<T: Real>(x: T) -> T {
+pub fn coversine<T: Real + Trig>(x: T) -> T {
     T::one() - x.sin()
 }
 
 /// Verco versed sine: versin(π - x) = 1 + cos(x).
-pub fn vercosine<T: Real>(x: T) -> T {
+pub fn vercosine<T: Real + Trig>(x: T) -> T {
     T::one() + x.cos()
 }
 
 /// Covercosine: cos versed = 1 + sin(x).
-pub fn covercosine<T: Real>(x: T) -> T {
+pub fn covercosine<T: Real + Trig>(x: T) -> T {
     T::one() + x.sin()
 }
 
 /// Haversine: versin(x)/2 = (1 - cos(x))/2.
-pub fn haversine<T: Real>(x: T) -> T {
+pub fn haversine<T: Real + Trig>(x: T) -> T {
     versine(x) / T::from_f64(2.0)
 }
 
 /// Havercosine: vercosin(x)/2 = (1 + cos(x))/2.
-pub fn havercosine<T: Real>(x: T) -> T {
+pub fn havercosine<T: Real + Trig>(x: T) -> T {
     vercosine(x) / T::from_f64(2.0)
 }
 
 /// Hacoversine: coversin(x)/2 = (1 - sin(x))/2.
-pub fn hacoversine<T: Real>(x: T) -> T {
+pub fn hacoversine<T: Real + Trig>(x: T) -> T {
     coversine(x) / T::from_f64(2.0)
 }
 
 /// Hacovercosine: covercos(x)/2 = (1 + sin(x))/2.
-pub fn hacovercosine<T: Real>(x: T) -> T {
+pub fn hacovercosine<T: Real + Trig>(x: T) -> T {
     covercosine(x) / T::from_f64(2.0)
 }
 
 /// Exsecant: sec(x) - 1.
-pub fn exsecant<T: Real>(x: T) -> T {
+pub fn exsecant<T: Real + Trig>(x: T) -> T {
     T::one() / x.cos() - T::one()
 }
 
 /// Excosecant: csc(x) - 1.
-pub fn excosecant<T: Real>(x: T) -> T {
+pub fn excosecant<T: Real + Trig>(x: T) -> T {
     T::one() / x.sin() - T::one()
 }
 
@@ -85,19 +85,19 @@ pub fn excosecant<T: Real>(x: T) -> T {
 
 /// Gudermannian: gd(x) = 2·arctan(eˣ) - π/2.
 /// Relates circular and hyperbolic functions.
-pub fn gudermannian<T: Real>(x: T) -> T {
+pub fn gudermannian<T: Real + Trig + Transcendental>(x: T) -> T {
     let ex = x.exp();
     T::from_f64(2.0) * ex.atan() - T::from_f64(core::f64::consts::FRAC_PI_2)
 }
 
 /// Inverse Gudermannian: gd⁻¹(x) = ln(tan(x/2 + π/4)).
-pub fn gudermannian_inv<T: Real>(x: T) -> T {
+pub fn gudermannian_inv<T: Real + Trig + Transcendental>(x: T) -> T {
     let half = x / T::from_f64(2.0) + T::from_f64(core::f64::consts::FRAC_PI_4);
     half.tan().ln()
 }
 
 /// gd(x) also equals: 2·atan(tanh(x/2)).
-pub fn gudermannian_alt<T: Real>(x: T) -> T {
+pub fn gudermannian_alt<T: Real + Trig + Hyperbolic>(x: T) -> T {
     let half = x / T::from_f64(2.0);
     T::from_f64(2.0) * half.tanh().atan()
 }
@@ -147,8 +147,11 @@ pub fn chebyshev_second<T: Real>(n: u32, x: T) -> T {
 // Trig power via Chebyshev
 // ---------------------------------------------------------------------------
 
-/// sinⁿ(x) expressed via Chebyshev for integer n.
-pub fn sin_power<T: Real>(n: u32, x: T) -> T {
+/// sinⁿ(x) via power-reduction formulas.
+///
+/// Uses the identity `sin²(x) = (1 - cos(2x))/2` for even powers to reduce
+/// catastrophic cancellation versus `x.sin().powi(n)`.
+pub fn sin_power<T: Real + Trig>(n: u32, x: T) -> T {
     if n == 0 {
         T::one()
     } else if n == 1 {
@@ -156,41 +159,30 @@ pub fn sin_power<T: Real>(n: u32, x: T) -> T {
     } else if n % 2 == 0 {
         // sin²ⁿ(x) = ((1 - cos(2x))/2)ⁿ
         let half = (T::one() - (T::from_f64(2.0) * x).cos()) / T::from_f64(2.0);
-        pow(half, n / 2)
+        half.powi((n / 2) as i32)
     } else {
         // sin²ⁿ⁺¹(x) = sin(x) · sin²ⁿ(x)
         let half = (T::one() - (T::from_f64(2.0) * x).cos()) / T::from_f64(2.0);
-        x.sin() * pow(half, n / 2)
+        x.sin() * half.powi((n / 2) as i32)
     }
 }
 
-/// cosⁿ(x) expressed via Chebyshev for integer n.
-pub fn cos_power<T: Real>(n: u32, x: T) -> T {
+/// cosⁿ(x) via power-reduction formulas.
+///
+/// Uses the identity `cos²(x) = (1 + cos(2x))/2` for even powers to reduce
+/// catastrophic cancellation versus `x.cos().powi(n)`.
+pub fn cos_power<T: Real + Trig>(n: u32, x: T) -> T {
     if n == 0 {
         T::one()
     } else if n == 1 {
         x.cos()
     } else if n % 2 == 0 {
         let half = (T::one() + (T::from_f64(2.0) * x).cos()) / T::from_f64(2.0);
-        pow(half, n / 2)
+        half.powi((n / 2) as i32)
     } else {
         let half = (T::one() + (T::from_f64(2.0) * x).cos()) / T::from_f64(2.0);
-        x.cos() * pow(half, n / 2)
+        x.cos() * half.powi((n / 2) as i32)
     }
-}
-
-fn pow<T: Real>(base: T, exp: u32) -> T {
-    let mut result = T::one();
-    let mut b = base;
-    let mut e = exp;
-    while e > 0 {
-        if e & 1 == 1 {
-            result = result * b;
-        }
-        b = b * b;
-        e >>= 1;
-    }
-    result
 }
 
 #[cfg(test)]

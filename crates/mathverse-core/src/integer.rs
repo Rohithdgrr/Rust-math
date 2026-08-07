@@ -5,6 +5,7 @@
 //! combinatorics, and cryptography. Canonical home for all integer math —
 //! `algorithms.rs` re-exports from here.
 
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -39,6 +40,7 @@ pub fn gcd(mut a: u64, mut b: u64) -> u64 {
 /// assert_eq!(gcd_n(&[48, 18, 24]), 6);
 /// ```
 #[must_use]
+#[inline]
 pub fn gcd_n(xs: &[u64]) -> u64 {
     xs.iter().copied().fold(0, gcd)
 }
@@ -72,6 +74,7 @@ pub fn lcm(a: u64, b: u64) -> u64 {
 /// assert_eq!(lcm_n(&[4, 6, 8]), 24);
 /// ```
 #[must_use]
+#[inline]
 pub fn lcm_n(xs: &[u64]) -> u64 {
     xs.iter().copied().fold(1, lcm)
 }
@@ -257,6 +260,7 @@ pub fn is_square(n: u64) -> bool {
 /// assert_eq!(binomial(5, 0), 1);
 /// ```
 #[must_use]
+#[inline]
 pub fn binomial(n: u64, k: u64) -> u128 {
     checked_binomial(n, k).unwrap_or(u128::MAX)
 }
@@ -300,6 +304,7 @@ pub fn checked_binomial(n: u64, k: u64) -> Option<u128> {
 /// assert_eq!(factorial(0), 1);
 /// ```
 #[must_use]
+#[inline]
 pub fn factorial(n: u64) -> u128 {
     checked_factorial(n).unwrap_or(u128::MAX)
 }
@@ -1025,9 +1030,8 @@ pub fn is_triangular(n: u64) -> bool {
     if n == 0 {
         return true;
     }
-    let d = match 8u64.checked_mul(n).and_then(|v| v.checked_add(1)) {
-        Some(v) => v,
-        None => return false,
+    let Some(d) = 8u64.checked_mul(n).and_then(|v| v.checked_add(1)) else {
+        return false;
     };
     is_square(d)
 }
@@ -1155,6 +1159,7 @@ pub fn is_semiprime(n: u64) -> bool {
 /// assert!(!is_squarefree(18));
 /// ```
 #[must_use]
+#[inline]
 pub fn is_squarefree(n: u64) -> bool {
     prime_factorization(n).iter().all(|(_, e)| *e == 1)
 }
@@ -1263,6 +1268,7 @@ pub fn to_digits(n: u64) -> Vec<u64> {
 /// assert_eq!(from_digits(&[1, 2, 3]), 123);
 /// ```
 #[must_use]
+#[inline]
 pub fn from_digits(digits: &[u64]) -> u64 {
     digits.iter().fold(0u64, |acc, &d| acc * 10 + d)
 }
@@ -1644,6 +1650,7 @@ pub fn divisor_sum(n: u64) -> u64 {
 /// assert_eq!(radical(18), 6);
 /// ```
 #[must_use]
+#[inline]
 pub fn radical(n: u64) -> u64 {
     prime_factors(n).iter().product()
 }
@@ -1659,6 +1666,7 @@ pub fn radical(n: u64) -> u64 {
 /// assert!(!is_smooth(12, 2));
 /// ```
 #[must_use]
+#[inline]
 pub fn is_smooth(n: u64, bound: u64) -> bool {
     prime_factors(n).iter().all(|&p| p <= bound)
 }

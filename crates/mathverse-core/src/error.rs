@@ -3,6 +3,8 @@
 //! Every failure mode `MathVerse` recognizes is represented as a variant of
 //! [`MathError`]. The [`MathResult<T>`] type alias simplifies return types.
 
+use alloc::string::{String, ToString};
+
 /// Every failure mode `MathVerse` recognizes.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]

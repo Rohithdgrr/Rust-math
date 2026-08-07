@@ -9,10 +9,10 @@ impl ConversionFactors {
     pub const METER_TO_CENTIMETER: f64 = 100.0;
     pub const METER_TO_MILLIMETER: f64 = 1000.0;
     pub const METER_TO_KILOMETER: f64 = 1e-3;
-    pub const METER_TO_INCH: f64 = 39.3701;
-    pub const METER_TO_FOOT: f64 = 3.28084;
-    pub const METER_TO_YARD: f64 = 1.09361;
-    pub const METER_TO_MILE: f64 = 6.21371e-4;
+    pub const METER_TO_INCH: f64 = 1.0 / 0.0254;
+    pub const METER_TO_FOOT: f64 = 1.0 / 0.3048;
+    pub const METER_TO_YARD: f64 = 1.0 / 0.9144;
+    pub const METER_TO_MILE: f64 = 1.0 / 1609.344;
 
     /// Mass conversions (from kilograms)
     pub const KILOGRAM_TO_GRAM: f64 = 1000.0;

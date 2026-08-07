@@ -37,10 +37,12 @@ use core::ops::{Add, Div, Mul, Sub};
 /// assert_eq!(c, Array::from([2.0, 3.0, 4.0]));
 /// assert!((a.dot(&b) - 6.0).abs() < 1e-12);
 /// ```
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Array<T, const N: usize> {
     data: [T; N],
 }
+
+impl<T: Num + Eq, const N: usize> Eq for Array<T, N> {}
 
 impl<T: Num, const N: usize> Default for Array<T, N> {
     fn default() -> Self {
@@ -50,6 +52,8 @@ impl<T: Num, const N: usize> Default for Array<T, N> {
 
 impl<T: Num, const N: usize> Array<T, N> {
     /// Construct from a raw array.
+    #[must_use]
+    #[inline]
     pub const fn new(data: [T; N]) -> Self {
         Self { data }
     }
@@ -61,6 +65,7 @@ impl<T: Num, const N: usize> Array<T, N> {
     /// let a = Array::from_fn(|i| i as f64 * 2.0);
     /// assert_eq!(a, Array::from([0.0, 2.0, 4.0]));
     /// ```
+    #[must_use]
     pub fn from_fn<F: FnMut(usize) -> T>(mut f: F) -> Self {
         let mut data = [T::zero(); N];
         for (i, slot) in data.iter_mut().enumerate() {
@@ -96,31 +101,52 @@ impl<T: Num, const N: usize> Array<T, N> {
         &mut self.data
     }
 
-    /// Get element `i` (panics if out of bounds, same as slice indexing).
+    /// Get element `i`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `i >= N`.
+    #[must_use]
+    #[inline]
     pub fn get(&self, i: usize) -> T {
         self.data[i]
     }
 
     /// Set element `i` in place.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `i >= N`.
     pub fn set(&mut self, i: usize, value: T) {
         self.data[i] = value;
     }
 
     /// Element at index `i` without panicking.
+    ///
+    /// Returns `None` if `i >= N`.
+    #[must_use]
+    #[inline]
     pub fn try_get(&self, i: usize) -> Option<T> {
         self.data.get(i).copied()
     }
 
-    /// Sum of all elements.
+    /// Sum of all elements using Kahan-compensated summation for
+    /// numerical stability with floating-point types.
+    #[must_use]
     pub fn sum(&self) -> T {
-        let mut acc = T::zero();
+        let mut sum = T::zero();
+        let mut c = T::zero();
         for &x in &self.data {
-            acc = acc + x;
+            let y = x - c;
+            let t = sum + y;
+            c = (t - sum) - y;
+            sum = t;
         }
-        acc
+        sum
     }
 
     /// Dot (scalar) product with another array of the same length.
+    /// Uses Kahan-compensated summation for numerical stability.
     ///
     /// ```
     /// use mathverse_core::arrays::Array;
@@ -128,20 +154,30 @@ impl<T: Num, const N: usize> Array<T, N> {
     /// let b = Array::from([4.0, 5.0, 6.0]);
     /// assert!((a.dot(&b) - 32.0).abs() < 1e-12);
     /// ```
+    #[must_use]
     pub fn dot(&self, other: &Self) -> T {
-        let mut acc = T::zero();
+        let mut sum = T::zero();
+        let mut c = T::zero();
         for i in 0..N {
-            acc = acc + self.data[i] * other.data[i];
+            let x = self.data[i] * other.data[i];
+            let y = x - c;
+            let t = sum + y;
+            c = (t - sum) - y;
+            sum = t;
         }
-        acc
+        sum
     }
 
     /// Element-wise apply of `f`.
+    #[must_use]
+    #[inline]
     pub fn map<U: Num, F: FnMut(T) -> U>(&self, mut f: F) -> Array<U, N> {
         Array::from_fn(|i| f(self.data[i]))
     }
 
     /// Zip with another array and combine with `f`.
+    #[must_use]
+    #[inline]
     pub fn zip_with<U: Num, V: Num, F: FnMut(T, U) -> V>(
         &self,
         other: &Array<U, N>,
@@ -151,11 +187,15 @@ impl<T: Num, const N: usize> Array<T, N> {
     }
 
     /// Element-wise `a * b`.
+    #[must_use]
+    #[inline]
     pub fn component_mul(&self, other: &Self) -> Self {
         self.zip_with(other, |x, y| x * y)
     }
 
     /// Element-wise `a / b`.
+    #[must_use]
+    #[inline]
     pub fn component_div(&self, other: &Self) -> Self
     where
         T: Div<Output = T>,
@@ -170,6 +210,7 @@ impl<T: Num, const N: usize> Array<T, N> {
     /// let a = Array::from([1.0f64, 2.0, 3.0]);
     /// assert_eq!(a.cumulative_sum(), Array::from([1.0, 3.0, 6.0]));
     /// ```
+    #[must_use]
     pub fn cumulative_sum(&self) -> Self {
         let mut acc = T::zero();
         let mut out = [T::zero(); N];
@@ -181,6 +222,7 @@ impl<T: Num, const N: usize> Array<T, N> {
     }
 
     /// Reverse the elements.
+    #[must_use]
     pub fn reversed(&self) -> Self {
         let mut out = [T::zero(); N];
         for (i, item) in out.iter_mut().enumerate() {
@@ -189,6 +231,8 @@ impl<T: Num, const N: usize> Array<T, N> {
         Self { data: out }
     }
     /// True when every element compares equal to the corresponding one in `other`.
+    #[must_use]
+    #[inline]
     pub fn all_eq(&self, other: &Self) -> bool
     where
         T: PartialEq,
@@ -199,26 +243,36 @@ impl<T: Num, const N: usize> Array<T, N> {
 
 impl<T: Num, const N: usize> Array<T, N> {
     /// Element-wise addition.
+    #[must_use]
+    #[inline]
     pub fn add(&self, other: &Self) -> Self {
         self.zip_with(other, |x, y| x + y)
     }
 
     /// Element-wise subtraction.
+    #[must_use]
+    #[inline]
     pub fn sub(&self, other: &Self) -> Self {
         self.zip_with(other, |x, y| x - y)
     }
 
     /// Scalar multiply: `self * s`.
+    #[must_use]
+    #[inline]
     pub fn scalar_mul(&self, s: T) -> Self {
         self.map(|x| x * s)
     }
 
     /// Scalar addition: `self + s`.
+    #[must_use]
+    #[inline]
     pub fn scalar_add(&self, s: T) -> Self {
         self.map(|x| x + s)
     }
 
     /// Divide every element by `s`.
+    #[must_use]
+    #[inline]
     pub fn scalar_div(&self, s: T) -> Self
     where
         T: Div<Output = T>,
@@ -235,11 +289,14 @@ impl<T: Real, const N: usize> Array<T, N> {
     /// let a = Array::from([3.0f64, 4.0]);
     /// assert!((a.l2_norm() - 5.0).abs() < 1e-12);
     /// ```
+    #[must_use]
+    #[inline]
     pub fn l2_norm(&self) -> T {
         self.dot(self).sqrt()
     }
 
     /// Manhattan (L1) norm.
+    #[must_use]
     pub fn l1_norm(&self) -> T {
         let mut acc = T::zero();
         for &x in &self.data {
@@ -249,6 +306,7 @@ impl<T: Real, const N: usize> Array<T, N> {
     }
 
     /// Maximum (L∞ / Chebyshev) norm.
+    #[must_use]
     pub fn max_norm(&self) -> T {
         let mut acc = T::zero();
         for &x in &self.data {
@@ -261,6 +319,7 @@ impl<T: Real, const N: usize> Array<T, N> {
     }
 
     /// Normalize to unit length; returns `None` for a zero vector.
+    #[must_use]
     pub fn try_normalize(&self) -> Option<Self> {
         let n = self.l2_norm();
         if n == T::zero() {
@@ -271,11 +330,15 @@ impl<T: Real, const N: usize> Array<T, N> {
     }
 
     /// Normalize to unit length; a zero vector stays zero.
+    #[must_use]
+    #[inline]
     pub fn normalize(&self) -> Self {
         self.try_normalize().unwrap_or_else(Self::zeros)
     }
 
     /// Mean of the elements.
+    #[must_use]
+    #[inline]
     pub fn mean(&self) -> T {
         self.sum() / T::from_f64(N as f64)
     }
@@ -382,5 +445,31 @@ mod tests {
         let z: Array<f64, 3> = Array::zeros();
         assert!(z.try_normalize().is_none());
         assert_eq!(z.normalize(), z);
+    }
+
+    #[test]
+    fn float_array_compiles_and_eq() {
+        let a = Array::from([1.0f64, 2.0, 3.0]);
+        let b = Array::from([1.0f64, 2.0, 3.0]);
+        assert_eq!(a, b);
+        assert!(Array::<f64, 3>::eq(&a, &b));
+    }
+
+    #[test]
+    fn kahan_sum_precision() {
+        // Kahan helps when many small values accumulate rounding error.
+        // 1000 copies of 0.1 should sum to 100.0; naive sum drifts.
+        let vals: [f64; 1000] = [0.1; 1000];
+        let a = Array::<f64, 1000> { data: vals };
+        assert!((a.sum() - 100.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn kahan_dot_precision() {
+        // Dot product of many small terms.
+        let vals: [f64; 1000] = [0.1; 1000];
+        let a = Array::<f64, 1000> { data: vals };
+        let b = Array::<f64, 1000> { data: [1.0; 1000] };
+        assert!((a.dot(&b) - 100.0).abs() < 1e-10);
     }
 }

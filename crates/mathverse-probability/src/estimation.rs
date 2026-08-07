@@ -53,7 +53,13 @@ impl MLE {
         successes as f64 / data.len() as f64
     }
 
-    /// General MLE using numerical optimization.
+    /// General MLE using a random-walk hill-climbing search from
+    /// `initial_params`. Not a gradient method: it perturbs each parameter with
+    /// small normal noise and keeps improving moves. Use only for low-dimensional
+    ///, well-scaled problems, and run multiple times from different starts.
+    ///
+    /// `_tolerance` is reserved for a future stopping criterion; currently fixed
+    /// at 1000 iterations.
     #[must_use]
     pub fn general(
         log_likelihood: impl Fn(&[f64]) -> f64,
@@ -86,6 +92,18 @@ impl MLE {
 
         best_params
     }
+}
+
+/// Akaike Information Criterion: `2k - 2 ln(L)`.
+#[must_use]
+pub fn aic(log_likelihood: f64, k: usize) -> f64 {
+    2.0 * k as f64 - 2.0 * log_likelihood
+}
+
+/// Bayesian Information Criterion: `k ln(n) - 2 ln(L)`.
+#[must_use]
+pub fn bic(log_likelihood: f64, k: usize, n: usize) -> f64 {
+    (k as f64) * (n as f64).ln() - 2.0 * log_likelihood
 }
 
 /// Method of Moments Estimation.
@@ -570,6 +588,51 @@ impl BayesianEstimation {
         }
 
         best_params
+    }
+}
+
+/// Bootstrap confidence interval.
+#[must_use]
+pub struct Bootstrap;
+
+impl Bootstrap {
+    /// Percentile bootstrap interval (resamples with replacement).
+    ///
+    /// Returns (lower, upper) quantiles of the bootstrap statistic.
+    /// Uses a fixed number of bootstrap replicates for determinism.
+    #[must_use]
+    pub fn percentile_ci<F>(
+        data: &[f64],
+        statistic: F,
+        n_replicates: usize,
+        confidence: f64,
+        seed: u64,
+    ) -> (f64, f64)
+    where
+        F: Fn(&[f64]) -> f64,
+    {
+        if data.is_empty() || n_replicates == 0 {
+            return (f64::NAN, f64::NAN);
+        }
+        let mut rng = crate::rng::Rng::new(seed);
+        let n = data.len();
+        let mut replicates = Vec::with_capacity(n_replicates);
+        for _ in 0..n_replicates {
+            let mut resample = Vec::with_capacity(n);
+            for _ in 0..n {
+                let idx = rng.below(n as u64) as usize;
+                resample.push(data[idx]);
+            }
+            replicates.push(statistic(&resample));
+        }
+        replicates.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let alpha = 1.0 - confidence;
+        let lower_idx = (alpha / 2.0 * replicates.len() as f64) as usize;
+        let upper_idx = ((1.0 - alpha / 2.0) * replicates.len() as f64) as usize;
+        (
+            replicates[lower_idx.min(replicates.len() - 1)],
+            replicates[upper_idx.min(replicates.len() - 1)],
+        )
     }
 }
 

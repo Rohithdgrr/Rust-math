@@ -14,11 +14,12 @@ pub trait Distribution {
 pub trait DiscreteDist: Distribution {
     fn pmf(&self, k: i64) -> f64;
     fn cdf(&self, k: i64) -> f64;
-    /// Inverse-CDF sampling.
+    /// Inverse-CDF sampling with safety limit.
     fn sample(&self, rng: &mut Rng) -> i64 {
         let u = rng.uniform();
-        let mut k = 0;
-        while self.cdf(k) < u {
+        let mut k = 0i64;
+        const MAX_ITER: i64 = 1_000_000;
+        while self.cdf(k) < u && k < MAX_ITER {
             k += 1;
         }
         k
@@ -28,6 +29,38 @@ pub trait DiscreteDist: Distribution {
 pub trait ContinuousDist: Distribution {
     fn pdf(&self, x: f64) -> f64;
     fn cdf(&self, x: f64) -> f64;
+
+    /// Quantile function (inverse CDF). Default: binary search on `cdf`.
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        if q <= 0.0 {
+            return f64::NEG_INFINITY;
+        }
+        if q >= 1.0 {
+            return f64::INFINITY;
+        }
+        let mut lo = -1e10;
+        let mut hi = 1e10;
+        for _ in 0..200 {
+            let mid = (lo + hi) / 2.0;
+            if self.cdf(mid) < q {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        (lo + hi) / 2.0
+    }
+
+    /// Survival function: `1 - cdf(x)`.
+    fn sf(&self, x: f64) -> f64 {
+        1.0 - self.cdf(x)
+    }
+
+    /// Inverse survival function: `ppf(1 - q)`.
+    fn isf(&self, q: f64) -> f64 {
+        self.ppf(1.0 - q)
+    }
 }
 
 /// `P(X = 1) = p`.
@@ -74,8 +107,92 @@ impl Distribution for Binomial {
         self.n as f64 * self.p * (1.0 - self.p)
     }
 }
+impl Binomial {
+    /// Log-space PMF (returns None on underflow).
+    fn ln_pmf(&self, k: u64) -> Option<f64> {
+        let k_eff = k.min(self.n - k);
+        let ln_coeff = ln_gamma(self.n as f64 + 1.0)
+            - ln_gamma(k_eff as f64 + 1.0)
+            - ln_gamma((self.n - k_eff) as f64 + 1.0);
+        let ln_pmf =
+            ln_coeff + k as f64 * self.p.ln() + (self.n - k) as f64 * (1.0 - self.p).ln();
+        if ln_pmf < -700.0 {
+            None
+        } else {
+            Some(ln_pmf)
+        }
+    }
+
+    /// Compute PMF via recurrence from the mode, avoiding underflow.
+    fn pmf_from_mode(&self, k: u64) -> f64 {
+        let mode = ((self.n as f64 + 1.0) * self.p).floor() as u64;
+        let mode = mode.min(self.n);
+
+        let ln_ref = self.ln_pmf_raw(mode);
+        if ln_ref < -700.0 {
+            return self.pmf_recurrent_full(k, mode);
+        }
+        let mode_pmf = ln_ref.exp();
+
+        if k == mode {
+            return mode_pmf;
+        }
+
+        let mut current = mode;
+        let mut val = mode_pmf;
+        let q = 1.0 - self.p;
+
+        if k < mode {
+            while current > k {
+                val *= current as f64 * q / ((self.n - current + 1) as f64 * self.p);
+                current -= 1;
+            }
+        } else {
+            while current < k {
+                val *= (self.n - current) as f64 * self.p / ((current + 1) as f64 * q);
+                current += 1;
+            }
+        }
+        val
+    }
+
+    /// Full recurrence between two arbitrary points (both in underflow region).
+    fn pmf_recurrent_full(&self, k: u64, ref_point: u64) -> f64 {
+        // Compute ln_pmf at ref_point without exp, then do recurrence in log-space
+        let ln_ref = self.ln_pmf_raw(ref_point);
+        let mut ln_val = ln_ref;
+        let q = 1.0 - self.p;
+        let mut current = ref_point;
+
+        if k < ref_point {
+            while current > k {
+                ln_val += (current as f64).ln() + q.ln()
+                    - ((self.n - current + 1) as f64).ln()
+                    - self.p.ln();
+                current -= 1;
+            }
+        } else {
+            while current < k {
+                ln_val += ((self.n - current) as f64).ln() + self.p.ln()
+                    - ((current + 1) as f64).ln()
+                    - q.ln();
+                current += 1;
+            }
+        }
+        ln_val.exp()
+    }
+
+    /// Raw ln_pmf without underflow guard.
+    fn ln_pmf_raw(&self, k: u64) -> f64 {
+        let k_eff = k.min(self.n - k);
+        let ln_coeff = ln_gamma(self.n as f64 + 1.0)
+            - ln_gamma(k_eff as f64 + 1.0)
+            - ln_gamma((self.n - k_eff) as f64 + 1.0);
+        ln_coeff + k as f64 * self.p.ln() + (self.n - k) as f64 * (1.0 - self.p).ln()
+    }
+}
+
 impl DiscreteDist for Binomial {
-    /// Exact via integer binomial (n ≤ 34 keeps `u128` exact).
     fn pmf(&self, k: i64) -> f64 {
         if k < 0 || k as u64 > self.n {
             return 0.0;
@@ -88,13 +205,11 @@ impl DiscreteDist for Binomial {
             return if k_u == self.n { 1.0 } else { 0.0 };
         }
 
-        let k_eff = k_u.min(self.n - k_u);
-        let ln_coeff = ln_gamma(self.n as f64 + 1.0)
-            - ln_gamma(k_eff as f64 + 1.0)
-            - ln_gamma((self.n - k_eff) as f64 + 1.0);
-        let ln_pmf =
-            ln_coeff + k_u as f64 * self.p.ln() + (self.n - k_u) as f64 * (1.0 - self.p).ln();
-        ln_pmf.exp()
+        if let Some(ln) = self.ln_pmf(k_u) {
+            ln.exp()
+        } else {
+            self.pmf_from_mode(k_u)
+        }
     }
     fn cdf(&self, k: i64) -> f64 {
         (0..=k).map(|i| self.pmf(i)).sum()
@@ -114,8 +229,80 @@ impl Distribution for Poisson {
         self.lambda
     }
 }
+impl Poisson {
+    /// Log-space PMF (returns None on underflow).
+    fn ln_pmf(&self, k: i64) -> Option<f64> {
+        if k < 0 {
+            return Some(f64::NEG_INFINITY);
+        }
+        let kf = k as f64;
+        let ln_pmf = kf * self.lambda.ln() - self.lambda - ln_gamma(kf + 1.0);
+        if ln_pmf < -700.0 {
+            None
+        } else {
+            Some(ln_pmf)
+        }
+    }
+
+    /// Compute PMF via recurrence from the mode, avoiding underflow.
+    fn pmf_from_mode(&self, k: i64) -> f64 {
+        let mode = self.lambda.floor() as i64;
+        let mode_pmf = if let Some(ln) = self.ln_pmf(mode) {
+            ln.exp()
+        } else {
+            return self.pmf_recurrent_full(k, mode);
+        };
+
+        if k == mode {
+            return mode_pmf;
+        }
+
+        let mut current = mode;
+        let mut val = mode_pmf;
+
+        if k < mode {
+            while current > k {
+                val *= self.lambda / current as f64;
+                current -= 1;
+            }
+        } else {
+            while current < k {
+                current += 1;
+                val *= self.lambda / current as f64;
+            }
+        }
+        val
+    }
+
+    /// Full recurrence in log-space between two arbitrary points.
+    fn pmf_recurrent_full(&self, k: i64, ref_point: i64) -> f64 {
+        let ln_ref = self.ln_pmf_raw(ref_point);
+        let mut ln_val = ln_ref;
+        let ln_lambda = self.lambda.ln();
+        let mut current = ref_point;
+
+        if k < ref_point {
+            while current > k {
+                ln_val += ln_lambda - (current as f64).ln();
+                current -= 1;
+            }
+        } else {
+            while current < k {
+                current += 1;
+                ln_val += ln_lambda - (current as f64).ln();
+            }
+        }
+        ln_val.exp()
+    }
+
+    /// Raw ln_pmf without underflow guard.
+    fn ln_pmf_raw(&self, k: i64) -> f64 {
+        let kf = k as f64;
+        kf * self.lambda.ln() - self.lambda - ln_gamma(kf + 1.0)
+    }
+}
+
 impl DiscreteDist for Poisson {
-    /// Multiplication recurrence avoids `k!` overflow.
     fn pmf(&self, k: i64) -> f64 {
         if k < 0 {
             return 0.0;
@@ -126,8 +313,12 @@ impl DiscreteDist for Poisson {
         if self.lambda == 0.0 {
             return if k == 0 { 1.0 } else { 0.0 };
         }
-        let kf = k as f64;
-        (kf * self.lambda.ln() - self.lambda - ln_gamma(kf + 1.0)).exp()
+
+        if let Some(ln) = self.ln_pmf(k) {
+            ln.exp()
+        } else {
+            self.pmf_from_mode(k)
+        }
     }
     fn cdf(&self, k: i64) -> f64 {
         (0..=k).map(|i| self.pmf(i)).sum()
@@ -159,6 +350,10 @@ impl ContinuousDist for Uniform {
     fn cdf(&self, x: f64) -> f64 {
         ((x - self.a) / (self.b - self.a)).clamp(0.0, 1.0)
     }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        self.a + q * (self.b - self.a)
+    }
 }
 
 /// `Normal(μ, σ)`. CDF via Abramowitz–Stegun erf approximation (|err| < 1.5e-7).
@@ -183,6 +378,11 @@ impl ContinuousDist for Normal {
     fn cdf(&self, x: f64) -> f64 {
         0.5 * (1.0 + erf((x - self.mu) / (self.sigma * core::f64::consts::SQRT_2)))
     }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        let z = norm_ppf(q);
+        self.mu + self.sigma * z
+    }
 }
 impl Normal {
     /// Box–Muller sampling.
@@ -195,6 +395,63 @@ impl Normal {
 
 pub fn erf(x: f64) -> f64 {
     crate::special::erf(x)
+}
+
+/// Inverse normal CDF (Beasley-Springer-Moro algorithm, ~1e-9 accuracy).
+fn norm_ppf(q: f64) -> f64 {
+    debug_assert!((0.0..=1.0).contains(&q));
+    // Rational approximation constants (Beasley-Springer-Moro)
+    const A: [f64; 6] = [
+        -3.969683028665376e+01,
+        2.209460984245205e+02,
+        -2.759285104469687e+02,
+        1.383577518672690e+02,
+        -3.066479806614716e+01,
+        2.506628277459239e+00,
+    ];
+    const B: [f64; 5] = [
+        -5.447609879822406e+01,
+        1.615858368580409e+02,
+        -1.556989798598866e+02,
+        6.680131188771972e+01,
+        -1.328068155288572e+01,
+    ];
+    const C: [f64; 6] = [
+        -7.784894002430293e-03,
+        -3.223964580411365e-01,
+        -2.400758277161838e+00,
+        -2.549732539343734e+00,
+        4.374664141464968e+00,
+        2.938163982698783e+00,
+    ];
+    const D: [f64; 4] = [
+        7.784695709041462e-03,
+        3.224671290700398e-01,
+        2.445134137142996e+00,
+        3.754408661907416e+00,
+    ];
+
+    let p_low = 0.02425;
+    let p_high = 1.0 - p_low;
+    let q_val;
+    let r;
+
+    if q < p_low {
+        q_val = q;
+        r = (-2.0 * q_val.ln()).sqrt();
+        (((((C[0] * r + C[1]) * r + C[2]) * r + C[3]) * r + C[4]) * r + C[5])
+            / ((((D[0] * r + D[1]) * r + D[2]) * r + D[3]) * r + 1.0)
+    } else if q <= p_high {
+        q_val = q - 0.5;
+        r = q_val * q_val;
+        (((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r + A[5]) * q_val
+            / (((((B[0] * r + B[1]) * r + B[2]) * r + B[3]) * r + B[4]) * r + 1.0)
+    } else {
+        q_val = 1.0 - q;
+        r = (-2.0 * q_val.ln()).sqrt();
+        -(((((C[0] * r + C[1]) * r + C[2]) * r + C[3]) * r + C[4]) * r + C[5])
+            / ((((D[0] * r + D[1]) * r + D[2]) * r + D[3]) * r + 1.0)
+    }
 }
 
 /// Exponential distribution with rate λ.
@@ -224,6 +481,13 @@ impl ContinuousDist for Exponential {
         } else {
             1.0 - (-self.lambda * x).exp()
         }
+    }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        if q <= 0.0 {
+            return 0.0;
+        }
+        -((1.0 - q).ln()) / self.lambda
     }
 }
 impl Exponential {
@@ -263,6 +527,11 @@ impl ContinuousDist for LogNormal {
         } else {
             0.5 * (1.0 + erf((x.ln() - self.mu) / (self.sigma * core::f64::consts::SQRT_2)))
         }
+    }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        let z = norm_ppf(q);
+        (self.mu + self.sigma * z).exp()
     }
 }
 impl LogNormal {
@@ -307,6 +576,13 @@ impl ContinuousDist for Weibull {
         } else {
             1.0 - (-(x / self.scale).powf(self.shape)).exp()
         }
+    }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        if q <= 0.0 {
+            return 0.0;
+        }
+        self.scale * (-((1.0 - q).ln())).powf(1.0 / self.shape)
     }
 }
 impl Weibull {
@@ -574,6 +850,10 @@ impl ContinuousDist for Cauchy {
     fn cdf(&self, x: f64) -> f64 {
         0.5 + (1.0 / core::f64::consts::PI) * ((x - self.x0) / self.gamma).atan()
     }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        self.x0 + self.gamma * core::f64::consts::PI * (q - 0.5).tan()
+    }
 }
 impl Cauchy {
     pub fn sample(&self, rng: &mut Rng) -> f64 {
@@ -606,6 +886,14 @@ impl ContinuousDist for Laplace {
             1.0 - 0.5 * (-(x - self.mu) / self.b).exp()
         }
     }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        if q < 0.5 {
+            self.mu + self.b * (2.0 * q).ln()
+        } else {
+            self.mu - self.b * (2.0 * (1.0 - q)).ln()
+        }
+    }
 }
 impl Laplace {
     pub fn sample(&self, rng: &mut Rng) -> f64 {
@@ -635,6 +923,10 @@ impl ContinuousDist for Gumbel {
     }
     fn cdf(&self, x: f64) -> f64 {
         (-((x - self.mu) / self.beta).exp()).exp()
+    }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        self.mu - self.beta * (-q.ln()).ln()
     }
 }
 impl Gumbel {
@@ -679,6 +971,10 @@ impl ContinuousDist for Pareto {
         } else {
             1.0 - (self.xm / x).powf(self.alpha)
         }
+    }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        self.xm / (1.0 - q).powf(1.0 / self.alpha)
     }
 }
 impl Pareto {
@@ -730,6 +1026,18 @@ impl ContinuousDist for Triangular {
             1.0 - (b - x).powi(2) / ((b - a) * (b - c))
         } else {
             1.0
+        }
+    }
+    fn ppf(&self, q: f64) -> f64 {
+        assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
+        let a = self.a;
+        let b = self.b;
+        let c = self.c;
+        let fc = (c - a) / (b - a);
+        if q <= fc {
+            a + ((b - a) * (c - a) * q).sqrt()
+        } else {
+            b - ((b - a) * (b - c) * (1.0 - q)).sqrt()
         }
     }
 }
@@ -925,6 +1233,45 @@ impl BetaFunc for (f64, f64) {
     }
 }
 
+/// Inverse Gaussian (Wald) distribution on `x > 0`.
+#[must_use]
+pub struct InverseGaussian {
+    pub mu: f64,     // mean
+    pub lambda: f64, // shape
+}
+impl Distribution for InverseGaussian {
+    fn mean(&self) -> f64 {
+        self.mu
+    }
+    fn variance(&self) -> f64 {
+        self.mu.powi(3) / self.lambda
+    }
+}
+impl ContinuousDist for InverseGaussian {
+    fn pdf(&self, x: f64) -> f64 {
+        if x <= 0.0 {
+            return 0.0;
+        }
+        let diff = x - self.mu;
+        (self.lambda / (2.0 * core::f64::consts::PI * x.powi(3))).sqrt()
+            * (-self.lambda * diff * diff / (2.0 * self.mu * self.mu * x)).exp()
+    }
+    fn cdf(&self, x: f64) -> f64 {
+        if x <= 0.0 {
+            return 0.0;
+        }
+        let mu = self.mu;
+        let lambda = self.lambda;
+        let z1 = (lambda / x).sqrt() * (x / mu - 1.0);
+        let z2 = -(lambda / x).sqrt() * (x / mu + 1.0);
+        let std_normal = Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        };
+        std_normal.cdf(z1) + (2.0 * lambda / mu).exp() * std_normal.cdf(z2)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -973,6 +1320,19 @@ mod tests {
     }
 
     #[test]
+    fn inverse_gaussian_has_correct_mean_and_cdf() {
+        let ig = InverseGaussian { mu: 2.0, lambda: 5.0 };
+        assert!((ig.mean() - 2.0).abs() < 1e-12);
+        assert!((ig.variance() - 8.0 / 5.0).abs() < 1e-12);
+        assert!(ig.pdf(0.0) == 0.0);
+        assert!(ig.pdf(2.0) > 0.0);
+        assert!((ig.cdf(0.0) - 0.0).abs() < 1e-12);
+        assert!(ig.cdf(2.0) > 0.5, "right-skewed: cdf at mean exceeds 0.5");
+        assert!(ig.pdf(2.0) == ig.pdf(2.0), "pdf finite");
+        assert!((ig.cdf(1e9) - 1.0).abs() < 1e-3);
+    }
+
+    #[test]
     fn hypergeometric_large_parameters_stay_finite() {
         let h = Hypergeometric {
             n: 70,
@@ -1005,5 +1365,29 @@ mod tests {
         assert!((m - 2.0).abs() < 0.1, "empirical mean {m}");
         let u = rng.uniform();
         assert!((0.0..1.0).contains(&u));
+    }
+
+    #[test]
+    fn regression_binomial_large_n_avoids_underflow() {
+        let b = Binomial { n: 10_000, p: 0.5 };
+        assert!(b.pmf(5000).is_finite());
+        assert!(b.pmf(5000) > 0.0);
+    }
+
+    #[test]
+    fn regression_poisson_large_lambda_avoids_underflow() {
+        let p = Poisson { lambda: 10_000.0 };
+        assert!(p.pmf(10000).is_finite());
+        assert!(p.pmf(10000) > 0.0);
+    }
+
+    #[test]
+    fn regression_ppf_roundtrip_for_normal() {
+        let n = Normal { mu: 0.0, sigma: 1.0 };
+        for &x in &[0.1, 0.5, 0.9, 0.99] {
+            let p = n.cdf(x);
+            let x_back = n.ppf(p);
+            assert!((x_back - x).abs() < 1e-4, "roundtrip failed: {x} -> {p} -> {x_back}");
+        }
     }
 }

@@ -8,11 +8,7 @@ pub struct ComplexAnalysis;
 impl ComplexAnalysis {
     /// Compute residue of f(z) at z0 using Laurent series approximation.
     /// For simple pole: lim_{z->z0} (z - z0) * f(z)
-    pub fn residue_simple_pole(
-        f: &dyn Fn(Complex) -> Complex,
-        z0: Complex,
-        h: f64,
-    ) -> Complex {
+    pub fn residue_simple_pole(f: &dyn Fn(Complex) -> Complex, z0: Complex, h: f64) -> Complex {
         let z = z0 + Complex::new(h, 0.0);
         (z - z0) * f(z)
     }
@@ -31,26 +27,48 @@ impl ComplexAnalysis {
 
         let g = |z: Complex| (z - z0).powf(order as f64) * f(z);
         let derivative = Self::nth_derivative(&g, z0, order - 1, h);
-        
+
         // Divide by factorial
         let factorial: f64 = (1..=order - 1).map(|x| x as f64).product();
         derivative / Complex::real(factorial)
     }
 
-    /// Numerical derivative of complex function.
+    /// Numerical derivative of complex function (central difference on the
+    /// real axis).
     pub fn derivative(f: &dyn Fn(Complex) -> Complex, z: Complex, h: f64) -> Complex {
         let z_plus = z + Complex::new(h, 0.0);
         let z_minus = z - Complex::new(h, 0.0);
         (f(z_plus) - f(z_minus)) / Complex::new(2.0 * h, 0.0)
     }
 
-    /// Nth derivative of complex function.
-    pub fn nth_derivative(
+    /// Complex derivative via the complex-step method.
+    ///
+    /// For analytic `f`, `f'(z) = (f(z + ih) − f(z − ih)) / (2ih)` with
+    /// error `O(h²)`. Stepping along the imaginary axis exercises the
+    /// derivative in the complex plane (not just along the real axis) and
+    /// avoids the cancellation that limits real finite differences.
+    pub fn derivative_complex_step(f: &dyn Fn(Complex) -> Complex, z: Complex, h: f64) -> Complex {
+        let ih = Complex::new(0.0, h);
+        (f(z + ih) - f(z - ih)) / (ih * Complex::real(2.0))
+    }
+
+    /// Full complex derivative via the Cauchy integral formula:
+    /// `f'(z) = (1/(2πi)) ∮ f(w)/(w − z)² dw` around a circle of `radius`
+    /// sampled at `n` points. Robust for analytic `f` (no finite-difference
+    /// step-size tuning needed).
+    pub fn derivative_cauchy(
         f: &dyn Fn(Complex) -> Complex,
         z: Complex,
+        radius: f64,
         n: usize,
-        h: f64,
     ) -> Complex {
+        let integrand = |w: Complex| f(w) / (w - z).powf(2.0);
+        let integral = Self::contour_integral_circle(&integrand, z, radius, n);
+        integral / Complex::new(0.0, 2.0 * std::f64::consts::PI)
+    }
+
+    /// Nth derivative of complex function.
+    pub fn nth_derivative(f: &dyn Fn(Complex) -> Complex, z: Complex, n: usize, h: f64) -> Complex {
         if n == 0 {
             return f(z);
         }
@@ -60,7 +78,7 @@ impl ComplexAnalysis {
 
         // Use finite differences for higher derivatives
         let mut result = Complex::zero();
-        
+
         for k in 0..=n {
             let coeff = Self::binomial_coefficient(n, k) as f64;
             let sign: f64 = if (n - k) % 2 == 0 { 1.0 } else { -1.0 };
@@ -68,7 +86,7 @@ impl ComplexAnalysis {
             let term = f(z_k) * Complex::real(coeff * sign);
             result = result + term;
         }
-        
+
         result / Complex::new(h.powi(n as i32), 0.0)
     }
 
@@ -79,7 +97,7 @@ impl ComplexAnalysis {
         if k == 0 || k == n {
             return 1;
         }
-        
+
         let mut result = 1;
         for i in 0..k.min(n - k) {
             result = result * (n - i) / (i + 1);
@@ -97,7 +115,7 @@ impl ComplexAnalysis {
     ) -> Complex {
         let mut result = Complex::zero();
         let h = 2.0 * std::f64::consts::PI / n as f64;
-        
+
         for k in 0..n {
             let theta = k as f64 * h;
             let z = z0 + Complex::polar(radius, theta);
@@ -105,7 +123,7 @@ impl ComplexAnalysis {
             let dz = Complex::polar(radius * h, theta + std::f64::consts::FRAC_PI_2);
             result = result + f(z) * dz;
         }
-        
+
         result
     }
 
@@ -131,7 +149,7 @@ impl ComplexAnalysis {
     ) -> Complex {
         let integrand = |z: Complex| f(z) / (z - z0).powf((n + 1) as f64);
         let integral = Self::contour_integral_circle(&integrand, z0, radius, contour_n);
-        
+
         let factorial: f64 = (1..=n).map(|x| x as f64).product();
         integral * Complex::real(factorial) / Complex::new(0.0, 2.0 * std::f64::consts::PI)
     }
@@ -142,22 +160,22 @@ impl ComplexAnalysis {
         let z_minus = z - Complex::new(h, 0.0);
         let z_i_plus = z + Complex::new(0.0, h);
         let z_i_minus = z - Complex::new(0.0, h);
-        
+
         let f_z_plus = f(z_plus);
         let f_z_minus = f(z_minus);
         let f_z_i_plus = f(z_i_plus);
         let f_z_i_minus = f(z_i_minus);
-        
+
         // Partial derivatives
         let u_x = (f_z_plus.re - f_z_minus.re) / (2.0 * h);
         let u_y = (f_z_i_plus.re - f_z_i_minus.re) / (2.0 * h);
         let v_x = (f_z_plus.im - f_z_minus.im) / (2.0 * h);
         let v_y = (f_z_i_plus.im - f_z_i_minus.im) / (2.0 * h);
-        
+
         // Cauchy-Riemann equations: u_x = v_y and u_y = -v_x
         let cr1 = (u_x - v_y).abs() < 1e-6;
         let cr2 = (u_y + v_x).abs() < 1e-6;
-        
+
         cr1 && cr2
     }
 
@@ -173,13 +191,13 @@ impl ComplexAnalysis {
     ) -> (Vec<Complex>, Vec<Complex>) {
         let mut positive = Vec::new();
         let mut negative = Vec::new();
-        
+
         // Positive coefficients using Cauchy integral formula
         for n in 0..=max_positive {
             let coeff = Self::cauchy_derivative_formula(f, z0, n, radius, n_points);
             positive.push(coeff);
         }
-        
+
         // Negative coefficients using residue formula
         for n in 1..=max_negative {
             let integrand = |z: Complex| f(z) * (z - z0).powf(n as f64 - 1.0);
@@ -187,7 +205,7 @@ impl ComplexAnalysis {
             let coeff = integral / Complex::new(0.0, 2.0 * std::f64::consts::PI);
             negative.push(coeff);
         }
-        
+
         (positive, negative)
     }
 
@@ -212,14 +230,14 @@ impl ComplexAnalysis {
     ) -> Complex {
         let mut integral = Complex::zero();
         let n = vertices.len();
-        
+
         for i in 0..n {
             let alpha = angles[i];
             let vertex = vertices[i];
             let term = (z - vertex).powf(alpha - 1.0);
             integral = integral + term;
         }
-        
+
         pre_factor * integral
     }
 
@@ -249,18 +267,18 @@ impl ComplexAnalysis {
         // Sufficient sampled check: min |f| > max |g| on the contour
         let mut min_f: f64 = f64::INFINITY;
         let mut max_g: f64 = 0.0;
-        
+
         for k in 0..n {
             let theta = 2.0 * std::f64::consts::PI * k as f64 / n as f64;
             let z = z0 + Complex::polar(radius, theta);
-            
+
             let f_val = f(z).norm();
             let g_val = g(z).norm();
-            
+
             min_f = min_f.min(f_val);
             max_g = max_g.max(g_val);
         }
-        
+
         min_f > max_g
     }
 }
@@ -274,7 +292,7 @@ mod tests {
         // f(z) = 1/(z-1), residue at z=1 should be 1
         let f = |z: Complex| Complex::one() / (z - Complex::real(1.0));
         let residue = ComplexAnalysis::residue_simple_pole(&f, Complex::real(1.0), 0.001);
-        
+
         assert!((residue.re - 1.0).abs() < 0.1);
         assert!(residue.im.abs() < 0.1);
     }
@@ -284,7 +302,7 @@ mod tests {
         let f = |z: Complex| z * z;
         let z = Complex::new(2.0, 0.0);
         let deriv = ComplexAnalysis::derivative(&f, z, 1e-6);
-        
+
         // derivative of z^2 is 2z = 4
         assert!((deriv.re - 4.0).abs() < 0.01);
     }
@@ -296,7 +314,7 @@ mod tests {
         let b = Complex::zero();
         let c = Complex::zero();
         let d = Complex::real(1.0);
-        
+
         let result = ComplexAnalysis::mobius_transform(z, a, b, c, d);
         assert_eq!(result, z);
     }
@@ -307,7 +325,7 @@ mod tests {
         let f = |z: Complex| z;
         let z0 = Complex::real(1.0);
         let result = ComplexAnalysis::cauchy_integral_formula(&f, z0, 0.5, 100);
-        
+
         assert!((result.re - 1.0).abs() < 0.1);
         assert!(result.im.abs() < 0.1);
     }
@@ -317,7 +335,7 @@ mod tests {
         // f(z) = z^2 is analytic everywhere
         let f = |z: Complex| z * z;
         let z = Complex::new(1.0, 1.0);
-        
+
         assert!(ComplexAnalysis::is_analytic(&f, z, 1e-6));
     }
 
@@ -371,14 +389,57 @@ mod tests {
     }
 
     #[test]
+    fn test_derivative_complex_step() {
+        // f(z) = z² at z = 2 → 4; off the real axis too
+        let f = |z: Complex| z * z;
+        let d1 = ComplexAnalysis::derivative_complex_step(&f, Complex::new(2.0, 0.0), 1e-6);
+        assert!((d1.re - 4.0).abs() < 1e-4);
+        assert!(d1.im.abs() < 1e-4);
+        let d2 = ComplexAnalysis::derivative_complex_step(&f, Complex::new(1.0, 1.0), 1e-6);
+        // d/dz z² = 2z = 2 + 2i
+        assert!((d2 - Complex::new(2.0, 2.0)).norm() < 1e-4);
+        // f(z) = sin(z): f'(0) = 1, f'(1) = cos(1)
+        let g = |z: Complex| z.sin();
+        let d3 = ComplexAnalysis::derivative_complex_step(&g, Complex::new(1.0, 0.0), 1e-6);
+        assert!((d3.re - 1.0f64.cos()).abs() < 1e-4);
+    }
+
+    #[test]
+    fn test_derivative_cauchy() {
+        // f(z) = z² at z0 = 1 → 2; f(z) = z³ at z0 = i → 3i²·... = -3i
+        let f = |z: Complex| z * z;
+        let d1 = ComplexAnalysis::derivative_cauchy(&f, Complex::one(), 0.5, 200);
+        assert!((d1.re - 2.0).abs() < 1e-6);
+        assert!(d1.im.abs() < 1e-6);
+
+        let g = |z: Complex| z * z * z;
+        let d2 = ComplexAnalysis::derivative_cauchy(&g, Complex::i(), 0.5, 200);
+        // d/dz z³ = 3z² = 3i² = -3
+        assert!((d2.re + 3.0).abs() < 1e-6);
+        assert!(d2.im.abs() < 1e-6);
+    }
+
+    #[test]
     fn test_rouches_theorem() {
         // |z| > 0.5 on unit circle: true
         let f = |z: Complex| z;
         let g = |_z: Complex| Complex::real(0.5);
-        assert!(ComplexAnalysis::rouches_theorem(&f, &g, Complex::zero(), 1.0, 100));
+        assert!(ComplexAnalysis::rouches_theorem(
+            &f,
+            &g,
+            Complex::zero(),
+            1.0,
+            100
+        ));
 
         // |z| < 2 on unit circle: false (regression: max-vs-max check gave a false positive)
         let h = |_z: Complex| Complex::real(2.0);
-        assert!(!ComplexAnalysis::rouches_theorem(&f, &h, Complex::zero(), 1.0, 100));
+        assert!(!ComplexAnalysis::rouches_theorem(
+            &f,
+            &h,
+            Complex::zero(),
+            1.0,
+            100
+        ));
     }
 }

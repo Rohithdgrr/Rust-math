@@ -19,10 +19,11 @@ pub fn gradient(f: &dyn Fn(&[f64]) -> f64, x: &[f64]) -> Vec<f64> {
 
 /// `∇·F`: sum of `∂F_i/∂x_i`.
 ///
-/// Returns [`MathError::DimensionMismatch`] if `f` returns fewer components
-/// than `x` has coordinates.
+/// Returns [`MathError::DimensionMismatch`] if `f` returns a different number
+/// of components than `x` has coordinates.
 pub fn divergence(f: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64]) -> MathResult<f64> {
-    if f(x).len() < x.len() {
+    let fx = f(x);
+    if fx.len() != x.len() {
         return Err(MathError::DimensionMismatch);
     }
     Ok((0..x.len())
@@ -57,7 +58,23 @@ pub fn curl(f: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64]) -> MathResult<Vec<f64>> {
 
 /// `∇²f`: sum of second partials.
 pub fn laplacian(f: &dyn Fn(&[f64]) -> f64, x: &[f64]) -> f64 {
-    (0..x.len()).map(|i| second_derivative(&|t| { let mut p = x.to_vec(); p[i] = t; f(&p) }, x[i])).sum()
+    // Use global scale for consistent step across all dimensions
+    let scale = x.iter().map(|&xi| xi.abs()).fold(0.0, f64::max).max(1.0);
+    let mut scratch = x.to_vec();
+    let h = 1e-3 * scale;
+    (0..x.len())
+        .map(|i| {
+            let val = {
+                let mut fi = |t: f64| {
+                    scratch[i] = t;
+                    f(&scratch)
+                };
+                (fi(x[i] + h) - 2.0 * fi(x[i]) + fi(x[i] - h)) / (h * h)
+            };
+            scratch[i] = x[i]; // restore
+            val
+        })
+        .sum()
 }
 
 /// Jacobian matrix `J_ij = ∂F_i/∂x_j` at point `x`.
@@ -104,34 +121,40 @@ pub fn jacobian(f: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64]) -> Vec<f64> {
 pub fn hessian(f: &dyn Fn(&[f64]) -> f64, x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let mut h = vec![0.0; n * n];
+    // Global scale for consistent step across all dimensions
+    let scale = x.iter().map(|&xi| xi.abs()).fold(0.0, f64::max).max(1.0);
+    let step = f64::EPSILON.powf(0.25) * scale; // ε^(1/4) optimal for mixed partials
+
     for i in 0..n {
-        for j in 0..n {
-            h[i * n + j] = second_derivative(&|t| {
+        // Diagonal: use second_derivative directly
+        h[i * n + i] = second_derivative(
+            &|t| {
                 let mut p = x.to_vec();
                 p[i] = t;
                 f(&p)
-            }, x[i]);
-            if i != j {
-                let step = 1e-4 * x[i].abs().max(1.0).max(x[j].abs());
-                let mut p1 = x.to_vec();
-                let mut p2 = x.to_vec();
-                let mut p3 = x.to_vec();
-                let mut p4 = x.to_vec();
-                p1[i] += step; p1[j] += step;
-                p2[i] += step; p2[j] -= step;
-                p3[i] -= step; p3[j] += step;
-                p4[i] -= step; p4[j] -= step;
-                h[i * n + j] = (f(&p1) - f(&p2) - f(&p3) + f(&p4)) / (4.0 * step * step);
-            }
-        }
+            },
+            x[i],
+        );
     }
-    // Enforce symmetry: both off-diagonals approximate the same mixed partial,
-    // so average them to cancel asymmetric roundoff.
+
+    // Off-diagonal: 4-point stencil with theoretically optimal step
     for i in 0..n {
-        for j in 0..i {
-            let avg = (h[i * n + j] + h[j * n + i]) / 2.0;
-            h[i * n + j] = avg;
-            h[j * n + i] = avg;
+        for j in (i + 1)..n {
+            let mut p1 = x.to_vec();
+            let mut p2 = x.to_vec();
+            let mut p3 = x.to_vec();
+            let mut p4 = x.to_vec();
+            p1[i] += step;
+            p1[j] += step;
+            p2[i] += step;
+            p2[j] -= step;
+            p3[i] -= step;
+            p3[j] += step;
+            p4[i] -= step;
+            p4[j] -= step;
+            let mixed = (f(&p1) - f(&p2) - f(&p3) + f(&p4)) / (4.0 * step * step);
+            h[i * n + j] = mixed;
+            h[j * n + i] = mixed; // exact symmetry
         }
     }
     h
@@ -140,23 +163,24 @@ pub fn hessian(f: &dyn Fn(&[f64]) -> f64, x: &[f64]) -> Vec<f64> {
 /// Directional derivative `∇f·v` at point `x` in direction `v`.
 ///
 /// The direction vector `v` is automatically normalized.
+/// Returns [`MathError::DimensionMismatch`] if `v.len() != x.len()`.
 ///
 /// ```
 /// use mathverse_calculus::vector_calculus::directional_derivative;
 /// let f = |x: &[f64]| x[0] * x[0] + x[1] * x[1];
 /// let v = vec![1.0, 0.0]; // x-direction
-/// assert!((directional_derivative(&f, &[1.0, 2.0], &v) - 2.0).abs() < 1e-6);
+/// assert!((directional_derivative(&f, &[1.0, 2.0], &v).unwrap() - 2.0).abs() < 1e-6);
 /// ```
-pub fn directional_derivative(f: &dyn Fn(&[f64]) -> f64, x: &[f64], v: &[f64]) -> f64 {
+pub fn directional_derivative(f: &dyn Fn(&[f64]) -> f64, x: &[f64], v: &[f64]) -> MathResult<f64> {
+    if v.len() != x.len() {
+        return Err(MathError::DimensionMismatch);
+    }
     let grad = gradient(f, x);
     let norm: f64 = v.iter().map(|&vi| vi * vi).sum::<f64>().sqrt();
     if norm == 0.0 {
-        return 0.0;
+        return Ok(0.0);
     }
-    grad.iter()
-        .zip(v.iter())
-        .map(|(&gi, &vi)| gi * vi / norm)
-        .sum()
+    Ok(grad.iter().zip(v.iter()).map(|(&gi, &vi)| gi * vi / norm).sum())
 }
 
 #[cfg(test)]
@@ -187,6 +211,8 @@ mod tests {
         // field returning fewer components than x has coordinates
         assert!(divergence(&|x: &[f64]| vec![x[0]], &[1.0, 2.0]).is_err());
         assert!(curl(&|x: &[f64]| vec![x[0]], &[1.0, 2.0, 3.0]).is_err());
+        // field returning MORE components than x has coordinates (strict check)
+        assert!(divergence(&|x: &[f64]| vec![x[0], 0.0, 0.0], &[1.0]).is_err());
     }
 
     #[test]
@@ -218,8 +244,12 @@ mod tests {
     fn directional_derivative_test() {
         let f = |x: &[f64]| x[0] * x[0] + x[1] * x[1];
         let v = vec![1.0, 0.0];
-        assert!((directional_derivative(&f, &[1.0, 2.0], &v) - 2.0).abs() < 1e-6);
+        assert!((directional_derivative(&f, &[1.0, 2.0], &v).unwrap() - 2.0).abs() < 1e-6);
         let v2 = vec![0.0, 1.0];
-        assert!((directional_derivative(&f, &[1.0, 2.0], &v2) - 4.0).abs() < 1e-6);
+        assert!((directional_derivative(&f, &[1.0, 2.0], &v2).unwrap() - 4.0).abs() < 1e-6);
+        // Zero direction → 0
+        assert!((directional_derivative(&f, &[1.0, 2.0], &[0.0, 0.0]).unwrap()).abs() < 1e-10);
+        // Dimension mismatch
+        assert!(directional_derivative(&f, &[1.0, 2.0], &[1.0]).is_err());
     }
 }

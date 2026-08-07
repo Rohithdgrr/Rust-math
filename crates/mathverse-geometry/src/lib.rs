@@ -3,7 +3,11 @@
 //! All values are `f64`. Constructors panic on invalid shapes
 //! (e.g. negative radius); this is a documented programmer-error contract,
 //! mirroring `nalgebra` style.
+//!
+//! # Errors
+//! Use [`error::GeometryError`] for recoverable failures.
 
+pub mod error;
 pub mod shapes2d;
 pub mod shapes3d;
 pub mod primitives2d;

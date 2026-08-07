@@ -20,6 +20,7 @@ Complete trigonometry toolkit — circular, hyperbolic, and inverse functions, p
 - **Geometric laws** — law of sines, law of cosines, Heron's formula, haversine distance
 - **Batched operations** (`batched`) — map/sum `sin`/`cos` over slices, additive synthesis, no allocation
 - **Exact special angles** (`exact`) — closed-form `sin`/`cos`/`tan` for multiples of 30°/45°
+- **Numerically stable helpers** — `tan_half`, `sinpi`/`cospi` (C99/numpy parity), `sind`/`cosd`/`tand`, phase utilities (`unwrap_angles`, `angle_distance`), `haversine_distance_deg`
 - Generic over `Real` trait — zero-cost `f32`/`f64` support
 - **`no_std`** — disable `std` and enable `libm` for embedded targets
 
@@ -43,13 +44,13 @@ Complete trigonometry toolkit — circular, hyperbolic, and inverse functions, p
 
 ```toml
 [dependencies]
-mathverse-trigonometry = "0.1"
+mathverse-trigonometry = "0.2"
 ```
 
 `std` is the default feature. For embedded / `no_std` targets:
 
 ```toml
-mathverse-trigonometry = { version = "0.1", default-features = false, features = ["libm"] }
+mathverse-trigonometry = { version = "0.2", default-features = false, features = ["libm"] }
 ```
 
 ---
@@ -82,6 +83,9 @@ fn main() {
     // Equator half-circumference = 20015087 m
 }
 ```
+
+> A runnable tour of the whole API lives in [`examples/basic.rs`](examples/basic.rs);
+> build it with `cargo run --example basic`.
 
 ---
 
@@ -121,6 +125,9 @@ assert!((asin(0.5) - std::f64::consts::FRAC_PI_6).abs() < 1e-12);
 | `radians_to_turns(r)` | `r / 2π` |
 | `rad_to_grad(r)` | `r × 200/π` |
 | `grad_to_rad(g)` | `g × π/200` |
+| `angle_difference(a,b)` | Signed smallest difference in `[-π, π)` |
+| `angle_distance(a,b)` | Absolute shortest arc between two angles |
+| `unwrap_angles(xs)` | Phase unwrapping: jumps beyond `±π` are corrected |
 
 **Coordinate systems:** polar, spherical (physics + math), cylindrical — all with bidirectional conversions.
 
@@ -150,6 +157,7 @@ assert!((asin(0.5) - std::f64::consts::FRAC_PI_6).abs() < 1e-12);
 | Heron's formula | `A = √(s(s-a)(s-b)(s-c))` where `s = (a+b+c)/2` |
 | SAS area | `A = ½ab·sin(C)` |
 | Haversine | `d = 2r · arcsin(√(sin²(Δlat/2) + cos(lat₁)cos(lat₂)sin²(Δlon/2)))` |
+| `haversine_distance_deg` | Haversine distance with lat/lon in **degrees** |
 
 ---
 

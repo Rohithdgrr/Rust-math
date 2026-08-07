@@ -3,15 +3,31 @@ name = "mathverse-calculus"
 version = "0.1.1"
 edition = "2021"
 rust-version.workspace = true
-description = "MathVerse calculus: numerical derivatives, integration, vector calculus"
+description = "Numerical calculus: derivatives, integration, vector calculus, ODE solvers"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Rohithdgrr/Rust-math"
-keywords = ["math", "calculus", "derivative", "integral", "ode"]
-categories = ["science", "mathematics"]
+homepage = "https://github.com/Rohithdgrr/Rust-math"
+documentation = "https://docs.rs/mathverse-calculus"
+readme = "README.md"
+keywords = ["math", "calculus", "derivative", "integral", "ode", "numerical"]
+categories = ["science", "mathematics", "algorithms"]
+exclude = [".github/", "benches/", "examples/", "tests/", "docs/"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
 mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.1" }
+
+[dev-dependencies]
+criterion = { version = "0.7", features = ["html_reports"] }
+proptest = "1.5"
+
+[features]
+default = ["std"]
+std = ["mathverse-core/std"]
+
+[[bench]]
+name = "calculus"
+harness = false
 
 [lints]
 workspace = true

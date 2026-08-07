@@ -18,14 +18,14 @@ mathverse-probability = { path = "../mathverse-probability", version = "0.1.1" }
 mathverse-linear-algebra = { path = "../mathverse-linear-algebra", version = "0.1.1" }
 mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
-mathverse-complex = { path = "../mathverse-complex", version = "0.1.1" }
+mathverse-complex = { path = "../mathverse-complex", version = "0.2.0" }
 mathverse-special = { path = "../mathverse-special", version = "0.1.1" }
 mathverse-physics = { path = "../mathverse-physics", version = "0.2.0" }
 mathverse-finance = { path = "../mathverse-finance", version = "0.1.1" }
 mathverse-symbolic = { path = "../mathverse-symbolic", version = "0.1.1" }
 mathverse-units = { path = "../mathverse-units", version = "0.1.1" }
 mathverse-plot = { path = "../mathverse-plot", version = "0.1.1", optional = true }
-mathverse-number-theory = { path = "../mathverse-number-theory", version = "0.1.1" }
+mathverse-number-theory = { path = "../mathverse-number-theory", version = "0.2.0" }
 mathverse-combinatorics = { path = "../mathverse-combinatorics", version = "0.1.1" }
 mathverse-graph = { path = "../mathverse-graph", version = "0.1.1" }
 mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.1" }

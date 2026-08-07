@@ -18,6 +18,8 @@
 
 extern crate alloc;
 
+mod internal;
+
 pub mod tensor;
 pub mod activations;
 pub mod losses;

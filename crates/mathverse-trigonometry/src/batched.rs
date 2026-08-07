@@ -8,7 +8,7 @@
 //! `false` when the slice lengths do not match, so callers can avoid
 //! allocation in `no_std` contexts.
 
-use mathverse_core::traits::Real;
+use mathverse_core::traits::{Real, Trig};
 
 /// Map sine over `xs`, writing into `out`.
 ///
@@ -21,7 +21,7 @@ use mathverse_core::traits::Real;
 /// assert_eq!(out[0], 0.0);
 /// ```
 #[must_use]
-pub fn map_sin<T: Real>(xs: &[T], out: &mut [T]) -> bool {
+pub fn map_sin<T: Real + Trig>(xs: &[T], out: &mut [T]) -> bool {
     if xs.len() != out.len() {
         return false;
     }
@@ -35,7 +35,7 @@ pub fn map_sin<T: Real>(xs: &[T], out: &mut [T]) -> bool {
 ///
 /// Returns `false` (leaving `out` untouched) when the lengths differ.
 #[must_use]
-pub fn map_cos<T: Real>(xs: &[T], out: &mut [T]) -> bool {
+pub fn map_cos<T: Real + Trig>(xs: &[T], out: &mut [T]) -> bool {
     if xs.len() != out.len() {
         return false;
     }
@@ -49,7 +49,7 @@ pub fn map_cos<T: Real>(xs: &[T], out: &mut [T]) -> bool {
 ///
 /// Returns `false` (leaving outputs untouched) when any length differs.
 #[must_use]
-pub fn map_sin_cos<T: Real>(xs: &[T], sin_out: &mut [T], cos_out: &mut [T]) -> bool {
+pub fn map_sin_cos<T: Real + Trig>(xs: &[T], sin_out: &mut [T], cos_out: &mut [T]) -> bool {
     if xs.len() != sin_out.len() || xs.len() != cos_out.len() {
         return false;
     }
@@ -62,7 +62,7 @@ pub fn map_sin_cos<T: Real>(xs: &[T], sin_out: &mut [T], cos_out: &mut [T]) -> b
 }
 
 /// Replace each element with its sine, in place.
-pub fn sin_inplace<T: Real>(xs: &mut [T]) {
+pub fn sin_inplace<T: Real + Trig>(xs: &mut [T]) {
     for x in xs.iter_mut() {
         *x = x.sin();
     }
@@ -70,7 +70,7 @@ pub fn sin_inplace<T: Real>(xs: &mut [T]) {
 
 /// `Σ sin(xᵢ)`.
 #[must_use]
-pub fn sum_sin<T: Real>(xs: &[T]) -> T {
+pub fn sum_sin<T: Real + Trig>(xs: &[T]) -> T {
     let mut acc = T::zero();
     for &x in xs {
         acc = acc + x.sin();
@@ -80,7 +80,7 @@ pub fn sum_sin<T: Real>(xs: &[T]) -> T {
 
 /// `Σ cos(xᵢ)`.
 #[must_use]
-pub fn sum_cos<T: Real>(xs: &[T]) -> T {
+pub fn sum_cos<T: Real + Trig>(xs: &[T]) -> T {
     let mut acc = T::zero();
     for &x in xs {
         acc = acc + x.cos();
@@ -90,7 +90,7 @@ pub fn sum_cos<T: Real>(xs: &[T]) -> T {
 
 /// `(Σ sin(xᵢ), Σ cos(xᵢ))` computed with one pass over the slice.
 #[must_use]
-pub fn sum_sin_cos<T: Real>(xs: &[T]) -> (T, T) {
+pub fn sum_sin_cos<T: Real + Trig>(xs: &[T]) -> (T, T) {
     let mut s = T::zero();
     let mut c = T::zero();
     for &x in xs {
@@ -107,7 +107,7 @@ pub fn sum_sin_cos<T: Real>(xs: &[T]) -> (T, T) {
 /// different lengths.
 #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
 #[must_use]
-pub fn accumulate_sine<T: Real>(freq: T, phases: &[T], amps: &[T], out: &mut [T]) -> bool {
+pub fn accumulate_sine<T: Real + Trig>(freq: T, phases: &[T], amps: &[T], out: &mut [T]) -> bool {
     if phases.len() != amps.len() {
         return false;
     }

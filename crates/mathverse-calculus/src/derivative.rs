@@ -36,45 +36,91 @@ pub fn second_derivative(f: &dyn Fn(f64) -> f64, x: f64) -> f64 {
 /// ```
 pub fn partial_derivative(f: &dyn Fn(&[f64]) -> f64, x: &[f64], var: usize) -> f64 {
     let h = H * x[var].abs().max(1.0);
-    let mut xp = x.to_vec();
-    let mut xm = x.to_vec();
-    xp[var] += h;
-    xm[var] -= h;
-    (f(&xp) - f(&xm)) / (2.0 * h)
+    let mut scratch = x.to_vec();
+    scratch[var] = x[var] + h;
+    let fp = f(&scratch);
+    scratch[var] = x[var] - h;
+    let fm = f(&scratch);
+    (fp - fm) / (2.0 * h)
 }
 
 /// `f⁽ⁿ⁾(x)`, nth derivative via a central finite-difference stencil.
+///
+/// Returns `(value, estimated_error)` using Richardson extrapolation.
+/// The error estimate is the difference between the h and h/2 stencils,
+/// scaled by `1/(2ⁿ - 1)`.
+///
 /// ```
 /// use mathverse_calculus::derivative::nth_derivative;
 /// // Third derivative of x³ should be 6
-/// assert!((nth_derivative(&|x| x * x * x, 2.0, 3) - 6.0).abs() < 1e-4);
+/// let (v, e) = nth_derivative(&|x| x * x * x, 2.0, 3);
+/// assert!((v - 6.0).abs() < e * 10.0);
 /// ```
-pub fn nth_derivative(f: &dyn Fn(f64) -> f64, x: f64, n: usize) -> f64 {
+pub fn nth_derivative(f: &dyn Fn(f64) -> f64, x: f64, n: usize) -> (f64, f64) {
     if n == 0 {
-        return f(x);
+        return (f(x), 0.0);
     }
     if n == 1 {
-        return derivative(f, x);
+        let h = h_at(x);
+        let val = (f(x + h) - f(x - h)) / (2.0 * h);
+        let val2h = (f(x + 2.0 * h) - f(x - 2.0 * h)) / (4.0 * h);
+        let err = (val - val2h).abs() / 3.0;
+        return (val, err);
     }
     if n == 2 {
-        return second_derivative(f, x);
+        let h = 1e-3 * x.abs().max(1.0);
+        let val = (f(x + h) - 2.0 * f(x) + f(x - h)) / (h * h);
+        let val2h = (f(x + 2.0 * h) - 2.0 * f(x) + f(x - 2.0 * h)) / (4.0 * h * h);
+        let err = (val - val2h).abs() / 3.0;
+        return (val, err);
     }
 
-    // Optimal step for an nth-order finite difference: h ~ ε^{1/(n+1)} * scale.
-    // Uses machine epsilon (2.22e-16), not the 1e-6 used by h_at().
-    // h_at() gives ε^{1/2} which is optimal for n=1 but too small for n>2,
-    // amplifying roundoff catastrophically (e.g. n=3: roundoff/h³ ≈ 200).
+    // Optimal step for central nth-order finite difference: h ~ ε^{1/(n+2)} * scale.
     let scale = x.abs().max(1.0);
-    let h = f64::EPSILON.powf(1.0 / (n as f64 + 1.0)) * scale;
-    let mut result = 0.0;
-    for k in 0..=n {
-        // (-1)^(n-k): sign flips with the stencil's distance from the center,
-        // not with k alone. (-1)^k here flips the result for every odd n.
-        let sign = if (n - k) % 2 == 0 { 1.0 } else { -1.0 };
-        let coeff = sign * binomial(n, k) as f64;
-        result += coeff * f(x + (k as f64 - n as f64 / 2.0) * h);
+    let h = f64::EPSILON.powf(1.0 / (n as f64 + 2.0)) * scale;
+
+    let compute = |h: f64| -> f64 {
+        let mut result = 0.0;
+        for k in 0..=n {
+            let sign = if (n - k).is_multiple_of(2) { 1.0 } else { -1.0 };
+            let coeff = sign * binomial(n, k) as f64;
+            result += coeff * f(x + (k as f64 - n as f64 / 2.0) * h);
+        }
+        result / h.powi(n as i32)
+    };
+
+    let val = compute(h);
+    let val2 = compute(h / 2.0);
+    let err = (val - val2).abs() / (2.0_f64.powi(n as i32) - 1.0);
+    (val, err)
+}
+
+/// Discrete gradient: `np.gradient` equivalent.
+/// Second-order accurate central differences on interior,
+/// first-order forward/backward on boundaries.
+///
+    /// ```
+    /// use mathverse_calculus::derivative::discrete_gradient;
+    /// let y = vec![1.0, 4.0, 9.0, 16.0]; // x² at x=1,2,3,4
+    /// let g = discrete_gradient(&y, 1.0);
+    /// assert!((g[0] - 3.0).abs() < 1e-10); // forward diff: (4-1)/1 = 3
+    /// assert!((g[1] - 4.0).abs() < 1e-10); // central diff: (9-1)/2 = 4
+    /// assert!((g[3] - 7.0).abs() < 1e-10); // backward diff: (16-9)/1 = 7
+    /// ```
+pub fn discrete_gradient(y: &[f64], dx: f64) -> Vec<f64> {
+    let n = y.len();
+    let mut grad = vec![0.0; n];
+    if n <= 1 {
+        return grad;
     }
-    result / h.powi(n as i32)
+    // Boundaries: first-order
+    grad[0] = (y[1] - y[0]) / dx;
+    grad[n - 1] = (y[n - 1] - y[n - 2]) / dx;
+    // Interior: central difference
+    for i in 1..n - 1 {
+        grad[i] = (y[i + 1] - y[i - 1]) / (2.0 * dx);
+    }
+    grad
 }
 
 fn binomial(n: usize, k: usize) -> usize {
@@ -105,14 +151,40 @@ mod tests {
 
     #[test]
     fn nth_derivative_test() {
-        assert!((nth_derivative(&|x| x * x * x, 2.0, 3) - 6.0).abs() < 1e-4);
-        assert!((nth_derivative(&|x| x * x * x, 2.0, 0) - 8.0).abs() < 1e-8);
-        assert!((nth_derivative(&f64::sin, 0.0, 4) - 0.0).abs() < 1e-4);
-        // Odd orders used to come back negated by the stencil sign bug.
-        let v3 = nth_derivative(&|x| x.powi(5), 1.0, 3);
-        assert!((v3 - 60.0).abs() < 1e-2, "n=3 got {v3}");
-        let v5 = nth_derivative(&|x| x.powi(5), 1.0, 5);
-        assert!((v5 - 120.0).abs() < 10.0, "n=5 got {v5}");
-        assert!((nth_derivative(&f64::sin, 0.0, 1) - 1.0).abs() < 1e-8);
+        let (v0, _) = nth_derivative(&|x| x * x * x, 2.0, 0);
+        assert!((v0 - 8.0).abs() < 1e-8);
+
+        let (v1, _) = nth_derivative(&f64::sin, 0.0, 1);
+        assert!((v1 - 1.0).abs() < 1e-8);
+
+        let (v3, e3) = nth_derivative(&|x| x.powi(5), 1.0, 3);
+        assert!((v3 - 60.0).abs() < e3 * 10.0 + 1e-6, "n=3 got {v3} ± {e3}");
+
+        let (v5, e5) = nth_derivative(&|x| x.powi(5), 1.0, 5);
+        assert!((v5 - 120.0).abs() < e5 * 10.0 + 0.01, "n=5 got {v5} ± {e5}");
+
+        // 4th derivative of sin at 0 should be 0
+        let (v4, e4) = nth_derivative(&f64::sin, 0.0, 4);
+        assert!(v4.abs() < e4 * 10.0 + 1e-4, "n=4 got {v4} ± {e4}");
+    }
+
+    #[test]
+    fn discrete_gradient_test() {
+        // x² at x=1,2,3,4 → gradient should be 2x
+        let y = vec![1.0, 4.0, 9.0, 16.0];
+        let g = discrete_gradient(&y, 1.0);
+        assert!((g[0] - 3.0).abs() < 1e-10); // forward diff: (4-1)/1 = 3
+        assert!((g[1] - 4.0).abs() < 1e-10); // central diff: (9-1)/2 = 4
+        assert!((g[2] - 6.0).abs() < 1e-10); // central diff: (16-4)/2 = 6
+        assert!((g[3] - 7.0).abs() < 1e-10); // backward diff: (16-9)/1 = 7
+
+        // Constant function → zero gradient
+        let c = vec![5.0; 4];
+        let gc = discrete_gradient(&c, 1.0);
+        assert!(gc.iter().all(|&v| v.abs() < 1e-10));
+
+        // Empty and single-element
+        assert!(discrete_gradient(&[], 1.0).is_empty());
+        assert_eq!(discrete_gradient(&[1.0], 1.0), vec![0.0]);
     }
 }

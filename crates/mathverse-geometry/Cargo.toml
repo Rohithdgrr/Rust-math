@@ -2,15 +2,58 @@
 name = "mathverse-geometry"
 version = "0.1.2"
 edition = "2021"
-rust-version.workspace = true
-description = "MathVerse geometry: 2D/3D shapes, area, volume, transforms, distances, intersections"
+rust-version = "1.87"
+description = "Production-grade 2D/3D geometry library: shapes, spatial structures, transforms, intersections, distances, mesh ray tracing"
 license = "MIT OR Apache-2.0"
+license-file = "LICENSE.md"
 repository = "https://github.com/Rohithdgrr/Rust-math"
-keywords = ["math", "geometry", "shapes", "area", "volume"]
-categories = ["science", "mathematics"]
+homepage = "https://github.com/Rohithdgrr/Rust-math"
+documentation = "https://docs.rs/mathverse-geometry"
+readme = "README.md"
+keywords = ["geometry", "math", "2d", "3d", "mesh", "spatial", "ray-tracing"]
+categories = ["science", "mathematics", "graphics", "algorithms"]
+
+# Production metadata
+authors = ["MathVerse Contributors <security@mathverse.dev>"]
+build = "build.rs"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.0" }
+thiserror = { version = "2", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[features]
+default = ["std"]
+std = ["thiserror?/std"]
+full = ["std", "thiserror"]
+
+[lib]
+name = "mathverse_geometry"
+path = "src/lib.rs"
+
+# [[bench]]
+# name = "geometry_bench"
+# harness = false
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+
+[profile.bench]
+opt-level = 3
+lto = true
 
 [lints]
 workspace = true

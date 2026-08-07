@@ -4,7 +4,7 @@
 //! multiple comparison strategies (absolute, relative, ULP-based) and
 //! rounding utilities.
 
-use crate::traits::Real;
+use crate::traits::{Real, Transcendental};
 
 /// Machine epsilon for `f64` (2^-52).
 pub const EPS: f64 = 2.220446049250313e-16;
@@ -162,7 +162,7 @@ pub const fn is_infinite(x: f64) -> bool {
 #[must_use]
 #[inline]
 pub fn epsilon<T: Real>() -> T {
-    T::from_f64(EPS)
+    T::epsilon()
 }
 
 /// Next representable `f64` toward positive infinity.
@@ -235,7 +235,7 @@ pub fn prev_float(x: f64) -> f64 {
 #[inline]
 pub fn copysign<T: Real>(a: T, b: T) -> T {
     if b.is_negative() {
-        a.abs().neg()
+        -a.abs()
     } else {
         a.abs()
     }
@@ -293,8 +293,16 @@ pub fn relative_diff<T: Real>(a: T, b: T) -> T {
 /// ```
 #[must_use]
 pub fn round_to<T: Real>(x: T, decimals: i32) -> T {
-    let f = T::from_f64(10f64.powi(decimals));
+    let f = T::from_f64(pow10(decimals));
     (x * f).round() / f
+}
+
+fn pow10(n: i32) -> f64 {
+    let mut acc = 1.0;
+    for _ in 0..n.unsigned_abs() {
+        acc *= 10.0;
+    }
+    if n < 0 { 1.0 / acc } else { acc }
 }
 
 /// Round `x` to `n` significant figures.
@@ -308,11 +316,12 @@ pub fn round_to<T: Real>(x: T, decimals: i32) -> T {
 /// assert_eq!(significant_figures(12345.0, 2), 12000.0);
 /// ```
 #[must_use]
-pub fn significant_figures<T: Real>(x: T, n: i32) -> T {
+#[allow(clippy::cast_lossless)] // From<i32> for f64 is unavailable in no_std
+pub fn significant_figures<T: Real + Transcendental>(x: T, n: i32) -> T {
     if x == T::zero() {
         return T::zero();
     }
-    let shift = T::from_f64(f64::from(n - 1)) - x.abs().log10().floor();
+    let shift = T::from_f64((n - 1) as f64) - x.abs().log10().floor();
     round_to(x, shift.to_f64() as i32)
 }
 

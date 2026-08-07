@@ -7,7 +7,7 @@
 //! For advanced methods (Brent, Muller, Halley, etc.), use [`mathverse_numerical::root`] directly.
 
 use mathverse_core::error::{MathError, MathResult};
-use crate::derivative::derivative;
+use crate::derivative::{derivative, second_derivative};
 
 // Re-export core root-finding methods from mathverse-numerical
 pub use mathverse_numerical::{bisection, newton_raphson};
@@ -80,33 +80,30 @@ pub fn find_critical_point(
     tol: f64,
     max_iter: usize,
 ) -> MathResult<f64> {
-    // Find root of f'(x) using numerical derivatives for both f' and f''
-    let df = |x: f64| derivative(f, x);
-    let ddf = |x: f64| {
-        let h = (1e-8_f64 * (1.0 + x.abs())).sqrt();
-        (derivative(f, x + h) - derivative(f, x - h)) / (2.0 * h)
-    };
-    
-    // Use Newton-Raphson on the derivative
+    // Use Newton-Raphson on f'(x), with f'' computed directly via second_derivative
     let mut x = x0;
     for _ in 0..max_iter {
-        let dfx = df(x);
-        let ddfx = ddf(x);
-        
+        let dfx = derivative(f, x);
+        let ddfx = second_derivative(f, x);
+
         if ddfx.abs() < 1e-15 {
-            return Err(MathError::InvalidArgument("second derivative is zero"));
+            return Err(MathError::InvalidArgument(
+                "second derivative is near zero — saddle or flat region",
+            ));
         }
-        
+
         let x_new = x - dfx / ddfx;
-        
+
         if (x_new - x).abs() < tol || dfx.abs() < tol {
             return Ok(x_new);
         }
-        
+
         x = x_new;
     }
-    
-    Err(MathError::NotConverged("critical point search exceeded max iterations"))
+
+    Err(MathError::NotConverged(
+        "critical point search exceeded max iterations",
+    ))
 }
 
 

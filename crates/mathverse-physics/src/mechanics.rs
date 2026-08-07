@@ -93,16 +93,23 @@ pub fn force(m: f64, a: f64) -> f64 {
 }
 
 /// Calculate work done
-/// 
+///
 /// # Arguments
 /// * `f` - Force (N)
 /// * `d` - Displacement (m)
 /// * `theta` - Angle between force and displacement (radians)
-/// 
+///
 /// # Returns
 /// Work done (J)
 pub fn work(f: f64, d: f64, theta: f64) -> f64 {
     f * d * theta.cos()
+}
+
+/// Calculate work done with angle given in degrees.
+///
+/// Equivalent to [`work`] but accepts `theta_deg` in degrees for convenience.
+pub fn work_deg(f: f64, d: f64, theta_deg: f64) -> f64 {
+    work(f, d, theta_deg.to_radians())
 }
 
 /// Calculate power

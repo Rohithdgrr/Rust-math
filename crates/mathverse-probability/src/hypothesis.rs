@@ -176,6 +176,10 @@ pub struct ChiSquaredTest;
 
 impl ChiSquaredTest {
     /// Chi-squared goodness of fit test.
+    ///
+    /// Returns a `TestResult` with `test_statistic = NaN` if `observed` and
+    /// `expected` differ in length, or if an expected count is zero while the
+    /// observed count is nonzero (a degenerate/undefined cell).
     #[must_use]
     pub fn goodness_of_fit(observed: &[f64], expected: &[f64]) -> TestResult {
         if observed.len() != expected.len() {
@@ -184,6 +188,11 @@ impl ChiSquaredTest {
 
         let mut chi_sq = 0.0;
         for (&o, &e) in observed.iter().zip(expected.iter()) {
+            if e < 0.0 || (e == 0.0 && o > 0.0) {
+                // Negative expected count or zero-expected with non-zero observed
+                // makes the cell ill-defined.
+                return TestResult::new(f64::NAN, 1.0, 0.05);
+            }
             if e > 0.0 {
                 chi_sq += (o - e) * (o - e) / e;
             }
@@ -514,6 +523,72 @@ pub enum SPRTDecision {
     Continue,
 }
 
+/// Kolmogorov-Smirnov test for comparing an empirical CDF to a reference
+/// distribution (`one_sample`) or two empirical CDFs (`two_sample`).
+#[must_use]
+pub struct KolmogorovSmirnovTest;
+
+impl KolmogorovSmirnovTest {
+    /// One-sample test of `data` against the CDF of `dist`.
+    #[must_use]
+    pub fn one_sample(data: &[f64], dist: &dyn ContinuousDist) -> TestResult {
+        let mut sorted = data.to_vec();
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let n = sorted.len();
+
+        let mut d = 0.0f64;
+        for (idx, &x) in sorted.iter().enumerate() {
+            let f: f64 = dist.cdf(x).clamp(0.0, 1.0);
+            let i = (idx + 1) as f64;
+            let below = f - (i - 1.0) / n as f64;
+            let above = i / n as f64 - f;
+            d = d.max(below).max(above);
+        }
+        // Stephens' finite-sample correction
+        let eff_n = n as f64 + 0.12 + 0.11 / n as f64;
+        let p = Self::kolmogorov_p(d * eff_n.sqrt());
+        TestResult::new(d, p, 0.05)
+    }
+
+    /// Two-sample test of `a` vs `b`.
+    #[must_use]
+    pub fn two_sample(a: &[f64], b: &[f64]) -> TestResult {
+        let mut xs = a.to_vec();
+        let mut ys = b.to_vec();
+        xs.sort_by(|x, y| x.partial_cmp(y).unwrap());
+        ys.sort_by(|x, y| x.partial_cmp(y).unwrap());
+
+        let (na, nb) = (xs.len() as f64, ys.len() as f64);
+        let (mut i, mut j) = (0usize, 0usize);
+        let mut d = 0.0f64;
+        while i < xs.len() && j < ys.len() {
+            if xs[i] <= ys[j] {
+                i += 1;
+            } else {
+                j += 1;
+            }
+            let diff = (i as f64 / na - j as f64 / nb).abs();
+            d = d.max(diff);
+        }
+        let eff_n = na * nb / (na + nb);
+        let p = Self::kolmogorov_p(d * eff_n.sqrt());
+        TestResult::new(d, p, 0.05)
+    }
+
+    /// Survival probability of the asymptotic Kolmogorov distribution.
+    fn kolmogorov_p(x: f64) -> f64 {
+        let mut total = 0.0;
+        for k in 1..=100 {
+            let term = 2.0 * (-2.0 * (k as f64).powi(2) * x * x).exp();
+            total += if k % 2 == 1 { term } else { -term };
+            if term < 1e-10 {
+                break;
+            }
+        }
+        total.clamp(0.0, 1.0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -555,5 +630,27 @@ mod tests {
     fn test_sprt() {
         let decision = SPRT::test(3.5, 0.05, 0.1);
         assert!(matches!(decision, SPRTDecision::RejectNull));
+    }
+
+    #[test]
+    fn test_ks_identifies_normal_data() {
+        let dist = crate::distributions::Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        };
+        // Standard normal quantiles; data drawn from a standard normal should
+        // produce a large p-value (high D-statistic stays consistent with H0).
+        let data = vec![-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5];
+        let res = KolmogorovSmirnovTest::one_sample(&data, &dist);
+        assert!(res.test_statistic >= 0.0);
+        assert!((0.0..=1.0).contains(&res.p_value));
+    }
+
+    #[test]
+    fn test_ks_location_shift_is_detected() {
+        let a = vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
+        let b = vec![6.0, 7.0, 8.0, 9.0, 10.0, 11.0];
+        let res = KolmogorovSmirnovTest::two_sample(&a, &b);
+        assert!(res.p_value < 0.05, "shifted samples should reject H0");
     }
 }

@@ -57,6 +57,9 @@ jobs:
           sleep 10
           # Publish probability crate (depends on core)
           cargo publish -p mathverse-probability --allow-dirty --token "$CARGO_REGISTRY_TOKEN" --no-verify
+          sleep 10
+          # Publish trigonometry crate (depends only on core)
+          cargo publish -p mathverse-trigonometry --allow-dirty --token "$CARGO_REGISTRY_TOKEN" --no-verify
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

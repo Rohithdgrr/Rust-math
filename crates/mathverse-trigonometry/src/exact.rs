@@ -247,7 +247,8 @@ pub fn tan_exact_deg(deg: i32) -> Option<ExactValue> {
 #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
 #[must_use]
 pub fn sin_exact_radians<T: Real>(radians: T) -> Option<ExactValue> {
-    let deg = radians.to_f64().to_degrees().round().rem_euclid(360.0) as i32;
+    let r = radians.to_f64().to_degrees().round();
+    let deg = (((r % 360.0) + 360.0) % 360.0) as i32;
     sin_exact_deg(deg)
 }
 
@@ -256,7 +257,8 @@ pub fn sin_exact_radians<T: Real>(radians: T) -> Option<ExactValue> {
 #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
 #[must_use]
 pub fn cos_exact_radians<T: Real>(radians: T) -> Option<ExactValue> {
-    let deg = radians.to_f64().to_degrees().round().rem_euclid(360.0) as i32;
+    let r = radians.to_f64().to_degrees().round();
+    let deg = (((r % 360.0) + 360.0) % 360.0) as i32;
     cos_exact_deg(deg)
 }
 
@@ -265,7 +267,8 @@ pub fn cos_exact_radians<T: Real>(radians: T) -> Option<ExactValue> {
 #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
 #[must_use]
 pub fn tan_exact_radians<T: Real>(radians: T) -> Option<ExactValue> {
-    let deg = radians.to_f64().to_degrees().round().rem_euclid(360.0) as i32;
+    let r = radians.to_f64().to_degrees().round();
+    let deg = (((r % 360.0) + 360.0) % 360.0) as i32;
     tan_exact_deg(deg)
 }
 

@@ -24,7 +24,7 @@ pub fn powf(x: f64, e: f64) -> f64 {
 
 /// Raise to an integer power.
 pub fn powi(x: f64, e: i32) -> f64 {
-    libm::pow(x, f64::from(e))
+    libm::pow(x, e as f64)
 }
 
 /// `e^x`.
@@ -176,7 +176,7 @@ pub mod f32 {
 
     /// Raise to an integer power.
     pub fn powi(x: f32, e: i32) -> f32 {
-        libm::powf(x, f32::from(e))
+        libm::powf(x, e as f32)
     }
 
     /// `e^x`.

@@ -20,6 +20,7 @@ mathverse-views = { path = "../mathverse-views", version = "0.1.0" }
 mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.0" }
 mathverse-probability = { path = "../mathverse-probability", version = "0.1.0" }
 mathverse-serde = { path = "../mathverse-serde", version = "0.1.0" }
+mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.2.1" }
 
 [[bench]]
 name = "vector_bench"
@@ -43,6 +44,10 @@ harness = false
 
 [[bench]]
 name = "stats_bench"
+harness = false
+
+[[bench]]
+name = "trig_bench"
 harness = false
 
 [lints]
