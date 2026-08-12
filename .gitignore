@@ -18,3 +18,4 @@ Thumbs.db
 
 # Cargo
 Cargo.lock
+crates/mathverse-plot/target/
