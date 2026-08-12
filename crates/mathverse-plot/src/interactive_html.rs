@@ -22,6 +22,22 @@ pub struct InteractiveConfig {
     pub grid_color: Color,
     /// Show export button.
     pub export_button: bool,
+    /// Optional JavaScript invoked when a data point is clicked. The snippet
+    /// runs with `pt` in scope: `{ series: name, x, y, color }`, plus the raw
+    /// event as `e`. This is the analogue of matplotlib's
+    /// `fig.canvas.mpl_connect("button_press_event", ...)`.
+    pub on_point_click: Option<String>,
+    /// Optional JavaScript invoked on every pointer move, with `pt` (nearest
+    /// point within `pick_radius`, or null) and `e` in scope.
+    pub on_hover: Option<String>,
+    /// Optional JavaScript invoked when the pointer leaves the plot area,
+    /// with `e` in scope.
+    pub on_leave: Option<String>,
+    /// Optional JavaScript invoked on keydown, with `e` (KeyboardEvent) in
+    /// scope — the analogue of `key_press_event`.
+    pub on_key: Option<String>,
+    /// Pixel radius for picking the nearest point on hover/click.
+    pub pick_radius: f64,
 }
 
 impl Default for InteractiveConfig {
@@ -34,6 +50,11 @@ impl Default for InteractiveConfig {
             background: Color::WHITE,
             grid_color: Color::rgb(0xE0, 0xE0, 0xE0),
             export_button: true,
+            on_point_click: None,
+            on_hover: None,
+            on_leave: None,
+            on_key: None,
+            pick_radius: 30.0,
         }
     }
 }
@@ -65,6 +86,41 @@ impl InteractiveConfig {
     /// Set crosshair enabled.
     pub fn with_crosshair(mut self, enabled: bool) -> Self {
         self.crosshair = enabled;
+        self
+    }
+
+    /// Register a JS snippet that runs when a data point is clicked. `pt` is a
+    /// `{{ series, x, y, color }}` object and `e` is the raw mouse event.
+    pub fn with_on_point_click(mut self, code: impl Into<String>) -> Self {
+        self.on_point_click = Some(code.into());
+        self
+    }
+
+    /// Register a JS snippet that runs on every pointer move. `pt` is the
+    /// nearest picked point within [`Self::pick_radius`] (or null) and `e` is
+    /// the raw mouse event — the analogue of `motion_notify_event`.
+    pub fn with_on_hover(mut self, code: impl Into<String>) -> Self {
+        self.on_hover = Some(code.into());
+        self
+    }
+
+    /// Register a JS snippet that runs when the pointer leaves the plot area
+    /// (`axes_leave_event`).
+    pub fn with_on_leave(mut self, code: impl Into<String>) -> Self {
+        self.on_leave = Some(code.into());
+        self
+    }
+
+    /// Register a JS snippet that runs on keydown with the KeyboardEvent `e`
+    /// in scope (`key_press_event`).
+    pub fn with_on_key(mut self, code: impl Into<String>) -> Self {
+        self.on_key = Some(code.into());
+        self
+    }
+
+    /// Set the pick radius in pixels (default 30).
+    pub fn with_pick_radius(mut self, radius: f64) -> Self {
+        self.pick_radius = radius.abs();
         self
     }
 }
@@ -227,15 +283,17 @@ svgEl.addEventListener('mousemove', (e) => {{
       if (dist < minDist) {{ minDist = dist; nearest = {{ series: s.name, x: p[0], y: p[1], color: s.color }}; }}
     }}
   }}
-
-  if (nearest && minDist < 30) {{
-    tooltip.innerHTML = `<strong>${{nearest.series}}</strong><br>x: ${{nearest.x.toFixed(4)}}<br>y: ${{nearest.y.toFixed(4)}}`;
+  const PICK_RADIUS = {{pick_radius}};
+  const pt = (nearest && minDist < PICK_RADIUS) ? nearest : null;
+  if (pt) {{
+    tooltip.innerHTML = `<strong>${{pt.series}}</strong><br>x: ${{pt.x.toFixed(4)}}<br>y: ${{pt.y.toFixed(4)}}`;
     tooltip.style.display = 'block';
     tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
     tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
   }} else {{
     tooltip.style.display = 'none';
   }}
+  /*HOVER_SLOT*/
 
   // Crosshair
   document.getElementById('crosshair-x').setAttribute('x1', mx);
@@ -246,10 +304,33 @@ svgEl.addEventListener('mousemove', (e) => {{
   document.getElementById('crosshair-y').style.display = '';
 }});
 
-svgEl.addEventListener('mouseleave', () => {{
+// Point click callback (matplotlib mpl_connect analogue)
+svgEl.addEventListener('click', (e) => {{
+  const rect = svgEl.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  let nearest = null, minDist = Infinity;
+  for (const s of SERIES) {{
+    for (const p of s.points) {{
+      const dist = Math.sqrt((xPx(p[0]) - mx) ** 2 + (yPx(p[1]) - my) ** 2);
+      if (dist < minDist) {{ minDist = dist; nearest = {{ series: s.name, x: p[0], y: p[1], color: s.color }}; }}
+    }}
+  }}
+  const pt = (nearest && minDist < PICK_RADIUS) ? nearest : null;
+  if (pt) {{
+    /*POINT_CLICK_SLOT*/
+  }}
+}});
+
+svgEl.addEventListener('mouseleave', (e) => {{
   tooltip.style.display = 'none';
   document.getElementById('crosshair-x').style.display = 'none';
   document.getElementById('crosshair-y').style.display = 'none';
+  /*LEAVE_SLOT*/
+}});
+
+document.addEventListener('keydown', (e) => {{
+  /*KEY_SLOT*/
 }});
 
 // Zoom
@@ -312,6 +393,20 @@ init();
         grid_js = generate_grid_js(),
     );
 
+    // Inject the user callbacks (post-format to avoid brace escaping).
+    let wrap = |code: &Option<String>| -> String {
+        match code {
+            Some(code) => format!("try {{ {code} }} catch (err) {{ console.error(err); }}", code = code),
+            None => String::new(),
+        }
+    };
+    let html = html
+        .replace("/*POINT_CLICK_SLOT*/", &wrap(&config.on_point_click))
+        .replace("/*HOVER_SLOT*/", &wrap(&config.on_hover))
+        .replace("/*LEAVE_SLOT*/", &wrap(&config.on_leave))
+        .replace("/*KEY_SLOT*/", &wrap(&config.on_key))
+        .replace("{pick_radius}", &config.pick_radius.to_string());
+
     Ok(html)
 }
 
@@ -342,7 +437,25 @@ fn generate_grid_js() -> String {
 mod tests {
     use super::*;
     use crate::common::{DataPoint, DataSeries, PlotConfig};
-    use crate::style::PlotStyle;
+
+    #[test]
+    fn event_slots_all_injected() {
+        let data = PlotData::new(PlotConfig::new());
+        let config = InteractiveConfig::new()
+            .with_on_point_click("console.log(pt.x);")
+            .with_on_hover("console.log(pt && pt.x);")
+            .with_on_leave("console.log('bye');")
+            .with_on_key("console.log(e.key);")
+            .with_pick_radius(12.0);
+        let html = render_interactive_html(&data, &config).unwrap();
+        assert!(html.contains("console.log(pt.x)"));
+        assert!(html.contains("console.log(pt && pt.x)"));
+        assert!(html.contains("console.log('bye')"));
+        assert!(html.contains("console.log(e.key)"));
+        assert!(html.contains("const PICK_RADIUS = 12"));
+        assert!(html.contains("addEventListener('keydown'"));
+        assert!(html.contains("addEventListener('mouseleave'"));
+    }
 
     #[test]
     fn interactive_html_renders() {
@@ -356,6 +469,9 @@ mod tests {
             boxes: vec![],
             error_bars: vec![],
             heatmaps: vec![],
+            images: vec![],
+            paths: vec![],
+            lines: vec![],
         };
         let html = render_interactive_html(&data, &InteractiveConfig::new()).unwrap();
         assert!(html.contains("<svg"));

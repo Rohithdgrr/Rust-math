@@ -1,8 +1,7 @@
 //! PNG raster backend (behind `png` feature flag).
 
 use crate::axes::Range;
-use crate::backend::{Backend, PlotData, PlotOutput};
-use crate::common;
+use crate::backend::{PlotData, PlotOutput};
 use crate::error::{PlotError, PlotResult};
 use crate::style::Color;
 
@@ -60,6 +59,21 @@ impl PngBackend {
             self.render_heatmap(&mut pixmap, hm, plot_left, plot_top, plot_w, plot_h);
         }
 
+        // --- Images (imshow) ---
+        for img in &data.images {
+            for ((x_lo, y_lo, x_hi, y_hi), color) in img.cells(256) {
+                let x0 = to_px_x(x_lo);
+                let y0 = to_px_y(y_hi);
+                let x1 = to_px_x(x_hi);
+                let y1 = to_px_y(y_lo);
+                if let Some(rect) = tiny_skia::Rect::from_xywh(x0, y0, x1 - x0, y1 - y0) {
+                    let mut p = tiny_skia::Paint::default();
+                    p.set_color(color_to_skia(color));
+                    pixmap.fill_rect(rect, &p, tiny_skia::Transform::identity(), None);
+                }
+            }
+        }
+
         // --- Bars ---
         for bar in &data.bars {
             let x0 = to_px_x(bar.x_lo);
@@ -109,6 +123,69 @@ impl PngBackend {
                     tiny_skia::Transform::identity(),
                     None,
                 );
+            }
+        }
+
+        // --- Line segments ---
+        for l in &data.lines {
+            let mut pb = tiny_skia::PathBuilder::new();
+            pb.move_to(to_px_x(l.x1), to_px_y(l.y1));
+            pb.line_to(to_px_x(l.x2), to_px_y(l.y2));
+            if let Some(path) = pb.finish() {
+                let mut p = tiny_skia::Paint::default();
+                p.set_color(color_to_skia(l.color));
+                pixmap.stroke_path(
+                    &path,
+                    &p,
+                    &tiny_skia::Stroke {
+                        width: l.width as f32,
+                        ..tiny_skia::Stroke::default()
+                    },
+                    tiny_skia::Transform::identity(),
+                    None,
+                );
+            }
+        }
+
+        // --- Paths / patches ---
+        for path in &data.paths {
+            if path.points.len() < 2 {
+                continue;
+            }
+            let mut pb = tiny_skia::PathBuilder::new();
+            pb.move_to(to_px_x(path.points[0].0), to_px_y(path.points[0].1));
+            for (px, py) in &path.points[1..] {
+                pb.line_to(to_px_x(*px), to_px_y(*py));
+            }
+            if path.closed {
+                pb.close();
+            }
+            if let Some(pth) = pb.finish() {
+                if let Some(fill) = path.fill {
+                    let mut p = tiny_skia::Paint::default();
+                    p.set_color(color_to_skia(fill));
+                    pixmap.fill_path(
+                        &pth,
+                        &p,
+                        tiny_skia::FillRule::Winding,
+                        tiny_skia::Transform::identity(),
+                        None,
+                    );
+                }
+                if let Some(stroke) = path.stroke {
+                    let mut p = tiny_skia::Paint::default();
+                    p.set_color(color_to_skia(stroke));
+                    pixmap.stroke_path(
+                        &pth,
+                        &p,
+                        &tiny_skia::Stroke {
+                            width: path.stroke_width as f32,
+                            ..tiny_skia::Stroke::default()
+                        },
+                        tiny_skia::Transform::identity(),
+                        None,
+                    );
+                }
             }
         }
 
@@ -353,13 +430,16 @@ mod tests {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
         data.series.push(DataSeries::with_style(
-            "s".into(),
+            "s".to_string(),
             vec![DataPoint::new(0.0, 0.0), DataPoint::new(1.0, 1.0)],
             PlotStyle::default(),
         ));
-        let backend = PngBackend::new(100, 100);
+        let backend = PngBackend::new(400, 300);
         let result = backend.generate(&data).unwrap();
         match result {
             PlotOutput::Binary(bytes, mime) => {
@@ -379,8 +459,11 @@ mod tests {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
-        let backend = PngBackend::new(50, 50);
+        let backend = PngBackend::new(400, 300);
         let result = backend.generate(&data).unwrap();
         match result {
             PlotOutput::Binary(bytes, mime) => {
@@ -403,9 +486,12 @@ mod tests {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
         data.series.push(DataSeries::with_style(
-            "s".into(),
+            "s".to_string(),
             vec![
                 DataPoint::new(0.0, 0.0),
                 DataPoint::new(0.5, 0.8),
@@ -419,7 +505,8 @@ mod tests {
         let svg_text = svg_plot.generate();
         assert!(svg_text.contains("<polyline") || svg_text.contains("<path"));
         assert!(svg_text.contains('s'));
-        assert!(svg_text.contains("<polyline"));
+        // 3-point series renders as a smooth-curve `<path>` (2 points fall back to `<polyline>`).
+        assert!(svg_text.contains("<path"));
 
         let backend = PngBackend::new(200, 150);
         let result = backend.generate(&data).unwrap();
@@ -438,6 +525,9 @@ mod tests {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
         let blank_result = backend.generate(&blank).unwrap();
         let blank_bytes = match blank_result {

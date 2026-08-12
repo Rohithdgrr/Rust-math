@@ -41,7 +41,7 @@ pub fn draw_to_canvas(
     };
 
     // Clear background.
-    context.set_fill_style(&wasm_bindgen::JsValue::from_str("#ffffff"));
+    context.set_fill_style_str("#ffffff");
     context.fill_rect(0.0, 0.0, width, height);
 
     let pad = 50.0;
@@ -59,7 +59,7 @@ pub fn draw_to_canvas(
     let x_ticks = crate::axes::Scale::Linear.ticks(x_range.min, x_range.max, 6);
     let y_ticks = crate::axes::Scale::Linear.ticks(y_range.min, y_range.max, 6);
 
-    context.set_stroke_style(&wasm_bindgen::JsValue::from_str("#cccccc"));
+    context.set_stroke_style_str("#cccccc");
     context.begin_path();
     for &v in &x_ticks {
         let px = to_x(v);
@@ -74,7 +74,7 @@ pub fn draw_to_canvas(
     context.stroke();
 
     // Axis lines.
-    context.set_stroke_style(&wasm_bindgen::JsValue::from_str("#000000"));
+    context.set_stroke_style_str("#000000");
     context.set_line_width(2.0);
     context.begin_path();
     context.move_to(pad, pad);
@@ -87,9 +87,8 @@ pub fn draw_to_canvas(
     context.set_line_width(2.0);
     for series in &data.series {
         let color = color_to_js(series.style.line_color);
-        let color = wasm_bindgen::JsValue::from_str(&color);
-        context.set_stroke_style(&color);
-        context.set_fill_style(&color);
+        context.set_stroke_style_str(&color);
+        context.set_fill_style_str(&color);
         if series.points.len() >= 2 {
             context.begin_path();
             let first = &series.points[0];
@@ -144,7 +143,7 @@ mod tests {
         let data = PlotData {
             config: crate::common::PlotConfig::new(),
             series: vec![crate::DataSeries::new(
-                "s".into(),
+                "s".to_string(),
                 vec![
                     crate::DataPoint::new(0.0, 0.0),
                     crate::DataPoint::new(1.0, 2.0),
@@ -154,6 +153,9 @@ mod tests {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
         let (x, y) = plot_ranges(&data, 50.0);
         assert!(x.min < 0.0);
@@ -171,6 +173,9 @@ mod tests {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
         let (x, y) = plot_ranges(&data, 50.0);
         assert_eq!((x.min, x.max, y.min, y.max), (0.0, 1.0, 0.0, 1.0));

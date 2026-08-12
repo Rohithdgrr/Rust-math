@@ -171,6 +171,94 @@ impl DatetimeAxis {
     }
 }
 
+/// matplotlib-style date tick locator operating on float timestamps (seconds
+/// since the Unix epoch) — plugs into [`crate::ticks::TickLocator`].
+#[derive(Debug, Clone)]
+pub struct DateLocator {
+    /// Label format (auto-detected when empty).
+    pub format: String,
+    /// Target tick count.
+    pub tick_count: usize,
+}
+
+impl DateLocator {
+    /// Create a locator with an explicit format (e.g. `"%Y-%m-%d"`).
+    #[must_use]
+    pub fn new(format: &str, tick_count: usize) -> Self {
+        Self {
+            format: format.to_string(),
+            tick_count: tick_count.max(1),
+        }
+    }
+
+    /// Locate tick positions for a `[lo, hi]` float-timestamp range.
+    #[must_use]
+    pub fn locate(&self, lo: f64, hi: f64, _max_ticks: usize) -> Vec<f64> {
+        let lo_dt = DateTime::from_f64(lo);
+        let hi_dt = DateTime::from_f64(hi);
+        DatetimeAxis::new()
+            .with_tick_count(self.tick_count)
+            .ticks(lo_dt, hi_dt)
+            .into_iter()
+            .map(|(t, _)| t)
+            .collect()
+    }
+}
+
+impl crate::ticks::TickLocator for DateLocator {
+    fn locate(&self, lo: f64, hi: f64, max_ticks: usize) -> Vec<f64> {
+        DateLocator::locate(self, lo, hi, max_ticks)
+    }
+}
+
+/// matplotlib-style date tick formatter: formats a float timestamp using a
+/// strftime-like format (see [`DateTime::format`]).
+#[derive(Debug, Clone)]
+pub struct DateFormatter {
+    /// strftime format string (auto-detected when empty).
+    pub format: String,
+}
+
+impl DateFormatter {
+    /// Create a formatter with a strftime-like format.
+    #[must_use]
+    pub fn new(format: &str) -> Self {
+        Self {
+            format: format.to_string(),
+        }
+    }
+
+    /// Format one float timestamp.
+    #[must_use]
+    pub fn format(&self, t: f64) -> String {
+        let dt = DateTime::from_f64(t);
+        if self.format.is_empty() {
+            let auto = dt.auto_format(DateTime::from_timestamp(dt.timestamp + 1));
+            if auto.is_empty() {
+                dt.format("%Y-%m-%d")
+            } else {
+                dt.format(auto)
+            }
+        } else {
+            dt.format(&self.format)
+        }
+    }
+}
+
+impl Default for DateFormatter {
+    fn default() -> Self {
+        Self {
+            format: String::new(),
+        }
+    }
+}
+
+impl crate::ticks::TickFormatter for DateFormatter {
+    fn format(&self, value: f64) -> String {
+        DateFormatter::format(self, value)
+    }
+}
+
 /// Compute a "nice" time interval for tick spacing.
 fn nice_time_interval(span: i64, target_ticks: usize) -> i64 {
     let raw = span / target_ticks.max(1) as i64;
@@ -325,5 +413,34 @@ mod tests {
         let a = DateTime::new(2020, 1, 1, 0, 0, 0);
         let b = DateTime::new(2024, 1, 1, 0, 0, 0);
         assert_eq!(a.auto_format(b), "%Y");
+    }
+
+    #[test]
+    fn date_locator_ticks_within_range() {
+        let lo = DateTime::new(2024, 1, 1, 0, 0, 0).to_f64();
+        let hi = DateTime::new(2024, 1, 10, 0, 0, 0).to_f64();
+        let loc = DateLocator::new("%m-%d", 6);
+        let ticks = loc.locate(lo, hi, 6);
+        assert!(!ticks.is_empty());
+        assert!(ticks.iter().all(|t| (*t >= lo - 1e-6) && (*t <= hi + 1e-6)));
+        // Tick spacing should be at least 1 day apart (86400 s).
+        assert!(ticks.len() <= 12);
+    }
+
+    #[test]
+    fn date_locator_empty_range() {
+        let t = DateTime::new(2024, 1, 1, 0, 0, 0).to_f64();
+        let ticks = DateLocator::new("%Y", 6).locate(t, t, 6);
+        assert!(!ticks.is_empty());
+    }
+
+    #[test]
+    fn date_formatter_formats() {
+        let t = DateTime::new(2024, 3, 5, 14, 30, 0).to_f64();
+        let f = DateFormatter::new("%Y-%m-%d");
+        assert_eq!(f.format(t), "2024-03-05");
+        let auto = DateFormatter::default();
+        let s = auto.format(t);
+        assert!(!s.is_empty());
     }
 }

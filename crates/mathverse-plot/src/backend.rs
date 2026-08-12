@@ -4,6 +4,8 @@ use crate::common::{DataSeries, PlotConfig};
 use crate::error::PlotResult;
 use crate::errorbar::ErrorBar;
 use crate::heatmap::HeatmapData;
+use crate::imshow::ImageData;
+use crate::patches::{LineSnapshot, PathSnapshot};
 
 #[derive(Debug, Clone)]
 pub struct PlotData {
@@ -13,6 +15,30 @@ pub struct PlotData {
     pub boxes: Vec<BoxSnapshot>,
     pub error_bars: Vec<ErrorBarSnapshot>,
     pub heatmaps: Vec<HeatmapData>,
+    /// Colormapped image artists (`imshow`).
+    pub images: Vec<ImageData>,
+    /// Styled paths/patches.
+    pub paths: Vec<PathSnapshot>,
+    /// Line segments.
+    pub lines: Vec<LineSnapshot>,
+}
+
+impl PlotData {
+    /// An empty scene with the given configuration.
+    #[must_use]
+    pub fn new(config: PlotConfig) -> Self {
+        Self {
+            config,
+            series: Vec::new(),
+            bars: Vec::new(),
+            boxes: Vec::new(),
+            error_bars: Vec::new(),
+            heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

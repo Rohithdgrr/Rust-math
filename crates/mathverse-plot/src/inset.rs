@@ -290,7 +290,6 @@ impl Insets {
 mod tests {
     use super::*;
     use crate::common::DataPoint;
-    use crate::style::PlotStyle;
 
     #[test]
     fn inset_basic() {

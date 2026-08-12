@@ -7,8 +7,12 @@ use crate::common::{DataSeries, PlotConfig};
 use crate::error::PlotResult;
 use crate::errorbar::ErrorBar;
 use crate::heatmap::{Colormap, HeatmapData};
+use crate::imshow::ImageData;
+use crate::patches::{LineSnapshot, PathSnapshot};
 use crate::style::{Color, LineStyle, MarkerStyle};
 use crate::theme::ThemeConfig;
+use crate::ticks::{TickFormatter, TickLocator};
+use std::sync::Arc;
 
 /// A filled rectangle spanning `x_lo..x_hi` with height `y` (histogram bar).
 #[derive(Debug, Clone, Copy)]
@@ -33,6 +37,10 @@ struct ErrorBarData {
     x: f64,
     bar: ErrorBar,
     color: Color,
+    /// Whisker cap length in px (matplotlib `capsize`).
+    capsize: f64,
+    /// Draw the center marker (matplotlib default `fmt='o'`).
+    draw_marker: bool,
 }
 
 /// SVG plot generator
@@ -43,6 +51,9 @@ pub struct SvgPlot {
     boxes: Vec<BoxData>,
     error_bars: Vec<ErrorBarData>,
     heatmaps: Vec<HeatmapData>,
+    images: Vec<ImageData>,
+    paths: Vec<PathSnapshot>,
+    lines: Vec<LineSnapshot>,
     /// Optional theme for styled rendering.
     theme: Option<ThemeConfig>,
     /// Optional legend configuration.
@@ -51,6 +62,18 @@ pub struct SvgPlot {
     annotations: crate::annotations::Annotations,
     /// Optional colorbar for heatmap/colormapped data.
     colorbar: Option<ColorbarConfig>,
+    /// Custom x tick locator (falls back to the built-in "nice" algorithm).
+    x_locator: Option<Arc<dyn TickLocator>>,
+    /// Custom y tick locator.
+    y_locator: Option<Arc<dyn TickLocator>>,
+    /// Custom x tick formatter.
+    x_formatter: Option<Arc<dyn TickFormatter>>,
+    /// Custom y tick formatter.
+    y_formatter: Option<Arc<dyn TickFormatter>>,
+    /// Secondary series drawn on a right-side twin axis (matplotlib `twinx`).
+    secondary: Vec<DataSeries>,
+    /// Label for the right-side twin axis.
+    secondary_label: Option<String>,
 }
 
 /// Configuration for a colorbar legend.
@@ -74,11 +97,56 @@ impl SvgPlot {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
             theme: None,
             legend: None,
             annotations: crate::annotations::Annotations::new(),
             colorbar: None,
+            x_locator: None,
+            y_locator: None,
+            x_formatter: None,
+            y_formatter: None,
+            secondary: Vec::new(),
+            secondary_label: None,
         }
+    }
+
+    /// Add a series drawn against a right-side twin axis with its own y-scale.
+    pub fn add_secondary(&mut self, series: DataSeries) -> &mut Self {
+        self.secondary.push(series);
+        self
+    }
+
+    /// Set the label for the right-side twin axis.
+    pub fn with_secondary_label(&mut self, label: impl Into<String>) -> &mut Self {
+        self.secondary_label = Some(label.into());
+        self
+    }
+
+    /// Use a custom locator for the x-axis ticks.
+    pub fn with_x_locator(mut self, locator: Arc<dyn TickLocator>) -> Self {
+        self.x_locator = Some(locator);
+        self
+    }
+
+    /// Use a custom locator for the y-axis ticks.
+    pub fn with_y_locator(mut self, locator: Arc<dyn TickLocator>) -> Self {
+        self.y_locator = Some(locator);
+        self
+    }
+
+    /// Use a custom formatter for the x-axis tick labels.
+    pub fn with_x_formatter(mut self, formatter: Arc<dyn TickFormatter>) -> Self {
+        self.x_formatter = Some(formatter);
+        self
+    }
+
+    /// Use a custom formatter for the y-axis tick labels.
+    pub fn with_y_formatter(mut self, formatter: Arc<dyn TickFormatter>) -> Self {
+        self.y_formatter = Some(formatter);
+        self
     }
 
     /// Set a theme for styled rendering.
@@ -170,7 +238,32 @@ impl SvgPlot {
 
     /// Add a vertical error bar at data x (whisker + center marker).
     pub fn add_error_bar(&mut self, x: f64, bar: ErrorBar, color: Color) {
-        self.error_bars.push(ErrorBarData { x, bar, color });
+        self.error_bars.push(ErrorBarData {
+            x,
+            bar,
+            color,
+            capsize: 4.0,
+            draw_marker: true,
+        });
+    }
+
+    /// Add a vertical error bar with matplotlib `capsize` (px) and a marker
+    /// toggle (false mimics `fmt='none'`).
+    pub fn add_error_bar_styled(
+        &mut self,
+        x: f64,
+        bar: ErrorBar,
+        color: Color,
+        capsize: f64,
+        draw_marker: bool,
+    ) {
+        self.error_bars.push(ErrorBarData {
+            x,
+            bar,
+            color,
+            capsize: capsize.max(0.0),
+            draw_marker,
+        });
     }
 
     /// Add a Gaussian KDE overlay for `xs` as a line series, sampled on a
@@ -230,6 +323,31 @@ impl SvgPlot {
         Ok(())
     }
 
+    /// Add a colormapped image (`imshow`) drawn before series.
+    pub fn add_image(&mut self, image: ImageData) {
+        self.images.push(image);
+    }
+
+    /// Add a styled path/patch artist.
+    pub fn add_patch(&mut self, path: &crate::patches::Patch) {
+        self.paths.push(PathSnapshot::from(path));
+    }
+
+    /// Add a raw path snapshot (already in backend form).
+    pub fn add_path_snapshot(&mut self, path: PathSnapshot) {
+        self.paths.push(path);
+    }
+
+    /// Add a single line segment.
+    pub fn add_line_snapshot(&mut self, line: LineSnapshot) {
+        self.lines.push(line);
+    }
+
+    /// Add a batch of line segments (matplotlib `LineCollection`).
+    pub fn add_line_collection(&mut self, collection: &crate::patches::LineCollection) {
+        self.lines.extend(Vec::from(collection));
+    }
+
     /// Snapshot of all data for the backend trait.
     pub fn snapshot(&self) -> PlotData {
         PlotData {
@@ -264,6 +382,9 @@ impl SvgPlot {
                 })
                 .collect(),
             heatmaps: self.heatmaps.clone(),
+            images: self.images.clone(),
+            paths: self.paths.clone(),
+            lines: self.lines.clone(),
         }
     }
 
@@ -384,17 +505,59 @@ impl SvgPlot {
         let x_px = |x: f64| x_px_k(x_t(x));
         let y_px = |y: f64| y_px_k(y_t(y));
 
-        // Kernel-space tick positions with data-space labels
-        let x_ticks: Vec<(f64, String)> = Scale::Linear
-            .ticks(kx.min, kx.max, self.config.tick_count)
-            .into_iter()
-            .map(|k| (k, format_tick(x_inv(k))))
-            .collect();
-        let y_ticks: Vec<(f64, String)> = Scale::Linear
-            .ticks(ky.min, ky.max, self.config.tick_count)
-            .into_iter()
-            .map(|k| (k, format_tick(y_inv(k))))
-            .collect();
+        // Kernel-space tick positions with data-space labels. A user-supplied
+        // locator works in data space (then mapped to kernel space); the
+        // built-in path keeps the existing kernel-space algorithm.
+        let x_ticks: Vec<(f64, String)> = match &self.x_locator {
+            Some(loc) => loc
+                .locate(xr.min, xr.max, self.config.tick_count)
+                .into_iter()
+                .map(|v| {
+                    let label = self
+                        .x_formatter
+                        .as_ref()
+                        .map_or_else(|| format_tick(v), |f| f.format(v));
+                    (x_t(v), label)
+                })
+                .collect(),
+            None => Scale::Linear
+                .ticks(kx.min, kx.max, self.config.tick_count)
+                .into_iter()
+                .map(|k| {
+                    let v = x_inv(k);
+                    let label = self
+                        .x_formatter
+                        .as_ref()
+                        .map_or_else(|| format_tick(v), |f| f.format(v));
+                    (k, label)
+                })
+                .collect(),
+        };
+        let y_ticks: Vec<(f64, String)> = match &self.y_locator {
+            Some(loc) => loc
+                .locate(yr.min, yr.max, self.config.tick_count)
+                .into_iter()
+                .map(|v| {
+                    let label = self
+                        .y_formatter
+                        .as_ref()
+                        .map_or_else(|| format_tick(v), |f| f.format(v));
+                    (y_t(v), label)
+                })
+                .collect(),
+            None => Scale::Linear
+                .ticks(ky.min, ky.max, self.config.tick_count)
+                .into_iter()
+                .map(|k| {
+                    let v = y_inv(k);
+                    let label = self
+                        .y_formatter
+                        .as_ref()
+                        .map_or_else(|| format_tick(v), |f| f.format(v));
+                    (k, label)
+                })
+                .collect(),
+        };
 
     // Draw grid if enabled (theme-driven opacity / dash pattern)
     if self.config.show_grid {
@@ -432,6 +595,11 @@ impl SvgPlot {
             }
         }
 
+        // Draw imshow images (background layer, like heatmaps)
+        for image in &self.images {
+            svg.push_str(&Self::generate_image(image, &x_px, &y_px));
+        }
+
         // Draw bars (histogram) under series
         for bar in &self.bars {
             svg.push_str(&Self::generate_bar(bar, &x_px, &y_px, padding, plot_height));
@@ -440,6 +608,45 @@ impl SvgPlot {
         // Draw data series
         for series in &self.series {
             svg.push_str(&self.generate_series(series, &x_px, &y_px));
+        }
+
+        // Draw secondary (twinx) series on their own right-side y-scale.
+        if !self.secondary.is_empty() {
+            let (sy_min, sy_max) = self.secondary_y_range();
+            let (sy_t, sy_inv, sy_k) = axis_kernel(Scale::Linear, Range { min: sy_min, max: sy_max });
+            let sy_px = |y: f64| padding + plot_height - (sy_t(y) - sy_k.min) / sy_k.span() * plot_height;
+            for series in &self.secondary {
+                svg.push_str(&self.generate_series(series, &x_px, &sy_px));
+            }
+            // Right-side tick marks + labels for the twin axis.
+            let right = padding + plot_width;
+            for k in Scale::Linear.ticks(sy_k.min, sy_k.max, self.config.tick_count) {
+                let v = sy_inv(k);
+                let y = padding + plot_height - (k - sy_k.min) / sy_k.span() * plot_height;
+                svg.push_str(&format!(
+                    r##"  <text x="{}" y="{}" text-anchor="start" font-size="11" font-family="Arial, sans-serif" fill="{}">{}</text>"##,
+                    right + 6.0,
+                    y + 3.5,
+                    text_color,
+                    crate::common::xml_escape(&format_tick(v)),
+                ));
+                svg.push('\n');
+            }
+            svg.push_str(&format!(
+                r##"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1.5"/>"##,
+                right, padding, right, padding + plot_height, text_color
+            ));
+            svg.push('\n');
+            if let Some(ref label) = self.secondary_label {
+                let cy = self.config.height as f64 / 2.0;
+                svg.push_str(&format!(
+                    r#" <text x="{}" y="{cy}" text-anchor="middle" dominant-baseline="central" font-size="14" font-family="{font_family}" fill="{text_color}" transform="rotate(90, {}, {cy})">{escaped}</text>"#,
+                    self.config.width as f64 - 10.0,
+                    self.config.width as f64 - 10.0,
+                    escaped = crate::mathtext::render(label),
+                ));
+                svg.push('\n');
+            }
         }
 
         // Draw box plots
@@ -452,16 +659,32 @@ impl SvgPlot {
             svg.push_str(&Self::generate_error_bar(e, &x_px, &y_px));
         }
 
+        // Draw line segments (LineCollection)
+        svg.push_str(&Self::generate_lines(&self.lines, &x_px, &y_px));
+
+        // Draw paths / patches
+        svg.push_str(&Self::generate_paths(&self.paths, &x_px, &y_px));
+
         // Draw annotations (arrows, text, shapes)
         svg.push_str(&self.generate_annotations(&x_px, &y_px));
 
     // Draw title (matplotlib places it centered near the top with bold)
     if !self.config.title.is_empty() {
+        let title_font = if self.config.font_family.is_empty() {
+            font_family.clone()
+        } else {
+            self.config.font_family.clone()
+        };
+        let title_px = if self.config.font_size > 0.0 {
+            self.config.font_size * 1.4
+        } else {
+            title_size
+        };
         svg.push_str(&format!(
-            r#" <text x="{cx}" y="{title_y}" text-anchor="middle" font-size="{title_size}" font-family="{font_family}" font-weight="bold" fill="{text_color}">{escaped}</text>"#,
+            r#" <text x="{cx}" y="{title_y}" text-anchor="middle" font-size="{title_px}" font-family="{title_font}" font-weight="bold" fill="{text_color}">{escaped}</text>"#,
             cx = self.config.width as f64 / 2.0,
             title_y = 32.0,
-            escaped = crate::common::xml_escape(&self.config.title),
+            escaped = crate::mathtext::render(&self.config.title),
         ));
         svg.push('\n');
     }
@@ -472,7 +695,7 @@ impl SvgPlot {
             r#" <text x="{cx}" y="{label_y}" text-anchor="middle" font-size="{label_size}" font-family="{font_family}" fill="{text_color}">{escaped}</text>"#,
             cx = self.config.width as f64 / 2.0,
             label_y = self.config.height as f64 - 2.0,
-            escaped = crate::common::xml_escape(&self.config.x_label),
+            escaped = crate::mathtext::render(&self.config.x_label),
         ));
         svg.push('\n');
     }
@@ -482,7 +705,7 @@ impl SvgPlot {
         let cy = self.config.height as f64 / 2.0;
         svg.push_str(&format!(
             r#" <text x="14" y="{cy}" text-anchor="middle" dominant-baseline="central" font-size="{label_size}" font-family="{font_family}" fill="{text_color}" transform="rotate(-90, 14, {cy})">{escaped}</text>"#,
-            escaped = crate::common::xml_escape(&self.config.y_label),
+            escaped = crate::mathtext::render(&self.config.y_label),
         ));
         svg.push('\n');
     }
@@ -496,6 +719,25 @@ impl SvgPlot {
         svg.push_str("</svg>");
 
         svg
+    }
+
+    /// Y range over the secondary (twinx) series only.
+    fn secondary_y_range(&self) -> (f64, f64) {
+        let mut lo = f64::INFINITY;
+        let mut hi = f64::NEG_INFINITY;
+        for s in &self.secondary {
+            for p in &s.points {
+                lo = lo.min(p.y);
+                hi = hi.max(p.y);
+            }
+        }
+        if !lo.is_finite() {
+            (0.0, 1.0)
+        } else if (hi - lo).abs() < 1e-12 {
+            (lo - 1.0, lo + 1.0)
+        } else {
+            (lo, hi)
+        }
     }
 
     /// Bounds over series, bars, boxes and heatmaps. Falls back to `0..1` when empty.
@@ -621,6 +863,7 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
     // X tick marks (pointing outward) and labels below the axis
     for (t, label) in x_ticks {
         let x = x_px_k(*t);
+        let label = crate::mathtext::render(label);
         out.push_str(&format!(
             r#" <line x1="{x}" y1="{bottom}" x2="{x}" y2="{tick_end}" stroke="{axis_color}" stroke-width="1" stroke-linecap="round"/>"#,
             bottom = padding + plot_height,
@@ -637,6 +880,7 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
     // Y tick marks (pointing outward) and labels left of the axis
     for (t, label) in y_ticks {
         let y = y_px_k(*t);
+        let label = crate::mathtext::render(label);
         out.push_str(&format!(
             r#" <line x1="{tick_start}" y1="{y}" x2="{padding}" y2="{y}" stroke="{axis_color}" stroke-width="1" stroke-linecap="round"/>"#,
             tick_start = padding - 4.0,
@@ -960,19 +1204,22 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
             r#"  <line x1="{cx}" y1="{lo}" x2="{cx}" y2="{hi}" stroke="{stroke}" stroke-width="1.5"/>"#,
         );
         out.push('\n');
+        let cap = e.capsize;
         for y in [lo, hi] {
             out.push_str(&format!(
                 r#"  <line x1="{}" y1="{y}" x2="{}" y2="{y}" stroke="{stroke}" stroke-width="1.5"/>"#,
-                cx - 4.0,
-                cx + 4.0
+                cx - cap,
+                cx + cap
             ));
             out.push('\n');
         }
-        out.push_str(&format!(
-            r#"  <circle cx="{cx}" cy="{}" r="3" fill="{stroke}"/>"#,
-            y_px(e.bar.center)
-        ));
-        out.push('\n');
+        if e.draw_marker {
+            out.push_str(&format!(
+                r#"  <circle cx="{cx}" cy="{}" r="3" fill="{stroke}"/>"#,
+                y_px(e.bar.center)
+            ));
+            out.push('\n');
+        }
         out
     }
 
@@ -1068,11 +1315,27 @@ out.push_str(&format!(
             }
         }
 
-        // Text annotations
+        // Text annotations (position resolved through the coordinate transform;
+        // data by default, but axes-fraction / figure-fraction / blended are
+        // supported via Position::to_pixel).
         for text in &self.annotations.texts {
             let fill = text.color.to_hex();
-            let x = x_px(text.position.x) + text.x_offset;
-            let y = y_px(text.position.y) + text.y_offset;
+            let pad = self.config.padding;
+            let plot_rect = (
+                pad,
+                pad,
+                self.config.width as f64 - 2.0 * pad,
+                self.config.height as f64 - 2.0 * pad,
+            );
+            let fig_size = (self.config.width as f64, self.config.height as f64);
+            let (px, py) = text
+                .position
+                .to_pixel(&x_px, &y_px, plot_rect, fig_size);
+            if !px.is_finite() || !py.is_finite() {
+                continue;
+            }
+            let x = px + text.x_offset;
+            let y = py + text.y_offset;
             let anchor = match text.anchor {
                 crate::annotations::TextAnchor::Start => "start",
                 crate::annotations::TextAnchor::Middle => "middle",
@@ -1093,11 +1356,110 @@ out.push_str(&format!(
             out.push_str(&format!(
                 r##"  <text x="{x}" y="{y}" text-anchor="{anchor}" font-size="{}" font-weight="{weight}" fill="{fill}">{}</text>"##,
                 text.font_size,
-                crate::common::xml_escape(&text.text)
+                crate::mathtext::render(&text.text)
             ));
             out.push('\n');
         }
 
+        out
+    }
+
+    /// Render an imshow image as colored cells (resolution capped at
+    /// 256 cells per side to keep the SVG size sane).
+    fn generate_image(
+        image: &ImageData,
+        x_px: &dyn Fn(f64) -> f64,
+        y_px: &dyn Fn(f64) -> f64,
+    ) -> String {
+        let mut out = String::new();
+        let opacity = if image.alpha >= 1.0 {
+            String::new()
+        } else {
+            format!(r#" fill-opacity="{}""#, image.alpha)
+        };
+        for ((x_lo, y_lo, x_hi, y_hi), color) in image.cells(256) {
+            let x = x_px(x_lo);
+            let y = y_px(y_hi);
+            let w = x_px(x_hi) - x;
+            let h = y_px(y_lo) - y;
+            if !(x.is_finite() && y.is_finite() && w.is_finite() && h.is_finite()) {
+                continue;
+            }
+            out.push_str(&format!(
+                r#"  <rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{}"{opacity}/>"#,
+                color.to_hex()
+            ));
+            out.push('\n');
+        }
+        out
+    }
+
+    /// Render line segments (LineCollection).
+    fn generate_lines(
+        lines: &[LineSnapshot],
+        x_px: &dyn Fn(f64) -> f64,
+        y_px: &dyn Fn(f64) -> f64,
+    ) -> String {
+        let mut out = String::new();
+        for l in lines {
+            let (x1, y1) = (x_px(l.x1), y_px(l.y1));
+            let (x2, y2) = (x_px(l.x2), y_px(l.y2));
+            if !(x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite()) {
+                continue;
+            }
+            out.push_str(&format!(
+                r#"  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{}" stroke-width="{}" stroke-linecap="round"/>"#,
+                l.color.to_hex(),
+                l.width
+            ));
+            out.push('\n');
+        }
+        out
+    }
+
+    /// Render styled paths/patches as SVG polygons/polylines.
+    fn generate_paths(
+        paths: &[PathSnapshot],
+        x_px: &dyn Fn(f64) -> f64,
+        y_px: &dyn Fn(f64) -> f64,
+    ) -> String {
+        let mut out = String::new();
+        for p in paths {
+            if p.points.len() < 2 {
+                continue;
+            }
+            let pts: Vec<(f64, f64)> = p
+                .points
+                .iter()
+                .map(|(x, y)| (x_px(*x), y_px(*y)))
+                .collect();
+            if pts.iter().any(|(x, y)| !x.is_finite() || !y.is_finite()) {
+                continue;
+            }
+            let coord = pts
+                .iter()
+                .map(|(x, y)| format!("{x:.2},{y:.2}"))
+                .collect::<Vec<_>>()
+                .join(" ");
+            let fill = p
+                .fill
+                .map(|c| c.to_hex())
+                .unwrap_or_else(|| "none".to_string());
+            let stroke = p
+                .stroke
+                .map(|c| format!(r#" stroke="{}" stroke-width="{}""#, c.to_hex(), p.stroke_width))
+                .unwrap_or_default();
+            let opacity = if p.opacity >= 1.0 {
+                String::new()
+            } else {
+                format!(r#" opacity="{}""#, p.opacity)
+            };
+            let tag = if p.closed { "polygon" } else { "polyline" };
+            out.push_str(&format!(
+                r#"  <{tag} points="{coord}" fill="{fill}"{stroke}{opacity} stroke-linecap="round" stroke-linejoin="round"/>"#
+            ));
+            out.push('\n');
+        }
         out
     }
 
@@ -1182,11 +1544,16 @@ impl crate::backend::Backend for SvgPlot {
                 x: e.x,
                 bar: e.bar,
                 color: e.color,
+                capsize: 4.0,
+                draw_marker: true,
             });
         }
         for hm in &data.heatmaps {
             svg.heatmaps.push(hm.clone());
         }
+        svg.images = data.images.clone();
+        svg.paths = data.paths.clone();
+        svg.lines = data.lines.clone();
         Ok(PlotOutput::Svg(svg.generate()))
     }
 }
@@ -1317,5 +1684,56 @@ mod tests {
         assert_eq!(format_tick(2.0), "2");
         assert_eq!(format_tick(2.5), "2.5");
         assert_eq!(format_tick(1e7), "1.0e7");
+    }
+
+    #[test]
+    fn custom_locator_and_formatter_render() {
+        use crate::ticks::{FuncFormatter, MultipleLocator};
+        let config = PlotConfig::new();
+        let mut plot = SvgPlot::new(config);
+        plot.add_series(DataSeries::new(
+            "line",
+            vec![DataPoint::new(0.0, 0.0), DataPoint::new(10.0, 10.0)],
+        ));
+        plot = plot.with_x_locator(std::sync::Arc::new(MultipleLocator::new(5.0).unwrap()));
+        plot = plot.with_x_formatter(std::sync::Arc::new(FuncFormatter::new(|v| format!("{v:.0}cm"))));
+        let svg = plot.generate();
+        assert!(svg.contains(">0cm<"), "expected 0cm tick: {svg}");
+        assert!(svg.contains(">5cm<"), "expected 5cm tick: {svg}");
+        assert!(svg.contains(">10cm<"), "expected 10cm tick: {svg}");
+    }
+
+    #[test]
+    fn imshow_renders_colored_cells() {
+        use crate::color::viridis;
+        let config = PlotConfig::new();
+        let mut plot = SvgPlot::new(config);
+        let grid = vec![vec![0.0, 1.0], vec![1.0, 0.0]];
+        plot.add_image(crate::imshow::ImageData::new(grid, viridis).unwrap());
+        let svg = plot.generate();
+        assert!(svg.matches("<rect").count() >= 4);
+        assert!(!svg.contains("NaN"));
+    }
+
+    #[test]
+    fn patches_and_line_collection_render() {
+        use crate::patches::{LineCollection, Patch};
+        let config = PlotConfig::new();
+        let mut plot = SvgPlot::new(config);
+        plot.add_series(DataSeries::new(
+            "line",
+            vec![DataPoint::new(0.0, 0.0), DataPoint::new(10.0, 10.0)],
+        ));
+        let rect = Patch::rectangle(1.0, 1.0, 2.0, 2.0).with_fill(Color::RED);
+        plot.add_patch(&rect);
+        let lc = LineCollection::new(
+            vec![(DataPoint::new(0.0, 0.0), DataPoint::new(10.0, 10.0))],
+            Color::BLUE,
+            2.0,
+        );
+        plot.add_line_collection(&lc);
+        let svg = plot.generate();
+        assert!(svg.contains("<polygon"), "expected polygon: {svg}");
+        assert!(svg.matches("<line").count() >= 3);
     }
 }

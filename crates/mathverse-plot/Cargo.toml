@@ -26,13 +26,15 @@ thiserror = "2"
 tiny-skia = { version = "0.12", optional = true }
 resvg = { version = "0.48", optional = true }
 usvg = { version = "0.48", optional = true }
+image = { version = "0.25", optional = true, default-features = false, features = ["jpeg", "png"] }
 printpdf = { version = "0.12", optional = true }
 eframe = { version = "0.31", optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["CanvasRenderingContext2d", "HtmlCanvasElement", "Document", "Window", "Element"] }
 
 [features]
-png = ["dep:tiny-skia", "dep:resvg", "dep:usvg"]
+default = ["png"]
+png = ["dep:tiny-skia", "dep:resvg", "dep:usvg", "dep:image"]
 pdf = ["dep:printpdf"]
 interactive = ["dep:eframe"]
 canvas = ["dep:wasm-bindgen", "dep:web-sys"]

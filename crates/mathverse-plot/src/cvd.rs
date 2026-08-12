@@ -258,8 +258,8 @@ mod tests {
         let (r, g, b) = sim.to_rgb();
         // Red should appear different from original (255,0,0) to a protanope
         // The exact values depend on the simulation matrix
+        let _ = (g, b);
         assert_ne!((r, g, b), (255, 0, 0), "simulated color should differ from original");
-        assert!(r <= 255 && g <= 255 && b <= 255, "values should be valid u8");
     }
 
     #[test]
@@ -278,7 +278,7 @@ mod tests {
         let (r, g, b) = sim.to_rgb();
         // Blue should appear shifted for tritanope
         // Just check it doesn't panic and produces valid output
-        assert!(r <= 255 && g <= 255 && b <= 255);
+        let _ = (r, g, b);
     }
 
     #[test]
@@ -286,6 +286,7 @@ mod tests {
         // With severity 0, color should be unchanged (blend factor = 0)
         // But our severity is 0.6 for anomalous types, so test with manual blend
         let color = Color::rgb(128, 64, 200);
+        let _ = color;
         let sim = simulate_dichromat(
             srgb_to_linear(128.0 / 255.0),
             srgb_to_linear(64.0 / 255.0),
@@ -306,7 +307,7 @@ mod tests {
         // All should be valid colors
         for color in &sim {
             let (r, g, b) = color.to_rgb();
-            assert!(r <= 255 && g <= 255 && b <= 255);
+            let _ = (r, g, b);
         }
     }
 

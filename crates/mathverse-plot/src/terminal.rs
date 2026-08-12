@@ -115,6 +115,9 @@ impl TerminalPlot {
             boxes: vec![],
             error_bars: vec![],
             heatmaps: vec![],
+            images: vec![],
+            paths: vec![],
+            lines: vec![],
         };
         let x = compute_x_range(&data).pad(0.05);
         let y = compute_y_range(&data).pad(0.05);

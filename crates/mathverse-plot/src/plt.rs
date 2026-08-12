@@ -23,6 +23,10 @@
 
 use crate::axes::{Range, Scale};
 use crate::common::{DataPoint, DataSeries, PlotConfig};
+use crate::error::PlotResult;
+use crate::heatmap::Colormap;
+use crate::imshow::ImageData;
+use crate::patches::{LineCollection, LineSnapshot, Patch, PathSnapshot};
 use crate::rcparams::rc;
 use crate::style::{Color, LineStyle, MarkerStyle, PlotStyle};
 use crate::svg::SvgPlot;
@@ -36,11 +40,18 @@ pub struct Axes {
     palette: ColorPalette,
     color_index: usize,
     series: Vec<DataSeries>,
+    images: Vec<ImageData>,
+    paths: Vec<PathSnapshot>,
+    lines: Vec<LineSnapshot>,
     annotations: crate::annotations::Annotations,
     legend: crate::legend::LegendConfig,
     margin_frac: f64,
     xlim: Option<(f64, f64)>,
     ylim: Option<(f64, f64)>,
+    /// Secondary series plotted on a right-side twin axis (matplotlib `twinx`).
+    twin_series: Vec<DataSeries>,
+    /// Label for the right-side twin axis.
+    twin_label: Option<String>,
 }
 
 impl Default for Axes {
@@ -59,18 +70,25 @@ impl Axes {
             .with_tick_count(params.tick_count)
             .with_x_scale(params.x_scale)
             .with_y_scale(params.y_scale)
-            .with_legend(params.show_legend);
+            .with_legend(params.show_legend)
+            .with_font_family(params.font_family.clone())
+            .with_font_size(params.font_size);
         Self {
             config,
             theme,
             palette: params.palette,
             color_index: 0,
             series: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
             annotations: crate::annotations::Annotations::new(),
             legend: crate::legend::LegendConfig::default(),
             margin_frac: params.margin_frac,
             xlim: None,
             ylim: None,
+            twin_series: Vec::new(),
+            twin_label: None,
         }
     }
 
@@ -156,6 +174,28 @@ impl Axes {
         self
     }
 
+    /// Draw a 2D array as a colormapped image (matplotlib `imshow`).
+    ///
+    /// # Errors
+    ///
+    /// Returns `PlotError::InvalidData` for empty or ragged grids.
+    pub fn imshow(&mut self, grid: Vec<Vec<f64>>, colormap: Colormap) -> PlotResult<&mut Self> {
+        self.images.push(ImageData::new(grid, colormap)?);
+        Ok(self)
+    }
+
+    /// Add a styled path/patch artist (matplotlib `add_patch`).
+    pub fn add_patch(&mut self, patch: &Patch) -> &mut Self {
+        self.paths.push(PathSnapshot::from(patch));
+        self
+    }
+
+    /// Add a batch of line segments (matplotlib `LineCollection`).
+    pub fn add_line_collection(&mut self, collection: &LineCollection) -> &mut Self {
+        self.lines.extend(Vec::from(collection));
+        self
+    }
+
     fn push_series(
         &mut self,
         name: impl Into<String>,
@@ -170,6 +210,13 @@ impl Axes {
             .collect();
         self.series.push(DataSeries::with_style(name.into(), points, style));
         self
+    }
+
+    fn zip_points(&self, xs: &[f64], ys: &[f64]) -> Vec<DataPoint> {
+        xs.iter()
+            .zip(ys.iter())
+            .map(|(&x, &y)| DataPoint::new(x, y))
+            .collect()
     }
 
     /// Set the title.
@@ -289,6 +336,21 @@ impl Axes {
         for s in &self.series {
             svg.add_series(s.clone());
         }
+        for img in &self.images {
+            svg.add_image(img.clone());
+        }
+        for path in &self.paths {
+            svg.add_path_snapshot(path.clone());
+        }
+        for line in &self.lines {
+            svg.add_line_snapshot(*line);
+        }
+        for s in &self.twin_series {
+            svg.add_secondary(s.clone());
+        }
+        if let Some(ref label) = self.twin_label {
+            svg.with_secondary_label(label.clone());
+        }
         for line in &self.annotations.lines {
             svg.add_ref_line(line.clone());
         }
@@ -309,6 +371,27 @@ impl Axes {
         self.annotations
             .lines
             .push(crate::annotations::ReferenceLine::horizontal(y));
+        self
+    }
+
+    /// Add a series on a secondary right-side axis sharing the x scale
+    /// (matplotlib `twinx`). The secondary series uses its own y-range and
+    /// its own tick labels on the right edge of the plot.
+    pub fn twinx(&mut self, xs: &[f64], ys: &[f64], name: impl Into<String>) -> &mut Self {
+        let color = self.color();
+        let style = PlotStyle::default()
+            .with_line_color(color)
+            .with_marker_color(color)
+            .with_marker_style(MarkerStyle::Circle)
+            .with_marker_size(3.0);
+        self.twin_series
+            .push(DataSeries::with_style(name.into(), self.zip_points(xs, ys), style));
+        self
+    }
+
+    /// Set the label for the right-side twin axis (matplotlib `twinx` ylabel).
+    pub fn set_twin_ylabel(&mut self, label: impl Into<String>) -> &mut Self {
+        self.twin_label = Some(label.into());
         self
     }
 
@@ -384,6 +467,15 @@ impl Axes {
 
     /// Wrap this axes in the interactive HTML pan/zoom viewer.
     pub fn interactive(&self) -> crate::error::PlotResult<String> {
+        self.interactive_with(&crate::interactive_html::InteractiveConfig::default())
+    }
+
+    /// Wrap this axes in the interactive viewer with a custom configuration
+    /// (e.g. point-click callbacks).
+    pub fn interactive_with(
+        &self,
+        config: &crate::interactive_html::InteractiveConfig,
+    ) -> crate::error::PlotResult<String> {
         let data = crate::backend::PlotData {
             config: self.config.clone(),
             series: self.series.clone(),
@@ -391,11 +483,11 @@ impl Axes {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
-        crate::interactive_html::render_interactive_html(
-            &data,
-            &crate::interactive_html::InteractiveConfig::default(),
-        )
+        crate::interactive_html::render_interactive_html(&data, config)
     }
 }
 
@@ -416,6 +508,15 @@ pub struct Figure {
     shared_x_label: Option<String>,
     shared_y_label: Option<String>,
     spacing: f64,
+    /// Per-row relative heights (GridSpec `height_ratios`).
+    height_ratios: Vec<f64>,
+    /// Per-column relative widths (GridSpec `width_ratios`).
+    width_ratios: Vec<f64>,
+    /// Optional row/col span per axes: `(row_span, col_span)` in grid cells.
+    spans: Vec<(usize, usize)>,
+    /// Extra axes placed by fractional figure coordinates `(l, b, w, h)` in
+    /// [0, 1] — the analogue of `fig.add_axes([l, b, w, h])`.
+    extra_axes: Vec<(f64, f64, f64, f64, Axes)>,
 }
 
 impl Figure {
@@ -430,7 +531,59 @@ impl Figure {
             shared_x_label: None,
             shared_y_label: None,
             spacing: 10.0,
+            height_ratios: Vec::new(),
+            width_ratios: Vec::new(),
+            spans: Vec::new(),
+            extra_axes: Vec::new(),
         }
+    }
+
+    /// Create a grid with per-row and per-column size ratios (matplotlib
+    /// `gridspec.GridSpec(height_ratios=..., width_ratios=...)`).
+    pub fn subplots_with_ratios(
+        rows: usize,
+        cols: usize,
+        height_ratios: &[f64],
+        width_ratios: &[f64],
+    ) -> Self {
+        let mut fig = Self::subplots(rows, cols);
+        fig.height_ratios = height_ratios.to_vec();
+        fig.width_ratios = width_ratios.to_vec();
+        fig
+    }
+
+    /// Create a figure with a single axes at fractional figure coordinates
+    /// `(l, b, w, h)` in `[0, 1]` (matplotlib `fig.add_axes`).
+    pub fn add_axes(l: f64, b: f64, w: f64, h: f64) -> Self {
+        let mut fig = Self::subplots(1, 1);
+        fig.axes.clear();
+        fig.extra_axes = vec![(l, b, w, h, Axes::new())];
+        fig
+    }
+
+    /// Set the span (in grid cells) of the axes at `(row, col)` — the
+    /// analogue of `fig.add_subplot(row, col, rowspan, colspan)`.
+    pub fn set_span(&mut self, row: usize, col: usize, row_span: usize, col_span: usize) -> &mut Self {
+        let idx = row * self.cols + col;
+        if row_span > 0 && col_span > 0 {
+            if self.spans.len() <= idx {
+                self.spans.resize(idx + 1, (1, 1));
+            }
+            self.spans[idx] = (row_span, col_span);
+        }
+        self
+    }
+
+    /// Add a free-floating axes at fractional figure coordinates `(l, b, w, h)`
+    /// in `[0, 1]` (matplotlib `fig.add_axes`). It renders on top of the grid.
+    pub fn add_extra_axes(&mut self, l: f64, b: f64, w: f64, h: f64, axes: Axes) -> &mut Self {
+        self.extra_axes.push((l, b, w, h, axes));
+        self
+    }
+
+    /// Mutable access to a free-floating axes placed with [`Self::add_extra_axes`].
+    pub fn extra_axes_mut(&mut self, index: usize) -> Option<&mut Axes> {
+        self.extra_axes.get_mut(index).map(|(_, _, _, _, a)| a)
     }
 
     /// Mutable reference to the axes at `(row, col)`.
@@ -556,6 +709,21 @@ impl Figure {
             .unwrap_or(600.0);
 
         let pad = 60.0;
+        let wr: Vec<f64> = if self.width_ratios.is_empty() {
+            vec![1.0; self.cols]
+        } else {
+            self.width_ratios.clone()
+        };
+        let hr: Vec<f64> = if self.height_ratios.is_empty() {
+            vec![1.0; self.rows]
+        } else {
+            self.height_ratios.clone()
+        };
+        let wr_sum: f64 = wr.iter().sum::<f64>().max(1e-9);
+        let hr_sum: f64 = hr.iter().sum::<f64>().max(1e-9);
+        let col_widths: Vec<f64> = wr.iter().map(|r| cell_w * r / wr_sum).collect();
+        let row_heights: Vec<f64> = hr.iter().map(|r| cell_h * r / hr_sum).collect();
+
         let total_w =
             self.cols as f64 * cell_w + (self.cols as f64 - 1.0) * self.spacing + 2.0 * pad;
         let total_h =
@@ -569,12 +737,51 @@ impl Figure {
         ));
         out.push('\n');
 
+        let span_of = |idx: usize| -> (usize, usize) {
+            self.spans.get(idx).copied().unwrap_or((1, 1))
+        };
         for (row, col) in self.iter_positions() {
-            let x = pad + col as f64 * (cell_w + self.spacing);
-            let y = pad + row as f64 * (cell_h + self.spacing);
-            let cell_svg = self.axes[row * self.cols + col].render();
+            let idx = row * self.cols + col;
+            let (row_span, col_span) = span_of(idx);
+            let ax_w = if let Some(a) = self.axes.get(idx) {
+                a.config.width as f64
+            } else {
+                cell_w
+            };
+            let ax_h = if let Some(a) = self.axes.get(idx) {
+                a.config.height as f64
+            } else {
+                cell_h
+            };
+            // Position of the top-left cell of this axes.
+            let x0: f64 = col_widths[..col].iter().sum::<f64>();
+            let y0: f64 = row_heights[..row].iter().sum::<f64>();
+            let span_w: f64 = col_widths[col..(col + col_span).min(self.cols)].iter().sum::<f64>()
+                + col_span.saturating_sub(1) as f64 * self.spacing;
+            let span_h: f64 = row_heights[row..(row + row_span).min(self.rows)].iter().sum::<f64>()
+                + row_span.saturating_sub(1) as f64 * self.spacing;
+            let x = pad + x0;
+            let y = pad + y0;
+            let w = if col_span > 1 { span_w } else { ax_w };
+            let h = if row_span > 1 { span_h } else { ax_h };
+            let cell_svg = self.axes[idx].render();
             out.push_str(&format!(
-                r#"  <svg x="{x}" y="{y}" width="{cell_w}" height="{cell_h}" overflow="visible">"#
+                r#"  <svg x="{x}" y="{y}" width="{w}" height="{h}" overflow="visible">"#
+            ));
+            out.push('\n');
+            out.push_str(&strip_svg_tag(&cell_svg));
+            out.push_str("  </svg>\n");
+        }
+
+        // Fractional-placement axes (fig.add_axes) drawn on top.
+        for (l, b, w, h, axes) in &self.extra_axes {
+            let x = l * total_w;
+            let y = b * total_h;
+            let ew = w * total_w;
+            let eh = h * total_h;
+            let cell_svg = axes.render();
+            out.push_str(&format!(
+                r#"  <svg x="{x}" y="{y}" width="{ew}" height="{eh}" overflow="visible">"#
             ));
             out.push('\n');
             out.push_str(&strip_svg_tag(&cell_svg));
@@ -666,7 +873,7 @@ mod tests {
         assert!(n >= 2);
         // Consume the rest of the palette; the next draw wraps to the start.
         for _ in 2..n {
-            ax.color();
+            let _ = ax.color();
         }
         let c_again = ax.color();
         assert_eq!(c0, c_again);
@@ -711,5 +918,37 @@ mod tests {
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].name, "alpha");
         assert_eq!(items[1].name, "beta");
+    }
+
+    #[test]
+    fn twinx_renders_right_axis() {
+        let mut ax = Axes::new();
+        ax.plot(&[0.0, 1.0, 2.0], &[0.0, 1.0, 4.0], "main")
+            .twinx(&[0.0, 1.0, 2.0], &[100.0, 50.0, 0.0], "secondary")
+            .set_twin_ylabel("right side");
+        let svg = ax.render();
+        // Right-side axis ticks must appear with the secondary scale.
+        assert!(svg.contains("100"));
+        assert!(svg.contains("50"));
+        assert!(svg.contains("rotate(90"));
+    }
+
+    #[test]
+    fn figure_ratios_change_geometry() {
+        let fig = Figure::subplots_with_ratios(2, 1, &[3.0, 1.0], &[1.0]);
+        assert_eq!(fig.rows(), 2);
+        let svg = fig.render();
+        assert!(svg.contains("<svg"));
+    }
+
+    #[test]
+    fn figure_span_and_extra_axes_render() {
+        let mut fig = Figure::subplots(2, 2);
+        fig.set_span(0, 0, 1, 2); // top row spans both columns
+        let mut inset = Axes::new();
+        inset.plot(&[0.0, 1.0], &[0.0, 1.0], "inset");
+        fig.add_extra_axes(0.6, 0.6, 0.3, 0.3, inset);
+        let svg = fig.render();
+        assert!(svg.contains("<svg"));
     }
 }

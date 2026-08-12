@@ -231,6 +231,121 @@ pub fn color_by_value(values: &[f64], method: Normalization, map: fn(f64) -> Col
     normalize(values, method).into_iter().map(map).collect()
 }
 
+/// A linearly-segmented colormap built from an explicit list of stops — the
+/// analogue of matplotlib's `LinearSegmentedColormap.from_list`. Sample it
+/// with [`LinearSegmentedColormap::map`] or `resample_256`; where the crate
+/// expects a bare [`Colormap`](crate::heatmap::Colormap) function, pair it
+/// with a builtin like [`viridis`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct LinearSegmentedColormap {
+    stops: Vec<(f64, (u8, u8, u8))>,
+}
+
+impl LinearSegmentedColormap {
+    /// Build from `(position, color)` pairs. Positions must be strictly
+    /// increasing and within `[0, 1]`.
+    #[must_use]
+    pub fn from_list(colors: &[(f64, Color)]) -> Self {
+        let mut stops: Vec<(f64, (u8, u8, u8))> = colors
+            .iter()
+            .filter(|(t, _)| t.is_finite())
+            .map(|(t, c)| (t.clamp(0.0, 1.0), c.to_rgb()))
+            .collect();
+        stops.sort_by(|a, b| a.0.total_cmp(&b.0));
+        stops.dedup_by(|a, b| (a.0 - b.0).abs() < 1e-9);
+        if stops.len() < 2 {
+            // Fall back to a black->white ramp so sampling never panics.
+            stops = vec![(0.0, (0, 0, 0)), (1.0, (255, 255, 255))];
+        }
+        Self { stops }
+    }
+
+    /// Build from raw `(position, (r, g, b))` stops.
+    #[must_use]
+    pub fn from_list_rgb(stops: &[(f64, (u8, u8, u8))]) -> Self {
+        let colors: Vec<(f64, Color)> = stops
+            .iter()
+            .map(|(t, rgb)| (*t, Color::rgb(rgb.0, rgb.1, rgb.2)))
+            .collect();
+        Self::from_list(&colors)
+    }
+
+    /// Sample the colormap at `t in [0, 1]` (clamped).
+    #[must_use]
+    pub fn map(&self, t: f64) -> Color {
+        color_map(t, &self.stops)
+    }
+
+    /// Resample to a 256-entry lookup table for smooth gradients.
+    #[must_use]
+    pub fn resample_256(&self) -> Vec<Color> {
+        generate_colormap_256(&self.stops)
+    }
+
+    /// Get the underlying stops.
+    #[must_use]
+    pub fn stops(&self) -> &[(f64, (u8, u8, u8))] {
+        &self.stops
+    }
+}
+
+/// Two-slope (diverging) normalization around a center value — matplotlib's
+/// `TwoSlopeNorm`. Values between `vmin` and `vcenter` map to `[0, 0.5]`,
+/// values between `vcenter` and `vmax` to `[0.5, 1]`.
+#[must_use]
+pub fn normalize_two_slope(values: &[f64], vmin: f64, vcenter: f64, vmax: f64) -> Vec<f64> {
+    if !(vmin < vcenter && vcenter < vmax) {
+        return normalize(values, Normalization::Linear);
+    }
+    values
+        .iter()
+        .map(|&v| {
+            if v <= vcenter {
+                0.5 * (v - vmin) / (vcenter - vmin)
+            } else {
+                0.5 + 0.5 * (v - vcenter) / (vmax - vcenter)
+            }
+        })
+        .map(|t| t.clamp(0.0, 1.0))
+        .collect()
+}
+
+/// Boundary-based normalization — matplotlib's `BoundaryNorm`. Values are
+/// mapped by the index of the boundary bin they fall into, so every bin gets
+/// an equal share of the colormap.
+#[must_use]
+pub fn normalize_boundary(values: &[f64], boundaries: &[f64]) -> Vec<f64> {
+    let mut bounds: Vec<f64> = boundaries.iter().copied().filter(|b| b.is_finite()).collect();
+    bounds.sort_by(|a, b| a.total_cmp(b));
+    bounds.dedup();
+    if bounds.len() < 2 {
+        return vec![0.5; values.len()];
+    }
+    let n_bins = bounds.len() - 1;
+    values
+        .iter()
+        .map(|&v| {
+            if !v.is_finite() {
+                return 0.5;
+            }
+            let mut bin = bounds.partition_point(|&b| b <= v);
+            // partition_point gives the first bound > v; bin index is that minus 1.
+            bin = bin.saturating_sub(1).min(n_bins);
+            if v < bounds[0] {
+                bin = 0;
+            } else if v > *bounds.last().unwrap() {
+                bin = n_bins;
+            }
+            if bin == n_bins {
+                // Clamp the top so exactly the last bin's color is used.
+                1.0 - 0.5 / n_bins as f64
+            } else {
+                (bin as f64 + 0.5) / n_bins as f64
+            }
+        })
+        .collect()
+}
+
 /// RGB to HSL; returns `(hue in [0, 360), saturation, lightness)`.
 #[must_use]
 pub fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f64, f64, f64) {
@@ -414,5 +529,78 @@ mod tests {
         let colors = color_by_value(&[0.0, 10.0], Normalization::Linear, viridis);
         assert_eq!(colors[0], viridis(0.0));
         assert_eq!(colors[1], viridis(1.0));
+    }
+
+    #[test]
+    fn from_list_red_white_blue() {
+        let cm = LinearSegmentedColormap::from_list(&[
+            (0.0, Color::RED),
+            (0.5, Color::WHITE),
+            (1.0, Color::BLUE),
+        ]);
+        assert_eq!(cm.map(0.0).to_rgb(), Color::RED.to_rgb());
+        assert_eq!(cm.map(1.0).to_rgb(), Color::BLUE.to_rgb());
+        let mid = cm.map(0.5);
+        assert_eq!(mid.to_rgb(), (255, 255, 255));
+        // Clamped sampling never panics.
+        assert_eq!(cm.map(-1.0).to_rgb(), Color::RED.to_rgb());
+        assert_eq!(cm.map(2.0).to_rgb(), Color::BLUE.to_rgb());
+        assert_eq!(cm.resample_256().len(), 256);
+    }
+
+    #[test]
+    fn from_list_handles_unsorted_and_duplicates() {
+        let cm = LinearSegmentedColormap::from_list(&[
+            (1.0, Color::BLACK),
+            (0.0, Color::WHITE),
+            (0.5, Color::GRAY),
+            (0.5, Color::RED),
+        ]);
+        assert_eq!(cm.map(0.0).to_rgb(), Color::WHITE.to_rgb());
+        assert_eq!(cm.map(1.0).to_rgb(), Color::BLACK.to_rgb());
+    }
+
+    #[test]
+    fn from_list_falls_back_on_degenerate_input() {
+        let cm = LinearSegmentedColormap::from_list(&[]);
+        assert_eq!(cm.stops().len(), 2);
+        let single = LinearSegmentedColormap::from_list(&[(0.0, Color::RED)]);
+        assert_eq!(single.map(0.5).to_rgb(), (128, 128, 128));
+    }
+
+    #[test]
+    fn two_slope_normalization_symmetric_around_center() {
+        let out = normalize_two_slope(&[0.0, 5.0, 10.0], 0.0, 5.0, 10.0);
+        assert_eq!(out[0], 0.0);
+        assert_eq!(out[1], 0.5);
+        assert_eq!(out[2], 1.0);
+        let asym = normalize_two_slope(&[-5.0, 0.0, 10.0], -5.0, 0.0, 10.0);
+        assert_eq!(asym[0], 0.0);
+        assert_eq!(asym[1], 0.5);
+        assert_eq!(asym[2], 1.0);
+        // Invalid ranges fall back to linear.
+        let fallback = normalize_two_slope(&[0.0, 5.0, 10.0], 0.0, 10.0, 5.0);
+        assert_eq!(fallback, normalize(&[0.0, 5.0, 10.0], Normalization::Linear));
+    }
+
+    #[test]
+    fn boundary_normalization_even_bins() {
+        let out = normalize_boundary(&[0.0, 2.0, 4.0, 6.0], &[0.0, 2.0, 4.0, 6.0]);
+        // Three bins share [0, 1) evenly: centers at 1/6, 3/6, 5/6.
+        assert!((out[0] - 1.0 / 6.0).abs() < 1e-9);
+        assert!((out[1] - 3.0 / 6.0).abs() < 1e-9);
+        assert!((out[2] - 5.0 / 6.0).abs() < 1e-9);
+        // Out-of-range clamps to the edge bins (2 bins here -> centers at
+        // 0.25 and 0.75).
+        let lo = normalize_boundary(&[-100.0], &[0.0, 2.0, 4.0]);
+        assert_eq!(lo[0], 0.25);
+        let hi = normalize_boundary(&[100.0], &[0.0, 2.0, 4.0]);
+        assert!((hi[0] - (1.0 - 0.5 / 2.0)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn boundary_normalization_degenerate() {
+        let out = normalize_boundary(&[1.0, 2.0], &[5.0]);
+        assert_eq!(out, vec![0.5, 0.5]);
     }
 }

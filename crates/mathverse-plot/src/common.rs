@@ -116,6 +116,10 @@ pub struct PlotConfig {
     pub y_scale: Scale,
     /// Target number of tick marks per axis.
     pub tick_count: usize,
+    /// Font family stack for text (matplotlib `font.family`).
+    pub font_family: String,
+    /// Base font size in px (matplotlib `font.size`).
+    pub font_size: f64,
 }
 
 impl Default for PlotConfig {
@@ -132,6 +136,8 @@ PlotConfig {
         x_scale: Scale::Linear,
         y_scale: Scale::Linear,
         tick_count: 8,
+        font_family: "Arial, sans-serif".to_string(),
+        font_size: 14.0,
     }
     }
 }
@@ -197,6 +203,18 @@ impl PlotConfig {
         self
     }
 
+    /// Set the font family stack for text rendering.
+    pub fn with_font_family(mut self, family: impl Into<String>) -> Self {
+        self.font_family = family.into();
+        self
+    }
+
+    /// Set the base font size in px.
+    pub fn with_font_size(mut self, size: f64) -> Self {
+        self.font_size = size;
+        self
+    }
+
     /// Set the target tick count per axis
     pub fn with_tick_count(mut self, count: usize) -> Self {
         self.tick_count = count;
@@ -231,6 +249,9 @@ pub fn compute_x_range(data: &PlotData) -> Range {
         .chain(data.bars.iter().flat_map(|b| [b.x_lo, b.x_hi]))
         .chain(data.boxes.iter().enumerate().map(|(i, _)| i as f64))
         .chain(data.error_bars.iter().map(|e| e.x))
+        .chain(data.images.iter().flat_map(|im| [im.x_extent.0, im.x_extent.1]))
+        .chain(data.paths.iter().flat_map(|p| p.points.iter().map(|(x, _)| *x)))
+        .chain(data.lines.iter().flat_map(|l| [l.x1, l.x2]))
         .fold(None::<(f64, f64)>, |acc, x| match acc {
             None => Some((x, x)),
             Some((lo, hi)) => Some((lo.min(x), hi.max(x))),
@@ -262,6 +283,9 @@ pub fn compute_y_range(data: &PlotData) -> Range {
                     .chain(bx.stats.outliers.iter().copied())),
         )
         .chain(data.error_bars.iter().flat_map(|e| [e.bar.lo, e.bar.hi]))
+        .chain(data.images.iter().flat_map(|im| [im.y_extent.0, im.y_extent.1]))
+        .chain(data.paths.iter().flat_map(|p| p.points.iter().map(|(_, y)| *y)))
+        .chain(data.lines.iter().flat_map(|l| [l.y1, l.y2]))
         .fold(None::<(f64, f64)>, |acc, y| match acc {
             None => Some((y, y)),
             Some((lo, hi)) => Some((lo.min(y), hi.max(y))),

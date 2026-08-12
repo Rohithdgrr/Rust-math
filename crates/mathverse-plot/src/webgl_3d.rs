@@ -149,6 +149,254 @@ impl WebGL3DConfig {
 }
 
 /// WebGL 3D renderer for scatter plots.
+/// A surface mesh sampled from a z-grid — the analogue of matplotlib's
+/// `ax.plot_surface`. Produces triangles (two per grid cell) and a wireframe
+/// segment list that callers can render or consume directly.
+#[derive(Debug, Clone)]
+pub struct SurfaceMesh {
+    /// Row-major z values (`grid[r][c]`); rows map to y, columns to x.
+    grid: Vec<Vec<f64>>,
+    /// Data-space x extent `(xmin, xmax)`.
+    x_range: (f64, f64),
+    /// Data-space y extent `(ymin, ymax)`.
+    y_range: (f64, f64),
+}
+
+impl SurfaceMesh {
+    /// Build a surface from a z-grid over `[xmin, xmax] × [ymin, ymax]`.
+    /// Row 0 of the grid is the `ymax` (far) edge.
+    ///
+    /// # Errors
+    ///
+    /// Returns `PlotError::InvalidData` for empty/ragged grids or a grid too
+    /// small to form a single quad (`< 2×2`).
+    pub fn from_grid(
+        grid: Vec<Vec<f64>>,
+        x_range: (f64, f64),
+        y_range: (f64, f64),
+    ) -> crate::error::PlotResult<Self> {
+        if grid.len() < 2 || grid[0].len() < 2 {
+            return Err(crate::error::PlotError::InvalidData(
+                "surface grid must be at least 2x2".into(),
+            ));
+        }
+        let cols = grid[0].len();
+        if grid.iter().any(|row| row.len() != cols) {
+            return Err(crate::error::PlotError::InvalidData(
+                "ragged surface grid".into(),
+            ));
+        }
+        Ok(Self {
+            grid,
+            x_range,
+            y_range,
+        })
+    }
+
+    /// Grid dimensions `(rows, cols)`.
+    #[must_use]
+    pub fn dims(&self) -> (usize, usize) {
+        (self.grid.len(), self.grid[0].len())
+    }
+
+    /// A vertex at grid position `(r, c)`.
+    #[must_use]
+    pub fn vertex(&self, r: usize, c: usize) -> Point3D {
+        let (rows, cols) = self.dims();
+        let fx = c as f64 / (cols - 1) as f64;
+        let fy = 1.0 - r as f64 / (rows - 1) as f64; // row 0 = ymax
+        let x = self.x_range.0 + fx * (self.x_range.1 - self.x_range.0);
+        let y = self.y_range.0 + fy * (self.y_range.1 - self.y_range.0);
+        Point3D::new(x, y, self.grid[r][c])
+    }
+
+    /// All triangles (two per cell), in grid order.
+    #[must_use]
+    pub fn triangles(&self) -> Vec<[Point3D; 3]> {
+        let (rows, cols) = self.dims();
+        let mut out = Vec::with_capacity((rows - 1) * (cols - 1) * 2);
+        for r in 0..rows - 1 {
+            for c in 0..cols - 1 {
+                let a = self.vertex(r, c);
+                let b = self.vertex(r, c + 1);
+                let d = self.vertex(r + 1, c + 1);
+                let e = self.vertex(r + 1, c);
+                out.push([a, b, d]);
+                out.push([a, d, e]);
+            }
+        }
+        out
+    }
+
+    /// Wireframe segments along every grid row and column.
+    #[must_use]
+    pub fn wireframe_segments(&self) -> Vec<[Point3D; 2]> {
+        let (rows, cols) = self.dims();
+        let mut out = Vec::with_capacity((rows - 1) * cols + (cols - 1) * rows);
+        for r in 0..rows {
+            for c in 0..cols - 1 {
+                out.push([self.vertex(r, c), self.vertex(r, c + 1)]);
+            }
+        }
+        for c in 0..cols {
+            for r in 0..rows - 1 {
+                out.push([self.vertex(r, c), self.vertex(r + 1, c)]);
+            }
+        }
+        out
+    }
+
+    /// Data bounds `(min_x, max_x, min_y, max_y, min_z, max_z)`.
+    #[must_use]
+    pub fn bounds(&self) -> (f64, f64, f64, f64, f64, f64) {
+        let zmin = self
+            .grid
+            .iter()
+            .flat_map(|r| r.iter())
+            .copied()
+            .fold(f64::INFINITY, f64::min);
+        let zmax = self
+            .grid
+            .iter()
+            .flat_map(|r| r.iter())
+            .copied()
+            .fold(f64::NEG_INFINITY, f64::max);
+        (
+            self.x_range.0,
+            self.x_range.1,
+            self.y_range.0,
+            self.y_range.1,
+            zmin,
+            zmax,
+        )
+    }
+}
+
+/// Render a surface mesh to a self-contained interactive HTML page. The
+/// renderer projects the mesh with an orthographic camera (drag to rotate,
+/// wheel to zoom), depth-sorts the triangles (painter's algorithm) and fills
+/// them with a height-based viridis gradient. Plain canvas-2D, no WebGL.
+#[must_use]
+pub fn render_surface_html(mesh: &SurfaceMesh, config: &WebGL3DConfig) -> String {
+    let triangles = mesh.triangles();
+    let (min_x, max_x, min_y, max_y, min_z, max_z) = mesh.bounds();
+    let cx = (min_x + max_x) / 2.0;
+    let cy = (min_y + max_y) / 2.0;
+    let cz = (min_z + max_z) / 2.0;
+    let rng = (max_x - min_x)
+        .max(max_y - min_y)
+        .max(max_z - min_z)
+        .max(1.0);
+    let mut tris_json = String::from("[");
+    for (i, t) in triangles.iter().enumerate() {
+        if i > 0 {
+            tris_json.push(',');
+        }
+        tris_json.push_str(&format!(
+            "[[{},{},{}],[{},{},{}],[{},{},{}]]",
+            t[0].x, t[0].y, t[0].z, t[1].x, t[1].y, t[1].z, t[2].x, t[2].y, t[2].z
+        ));
+    }
+    tris_json.push(']');
+
+    format!(
+        r#"<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>3D Surface</title>
+<style>
+  body {{ margin: 0; padding: 20px; font-family: Arial, sans-serif; background: #f5f5f5; }}
+  .container {{ max-width: 1100px; margin: 0 auto; background: white; padding: 20px; border-radius: 6px; }}
+  canvas {{ border: 1px solid #ddd; cursor: grab; }}
+  canvas:active {{ cursor: grabbing; }}
+  .stats {{ color: #666; font-size: 13px; margin: 8px 0; }}
+  button {{ padding: 6px 14px; margin-right: 8px; border: none; border-radius: 4px; background: #007bff; color: white; cursor: pointer; }}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Interactive 3D Surface</h1>
+  <div class="stats">{} triangles &middot; drag to rotate, wheel to zoom</div>
+  <canvas id="cv" width="{}" height="{}"></canvas>
+  <div style="margin-top:10px"><button onclick="reset()">Reset View</button><button onclick="auto()">Auto-Rotate</button></div>
+</div>
+<script>
+const TRIS = {};
+const CX = {}, CY = {}, CZ = {}, RNG = {};
+const W = {}, H = {};
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let rotX = -0.6, rotY = 0.6, zoom = 1.0;
+let dragging = false, lastX = 0, lastY = 0, spinning = false;
+function project(x, y, z) {{
+  const dx = x - CX, dy = y - CY, dz = z - CZ;
+  const s = Math.sin(rotY), c = Math.cos(rotY);
+  const x1 = dx * c - dz * s, z1 = dx * s + dz * c;
+  const s2 = Math.sin(rotX), c2 = Math.cos(rotX);
+  const y1 = dy * c2 - z1 * s2, z2 = dy * s2 + z1 * c2;
+  const scale = 0.45 * zoom * Math.min(W, H) / RNG;
+  return [W/2 + x1 * scale, H/2 - y1 * scale, z2];
+}}
+function colorFor(z) {{
+  const t = Math.min(1, Math.max(0, (z - CZ) / RNG + 0.5));
+  const a = [68, 1, 84], b = [59, 82, 139], c = [33, 145, 140], d = [94, 201, 98], e = [253, 231, 37];
+  let col;
+  if (t < 0.25) col = lerp(a, b, t * 4);
+  else if (t < 0.5) col = lerp(b, c, (t - 0.25) * 4);
+  else if (t < 0.75) col = lerp(c, d, (t - 0.5) * 4);
+  else col = lerp(d, e, (t - 0.75) * 4);
+  return `rgb(${{col[0]}},${{col[1]}},${{col[2]}})`;
+}}
+function lerp(a, b, t) {{ return [Math.round(a[0]+(b[0]-a[0])*t), Math.round(a[1]+(b[1]-a[1])*t), Math.round(a[2]+(b[2]-a[2])*t)]; }}
+function draw() {{
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+  const items = TRIS.map((t, i) => {{
+    const p = t.map(v => project(v[0], v[1], v[2]));
+    return {{ z: (p[0][2] + p[1][2] + p[2][2]) / 3, p, v: t }};
+  }});
+  items.sort((a, b) => b.z - a.z);
+  for (const it of items) {{
+    const z = (it.v[0][2] + it.v[1][2] + it.v[2][2]) / 3;
+    ctx.beginPath();
+    ctx.moveTo(it.p[0][0], it.p[0][1]);
+    ctx.lineTo(it.p[1][0], it.p[1][1]);
+    ctx.lineTo(it.p[2][0], it.p[2][1]);
+    ctx.closePath();
+    ctx.fillStyle = colorFor(z);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }}
+}}
+function reset() {{ rotX = -0.6; rotY = 0.6; zoom = 1; draw(); }}
+function auto() {{ spinning = !spinning; }}
+cv.addEventListener('mousedown', e => {{ dragging = true; lastX = e.clientX; lastY = e.clientY; }});
+window.addEventListener('mouseup', () => {{ dragging = false; }});
+window.addEventListener('mousemove', e => {{
+  if (dragging) {{ rotY += (e.clientX - lastX) * 0.01; rotX += (e.clientY - lastY) * 0.01; lastX = e.clientX; lastY = e.clientY; draw(); }}
+}});
+cv.addEventListener('wheel', e => {{ e.preventDefault(); zoom *= e.deltaY > 0 ? 0.92 : 1.08; zoom = Math.max(0.2, Math.min(6, zoom)); draw(); }});
+setInterval(() => {{ if (spinning) {{ rotY += 0.01; draw(); }} }}, 30);
+draw();
+</script>
+</body>
+</html>"#,
+        triangles.len(),
+        config.width,
+        config.height,
+        tris_json,
+        cx,
+        cy,
+        cz,
+        rng,
+        config.width,
+        config.height
+    )
+}
+
 pub struct WebGL3D {
     /// 3D points to render.
     points: Vec<Point3D>,
@@ -653,6 +901,51 @@ impl WebGL3D {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn surface_mesh_triangles_and_wireframe() {
+        let grid = vec![vec![0.0, 0.0, 0.0], vec![0.0, 1.0, 0.0], vec![0.0, 0.0, 0.0]];
+        let mesh = SurfaceMesh::from_grid(grid, (0.0, 2.0), (0.0, 2.0)).unwrap();
+        assert_eq!(mesh.dims(), (3, 3));
+        // (rows-1)*(cols-1)*2 = 8 triangles.
+        assert_eq!(mesh.triangles().len(), 8);
+        // Wireframe: rows*(cols-1) + cols*(rows-1) = 3*2 + 3*2 = 12.
+        assert_eq!(mesh.wireframe_segments().len(), 12);
+        let (min_x, max_x, min_y, max_y, min_z, max_z) = mesh.bounds();
+        assert_eq!((min_x, max_x), (0.0, 2.0));
+        assert_eq!((min_y, max_y), (0.0, 2.0));
+        assert_eq!((min_z, max_z), (0.0, 1.0));
+    }
+
+    #[test]
+    fn surface_mesh_validates_input() {
+        assert!(SurfaceMesh::from_grid(vec![vec![1.0]], (0.0, 1.0), (0.0, 1.0)).is_err());
+        assert!(
+            SurfaceMesh::from_grid(vec![vec![1.0, 2.0], vec![3.0]], (0.0, 1.0), (0.0, 1.0))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn surface_mesh_vertex_mapping() {
+        let grid = vec![vec![5.0, 5.0], vec![0.0, 0.0]];
+        let mesh = SurfaceMesh::from_grid(grid, (0.0, 1.0), (0.0, 1.0)).unwrap();
+        // Row 0 = ymax (1.0); col 0 = xmin (0.0).
+        let v = mesh.vertex(0, 0);
+        assert_eq!((v.x, v.y, v.z), (0.0, 1.0, 5.0));
+        let v = mesh.vertex(1, 1);
+        assert_eq!((v.x, v.y, v.z), (1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn surface_html_renders() {
+        let grid = vec![vec![0.0, 0.0, 0.0], vec![0.0, 1.0, 0.0], vec![0.0, 0.0, 0.0]];
+        let mesh = SurfaceMesh::from_grid(grid, (0.0, 1.0), (0.0, 1.0)).unwrap();
+        let html = render_surface_html(&mesh, &WebGL3DConfig::default());
+        assert!(html.contains("<canvas"));
+        assert!(html.contains("TRIS"));
+        assert!(html.contains("8 triangles"));
+    }
 
     #[test]
     fn webgl3d_creation() {

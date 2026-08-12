@@ -191,9 +191,67 @@ impl InteractivePlot {
 
 impl eframe::App for InteractivePlot {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("Toolbar:");
+                if ui.button("⤢ Zoom in").clicked() {
+                    self.zoom_toolbar(0.8);
+                }
+                if ui.button("⤡ Zoom out").clicked() {
+                    self.zoom_toolbar(1.25);
+                }
+                if ui.button("⌂ Home").clicked() {
+                    self.reset_view();
+                }
+                if ui.button("↔ Reset").clicked() {
+                    self.reset_view();
+                }
+                if ui.button("💾 Save PNG").clicked() {
+                    #[cfg(feature = "png")]
+                    self.save_png_dialog();
+                }
+            });
+        });
         egui::CentralPanel::default().show(ctx, |ui| {
             self.draw(ui);
         });
+    }
+}
+
+impl InteractivePlot {
+    /// Zoom the view around the canvas center by `factor` (<1 = in).
+    fn zoom_toolbar(&mut self, factor: f64) {
+        self.x_range.zoom_at(factor, 0.0);
+        self.y_range.zoom_at(factor, 0.0);
+    }
+
+    /// Restore the full-data view (matplotlib's Home toolbar button).
+    fn reset_view(&mut self) {
+        let (xr, yr) = plot_bounds(&self.data.series);
+        self.x_range = xr;
+        self.y_range = yr;
+    }
+
+    /// Save the current view to PNG. Writes `mathverse_plot_interactive.png`
+    /// in the working directory (matches matplotlib's toolbar Save button
+    /// without a native file dialog).
+    #[cfg(feature = "png")]
+    fn save_png_dialog(&mut self) {
+        let svg = {
+            let mut plot = crate::svg::SvgPlot::new(self.data.config.clone());
+            for s in &self.data.series {
+                plot.add_series(s.clone());
+            }
+            plot.generate()
+        };
+        let saver = crate::save::PlotSaver::new(svg)
+            .with_dimensions(self.data.config.width, self.data.config.height);
+        let result = saver.save_as("mathverse_plot_interactive", crate::save::OutputFormat::Png, &crate::save::FormatSet::png());
+        if result.success {
+            eprintln!("saved PNG -> {:?}", result.path);
+        } else {
+            eprintln!("save failed: {:?}", result.error);
+        }
     }
 }
 

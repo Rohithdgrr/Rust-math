@@ -48,6 +48,21 @@ impl PdfBackend {
             self.append_heatmap(&mut ops, hm, pad, plot_w, plot_h, &x_range, &y_range);
         }
 
+        // --- Images (imshow) ---
+        for img in &data.images {
+            for ((x_lo, y_lo, x_hi, y_hi), color) in img.cells(256) {
+                ops.push(Op::SetFillColor {
+                    col: color_to_printpdf(color),
+                });
+                let x0 = to_mm_x(x_lo);
+                let x1 = to_mm_x(x_hi);
+                let y0 = to_mm_y(y_hi);
+                let y1 = to_mm_y(y_lo);
+                let rect = Rect::from_xywh(x0.into(), y0.into(), (x1 - x0).into(), (y1 - y0).into());
+                ops.push(Op::DrawRectangle { rectangle: rect });
+            }
+        }
+
         // --- Bars ---
         for bar in &data.bars {
             ops.push(Op::SetFillColor {
@@ -88,6 +103,74 @@ impl PdfBackend {
             for pt in &series.points {
                 let circle = circle_polygon(to_mm_x(pt.x), to_mm_y(pt.y), Mm(1.0));
                 ops.push(Op::DrawPolygon { polygon: circle });
+            }
+        }
+
+        // --- Line segments ---
+        for l in &data.lines {
+            ops.push(Op::SetOutlineColor {
+                col: color_to_printpdf(l.color),
+            });
+            ops.push(Op::SetOutlineThickness {
+                pt: Pt(l.width.max(0.1) as f32),
+            });
+            ops.push(Op::DrawLine {
+                line: Line {
+                    points: vec![
+                        LinePoint {
+                            p: Point::new(to_mm_x(l.x1), to_mm_y(l.y1)),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(to_mm_x(l.x2), to_mm_y(l.y2)),
+                            bezier: false,
+                        },
+                    ],
+                    is_closed: false,
+                },
+            });
+        }
+
+        // --- Paths / patches ---
+        for path in &data.paths {
+            if path.points.len() < 2 {
+                continue;
+            }
+            let pts: Vec<LinePoint> = path
+                .points
+                .iter()
+                .map(|(x, y)| LinePoint {
+                    p: Point::new(to_mm_x(*x), to_mm_y(*y)),
+                    bezier: false,
+                })
+                .collect();
+            if let Some(fill) = path.fill {
+                ops.push(Op::SetFillColor {
+                    col: color_to_printpdf(fill),
+                });
+                ops.push(Op::DrawPolygon {
+                    polygon: printpdf::Polygon {
+                        rings: vec![printpdf::PolygonRing {
+                            points: pts.clone(),
+                        }],
+                        mode: printpdf::PaintMode::Fill,
+                        winding_order: printpdf::WindingOrder::NonZero,
+                    },
+                });
+            }
+            if let Some(stroke) = path.stroke {
+                ops.push(Op::SetOutlineColor {
+                    col: color_to_printpdf(stroke),
+                });
+                ops.push(Op::SetOutlineThickness {
+                    pt: Pt(path.stroke_width.max(0.1) as f32),
+                });
+                ops.push(Op::DrawLine {
+                    line: Line {
+                        points: pts,
+                        is_closed: path.closed,
+                    },
+                });
             }
         }
 
@@ -360,9 +443,12 @@ mod tests {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
         data.series.push(DataSeries::with_style(
-            "s".into(),
+            "s".to_string(),
             vec![DataPoint::new(0.0, 0.0), DataPoint::new(1.0, 1.0)],
             PlotStyle::default(),
         ));
@@ -386,6 +472,9 @@ mod tests {
             boxes: Vec::new(),
             error_bars: Vec::new(),
             heatmaps: Vec::new(),
+            images: Vec::new(),
+            paths: Vec::new(),
+            lines: Vec::new(),
         };
         let backend = PdfBackend::new(100.0, 100.0);
         let uri = backend.generate(&data).unwrap();

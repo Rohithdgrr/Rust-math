@@ -147,11 +147,9 @@ pub fn render_contour(
     let to_x = |x: f64| padding + (x - x_range.0) / (x_range.1 - x_range.0) * chart_width;
     let to_y = |y: f64| padding + 30.0 + chart_height * (1.0 - (y - y_range.0) / (y_range.1 - y_range.0));
 
-    // Color map (simple blue to red)
+    // Color map (viridis by default, matching matplotlib's contourf default)
     let color_for_level = |t: f64| -> String {
-        let r = (t * 255.0) as u8;
-        let b = ((1.0 - t) * 255.0) as u8;
-        format!("#{:02x}00{:02x}", r, b)
+        crate::color::viridis(t.clamp(0.0, 1.0)).to_hex()
     };
 
     let mut svg = String::new();
@@ -231,6 +229,35 @@ pub fn render_contour(
                 svg.push('\n');
             }
         }
+    }
+
+    // Colorbar for filled contours (matplotlib contourf draws one by default)
+    if config.filled {
+        let cb_x = width - padding + 8.0;
+        let cb_w = 12.0;
+        let cb_top = padding + 30.0;
+        let cb_h = chart_height;
+        for k in 0..config.num_levels.max(2) {
+            let t0 = k as f64 / config.num_levels.max(2) as f64;
+            let t1 = (k + 1) as f64 / config.num_levels.max(2) as f64;
+            let y0 = cb_top + cb_h * (1.0 - t1);
+            let h1 = cb_h * (t1 - t0);
+            svg.push_str(&format!(
+                r#"  <rect x="{}" y="{}" width="{}" height="{}" fill="{}"/>"#,
+                cb_x, y0, cb_w, h1, color_for_level((t0 + t1) / 2.0)
+            ));
+            svg.push('\n');
+        }
+        svg.push_str(&format!(
+            r#"  <text x="{}" y="{}" font-size="10" text-anchor="middle">{:.2}</text>"#,
+            cb_x + cb_w / 2.0, cb_top + cb_h + 12.0, z_min
+        ));
+        svg.push('\n');
+        svg.push_str(&format!(
+            r#"  <text x="{}" y="{}" font-size="10" text-anchor="middle">{:.2}</text>"#,
+            cb_x + cb_w / 2.0, cb_top - 6.0, z_max
+        ));
+        svg.push('\n');
     }
 
     // Axes labels

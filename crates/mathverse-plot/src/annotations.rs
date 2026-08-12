@@ -2,6 +2,7 @@
 
 use crate::common::DataPoint;
 use crate::style::Color;
+use crate::transforms::Position;
 
 /// An arrow pointing from one data point to another.
 #[derive(Debug, Clone)]
@@ -58,11 +59,12 @@ impl Arrow {
     }
 }
 
-/// A text annotation at a data coordinate.
+/// A text annotation; position may be given in any supported coordinate
+/// system (data, axes-fraction, figure-fraction, or blended).
 #[derive(Debug, Clone)]
 pub struct TextAnnotation {
-    /// Position in data coordinates.
-    pub position: DataPoint,
+    /// Position (data coordinates by default; see [`Position`]).
+    pub position: Position,
     /// Text content.
     pub text: String,
     /// Font size.
@@ -82,10 +84,10 @@ pub struct TextAnnotation {
 }
 
 impl TextAnnotation {
-    /// Create a new text annotation.
+    /// Create a new text annotation in data coordinates.
     pub fn new(position: DataPoint, text: impl Into<String>) -> Self {
         Self {
-            position,
+            position: Position::Data(position.x, position.y),
             text: text.into(),
             font_size: 12.0,
             font_weight: "normal".to_string(),
@@ -131,6 +133,12 @@ impl TextAnnotation {
     /// Set the text anchor.
     pub fn with_anchor(mut self, anchor: TextAnchor) -> Self {
         self.anchor = anchor;
+        self
+    }
+
+    /// Set the position explicitly in any supported coordinate system.
+    pub fn with_position(mut self, position: Position) -> Self {
+        self.position = position;
         self
     }
 }

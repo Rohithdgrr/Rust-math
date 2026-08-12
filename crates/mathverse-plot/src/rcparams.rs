@@ -61,6 +61,10 @@ pub struct RcParams {
     pub grid_axis: GridAxis,
     /// Whether legends render by default.
     pub show_legend: bool,
+    /// Font family for new plots (matplotlib `font.family`).
+    pub font_family: String,
+    /// Base font size in px (matplotlib `font.size`).
+    pub font_size: f64,
 }
 
 impl RcParams {
@@ -79,6 +83,8 @@ impl RcParams {
             y_scale: Scale::Linear,
             grid_axis: GridAxis::None,
             show_legend: true,
+            font_family: "Arial, sans-serif".to_string(),
+            font_size: 14.0,
         }
     }
 

@@ -2763,6 +2763,7 @@ dependencies = [
  "approx",
  "criterion 0.5.1",
  "eframe",
+ "image",
  "mathverse-complex",
  "mathverse-core",
  "mathverse-finance",
