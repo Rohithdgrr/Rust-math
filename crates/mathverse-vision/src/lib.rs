@@ -12,11 +12,27 @@
 //! The [`Image`] type is a simple single-channel `f64` grayscale image with
 //! basic convolution and Gaussian blur support.
 
+pub mod arithmetic;
 pub mod camera;
+pub mod color;
+pub mod connected_components;
+pub mod contours;
+pub mod drawing;
 pub mod epipolar;
 pub mod features;
+pub mod filters;
 pub mod flow;
 pub mod homography;
+pub mod hough;
+pub mod io;
+pub mod kernels;
+pub mod morphology;
+pub mod ops;
+pub mod template;
+pub mod threshold;
+pub mod transform;
+pub mod utils;
+pub mod video;
 
 #[derive(Debug, Clone)]
 pub struct Image {

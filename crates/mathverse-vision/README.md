@@ -5,29 +5,107 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
 [![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
-Computer vision primitives in pure Rust: camera models, homography, epipolar geometry, feature detection, and optical flow — zero dependencies.
+Computer vision primitives in pure Rust: camera models, homography, epipolar geometry, feature detection, and optical flow — with OpenCV-like live camera support.
+
+---
+
+## 🎥 Live Camera Features (NEW!)
+
+**OpenCV-style live camera interface with real-time processing:**
+
+- **Live Camera Capture** — Cross-platform camera support (Windows/Linux/macOS)
+- **Window Display** — Real-time video visualization with `minifb`
+- **Interactive Controls** — Keyboard shortcuts for features and modes
+- **Real-time CV** — Edge detection, corners, motion, blur, thresholding
+- **Drawing Overlays** — Lines, circles, rectangles, bounding boxes
+
+### Quick Camera Example
+
+```rust
+use mathverse_vision::camera::SystemCamera;
+use minifb::{Key, Window, WindowOptions};
+
+let mut cap = SystemCamera::new(0)?;  // Like cv2.VideoCapture(0)
+let mut window = Window::new("Camera", 640, 480, WindowOptions::default())?;
+
+while window.is_open() && !window.is_key_down(Key::Escape) {
+    let (ret, frame) = cap.read()?;  // Like cap.read()
+    // Process and display frame...
+}
+```
+
+### Run Examples
+
+```bash
+# Simple live camera window
+cargo run --example simple_camera_window
+
+# Live camera with real-time CV features
+cargo run --example live_camera
+
+# Full OpenCV-style demo with 10+ modes
+cargo run --example opencv_features
+
+# Headless batch pipeline (no camera needed): image I/O, filters,
+# morphology, thresholding, contours, template matching, transforms...
+cargo run --example opencv_pipeline
+```
+
+**opencv_features Controls:**
+- `1-9, 0` — Switch modes (original, edges, corners, blur, etc.)
+- `SPACE` — Freeze/resume
+- `F` — Toggle FPS
+- `ESC/Q` — Quit
 
 ---
 
 ## Features
 
+- **Live Camera** — OpenCV-style camera capture with window display
+- **Image I/O** — `imread` / `imwrite` for PNG, JPEG, BMP and PNM (like `cv2.imread`)
+- **Drawing** — Lines, rectangles, circles, polygons, ellipses, text overlays (`putText`)
+- **Color conversions** — RGB↔grayscale, RGB↔BGR, RGB↔HSV, jet colormaps (`cv2.cvtColor`)
+- **Filters** — Box, median, bilateral, sharpen, Gaussian blur, arbitrary `filter2D`
+- **Arithmetic & bitwise** — `add`, `subtract`, `multiply`, `divide`, `addWeighted`, AND/OR/XOR/NOT
+- **Morphology** — Erode, dilate, opening, closing, gradient, top hat, black hat
+- **Thresholding** — Binary, inverse, truncate, to-zero and Otsu's method (full `THRESH_*` family)
+- **Edge Detection** — Canny, Sobel, Scharr, Laplacian operators
+- **Transformations** — Resize, rotate, flip, transpose, crop, `warpAffine`, `warpPerspective`, `getRotationMatrix2D`, pyramids
+- **Histogram** — Equalization and min-max normalization (`cv2.equalizeHist` / `normalize`)
+- **Template Matching** — All six `cv2.matchTemplate` methods (SQDIFF, CCORR, CCOEFF + normalized)
+- **Contours** — `findContours`, area, arc length, bounding rect, convex hull, Douglas–Peucker approximation
+- **Connected Components** — 4/8-connectivity labeling
+- **Hough Transform** — Line and circle detection
+- **Corner Detection** — Harris, Shi–Tomasi, FAST
 - **Pinhole camera model** — Projection and unprojection of 3D world points to 2D image coordinates
 - **Homography estimation** — Direct Linear Transform (DLT) for planar homography
 - **Epipolar geometry** — Fundamental matrix estimation, Sampson distance
-- **Harris corner detection** — Structure tensor-based corner response
 - **Lucas-Kanade optical flow** — Dense optical flow between two frames
-- **Image processing** — Gaussian blur and 3×3 convolution on grayscale images
 
 ## Module Overview
 
 | Module | Purpose | Key Functions |
 |--------|---------|---------------|
-| `camera` | Pinhole camera model | `Camera::project`, `Camera::unproject` |
+| `camera` | Live camera capture & pinhole model | `SystemCamera::new`, `Camera::project` |
+| `io` | Image file I/O | `imread`, `imwrite`, `imread_color`, `imwrite_color` |
+| `drawing` | Drawing primitives & text | `line`, `rectangle`, `circle`, `fill_poly`, `ellipse`, `put_text` |
+| `color` | Color conversions | `rgb_to_gray`, `rgb_to_hsv`, `hsv_to_rgb`, `gray_to_jet` |
+| `filters` | Spatial filtering | `filter2d`, `box_filter`, `median_blur`, `bilateral_filter`, `sharpen` |
+| `arithmetic` | Arithmetic & bitwise ops | `add`, `subtract`, `add_weighted`, `bitwise_and` |
+| `morphology` | Morphological operations | `erode`, `dilate`, `opening`, `closing`, `top_hat`, `black_hat` |
+| `ops` | Image operations | `canny`, `sobel`, `laplacian`, `histogram_equalize`, `normalize_minmax` |
+| `threshold` | Thresholding | `binary`, `adaptive`, `otsu`, `binary_inv`, `tozero` |
+| `transform` | Geometric transforms | `resize`, `rotate`, `flip`, `crop`, `warp_affine`, `warp_perspective`, `pyr_down` |
+| `template` | Template matching | `match_template` (all `TM_*` methods) |
+| `contours` | Contour analysis | `find_contours`, `contour_area`, `convex_hull`, `approx_poly_dp`, `bounding_rect` |
+| `connected_components` | Component labeling | `connected_components` |
+| `hough` | Hough transforms | `hough_lines`, `hough_circles` |
+| `features` | Corner detection | `harris`, `shi_tomasi`, `fast` |
 | `homography` | Planar homography estimation | `homography_dlt`, `Homography::apply` |
-| `epipolar` | Fundamental matrix, epipolar constraints | `fundamental`, `Fundamental::line_in_second`, `sampson_distance` |
-| `features` | Corner detection | `harris` |
+| `epipolar` | Fundamental matrix, epipolar constraints | `fundamental`, `Fundamental::line_in_second` |
 | `flow` | Dense optical flow | `lucas_kanade` |
-| `lib` | Image type with convolution | `Image::convolve3`, `Image::gaussian_blur` |
+| `utils` | Utility functions | `mean`, `std_dev`, `min_max` |
+| `video` | Video I/O | `VideoWriter` |
 
 ## Installation
 
