@@ -157,7 +157,10 @@ pub fn write_csv_with_options(df: &DataFrame, options: &CsvWriteOptions) -> Stri
             if ci > 0 {
                 out.push(delim);
             }
-            let col = df.column_by_index(ci).expect("column index within range");
+            let col = match df.column_by_index(ci) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
             if col.is_null(row) {
                 out.push_str(&options.null_value);
             } else {
@@ -168,6 +171,9 @@ pub fn write_csv_with_options(df: &DataFrame, options: &CsvWriteOptions) -> Stri
                     AnyColumn::Int32(s) => s.data()[row].to_string(),
                     AnyColumn::Bool(s) => s.data()[row].to_string(),
                     AnyColumn::Utf8(s) => s.data()[row].clone(),
+                    AnyColumn::Date(s) => s.data()[row].to_string(),
+                    AnyColumn::DateTime(s) => s.data()[row].to_string(),
+                    AnyColumn::Duration(s) => s.data()[row].to_string(),
                 };
                 out.push_str(&escape_field(&cell, options.delimiter));
             }

@@ -470,4 +470,32 @@ mod tests {
             assert!((0.0..=1.0).contains(&sample));
         }
     }
+
+    #[test]
+    fn test_beta_prior_edge_cases() {
+        // Alpha = 0, Beta = 0 should produce NaN
+        let prior = BetaPrior::new(0.0, 0.0);
+        let posterior = prior.posterior(0, 0);
+        // Prior with alpha=0, beta=0 is degenerate - posterior has NaN parameters
+        assert!(posterior.alpha.is_nan() || posterior.beta.is_nan());
+    }
+
+    #[test]
+    fn test_normal_prior_edge_cases() {
+        let prior = NormalPrior::new(0.0, 0.0);
+        // sigma = 0 should produce degenerate posterior
+        let data = vec![1.0, 2.0, 3.0];
+        let posterior = prior.posterior_known_variance(&data, 1.0);
+        // With sigma=0, posterior sigma should also be 0 or handle gracefully
+        assert!(posterior.sigma >= 0.0);
+    }
+
+    #[test]
+    fn test_dirichlet_edge_cases() {
+        // Empty alpha vector
+        let result = DirichletPrior::new(vec![]);
+        // Should handle gracefully
+        let mean = result.mean();
+        assert!(mean.is_empty());
+    }
 }

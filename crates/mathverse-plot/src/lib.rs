@@ -54,6 +54,7 @@ pub mod facet;
 pub mod figure;
 pub mod gif;
 pub mod grammar;
+#[cfg(feature = "graph")]
 pub mod graph_layout;
 pub mod grouped_bar;
 pub mod gpu_renderer;
@@ -74,6 +75,7 @@ pub mod kde;
 pub mod legend;
 pub mod marimekko;
 pub mod mathtext;
+#[cfg(feature = "ml")]
 pub mod ml_plots;
 pub mod pairplot;
 pub mod pareto;
@@ -94,6 +96,8 @@ pub mod residplot;
 pub mod rug;
 pub mod save;
 pub mod smooth;
+#[cfg(feature = "signal")]
+#[cfg(feature = "signal")]
 pub mod spectrogram;
 pub mod stats_annotate;
 pub mod stacked_bar;
@@ -102,6 +106,7 @@ pub mod step;
 pub mod streaming;
 pub mod strip;
 pub mod style;
+#[cfg(feature = "graph")]
 pub mod surface;
 pub mod svg;
 pub mod ticks;
@@ -142,6 +147,7 @@ pub use export::{ExportConfig, Margin, Metadata, Watermark, WatermarkPosition};
 pub use facet::{FacetBuilder, FacetData, FacetGrid, FacetScale, FacetWrap};
 pub use figure::{Axes, Figure};
 pub use gif::*;
+#[cfg(feature = "graph")]
 pub use graph_layout::*;
 pub use grouped_bar::{render_grouped_bar, GroupedBarConfig, GroupedSeries};
 pub use heatmap::{Colormap, HeatmapData};
@@ -157,6 +163,7 @@ pub use jointplot::{render_jointplot, JointConfig};
 pub use kde::{render_kde_plot, KdeConfig};
 pub use legend::{LegendConfig, LegendItem, LegendLayout, LegendPosition};
 pub use marimekko::{render_marimekko, MarimekkoColumn, MarimekkoConfig, MarimekkoSegment};
+#[cfg(feature = "ml")]
 pub use ml_plots::*;
 pub use pairplot::{render_pairplot, PairConfig};
 pub use pareto::{render_pareto, ParetoBar, ParetoConfig};
@@ -171,6 +178,7 @@ pub use residplot::{render_residplot, ResidConfig};
 pub use rug::{render_rug_plot, RugConfig};
 pub use save::{ExportResult, FormatSet, OutputFormat, PlotSaver};
 pub use smooth::{smooth_path, smooth_points, Interpolation, SmoothConfig};
+#[cfg(feature = "signal")]
 pub use spectrogram::*;
 pub use stats_annotate::{StatAnnotation, StatAnnotations, StatTest};
 pub use stacked_bar::{render_stacked_bar, StackedBarConfig, StackedSeries};
@@ -178,6 +186,7 @@ pub use stem::{render_stem_plot, StemConfig};
 pub use step::{render_step_plot, StepConfig, StepPosition};
 pub use strip::{render_strip_plot, StripCategory, StripConfig};
 pub use style::*;
+#[cfg(feature = "graph")]
 pub use surface::*;
 pub use svg::SvgPlot;
 pub use ticks::*;

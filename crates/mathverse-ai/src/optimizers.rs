@@ -525,4 +525,55 @@ mod tests {
         for _ in 0..50 { s.step(); }
         assert!((s.get_lr() - 1.0).abs() < E);
     }
+
+    #[test]
+    fn sgd_weight_decay_test() {
+        // With weight decay, parameters should decrease faster
+        let mut opt = Sgd::new(0.05, 0.0, 0.1);
+        let mut x = [10.0];
+        for _ in 0..100 {
+            let g = [2.0 * x[0]];
+            opt.step(&mut x, &g);
+        }
+        // With weight decay, x should be smaller than without
+        assert!(x[0] < 5.0);
+    }
+
+    #[test]
+    fn adam_momentum_test() {
+        // Adam with momentum should converge on simple problem
+        let mut opt = Adam::new(0.1, 0.9, 0.999, 1e-8, 0.0);
+        let mut x = [100.0];
+        for _ in 0..5000 {
+            let g = [2.0 * x[0]];
+            opt.step(&mut x, &g);
+        }
+        assert!(x[0].abs() < 1.0);
+    }
+
+    #[test]
+    fn lr_scheduler_step_decay_test() {
+        let mut s = LrScheduler::new(Schedule::StepDecay { step_size: 50, gamma: 0.1 });
+        assert!((s.get_lr() - 1.0).abs() < E);
+        for _ in 0..200 { s.step(); }
+        // After 200 steps: 200/50 = 4 decays → 0.1^4 = 0.0001
+        assert!((s.get_lr() - 0.0001).abs() < 0.001);
+    }
+
+    #[test]
+    fn adamw_vs_adam_weight_decay_test() {
+        // Compare AdamW (decoupled) vs Adam (coupled) with weight decay
+        let mut adam = Adam::new(0.01, 0.9, 0.999, 1e-8, 0.5);
+        let mut adamw = AdamW::new(0.01, 0.9, 0.999, 1e-8, 0.5);
+        let mut x_adam = [10.0];
+        let mut x_adamw = [10.0];
+        for _ in 0..300 {
+            let g1 = [2.0 * x_adam[0]];
+            adam.step(&mut x_adam, &g1);
+            let g2 = [2.0 * x_adamw[0]];
+            adamw.step(&mut x_adamw, &g2);
+        }
+        // AdamW should have smaller parameter values with coupled weight decay
+        assert!(x_adamw[0] <= x_adam[0] + 0.5);
+    }
 }

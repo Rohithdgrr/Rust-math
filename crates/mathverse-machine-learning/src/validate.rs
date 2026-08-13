@@ -32,7 +32,21 @@ pub(crate) fn validate_xy(x: &[Vec<f64>], y: &[f64]) -> MathResult<usize> {
                 "feature matrix rows have inconsistent lengths",
             ));
         }
+        for &v in row {
+            if v.is_nan() || v.is_infinite() {
+                return Err(MathError::InvalidArgument(
+                    "feature matrix contains NaN or infinity",
+                ));
+            }
+        }
         debug_assert!(i < y.len(), "lengths already validated");
+    }
+    for &v in y {
+        if v.is_nan() || v.is_infinite() {
+            return Err(MathError::InvalidArgument(
+                "target vector contains NaN or infinity",
+            ));
+        }
     }
     Ok(p)
 }
@@ -45,6 +59,13 @@ pub(crate) fn validate_x(x: &[Vec<f64>], n_features: usize) -> MathResult<()> {
     for row in x {
         if row.len() != n_features {
             return Err(MathError::DimensionMismatch);
+        }
+        for &v in row {
+            if v.is_nan() || v.is_infinite() {
+                return Err(MathError::InvalidArgument(
+                    "feature matrix contains NaN or infinity",
+                ));
+            }
         }
     }
     Ok(())

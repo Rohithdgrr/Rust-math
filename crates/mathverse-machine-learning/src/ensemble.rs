@@ -53,8 +53,9 @@ impl VotingClassifier {
                 let best = votes
                     .iter()
                     .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Less))
-                    .expect("votes cannot be empty");
-                f64::from_bits(*best.0)
+                    .map(|(k, _)| *k)
+                    .unwrap_or(0.0f64.to_bits());
+                f64::from_bits(best)
             })
             .collect()
     }

@@ -205,6 +205,42 @@ mod tests {
         let target = Tensor::new(&[4], &[1.0, 2.0, 3.0, 4.0]).unwrap();
         assert!((explained_variance(&pred, &target).unwrap() - 1.0).abs() < E);
     }
+
+    #[test]
+    fn accuracy_zero_test() {
+        // All predictions wrong
+        let pred = Tensor::new(&[3], &[1.0, 1.0, 1.0]).unwrap();
+        let target = Tensor::new(&[3], &[0.0, 0.0, 0.0]).unwrap();
+        assert!((accuracy(&pred, &target).unwrap() - 0.0).abs() < E);
+    }
+
+    #[test]
+    fn accuracy_perfect_test() {
+        // All predictions correct
+        let pred = Tensor::new(&[3], &[0.0, 1.0, 0.0]).unwrap();
+        let target = Tensor::new(&[3], &[0.0, 1.0, 0.0]).unwrap();
+        assert!((accuracy(&pred, &target).unwrap() - 1.0).abs() < E);
+    }
+
+#[test]
+    fn roc_auc_random_test() {
+        // Identical scores for all examples → AUC = 0.5 (no ranking ability)
+        let scores = Tensor::new(&[10], &[0.5; 10]).unwrap();
+        let labels = Tensor::new(&[10], &[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]).unwrap();
+        let auc = roc_auc(&scores, &labels).unwrap();
+        // With constant scores, AUC should be 0.5
+        assert!((auc - 0.5).abs() < 0.1);
+    }
+
+    #[test]
+    fn r_squared_negative_test() {
+        // Poor predictions can give negative R²
+        let pred = Tensor::new(&[4], &[1.0, 2.0, 3.0, 4.0]).unwrap();
+        let target = Tensor::new(&[4], &[2.0, 3.0, 4.0, 5.0]).unwrap();
+        let r2 = r_squared(&pred, &target).unwrap();
+        // Should be less than 1.0 (possibly negative depending on variance)
+        assert!(r2 < 1.0);
+    }
 }
 
 

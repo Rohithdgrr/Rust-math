@@ -54,6 +54,7 @@ pub mod density;
 pub mod descriptive;
 pub mod distributions;
 pub mod error;
+pub mod fit;
 pub mod hypothesis_tests;
 pub mod inference;
 pub mod matrix;
@@ -94,6 +95,10 @@ pub use regression::{
 pub use matrix::{
     cholesky_inverse, correlation_matrix, covariance_matrix, mahalanobis, pca, pca_transform,
     precision_matrix, PCA,
+};
+
+pub use fit::{
+    bootstrapped_mean, fit_normal, ks_test,
 };
 
 pub use inference::{

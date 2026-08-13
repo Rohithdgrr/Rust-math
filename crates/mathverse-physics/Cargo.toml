@@ -13,6 +13,7 @@ workspace = true
 
 [dependencies]
 thiserror = "2"
+mathverse-units = { path = "../mathverse-units" }
 
 [dev-dependencies]
 approx = "0.5"

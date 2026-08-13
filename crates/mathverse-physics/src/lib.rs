@@ -1,7 +1,7 @@
 //! Physics domain applications for `MathVerse`
 //!
 //! This crate provides physics-specific calculations and constants including:
-//! - Classical mechanics (kinematics, dynamics)
+//! - Classical mechanics (kinematics, dynamics) with compile-time unit checking
 //! - Thermodynamics
 //! - Electromagnetism
 //! - Waves and optics
@@ -12,6 +12,9 @@
 //! - Astrophysics / orbital mechanics
 //! - Nuclear physics
 
+pub mod kinematics;
+pub mod dynamics;
+pub mod rotational;
 pub mod mechanics;
 pub mod thermodynamics;
 pub mod electromagnetism;
@@ -23,9 +26,21 @@ pub mod fluid_dynamics;
 pub mod astrophysics;
 pub mod nuclear;
 
-// Glob re-exports intentionally expose every public item at the crate root;
-// items only referenced through the glob trigger the unused-imports lint, so
-// it is allowed here.
+ // Glob re-exports intentionally expose every public item at the crate root;
+#[allow(unused_imports)]
+pub use kinematics::*;
+#[allow(unused_imports)]
+pub use dynamics::*;
+#[allow(unused_imports)]
+pub use rotational::*;
+#[allow(unused_imports)]
+pub use kinematics::*;
+#[allow(unused_imports)]
+pub use rotational::*;
+#[allow(unused_imports)]
+pub use mechanics::*;
+#[allow(unused_imports)]
+pub use rotational::*;
 #[allow(unused_imports)]
 pub use mechanics::*;
 #[allow(unused_imports)]

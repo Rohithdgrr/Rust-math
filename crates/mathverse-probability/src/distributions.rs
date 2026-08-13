@@ -1,6 +1,6 @@
-//! Distributions: moments, pmf/pdf, cdf. Sampling lives in the parent module.
+﻿//! Distributions: moments, pmf/pdf, cdf. Sampling lives in the parent module.
 
-use crate::{rng::Rng, special::ln_gamma, F64Ext};
+use crate::{markov_distribution, markov_step, rng::Rng, special::ln_gamma, F64Ext};
 
 /// Common moment API for every distribution.
 pub trait Distribution {
@@ -108,6 +108,7 @@ impl Distribution for Binomial {
     }
 }
 impl Binomial {
+    const EPS: f64 = 1e-10;
     /// Log-space PMF (returns None on underflow).
     fn ln_pmf(&self, k: u64) -> Option<f64> {
         let k_eff = k.min(self.n - k);
@@ -216,7 +217,7 @@ impl DiscreteDist for Binomial {
     }
 }
 
-/// `Poisson(λ)`: count of events in a fixed interval.
+/// `Poisson(Î»)`: count of events in a fixed interval.
 #[must_use]
 pub struct Poisson {
     pub lambda: f64,
@@ -356,7 +357,7 @@ impl ContinuousDist for Uniform {
     }
 }
 
-/// `Normal(μ, σ)`. CDF via Abramowitz–Stegun erf approximation (|err| < 1.5e-7).
+/// `Normal(Î¼, Ïƒ)`. CDF via Abramowitzâ€“Stegun erf approximation (|err| < 1.5e-7).
 #[must_use]
 pub struct Normal {
     pub mu: f64,
@@ -385,7 +386,7 @@ impl ContinuousDist for Normal {
     }
 }
 impl Normal {
-    /// Box–Muller sampling.
+    /// Boxâ€“Muller sampling.
     pub fn sample(&self, rng: &mut Rng) -> f64 {
         let u1 = rng.uniform().max(1e-300);
         let u2 = rng.uniform();
@@ -454,7 +455,7 @@ fn norm_ppf(q: f64) -> f64 {
     }
 }
 
-/// Exponential distribution with rate λ.
+/// Exponential distribution with rate Î».
 #[must_use]
 pub struct Exponential {
     pub lambda: f64,
@@ -634,7 +635,7 @@ impl ChiSquared {
     }
 }
 
-/// Student's t-distribution with ν degrees of freedom.
+/// Student's t-distribution with Î½ degrees of freedom.
 #[must_use]
 pub struct StudentsT {
     pub nu: f64,
@@ -998,6 +999,7 @@ impl Distribution for Triangular {
         let a = self.a;
         let b = self.b;
         let c = self.c;
+        // Clippy false positive: formula is mathematically correct for triangular distribution variance
         (a * a + b * b + c * c - a * b - a * c - b * c) / 18.0
     }
 }
@@ -1298,7 +1300,7 @@ mod tests {
     }
 
     #[test]
-    fn pmf_pdf_cdf() {
+    fn pmf_pdf_cdf_edge_cases() {
         let b = Binomial { n: 10, p: 0.5 };
         assert!((b.pmf(5) - 252.0 / 1024.0).abs() < 1e-12);
         assert!((b.cdf(5) - 638.0 / 1024.0).abs() < 1e-12);
@@ -1389,5 +1391,236 @@ mod tests {
             let x_back = n.ppf(p);
             assert!((x_back - x).abs() < 1e-4, "roundtrip failed: {x} -> {p} -> {x_back}");
         }
+    }
+
+    #[test]
+    fn binomial_p_zero_and_one() {
+        // Edge cases: p = 0 and p = 1
+        let b0 = Binomial { n: 10, p: 0.0 };
+        assert_eq!(b0.pmf(0), 1.0);
+        assert_eq!(b0.pmf(10), 0.0);
+        assert_eq!(b0.cdf(0), 1.0);
+        assert_eq!(b0.cdf(-1), 0.0);
+
+        let b1 = Binomial { n: 10, p: 1.0 };
+        assert_eq!(b1.pmf(0), 0.0);
+        assert_eq!(b1.pmf(10), 1.0);
+        assert_eq!(b1.cdf(0), 0.0);
+        assert_eq!(b1.cdf(10), 1.0);
+    }
+
+    #[test]
+    fn poisson_zero_lambda() {
+        let p = Poisson { lambda: 0.0 };
+        assert_eq!(p.pmf(0), 1.0);
+        assert_eq!(p.pmf(1), 0.0);
+        assert_eq!(p.cdf(0), 1.0);
+        assert_eq!(p.cdf(-1), 0.0);
+    }
+
+    #[test]
+    fn geometric_p_edge_cases() {
+        // Edge cases: p -> 0 and p -> 1
+        let p0 = Geometric { p: 0.0 };
+        // p=0 is degenerate, pmf should handle it
+        let p1 = Geometric { p: 1.0 };
+        assert_eq!(p1.pmf(1), 1.0);
+        assert_eq!(p1.pmf(2), 0.0);
+    }
+
+    #[test]
+    fn negative_binomial_r_edge_cases() {
+        // Test with r = 1 (reduces to geometric) - use p=0.5 where pmf(0) = p^r = 0.5 > 0
+        let nb1 = NegativeBinomial { r: 1.0, p: 0.5 };
+        // PMF at k=0 = p^r = 0.5^1 = 0.5 > 0
+        assert!(nb1.pmf(0) > 0.0);
+        assert!(nb1.pmf(1) > 0.0);
+
+        // Test with large r
+        let nb2 = NegativeBinomial { r: 100.0, p: 0.5 };
+        assert!(nb2.pmf(100).is_finite());
+    }
+
+    #[test]
+    fn hypergeometric_edge_cases() {
+        // When n_draws = 0
+        let h0 = Hypergeometric {
+            n: 10,
+            k: 5,
+            n_draws: 0,
+        };
+        assert!((h0.pmf(0) - 1.0).abs() < 1e-10);
+        assert!((h0.pmf(1) - 0.0).abs() < 1e-10);
+
+        // When n_draws = n
+        let h1 = Hypergeometric {
+            n: 10,
+            k: 5,
+            n_draws: 10,
+        };
+        assert!((h1.pmf(5) - 1.0).abs() < 1e-10);
+        assert!((h1.pmf(6) - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn cauchy_pdf_cdf_ppf() {
+        let c = Cauchy { x0: 0.0, gamma: 1.0 };
+        // PDF at 0 should be finite
+        let pdf = c.pdf(0.0);
+        assert!(pdf.is_finite());
+        // CDF at 0 should be 0.5
+        let cdf = c.cdf(0.0);
+        assert!((cdf - 0.5).abs() < 1e-10);
+        // PPF at 0.5 should be 0
+        let ppf = c.ppf(0.5);
+        assert!((ppf - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn laplace_pdf_cdf_ppf() {
+        let l = Laplace { mu: 0.0, b: 1.0 };
+        let pdf = l.pdf(0.0);
+        assert!(pdf > 0.0);
+        let cdf = l.cdf(0.0);
+        assert!((cdf - 0.5).abs() < 1e-10);
+        let ppf = l.ppf(0.5);
+        assert!((ppf - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn gumbel_pdf_cdf_ppf() {
+        let g = Gumbel { mu: 0.0, beta: 1.0 };
+        let pdf = g.pdf(0.0);
+        assert!(pdf.is_finite());
+        let cdf = g.cdf(0.0);
+        assert!(cdf.is_finite() && cdf > 0.0 && cdf < 1.0);
+        let ppf = g.ppf(0.5);
+        assert!(ppf.is_finite());
+    }
+
+    #[test]
+    fn pareto_pdf_cdf_ppf() {
+        let p = Pareto { xm: 1.0, alpha: 2.0 };
+        let pdf = p.pdf(1.0);
+        assert!(pdf > 0.0);
+        let cdf = p.cdf(1.0);
+        assert!((cdf - 0.0).abs() < 1e-10); // CDF at xm should be 0
+        let ppf = p.ppf(0.5);
+        assert!(ppf > 1.0);
+    }
+
+    #[test]
+    fn triangular_distribution() {
+        let t = Triangular { a: 0.0, b: 1.0, c: 1.0 };
+        let mean = t.mean();
+        assert!((mean - 2.0 / 3.0).abs() < 1e-10);
+        let variance = t.variance();
+        assert!(variance > 0.0);
+    }
+
+    #[test]
+    fn beta_distribution_edge_cases() {
+        // alpha = 1, beta = 1 (uniform)
+        let b11 = Beta { alpha: 1.0, beta: 1.0 };
+        assert!((b11.mean() - 0.5).abs() < 1e-10);
+        assert!((b11.variance() - 1.0 / 12.0).abs() < 1e-10);
+
+        // alpha -> infinity
+        let b_inf = Beta { alpha: 1e6, beta: 1.0 };
+        assert!((b_inf.mean() - 1.0).abs() < 1e-6);
+
+        // beta -> infinity
+        let b_inf2 = Beta { alpha: 1.0, beta: 1e6 };
+        assert!((b_inf2.mean() - 1.0 / (1.0 + 1e6)).abs() < 1e-6);
+    }
+
+    #[test]
+    fn gamma_distribution_edge_cases() {
+        // shape = 1 (exponential)
+        let g1 = Gamma { shape: 1.0, rate: 1.0 };
+        assert!((g1.mean() - 1.0).abs() < 1e-10);
+        assert!((g1.variance() - 1.0).abs() < 1e-10);
+
+        // shape -> 0 (degenerate)
+        let g0 = Gamma { shape: 0.1, rate: 1.0 };
+        assert!(g0.mean() > 0.0);
+        assert!(g0.variance() > 0.0);
+    }
+
+    #[test]
+    fn exponential_distribution_edge_cases() {
+        let e = Exponential { lambda: 1.0 };
+        assert!((e.mean() - 1.0).abs() < 1e-10);
+        assert!((e.variance() - 1.0).abs() < 1e-10);
+
+        // PPF at 0.5 should be ln(2)
+        let ppf = e.ppf(0.5);
+        assert!((ppf - 0.6931471805599453).abs() < 1e-10);
+    }
+
+    #[test]
+    fn weibull_distribution_edge_cases() {
+        let w = Weibull { shape: 1.0, scale: 1.0 };
+        assert!((w.mean() - 1.0).abs() < 1e-10);
+        assert!((w.variance() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn chi_squared_distribution_edge_cases() {
+        let c = ChiSquared { k: 1.0 };
+        assert!((c.mean() - 1.0).abs() < 1e-10);
+        assert!((c.variance() - 2.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn students_t_distribution_edge_cases() {
+        // nu = 1 (Cauchy-like)
+        let t1 = StudentsT { nu: 1.0 };
+        assert!(t1.mean().is_nan());
+        assert!(t1.variance().is_nan());
+
+        // nu = 2: variance is undefined (infinity)
+        let t2 = StudentsT { nu: 2.0 };
+        assert!((t2.mean() - 0.0).abs() < 1e-10);
+        assert!(t2.variance().is_nan());
+
+        // pdf at 0 should be finite
+        assert!(t1.pdf(0.0).is_finite());
+        assert!(t2.pdf(0.0).is_finite());
+    }
+
+    #[test]
+    fn f_distribution_edge_cases() {
+        let f = FDistribution { d1: 5.0, d2: 10.0 };
+        assert!(f.mean().is_finite());
+        assert!(f.variance().is_finite());
+    }
+
+    #[test]
+    fn markov_step_edge_cases() {
+        let mut rng = Rng::new(42);
+        // Valid transition matrix
+        let t: &[&[f64]] = &[&[0.5, 0.5], &[0.3, 0.7]];
+        let state = markov_step(t, 0, &mut rng);
+        assert!(state.is_ok());
+        let s = state.unwrap();
+        assert!(s == 0 || s == 1);
+
+        // Invalid: row doesn't sum to 1
+        let t_invalid: &[&[f64]] = &[&[0.2, 0.2], &[0.5, 0.5]];
+        let result = markov_step(t_invalid, 0, &mut rng);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn markov_distribution_convergence() {
+        let p = markov_distribution(
+            &[&[0.9, 0.1], &[0.5, 0.5]],
+            &[1.0, 0.0],
+            500,
+        );
+        // Should be close to stationary distribution (5/6, 1/6)
+        assert!((p[0] - 5.0 / 6.0).abs() < 0.1);
+        assert!((p[1] - 1.0 / 6.0).abs() < 0.1);
     }
 }

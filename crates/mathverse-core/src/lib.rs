@@ -54,3 +54,25 @@ pub mod traits;
 /// Only available when the `libm` feature is enabled and `std` is disabled.
 #[cfg(all(not(feature = "std"), feature = "libm"))]
 pub mod libm_fallback;
+
+#[cfg(feature = "pyo3")]
+#[pymodule]
+fn mathverse_core(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
+    use pyo3::prelude::*;
+
+    #[pyfunction]
+    fn add(a: f64, b: f64) -> PyResult<f64> {
+        Ok(a + b)
+    }
+
+    #[pyfunction]
+    fn pi() -> PyResult<f64> {
+        Ok(core::f64::consts::PI)
+    }
+
+    m.add_wrapped(wrap_pyfunction!(add)?)?;
+    m.add_wrapped(wrap_pyfunction!(pi)?)?;
+    Ok(())
+}
+
+

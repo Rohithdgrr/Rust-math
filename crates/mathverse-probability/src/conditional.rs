@@ -63,16 +63,16 @@ pub struct ConditionalDistributions;
 
 impl ConditionalDistributions {
     /// Conditional PMF: P(X=x|Y=y).
-    pub fn conditional_pmf(joint_pmf: &[Vec<f64>], x: usize, y: usize) -> f64 {
+    pub fn conditional_pmf(joint_pmf: &[Vec<f64>], x_idx: usize, y_idx: usize) -> f64 {
         let p_xy = joint_pmf
-            .get(x)
-            .and_then(|row| row.get(y))
+            .get(x_idx)
+            .and_then(|row| row.get(y_idx))
             .copied()
             .unwrap_or(0.0);
 
         let p_y: f64 = joint_pmf
             .iter()
-            .map(|row| row.get(y).copied().unwrap_or(0.0))
+            .map(|row| row.get(y_idx).copied().unwrap_or(0.0))
             .sum();
 
         if p_y > 0.0 {
@@ -85,12 +85,12 @@ impl ConditionalDistributions {
     /// Conditional PDF (numerical approximation).
     pub fn conditional_pdf(
         joint_pdf: impl Fn(f64, f64) -> f64,
-        marginal_y: impl Fn(f64) -> f64,
+        marginal_y_func: impl Fn(f64) -> f64,
         x: f64,
         y: f64,
     ) -> f64 {
         let p_xy = joint_pdf(x, y);
-        let p_y = marginal_y(y);
+        let p_y = marginal_y_func(y);
 
         if p_y > 0.0 {
             p_xy / p_y
@@ -136,10 +136,10 @@ pub struct ConditionalExpectation;
 
 impl ConditionalExpectation {
     /// Conditional expectation E[X|Y=y] for discrete case.
-    pub fn discrete(joint_pmf: &[Vec<f64>], y: usize) -> f64 {
+    pub fn discrete(joint_pmf: &[Vec<f64>], y_idx: usize) -> f64 {
         let p_y: f64 = joint_pmf
             .iter()
-            .map(|row| row.get(y).copied().unwrap_or(0.0))
+            .map(|row| row.get(y_idx).copied().unwrap_or(0.0))
             .sum();
 
         if p_y == 0.0 {
@@ -148,7 +148,7 @@ impl ConditionalExpectation {
 
         let mut expectation = 0.0;
         for (x, row) in joint_pmf.iter().enumerate() {
-            let p_xy = row.get(y).copied().unwrap_or(0.0);
+            let p_xy = row.get(y_idx).copied().unwrap_or(0.0);
             expectation += x as f64 * p_xy / p_y;
         }
 
@@ -158,7 +158,7 @@ impl ConditionalExpectation {
     /// Conditional expectation for continuous case (numerical).
     pub fn continuous(
         joint_pdf: impl Fn(f64, f64) -> f64,
-        marginal_y: impl Fn(f64) -> f64,
+        marginal_y_func: impl Fn(f64) -> f64,
         y: f64,
         a: f64,
         b: f64,
@@ -171,7 +171,7 @@ impl ConditionalExpectation {
         for i in 0..n {
             let x = a + (i as f64 + 0.5) * dx;
             let p_xy = joint_pdf(x, y);
-            let p_y = marginal_y(y);
+            let p_y = marginal_y_func(y);
 
             if p_y > 0.0 {
                 let conditional = p_xy / p_y;
@@ -309,12 +309,12 @@ pub struct ConditionalIndependence;
 
 impl ConditionalIndependence {
     /// Check conditional independence: P(X,Y|Z) = P(X|Z) * P(Y|Z).
-    pub fn check(joint_xyz: &[Vec<Vec<f64>>], z: usize, tolerance: f64) -> bool {
+    pub fn check(joint_xyz: &[Vec<Vec<f64>>], z_idx: usize, tolerance: f64) -> bool {
         let n_x = joint_xyz.len();
         let n_y = joint_xyz[0].len();
         let n_z = joint_xyz[0][0].len();
 
-        if z >= n_z {
+        if z_idx >= n_z {
             return false;
         }
 
@@ -324,8 +324,8 @@ impl ConditionalIndependence {
 
         for i in 0..n_x {
             for j in 0..n_y {
-                p_x_given_z[i] += joint_xyz[i][j][z];
-                p_y_given_z[j] += joint_xyz[i][j][z];
+                p_x_given_z[i] += joint_xyz[i][j][z_idx];
+                p_y_given_z[j] += joint_xyz[i][j][z_idx];
             }
         }
 
@@ -333,7 +333,7 @@ impl ConditionalIndependence {
         for i in 0..n_x {
             for j in 0..n_y {
                 let expected = p_x_given_z[i] * p_y_given_z[j];
-                if (joint_xyz[i][j][z] - expected).abs() > tolerance {
+                if (joint_xyz[i][j][z_idx] - expected).abs() > tolerance {
                     return false;
                 }
             }
@@ -345,15 +345,15 @@ impl ConditionalIndependence {
     /// Markov property: X ⊥ Y | Z if P(X|Y,Z) = P(X|Z).
     pub fn markov_property(
         joint_xyz: &[Vec<Vec<f64>>],
-        y: usize,
-        z: usize,
+        y_idx: usize,
+        z_idx: usize,
         tolerance: f64,
     ) -> bool {
         let n_x = joint_xyz.len();
         let n_y = joint_xyz[0].len();
         let n_z = joint_xyz[0][0].len();
 
-        if y >= n_y || z >= n_z {
+        if y_idx >= n_y || z_idx >= n_z {
             return false;
         }
 
@@ -361,13 +361,13 @@ impl ConditionalIndependence {
         let mut p_x_given_z = vec![0.0; n_x];
         for i in 0..n_x {
             for j in 0..n_y {
-                p_x_given_z[i] += joint_xyz[i][j][z];
+                p_x_given_z[i] += joint_xyz[i][j][z_idx];
             }
         }
 
         // Compute P(X|Y,Z) and compare
         for i in 0..n_x {
-            let p_x_given_yz = joint_xyz[i][y][z];
+            let p_x_given_yz = joint_xyz[i][y_idx][z_idx];
             if (p_x_given_yz - p_x_given_z[i]).abs() > tolerance {
                 return false;
             }

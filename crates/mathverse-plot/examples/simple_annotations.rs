@@ -61,8 +61,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Text annotation
     for text in &annotations.texts {
-        let x = 50.0 + text.position.x * 70.0; // Simplified scaling
-        let y = 300.0 - text.position.y * 250.0;
+        let (dx, dy) = text.position.data_xy().unwrap_or((0.0, 0.0));
+        let x = 50.0 + dx * 70.0; // Simplified scaling
+        let y = 300.0 - dy * 250.0;
         annotation_svg.push_str(&format!(
             r#"  <text x="{}" y="{}" font-size="{}" fill="{}" font-weight="{}">{}</text>"#,
             x + text.x_offset,
@@ -70,17 +71,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             text.font_size,
             text.color.to_hex(),
             text.font_weight,
-            text.text
+            mathverse_plot::common::xml_escape(&text.text)
         ));
         annotation_svg.push('\n');
     }
 
     // Arrows
     for arrow in &annotations.arrows {
-        let x1 = 50.0 + arrow.from.x * 70.0;
-        let y1 = 300.0 - arrow.from.y * 250.0;
-        let x2 = 50.0 + arrow.to.x * 70.0;
-        let y2 = 300.0 - arrow.to.y * 250.0;
+        let (x1d, y1d) = arrow.from.data_xy().unwrap_or((0.0, 0.0));
+        let (x2d, y2d) = arrow.to.data_xy().unwrap_or((0.0, 0.0));
+        let x1 = 50.0 + x1d * 70.0;
+        let y1 = 300.0 - y1d * 250.0;
+        let x2 = 50.0 + x2d * 70.0;
+        let y2 = 300.0 - y2d * 250.0;
         annotation_svg.push_str(&format!(
             r#"  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{}" stroke-width="{}" marker-end="url(#arrowhead)"/>"#,
             arrow.color.to_hex(),

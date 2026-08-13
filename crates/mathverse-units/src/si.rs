@@ -215,6 +215,15 @@ impl SiUnit for Becquerel {
     const SYMBOL: &'static str = "Bq";
 }
 
+/// Radian - base unit of plane angle
+#[derive(Debug, Copy, Clone, Default)]
+pub struct Radian;
+
+impl SiUnit for Radian {
+    const NAME: &'static str = "radian";
+    const SYMBOL: &'static str = "rad";
+}
+
 /// SI scaling prefixes (powers of 10).
 ///
 /// ```rust

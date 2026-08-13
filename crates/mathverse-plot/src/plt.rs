@@ -822,6 +822,83 @@ impl Figure {
             .save(base_path, formats)
     }
 
+    /// Matplotlib-style `savefig(path)`: dispatch on the file extension and
+    /// write a single output file (svg / png / jpg / pdf / html).
+    ///
+    /// # Errors
+    ///
+    /// Returns `PlotError::UnsupportedFormat` for unknown extensions and
+    /// `PlotError::Io`/backend errors when writing or rasterizing fails.
+    pub fn savefig<P: AsRef<std::path::Path>>(&self, path: P) -> crate::error::PlotResult<()> {
+        use crate::error::PlotError;
+        use crate::save::{FormatSet, OutputFormat, PlotSaver};
+
+        let path = path.as_ref();
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_ascii_lowercase())
+            .unwrap_or_default();
+        let svg = self.render();
+        match ext.as_str() {
+            "svg" => std::fs::write(path, &svg)?,
+            "png" => {
+                let bytes = PlotSaver::new(&svg)
+                    .raster_bytes(OutputFormat::Png, 96, 1.0)
+                    .map_err(PlotError::Backend)?;
+                std::fs::write(path, &bytes)?;
+            }
+            "jpg" | "jpeg" => {
+                let bytes = PlotSaver::new(&svg)
+                    .raster_bytes(OutputFormat::Jpeg, 96, 1.0)
+                    .map_err(PlotError::Backend)?;
+                std::fs::write(path, &bytes)?;
+            }
+            "pdf" => {
+                let res = PlotSaver::new(&svg)
+                    .with_title("Figure")
+                    .save_as(path.to_str().ok_or_else(|| {
+                        PlotError::UnsupportedFormat("non-UTF8 path".into())
+                    })?, OutputFormat::Pdf, &FormatSet::default());
+                if !res.success {
+                    return Err(PlotError::Backend(
+                        res.error.unwrap_or_else(|| "pdf export failed".into()),
+                    ));
+                }
+            }
+            "html" => {
+                let res = PlotSaver::new(&svg).save_as(
+                    path.to_str().ok_or_else(|| {
+                        PlotError::UnsupportedFormat("non-UTF8 path".into())
+                    })?,
+                    OutputFormat::Html,
+                    &FormatSet::default(),
+                );
+                if !res.success {
+                    return Err(PlotError::Backend(
+                        res.error.unwrap_or_else(|| "html export failed".into()),
+                    ));
+                }
+            }
+            _ => {
+                return Err(PlotError::UnsupportedFormat(format!(
+                    "unknown extension `.{ext}` (supported: svg, png, jpg, pdf, html)"
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// Render the figure to its default textual form (SVG).
+    ///
+    /// # Errors
+    ///
+    /// Always succeeds for the SVG path; kept as a `Result` so a future
+    /// terminal-aware `show()` can degrade gracefully without a breaking change.
+    pub fn show(&self) -> crate::error::PlotResult<String> {
+        Ok(self.render())
+    }
+
     fn iter_positions(&self) -> impl Iterator<Item = (usize, usize)> + use<'_> {
         (0..self.rows).flat_map(move |r| (0..self.cols).map(move |c| (r, c)))
     }

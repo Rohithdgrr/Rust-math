@@ -1,5 +1,7 @@
 //! Gradient boosting for regression and classification.
 
+use mathverse_core::error::{MathError, MathResult};
+
 /// Gradient boosting regressor.
 pub struct GradientBoostingRegressor {
     /// Number of boosting rounds.
@@ -104,6 +106,9 @@ fn fit_stump(x: &[Vec<f64>], y: &[f64], feats: &[usize]) -> WeakTree {
         right_value: 0.0,
     };
     let mut best_loss = f64::INFINITY;
+    if n < 2 {
+        return best;
+    }
     for &j in feats {
         let mut vals: Vec<(f64, f64)> = x.iter().zip(y).map(|(row, &yi)| (row[j], yi)).collect();
         vals.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
@@ -155,6 +160,157 @@ fn use_xorshift_shuffle(v: &mut [usize]) {
     }
 }
 
+/// Gradient boosting classifier (binomial log-loss).
+///
+/// Uses the same [`WeakTree`] stumps as [`GradientBoostingRegressor`] with a
+/// logistic link: each round a stump fits the pseudo-residuals of the current
+/// probability estimate. Predictions sum the stumps and pass through softmax.
+#[derive(Debug, Clone)]
+pub struct GradientBoostingClassifier {
+    /// Number of boosting rounds.
+    pub n_estimators: usize,
+    /// Step size shrinkage applied to each tree's contribution.
+    pub learning_rate: f64,
+    /// Maximum depth of each weak learner.
+    pub max_depth: usize,
+    /// Initial prediction (log-odds of the positive class).
+    pub initial_prediction: f64,
+    /// Fitted weak learners from each boosting round.
+    pub trees: Vec<WeakTree>,
+    /// Feature subset used by each weak learner.
+    pub feature_indices: Vec<Vec<usize>>,
+}
+
+fn logit(p: f64) -> f64 {
+    (p / (1.0 - p)).ln().clamp(-20.0, 20.0)
+}
+
+impl GradientBoostingClassifier {
+    /// Creates a new classifier with the given hyperparameters.
+    #[must_use]
+    #[inline]
+    pub fn new(n_estimators: usize, learning_rate: f64, max_depth: usize) -> Self {
+        Self {
+            n_estimators,
+            learning_rate,
+            max_depth,
+            initial_prediction: 0.0,
+            trees: Vec::new(),
+            feature_indices: Vec::new(),
+        }
+    }
+
+    /// Fits the model on binary targets (0.0/1.0) by boosting pseudo-residuals.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MathError::InvalidArgument` when `x` is empty, feature rows
+    /// have inconsistent lengths, or `x`/`y` lengths disagree.
+    pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) -> MathResult<()> {
+        let n = y.len();
+        if n == 0 || x.is_empty() {
+            return Err(MathError::InvalidArgument(
+                "feature matrix and targets must be non-empty",
+            ));
+        }
+        let p = x[0].len();
+        if x.len() != n {
+            return Err(MathError::InvalidArgument(
+                "feature matrix and targets must have the same length",
+            ));
+        }
+        if x.iter().any(|row| row.len() != p) {
+            return Err(MathError::InvalidArgument(
+                "feature matrix rows have inconsistent lengths",
+            ));
+        }
+        if y.iter().any(|yi| !yi.is_finite()) {
+            return Err(MathError::InvalidArgument(
+                "target vector contains NaN or infinity",
+            ));
+        }
+        for row in x {
+            if row.iter().any(|v| !v.is_finite()) {
+                return Err(MathError::InvalidArgument(
+                    "feature matrix contains NaN or infinity",
+                ));
+            }
+        }
+        let positive = y.iter().filter(|&&yi| yi > 0.5).count() as f64 / n as f64;
+        self.initial_prediction = logit(positive);
+        self.trees.clear();
+        self.feature_indices.clear();
+
+        let mut raw: Vec<f64> = vec![self.initial_prediction; n];
+        for _ in 0..self.n_estimators {
+            let mut feats: Vec<usize> = (0..p).collect();
+            use_xorshift_shuffle(&mut feats);
+            let max_feats = ((p as f64).sqrt().ceil() as usize).max(1);
+            feats.truncate(max_feats);
+            feats.sort();
+            self.feature_indices.push(feats.clone());
+
+            let prob: Vec<f64> = raw.iter().map(|&r| sigmoid(r)).collect();
+            let residuals: Vec<f64> = y
+                .iter()
+                .zip(&prob)
+                .map(|(yi, &pi)| *yi - pi)
+                .collect();
+            let tree = fit_stump(x, &residuals, &feats);
+            for (i, row) in x.iter().enumerate() {
+                let pred = predict_stump(&tree, row);
+                raw[i] += self.learning_rate * pred;
+            }
+            self.trees.push(tree);
+        }
+        Ok(())
+    }
+
+    /// Returns predicted probabilities for each input sample.
+    #[must_use]
+    pub fn predict_proba(&self, x: &[Vec<f64>]) -> Vec<f64> {
+        x.iter()
+            .map(|row| {
+                let mut raw = self.initial_prediction;
+                for (tree, feats) in self.trees.iter().zip(&self.feature_indices) {
+                    let x_sub: Vec<f64> = feats.iter().map(|&j| row[j]).collect();
+                    let tree_feat = feats.iter().position(|&f| f == tree.feature).unwrap_or(0);
+                    let val = if tree_feat < x_sub.len() {
+                        x_sub[tree_feat]
+                    } else {
+                        0.0
+                    };
+                    raw += self.learning_rate
+                        * if val <= tree.threshold {
+                            tree.left_value
+                        } else {
+                            tree.right_value
+                        };
+                }
+                sigmoid(raw)
+            })
+            .collect()
+    }
+
+    /// Returns predicted class labels (threshold at 0.5).
+    #[must_use]
+    pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
+        self.predict_proba(x)
+            .iter()
+            .map(|&p| if p >= 0.5 { 1.0 } else { 0.0 })
+            .collect()
+    }
+}
+
+fn sigmoid(x: f64) -> f64 {
+    if x >= 0.0 {
+        1.0 / (1.0 + (-x).exp())
+    } else {
+        let e = x.exp();
+        e / (1.0 + e)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,5 +345,25 @@ mod tests {
             .sum::<f64>()
             / 30.0;
         assert!(mae < 2.0);
+    }
+
+    #[test]
+    fn classifier_separates() {
+        let x: Vec<Vec<f64>> = (0..40)
+            .map(|i| vec![(i % 20) as f64 * 0.5, if i < 20 { -1.0 } else { 1.0 }])
+            .collect();
+        let y: Vec<f64> = (0..40).map(|i| if i < 20 { 0.0 } else { 1.0 }).collect();
+        let mut gbc = GradientBoostingClassifier::new(50, 0.1, 2);
+        gbc.fit(&x, &y).unwrap();
+        let preds = gbc.predict(&x);
+        let correct = preds
+            .iter()
+            .zip(&y)
+            .filter(|(p, t)| (**p - **t).abs() < 0.5)
+            .count();
+        let acc = correct as f64 / 40.0;
+        assert!(acc >= 0.9, "accuracy was {acc}");
+        let probs = gbc.predict_proba(&x);
+        assert!(probs.iter().all(|&p| (0.0..=1.0).contains(&p)));
     }
 }

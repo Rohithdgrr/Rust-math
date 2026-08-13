@@ -2,7 +2,7 @@
 //! multi-head attention, sinusoidal positional encoding, rotary embeddings (RoPE).
 
 use crate::tensor::Tensor;
-use mathverse_core::error::MathResult;
+use mathverse_core::error::{MathError, MathResult};
 
 /// QKV projection: splits X into Q, K, V via weight matrices.
 /// `x`: [batch, seq_len, d_model]
@@ -49,6 +49,12 @@ pub fn scaled_dot_product_attention(
     let seq_kv = k.shape[1];
     let d_v = v.shape[2];
 
+    // Input validation: check q/k/v for NaN/Inf
+    if q.data.iter().any(|&x| x.is_nan() || x.is_infinite()) 
+        || k.data.iter().any(|&x| x.is_nan() || x.is_infinite()) 
+        || v.data.iter().any(|&x| x.is_nan() || x.is_infinite()) {
+        return Err(MathError::InvalidArgument("NaN/Inf detected in Q/K/V inputs".into()));
+    }
     let mut scores_data = vec![0.0; batch * seq_q * seq_kv];
     for bi in 0..batch {
         for i in 0..seq_q {
@@ -73,9 +79,23 @@ pub fn scaled_dot_product_attention(
         }
     }
 
-    // Softmax along last axis
+    // Catch NaN/Inf from dot product or mask
+for idx in 0..scores_data.len() {
+    if scores_data[idx].is_nan() || scores_data[idx].is_infinite() {
+        scores_data[idx] = f64::NEG_INFINITY;
+    }
+}
+
+// Softmax along last axis
     let scores = Tensor::new(&[batch, seq_q, seq_kv], &scores_data)?;
-    let weights = crate::activations::softmax(&scores, 2)?;
+    let mut weights = crate::activations::softmax(&scores, 2)?;
+
+// Catch NaN/Inf propagation from softmax
+for idx in 0..weights.data.len() {
+    if weights.data[idx].is_nan() || weights.data[idx].is_infinite() {
+        weights.data[idx] = 0.0;
+    }
+}
 
     // output = weights @ V → [batch, seq_q, d_v]
     let mut out_data = vec![0.0; batch * seq_q * d_v];

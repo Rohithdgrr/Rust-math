@@ -54,18 +54,19 @@ pub fn zeta(s: f64) -> f64 {
         }
     }
     // Direct summation up to N, then approximate the tail.
-    const N: u64 = 1000;
+    const N: u64 = 10000;
     let mut sum = 0.0;
     for n in 1..=N {
         sum += (n as f64).powf(-s);
     }
     // Euler–Maclaurin tail estimate for Σ_{n=N+1}^{∞} f(n) with f(x) = x^{-s}:
-    //   ∫_N^∞ f(x) dx − f(N)/2 − f′(N)/12 + …
-    // = N^{1-s}/(s-1) − ½·N^{-s} + s·N^{-s-1}/12 − …
+    //   ∫_N^∞ f(x) dx − f(N)/2 − f′(N)/12 + f'''(N)/720 − …
+    // = N^{1-s}/(s-1) − ½·N^{-s} + s·N^{-s-1}/12 − s(s+1)(s+2)·N^{-s-3}/720 + …
     let nm = N as f64;
     sum += nm.powf(1.0 - s) / (s - 1.0);
     sum -= 0.5 * nm.powf(-s);
     sum += s * nm.powf(-s - 1.0) / 12.0;
+    sum -= s * (s + 1.0) * (s + 2.0) * nm.powf(-s - 3.0) / 720.0;
     sum
 }
 
@@ -78,14 +79,14 @@ mod tests {
         let z3 = zeta(3.0);
         let expected = 1.202_056_903_159_594;
         eprintln!("zeta(3.0) = {z3:.15}, expected = {expected:.15}, diff = {}", (z3 - expected).abs());
-        assert!((z3 - expected).abs() < 1e-10, "zeta(3.0)={z3}, expected={expected}");
-        assert!((zeta(4.0) - 1.082_323_233_711_138).abs() < 1e-12);
-        assert!((zeta(6.0) - 1.017_343_061_984_449).abs() < 1e-10);
-        assert!((zeta(8.0) - 1.004_077_356_197_944).abs() < 1e-10);
-        assert!((zeta(3.0) - 1.202_056_903_159_594).abs() < 1e-10);
-        assert!((zeta(5.0) - 1.036_927_755_143_370).abs() < 1e-10);
-        assert!((zeta(1.5) - 2.612_375_348_685_488).abs() < 1e-9);
-        assert!((zeta(10.0) - 1.000_994_575_127_818).abs() < 1e-10);
+        assert!((z3 - expected).abs() < 1e-13, "zeta(3.0)={z3}, expected={expected}");
+        assert!((zeta(4.0) - 1.082_323_233_711_138).abs() < 1e-14);
+        assert!((zeta(6.0) - 1.017_343_061_984_449).abs() < 1e-13);
+        assert!((zeta(8.0) - 1.004_077_356_197_944).abs() < 1e-13);
+        assert!((zeta(3.0) - 1.202_056_903_159_594).abs() < 1e-13);
+        assert!((zeta(5.0) - 1.036_927_755_143_370).abs() < 1e-13);
+        assert!((zeta(1.5) - 2.612_375_348_685_488).abs() < 1e-12);
+        assert!((zeta(10.0) - 1.000_994_575_127_818).abs() < 1e-13);
     }
 
     #[test]

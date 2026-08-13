@@ -288,4 +288,46 @@ mod tests {
         let sum: f64 = ls.data.iter().map(|x| x.exp()).sum();
         assert!((sum - 1.0).abs() < E);
     }
+
+    #[test]
+    fn gelu_approximation_test() {
+        // GELU is approximately sign(x) * min(|x|, x² * 0.044715 + ...) for large |x|
+        // At x=0, GELU=0. For small x, GELU ~ x * 0.5 (linear).
+        let t = Tensor::new(&[3], &[-1.0, 0.0, 1.0]).unwrap();
+        let g = gelu(&t);
+        // gelu(0) = 0 exactly (since x=0 → whole expression = 0)
+        assert!(g.data[1].abs() < E);
+        // gelu is odd-ish: gelu(-1) and gelu(1) have opposite signs
+        assert!(g.data[0] * g.data[2] < 0.0, "GELU should have opposite signs at ±1");
+    }
+
+    #[test]
+    fn swish_shapes_preservation_test() {
+        let t = Tensor::new(&[2, 3], &[1.0; 6]).unwrap();
+        let s = swish(&t);
+        assert_eq!(s.shape, t.shape);
+        assert_eq!(s.numel(), t.numel());
+    }
+
+    #[test]
+    fn mish_positive_monotonicity_test() {
+        // mish should be monotonic for positive inputs
+        let t = Tensor::new(&[5], &[1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
+        let m = mish(&t);
+        let mut prev = f64::NEG_INFINITY;
+        for &v in &m.data {
+            assert!(v >= prev, "mish not monotonic: {} < {}", prev, v);
+            prev = v;
+        }
+    }
+
+    #[test]
+    fn softsign_bounded_test() {
+        // softsign output is always in (-1, 1)
+        let t = Tensor::new(&[5], &[-100.0, -1.0, 0.0, 1.0, 100.0]).unwrap();
+        let s = softsign(&t);
+        for &v in &s.data {
+            assert!(v > -1.0 && v < 1.0, "softsign not bounded: {}", v);
+        }
+    }
 }

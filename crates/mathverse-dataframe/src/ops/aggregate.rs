@@ -129,6 +129,9 @@ impl AnyColumn {
             Self::Int32(s) => s.non_null_count(),
             Self::Bool(s) => s.non_null_count(),
             Self::Utf8(s) => s.non_null_count(),
+            Self::Date(s) => s.non_null_count(),
+            Self::DateTime(s) => s.non_null_count(),
+            Self::Duration(s) => s.non_null_count(),
         }
     }
 
@@ -181,6 +184,32 @@ impl AnyColumn {
             .collect();
         out.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.partial_cmp(&b.0).unwrap_or(core::cmp::Ordering::Equal)));
         Ok(out)
+    }
+
+    /// Returns a boolean vector indicating whether each row is a duplicate of
+    /// a previous row (based on non-null values only). The first occurrence
+    /// of any unique value combination is considered not a duplicate; subsequent
+    /// rows with the same non-null values are marked as duplicates.
+    ///
+    /// This is pandas-compatible: `df.duplicated()` returns a boolean Series
+    /// where `True` means the row is a duplicate of a row that came before it.
+    #[must_use]
+    pub fn duplicated(&self) -> DataFrameResult<Series<bool>> {
+        let vals = self.valid_f64()?;
+        let n = vals.len();
+        let mut seen: alloc::collections::BTreeSet<u64> = alloc::collections::BTreeSet::new();
+        let mut result = Vec::with_capacity(n);
+        for i in 0..n {
+            let bits = vals[i].to_bits();
+            if seen.contains(&bits) {
+                result.push(true);
+            } else {
+                seen.insert(bits);
+                result.push(false);
+            }
+        }
+        let series = Series::new(self.name().to_string(), result);
+        Ok(series)
     }
 
     /// Returns the first moment (mean) and second central moment (sample
@@ -278,6 +307,81 @@ impl AnyColumn {
         Ok(AnyColumn::Float64(Series::new(s.name(), result)))
     }
 
+    /// Returns a new series containing the values shifted by `n` positions.
+    /// Positive `n` shifts values downward (the first `n` values become `NaN`);
+    /// negative `n` shifts values upward.
+    /// Null positions are preserved in their relative positions.
+    ///
+    /// # Examples
+    ///
+    /// Basic shift:
+    ///
+    /// ```
+    /// use mathverse_dataframe::{AnyColumn, Series};
+    ///
+    /// let col = AnyColumn::from(Series::new("x", vec![1.0, 2.0, 3.0, 4.0]));
+    /// let shifted = col.shift(1).unwrap();
+    /// // shifted == [NaN, 1.0, 2.0, 3.0]
+    /// ```
+    ///
+    /// Negative shift:
+    ///
+    /// ```
+    /// use mathverse_dataframe::{AnyColumn, Series};
+    ///
+    /// let col = AnyColumn::from(Series::new("x", vec![1.0, 2.0, 3.0, 4.0]));
+    /// let shifted = col.shift(-1).unwrap();
+    /// // shifted == [2.0, 3.0, 4.0, NaN]
+    /// ```
+    #[must_use]
+    pub fn shift(&self, n: isize) -> DataFrameResult<AnyColumn> {
+        let s = self.to_f64()?;
+        let data = s.data();
+        let len = data.len();
+        let null_mask: Vec<bool> = (0..len).map(|i| s.is_null(i)).collect();
+        let mut result_data = Vec::with_capacity(len);
+        let mut result_nulls = Vec::with_capacity(len);
+
+        if n > 0 {
+            // Positive shift: move values down, first n become NaN
+            for i in 0..len {
+                if i < n as usize || null_mask[i] {
+                    result_data.push(f64::NAN);
+                    result_nulls.push(true);
+                } else {
+                    result_data.push(data[i - n as usize]);
+                    result_nulls.push(false);
+                }
+            }
+        } else if n < 0 {
+            // Negative shift: move values upward, last |n| become NaN
+            let shift = (-n) as usize;
+            for i in 0..len {
+                if i + shift >= len || null_mask[i] {
+                    result_data.push(f64::NAN);
+                    result_nulls.push(true);
+                } else {
+                    result_data.push(data[i + shift]);
+                    result_nulls.push(false);
+                }
+            }
+        } else {
+            // n == 0: no shift
+            for i in 0..len {
+                result_data.push(data[i]);
+                result_nulls.push(null_mask[i]);
+            }
+        }
+        let mut series = Series::new(s.name(), result_data);
+        // Set null positions
+        for (i, &is_null) in result_nulls.iter().enumerate() {
+            if is_null {
+                series.set_null(i);
+            }
+        }
+        Ok(AnyColumn::Float64(series))
+    }
+
     /// Applies a rolling window of size `window` and returns the mean.
     /// Windows containing any null yield `NaN` (pandas `min_periods=window`).
     #[must_use]
@@ -368,6 +472,111 @@ impl AnyColumn {
         }
         Ok(AnyColumn::Float64(Series::new(s.name(), result)))
     }
+
+    /// Returns the expanding (cumulative) mean. The first element is the
+    /// value itself; subsequent elements are the running mean up to that
+    /// position. Null inputs produce `NaN` outputs; the running mean
+    /// continues from the last non-null value.
+    #[must_use]
+    pub fn expanding_mean(&self) -> DataFrameResult<AnyColumn> {
+        let s = self.to_f64()?;
+        let data = s.data();
+        let mut result = Vec::with_capacity(data.len());
+        let mut sum = 0.0;
+        let mut count = 0.0;
+        for i in 0..data.len() {
+            if s.is_null(i) {
+                result.push(f64::NAN);
+            } else {
+                sum += data[i];
+                count += 1.0;
+                result.push(sum / count);
+            }
+        }
+        Ok(AnyColumn::Float64(Series::new(s.name(), result)))
+    }
+
+    /// Returns the expanding (cumulative) sum. Null inputs produce `NaN`
+    /// outputs; the running sum continues from the last non-null value.
+    #[must_use]
+    pub fn expanding_sum(&self) -> DataFrameResult<AnyColumn> {
+        let s = self.to_f64()?;
+        let data = s.data();
+        let mut result = Vec::with_capacity(data.len());
+        let mut sum = 0.0;
+        for i in 0..data.len() {
+            if s.is_null(i) {
+                result.push(f64::NAN);
+            } else {
+                sum += data[i];
+                result.push(sum);
+            }
+        }
+        Ok(AnyColumn::Float64(Series::new(s.name(), result)))
+    }
+
+    /// Returns the expanding (cumulative) sample variance (ddof=1). The
+    /// first two non-null values determine the variance; earlier outputs
+    /// and null inputs are `NaN`.
+    #[must_use]
+    pub fn expanding_var(&self) -> DataFrameResult<AnyColumn> {
+        let s = self.to_f64()?;
+        let data = s.data();
+        let mut result = Vec::with_capacity(data.len());
+        let mut n = 0.0;
+        let mut mean = 0.0;
+        let mut m2 = 0.0;
+        for i in 0..data.len() {
+            if s.is_null(i) {
+                result.push(f64::NAN);
+            } else {
+                n += 1.0;
+                let delta = data[i] - mean;
+                mean += delta / n;
+                m2 += delta * (data[i] - mean);
+                if n < 2.0 {
+                    result.push(f64::NAN);
+                } else {
+                    result.push(m2 / (n - 1.0));
+                }
+            }
+        }
+        Ok(AnyColumn::Float64(Series::new(s.name(), result)))
+    }
+
+    /// Returns the exponentially weighted moving average with the given
+    /// span. Equivalent to pandas `ewm(span=n).mean()`.
+    #[must_use]
+    pub fn ewm_mean(&self, span: usize) -> DataFrameResult<AnyColumn> {
+        if span == 0 {
+            return Err(DataFrameError::InvalidOperation(
+                "ewm span must be at least 1".to_string(),
+            ));
+        }
+        let s = self.to_f64()?;
+        let data = s.data();
+        let alpha = 2.0 / (span as f64 + 1.0);
+        let mut result = Vec::with_capacity(data.len());
+        let mut prev: Option<f64> = None;
+        for i in 0..data.len() {
+            if s.is_null(i) {
+                result.push(f64::NAN);
+            } else {
+                match prev {
+                    None => {
+                        result.push(data[i]);
+                        prev = Some(data[i]);
+                    }
+                    Some(p) => {
+                        let v = alpha * data[i] + (1.0 - alpha) * p;
+                        result.push(v);
+                        prev = Some(v);
+                    }
+                }
+            }
+        }
+        Ok(AnyColumn::Float64(Series::new(s.name(), result)))
+    }
 }
 
 impl DataFrame {
@@ -382,11 +591,28 @@ impl DataFrame {
     /// Returns an error if a numeric column cannot be summarized (e.g. a
     /// column with fewer than two non-null values, for which `std` is
     /// undefined).
+    /// Computes a pandas-style summary of the numeric columns and returns it
+    /// as a new DataFrame whose first column (`statistic`) names each row.
+    ///
+    /// The rows are `count`, `mean`, `std`, `min`, `10%`, `25%`, `50%`, `75%`,
+    /// `90%`, `95%`, `max`. Non-numeric columns are skipped (pandas `describe`
+    /// default).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a numeric column cannot be summarized (e.g. a
+    /// column with fewer than two non-null values, for which `std` is
+    /// undefined).
     #[must_use]
     pub fn describe(&self) -> DataFrameResult<Self> {
         let mut result = DataFrame::new();
-        let stats: [&str; 8] = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"];
-        result.add_column("statistic", stats.iter().map(|s| String::from(*s)).collect::<Vec<_>>())?;
+        let stats: [&str; 11] = [
+            "count", "mean", "std", "min", "10%", "25%", "50%", "75%", "90%", "95%", "max",
+        ];
+        result.add_column(
+            "statistic",
+            stats.iter().map(|s| String::from(*s)).collect::<Vec<_>>(),
+        )?;
 
         for col in self.columns() {
             if matches!(
@@ -401,9 +627,12 @@ impl DataFrame {
                     col.mean()?,
                     col.std()?,
                     col.min()?,
+                    col.quantile(0.10)?,
                     col.quantile(0.25)?,
                     col.quantile(0.50)?,
                     col.quantile(0.75)?,
+                    col.quantile(0.90)?,
+                    col.quantile(0.95)?,
                     col.max()?,
                 ];
                 result.add_column(col.name(), values)?;

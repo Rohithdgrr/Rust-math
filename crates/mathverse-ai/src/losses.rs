@@ -10,9 +10,13 @@ use mathverse_core::error::{MathError, MathResult};
 /// Mean squared error: mean((pred - target)²).
 pub fn mse(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
     let n = pred.numel() as f64;
-    Ok(pred.data.iter().zip(&target.data)
+    let result = pred.data.iter().zip(&target.data)
         .map(|(p, t)| (p - t).powi(2))
-        .sum::<f64>() / n)
+        .sum::<f64>() / n;
+    if result.is_nan() || result.is_infinite() {
+        return Err(MathError::NumericalFailure("NaN/Inf detected in MSE computation".into()));
+    }
+    Ok(result)
 }
 
 /// MSE gradient w.r.t. pred: 2 * (pred - target) / n.
@@ -39,7 +43,11 @@ pub fn huber(pred: &Tensor, target: &Tensor, delta: f64) -> MathResult<f64> {
         let e = (p - t).abs();
         if e <= delta { 0.5 * e * e } else { delta * (e - 0.5 * delta) }
     }).sum();
-    Ok(sum / n)
+    let result = sum / n;
+    if result.is_nan() || result.is_infinite() {
+        return Err(MathError::NumericalFailure("NaN/Inf detected in Huber loss computation".into()));
+    }
+    Ok(result)
 }
 
 /// Smooth L1 (Huber with delta=1).
@@ -67,6 +75,10 @@ pub fn cross_entropy(logits: &Tensor, targets: &Tensor) -> MathResult<f64> {
         let row = &logits.data[i * classes..(i + 1) * classes];
         let max_val = row.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
         let lse: f64 = row.iter().map(|&x| (x - max_val).exp()).sum::<f64>().ln() + max_val;
+        // NaN/Inf protection: if lse or row[t] is NaN/Inf, clamp to stable values
+        if lse.is_nan() || lse.is_infinite() || row[t].is_nan() || row[t].is_infinite() {
+            return Err(MathError::NumericalFailure("NaN/Inf detected in cross_entropy computation".into()));
+        }
         loss += row[t] - lse;
     }
     Ok(-loss / n)
@@ -214,18 +226,48 @@ mod tests {
     }
 
     #[test]
-    fn kl_div_test() {
-        let p = Tensor::new(&[3], &[0.5, 0.3, 0.2]).unwrap();
-        let q = Tensor::new(&[3], &[0.5, 0.3, 0.2]).unwrap();
-        assert!(kl_divergence(&p, &q).unwrap().abs() < E);
+    fn binary_cross_entropy_zero_loss() {
+        // Perfect prediction: p=1, t=1 → BCE = 0
+        let pred = Tensor::new(&[3], &[10.0, 10.0, 10.0]).unwrap();
+        let target = Tensor::new(&[3], &[1.0, 1.0, 1.0]).unwrap();
+        let loss = binary_cross_entropy(&pred, &target).unwrap();
+        assert!(loss < E);
     }
 
     #[test]
-    fn hinge_test() {
-        let pred = Tensor::new(&[3], &[0.8, -0.8, 0.0]).unwrap();
-        let target = Tensor::new(&[3], &[1.0, -1.0, 1.0]).unwrap();
+    fn binary_cross_entropy_one_minus_loss() {
+        // Perfect prediction: p=0, t=0 → BCE = 0
+        let pred = Tensor::new(&[3], &[-10.0, -10.0, -10.0]).unwrap();
+        let target = Tensor::new(&[3], &[0.0, 0.0, 0.0]).unwrap();
+        let loss = binary_cross_entropy(&pred, &target).unwrap();
+        assert!(loss < E);
+    }
+
+    #[test]
+    fn hinge_margin_test() {
+        // target=1, pred should be >= 1 for zero loss
+        let pred = Tensor::new(&[3], &[2.0, 1.0, 0.5]).unwrap();
+        let target = Tensor::new(&[3], &[1.0, 1.0, 1.0]).unwrap();
         let h = hinge_loss(&pred, &target).unwrap();
-        // 1-0.8=0.2, 1-0.8=0.2, 1-0=1.0 → mean = 1.4/3
-        assert!((h - 1.4 / 3.0).abs() < E);
+        // 1-2=-1→max(0,-1)=0, 1-1=0→max(0,0)=0, 1-0.5=0.5→max(0,0.5)=0.5 → mean=0.5/3
+        assert!((h - 0.5 / 3.0).abs() < E);
+    }
+
+    #[test]
+    fn cosine_embedding_similar_test() {
+        // Similar items (target=1) should have low loss
+        let a = Tensor::new(&[2, 3], &[1.0, 0.0, 0.0, 1.0, 0.0, 0.0]).unwrap();
+        let b = Tensor::new(&[2, 3], &[1.0, 0.0, 0.0, 1.0, 0.0, 0.0]).unwrap();
+        let target = Tensor::new(&[2], &[1.0, 1.0]).unwrap();
+        let loss = cosine_embedding_loss(&a, &b, &target, 0.0).unwrap();
+        assert!(loss < E);
+    }
+
+    #[test]
+    fn kl_divergence_identical_test() {
+        let p = Tensor::new(&[4], &[0.25, 0.25, 0.25, 0.25]).unwrap();
+        let q = Tensor::new(&[4], &[0.25, 0.25, 0.25, 0.25]).unwrap();
+        let d = kl_divergence(&p, &q).unwrap();
+        assert!(d.abs() < E);
     }
 }

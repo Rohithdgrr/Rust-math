@@ -272,7 +272,7 @@ fn determinant_lu(m: &[Vec<f64>]) -> f64 {
 fn matrix_inverse(m: &[Vec<f64>], det: f64) -> Vec<Vec<f64>> {
     let n = m.len();
     if n == 1 {
-        return vec![vec![1.0 / m[0][0]]];
+        return vec![vec![if m[0][0].abs() < 1e-15 { 0.0 } else { 1.0 / m[0][0] }]];
     }
     if n == 2 {
         return vec![

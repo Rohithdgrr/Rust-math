@@ -8,19 +8,10 @@
 
 use std::collections::HashMap;
 
-/// Escape XML special characters (same behaviour as `crate::common::xml_escape`).
+/// Escape XML special characters. Delegates to the canonical
+/// `crate::common::xml_escape` so the two implementations can never drift.
 fn esc(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for ch in s.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            _ => out.push(ch),
-        }
-    }
-    out
+    crate::common::xml_escape(s)
 }
 
 fn symbols() -> &'static HashMap<&'static str, &'static str> {

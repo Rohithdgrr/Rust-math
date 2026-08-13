@@ -33,6 +33,78 @@ use crate::errors::{DataFrameError, DataFrameResult};
 use crate::null::NullBitmap;
 use crate::series::Series;
 
+/// Configuration for a merge operation.
+#[derive(Debug, Clone)]
+pub struct MergeConfig {
+    /// How to join the two frames.
+    pub how: JoinType,
+    /// Single key column name used on both sides.
+    pub on: Option<String>,
+    /// Key column name in the left frame.
+    pub left_on: Option<String>,
+    /// Key column name in the right frame.
+    pub right_on: Option<String>,
+    /// Suffixes for duplicate non-key columns: `(left_suffix, right_suffix)`.
+    pub suffixes: (String, String),
+    /// Whether to add a `_merge` indicator column showing which side each
+    /// row came from (`"both"`, `"left_only"`, `"right_only"`).
+    pub indicator: bool,
+}
+
+impl MergeConfig {
+    /// Creates a config with the given join type and same-named key.
+    pub fn on(on: &str, how: JoinType) -> Self {
+        Self {
+            how,
+            on: Some(on.to_string()),
+            left_on: None,
+            right_on: None,
+            suffixes: (String::from("_x"), String::from("_y")),
+            indicator: false,
+        }
+    }
+
+    /// Creates a config with different key names on each side.
+    pub fn left_right(left_on: &str, right_on: &str, how: JoinType) -> Self {
+        Self {
+            how,
+            on: None,
+            left_on: Some(left_on.to_string()),
+            right_on: Some(right_on.to_string()),
+            suffixes: (String::from("_x"), String::from("_y")),
+            indicator: false,
+        }
+    }
+
+    /// Sets the suffixes for duplicate non-key columns.
+    pub fn with_suffixes(mut self, left: &str, right: &str) -> Self {
+        self.suffixes = (left.to_string(), right.to_string());
+        self
+    }
+
+    /// Enables the `_merge` indicator column.
+    pub fn with_indicator(mut self) -> Self {
+        self.indicator = true;
+        self
+    }
+
+    fn effective_left_on(&self) -> DataFrameResult<&str> {
+        self.on.as_deref()
+            .or(self.left_on.as_deref())
+            .ok_or_else(|| DataFrameError::InvalidOperation(
+                "MergeConfig must have `on` or `left_on`".to_string()
+            ))
+    }
+
+    fn effective_right_on(&self) -> DataFrameResult<&str> {
+        self.on.as_deref()
+            .or(self.right_on.as_deref())
+            .ok_or_else(|| DataFrameError::InvalidOperation(
+                "MergeConfig must have `on` or `right_on`".to_string()
+            ))
+    }
+}
+
 /// The type of relational join to perform.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JoinType {
@@ -69,6 +141,17 @@ impl DataFrame {
         right_on: &str,
         how: JoinType,
     ) -> DataFrameResult<Self> {
+        self.merge_with(other, &MergeConfig::left_right(left_on, right_on, how))
+    }
+
+    /// Full merge with configuration for suffixes, indicator, and key columns.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key columns are missing.
+    pub fn merge_with(&self, other: &DataFrame, config: &MergeConfig) -> DataFrameResult<Self> {
+        let left_on = config.effective_left_on()?;
+        let right_on = config.effective_right_on()?;
         if !self.has_column(left_on) {
             return Err(DataFrameError::ColumnNotFound(left_on.to_string()));
         }
@@ -91,53 +174,47 @@ impl DataFrame {
         // Compute (left_row, right_row) pairs per the join type.
         let mut pairs: Vec<(Option<usize>, Option<usize>)> = Vec::new();
         let left_key = self.column(left_on)?;
-        match how {
+        match config.how {
             JoinType::Inner | JoinType::Left => {
                 for row in 0..self.nrows() {
-                    let matches = if left_key.is_null(row) {
-                        Vec::new()
-                    } else {
-                        let mut key = Vec::new();
-                        encode_key_value(left_key, row, &mut key);
-                        lookup.get(&key).cloned().unwrap_or_default()
-                    };
-                    if matches.is_empty() {
-                        if how == JoinType::Left {
+                    if left_key.is_null(row) {
+                        if config.how == JoinType::Left {
                             pairs.push((Some(row), None));
                         }
                     } else {
-                        for r in matches {
-                            pairs.push((Some(row), Some(r)));
+                        let mut key = Vec::new();
+                        encode_key_value(left_key, row, &mut key);
+                        if let Some(matches) = lookup.get(&key) {
+                            for &r in matches {
+                                pairs.push((Some(row), Some(r)));
+                            }
+                        } else if config.how == JoinType::Left {
+                            pairs.push((Some(row), None));
                         }
                     }
                 }
             }
             JoinType::Right | JoinType::Outer => {
-                // First pass: all left rows (like Left join) so right rows
-                // already matched are not duplicated; track which right rows
-                // were consumed.
                 let mut used: Vec<bool> = vec![false; other.nrows()];
                 for row in 0..self.nrows() {
-                    let matches = if left_key.is_null(row) {
-                        Vec::new()
-                    } else {
-                        let mut key = Vec::new();
-                        encode_key_value(left_key, row, &mut key);
-                        lookup.get(&key).cloned().unwrap_or_default()
-                    };
-                    if matches.is_empty() {
-                        if how == JoinType::Outer {
+                    if left_key.is_null(row) {
+                        if config.how == JoinType::Outer {
                             pairs.push((Some(row), None));
                         }
                     } else {
-                        for r in &matches {
-                            used[*r] = true;
-                            pairs.push((Some(row), Some(*r)));
+                        let mut key = Vec::new();
+                        encode_key_value(left_key, row, &mut key);
+                        if let Some(matches) = lookup.get(&key) {
+                            for &r in matches {
+                                used[r] = true;
+                                pairs.push((Some(row), Some(r)));
+                            }
+                        } else if config.how == JoinType::Outer {
+                            pairs.push((Some(row), None));
                         }
                     }
                 }
-                // Second pass: right rows never matched, for Right/Outer.
-                if how == JoinType::Right || how == JoinType::Outer {
+                if config.how == JoinType::Right || config.how == JoinType::Outer {
                     for (row, is_used) in used.iter().enumerate() {
                         if !is_used {
                             pairs.push((None, Some(row)));
@@ -149,37 +226,49 @@ impl DataFrame {
 
         // Assemble output columns.
         let mut result = DataFrame::new();
-        // Key column first. For inner/left joins the left key always has a
-        // value; for right/outer joins, unmatched right rows show the right
-        // side's key value (pandas parity), so pick left value where present
-        // and fall back to the right value.
         let left_key_col = self.column(left_on)?;
         let right_key_col = other.column(right_on)?;
         result.add_any_column(gather_key(left_key_col, right_key_col, &pairs)?)?;
+
         // Remaining left columns.
+        let sfx_r = &config.suffixes.1;
         for name in self.column_names() {
             if name == left_on {
                 continue;
             }
             result.add_any_column(gather(self.column(name)?, &pairs, true)?)?;
         }
-        // Right key column when names differ (SQL/merge semantics keep both).
+        // Right key column when names differ.
         if right_on != left_on {
             result.add_any_column(gather(right_key_col, &pairs, false)?)?;
         }
-        // Remaining right columns.
+        // Remaining right columns with suffix handling.
         for name in other.column_names() {
             if name == right_on {
                 continue;
             }
             let col = other.column(name)?;
-            // Avoid duplicate names in the output.
             let mut out_name = name.to_string();
             if result.has_column(&out_name) {
-                out_name = format!("{name}_right");
+                out_name = format!("{name}{sfx_r}");
             }
             result.add_any_column(gather(col, &pairs, false)?.with_name(out_name))?;
         }
+
+        // Add indicator column if requested.
+        if config.indicator {
+            let indicator: Vec<String> = pairs
+                .iter()
+                .map(|(l, r)| match (l, r) {
+                    (Some(_), Some(_)) => "both".to_string(),
+                    (Some(_), None) => "left_only".to_string(),
+                    (None, Some(_)) => "right_only".to_string(),
+                    (None, None) => "missing".to_string(),
+                })
+                .collect();
+            result.add_column("_merge", indicator)?;
+        }
+
         Ok(result)
     }
 }
@@ -306,13 +395,27 @@ fn gather_key(left: &AnyColumn, right: &AnyColumn, pairs: &[(Option<usize>, Opti
                 .collect();
             Ok(AnyColumn::Utf8(Series::with_validity(s.name(), data, validity)))
         }
+        AnyColumn::Date(s) | AnyColumn::DateTime(s) | AnyColumn::Duration(s) => {
+            let data: Vec<i64> = (0..len)
+                .map(|i| {
+                    picks_left[i]
+                        .map(|p| s.data()[p])
+                        .or_else(|| picks_right[i].map(|p| match right {
+                            AnyColumn::Date(r) | AnyColumn::DateTime(r) | AnyColumn::Duration(r) => r.data()[p],
+                            _ => 0,
+                        }))
+                        .unwrap_or_default()
+                })
+                .collect();
+            Ok(AnyColumn::Date(Series::with_validity(s.name(), data, validity)))
+        }
     }
 }
 
 /// Gathers values from `col` according to the join pairs. When `from_left`
 /// is `true`, the `left` side of each pair selects the value; otherwise the
 /// `right` side does. Pairs whose selected side is `None` yield nulls.
-fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], from_left: bool) -> DataFrameResult<AnyColumn> {
+pub(crate) fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], from_left: bool) -> DataFrameResult<AnyColumn> {
     let len = pairs.len();
     let mut nulls: Vec<bool> = Vec::with_capacity(len);
     let pick: Vec<Option<usize>> = pairs
@@ -352,6 +455,76 @@ fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], from_left: 
                 .collect();
             Ok(AnyColumn::Utf8(Series::with_validity(s.name(), data, validity)))
         }
+        AnyColumn::Date(s) | AnyColumn::DateTime(s) | AnyColumn::Duration(s) => {
+            let data: Vec<i64> = pick.iter().map(|&p| p.map_or(0, |i| s.data()[i])).collect();
+            Ok(AnyColumn::Date(Series::with_validity(s.name(), data, validity)))
+        }
+    }
+}
+
+impl DataFrame {
+    /// Returns only left rows that have a matching key on the right (no right
+    /// columns are included). Equivalent to SQL `SELECT * FROM left SEMI JOIN
+    /// right ON ...`.
+    pub fn semi_join(&self, other: &DataFrame, left_on: &str, right_on: &str) -> DataFrameResult<Self> {
+        let right_key = other.column(right_on)?;
+        let mut lookup: alloc::collections::BTreeSet<Vec<u8>> = alloc::collections::BTreeSet::new();
+        for row in 0..other.nrows() {
+            if !right_key.is_null(row) {
+                let mut key = Vec::new();
+                encode_key_value(right_key, row, &mut key);
+                lookup.insert(key);
+            }
+        }
+        let left_key = self.column(left_on)?;
+        let mut picks = Vec::new();
+        for row in 0..self.nrows() {
+            if !left_key.is_null(row) {
+                let mut key = Vec::new();
+                encode_key_value(left_key, row, &mut key);
+                if lookup.contains(&key) {
+                    picks.push(row);
+                }
+            }
+        }
+        let mut result = DataFrame::new();
+        for name in self.column_names() {
+            let col = self.column(name)?;
+            result.add_any_column(col.select_rows(&picks)?)?;
+        }
+        Ok(result)
+    }
+
+    /// Returns only left rows that have **no** matching key on the right (no
+    /// right columns are included). Equivalent to SQL `SELECT * FROM left
+    /// LEFT JOIN right ON ... WHERE right.key IS NULL`.
+    pub fn anti_join(&self, other: &DataFrame, left_on: &str, right_on: &str) -> DataFrameResult<Self> {
+        let right_key = other.column(right_on)?;
+        let mut lookup: alloc::collections::BTreeSet<Vec<u8>> = alloc::collections::BTreeSet::new();
+        for row in 0..other.nrows() {
+            if !right_key.is_null(row) {
+                let mut key = Vec::new();
+                encode_key_value(right_key, row, &mut key);
+                lookup.insert(key);
+            }
+        }
+        let left_key = self.column(left_on)?;
+        let mut picks = Vec::new();
+        for row in 0..self.nrows() {
+            if left_key.is_null(row) || {
+                let mut key = Vec::new();
+                encode_key_value(left_key, row, &mut key);
+                !lookup.contains(&key)
+            } {
+                picks.push(row);
+            }
+        }
+        let mut result = DataFrame::new();
+        for name in self.column_names() {
+            let col = self.column(name)?;
+            result.add_any_column(col.select_rows(&picks)?)?;
+        }
+        Ok(result)
     }
 }
 
@@ -366,6 +539,9 @@ fn encode_key_value(col: &AnyColumn, row: usize, out: &mut Vec<u8>) {
         AnyColumn::Utf8(s) => {
             out.extend_from_slice(s.data()[row].as_bytes());
             out.push(0);
+        }
+        AnyColumn::Date(s) | AnyColumn::DateTime(s) | AnyColumn::Duration(s) => {
+            out.extend_from_slice(&s.data()[row].to_le_bytes());
         }
     }
 }
@@ -483,6 +659,83 @@ mod tests {
         r.add_column("name", vec![String::from("z"), String::from("y")]).unwrap();
         let merged = left().merge(&r, "id", JoinType::Left).unwrap();
         assert!(merged.has_column("name"));
-        assert!(merged.has_column("name_right"));
+        assert!(merged.has_column("name_y"));
+    }
+
+    #[test]
+    fn semi_join_only_matching() {
+        let merged = left().semi_join(&right(), "id", "id").unwrap();
+        assert_eq!(merged.nrows(), 2);
+        assert_eq!(merged.ncols(), 2); // only left columns
+        assert!(!merged.has_column("score"));
+        let ids = merged.column("id").unwrap().as_i64().unwrap();
+        let mut sorted = ids.data().to_vec();
+        sorted.sort_unstable();
+        assert_eq!(sorted, vec![2, 3]);
+    }
+
+    #[test]
+    fn anti_join_only_unmatched() {
+        let merged = left().anti_join(&right(), "id", "id").unwrap();
+        assert_eq!(merged.nrows(), 1);
+        assert_eq!(merged.ncols(), 2);
+        let ids = merged.column("id").unwrap().as_i64().unwrap();
+        assert_eq!(ids.data()[0], 1);
+    }
+
+    #[test]
+    fn anti_join_null_left_excluded() {
+        // Null keys on the left are excluded from semi and included in anti.
+        let mut lk = crate::series::Series::new("id", vec![1_i64, 2]);
+        lk.set_null(0);
+        let mut lk_col = AnyColumn::Int64(lk);
+        lk_col.rename_mut("id");
+        let mut lv = crate::series::Series::new("v", vec![10.0, 20.0]);
+        lv.rename_mut("v");
+        let l = DataFrame::from_columns(vec![lk_col, AnyColumn::Float64(lv)]).unwrap();
+        let semi = l.semi_join(&right(), "id", "id").unwrap();
+        assert_eq!(semi.nrows(), 1); // only id=2 matches
+        let anti = l.anti_join(&right(), "id", "id").unwrap();
+        assert_eq!(anti.nrows(), 1); // only id=1 (no match)
+    }
+
+    #[test]
+    fn merge_with_indicator() {
+        let merged = left()
+            .merge_with(&right(), &MergeConfig::on("id", JoinType::Outer).with_indicator())
+            .unwrap();
+        assert_eq!(merged.nrows(), 4);
+        assert!(merged.has_column("_merge"));
+        let ind = merged.column("_merge").unwrap().as_utf8().unwrap();
+        let vals: Vec<&str> = ind.data().iter().map(|s| s.as_str()).collect();
+        assert!(vals.contains(&"both"));
+        assert!(vals.contains(&"left_only"));
+        assert!(vals.contains(&"right_only"));
+    }
+
+    #[test]
+    fn merge_with_custom_suffixes() {
+        let mut r = DataFrame::new();
+        r.add_column("id", vec![1_i64, 2]).unwrap();
+        r.add_column("name", vec![String::from("z"), String::from("y")]).unwrap();
+        let merged = left()
+            .merge_with(&r, &MergeConfig::on("id", JoinType::Left).with_suffixes("_L", "_R"))
+            .unwrap();
+        assert!(merged.has_column("name"));
+        assert!(merged.has_column("name_R"));
+    }
+
+    #[test]
+    fn merge_with_different_keys() {
+        let mut r = DataFrame::new();
+        r.add_column("key", vec![1_i64, 2]).unwrap();
+        r.add_column("v", vec![10.0, 20.0]).unwrap();
+        let merged = left()
+            .merge_with(&r, &MergeConfig::left_right("id", "key", JoinType::Inner))
+            .unwrap();
+        assert_eq!(merged.nrows(), 2);
+        assert!(merged.has_column("id"));
+        assert!(merged.has_column("key"));
+        assert!(merged.has_column("v"));
     }
 }

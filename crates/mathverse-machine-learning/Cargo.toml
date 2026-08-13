@@ -12,6 +12,7 @@ categories = ["algorithms", "science"]
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
 mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.2" }
+rand = "0.9"
 
 
 [lints]

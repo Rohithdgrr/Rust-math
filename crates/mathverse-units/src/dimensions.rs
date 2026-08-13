@@ -167,6 +167,20 @@ impl Dimension for FrequencyDim {
     type J = Z0;
 }
 
+/// Angle dimension (radians)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AngleDim;
+
+impl Dimension for AngleDim {
+    type L = Z0;
+    type M = Z0;
+    type T = Z0;
+    type I = Z0;
+    type Th = Z0;
+    type N = Z0;
+    type J = Z0;
+}
+
 /// Area dimension (L²)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AreaDim;

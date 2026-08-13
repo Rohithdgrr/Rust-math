@@ -11,6 +11,9 @@
 //! - **Combinatorial**: greedy, branch-and-bound
 //! - **Line search**: backtracking, Wolfe conditions
 
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+
 pub mod gradient;
 pub mod constrained;
 pub mod unconstrained;

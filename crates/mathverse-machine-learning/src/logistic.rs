@@ -145,6 +145,89 @@ pub fn cross_entropy(x: &[Vec<f64>], y: &[f64], coefficients: &[f64], intercept:
         / n
 }
 
+/// Multiclass logistic regression fitted one-vs-rest.
+///
+/// One binary [`LogisticResult`] is trained per class against the rest; the
+/// probability estimate for a sample normalizes the per-class sigmoid scores
+/// to sum to one (a valid probability distribution even though it is not a
+/// true softmax over raw logits).
+#[derive(Debug, Clone)]
+pub struct OvRResult {
+    /// One binary logistic model per class, aligned with `classes`.
+    pub models: Vec<LogisticResult>,
+    /// Distinct target classes, sorted ascending.
+    pub classes: Vec<f64>,
+}
+
+/// Fit one-vs-rest logistic regression for `>= 2` distinct target classes.
+///
+/// The integer class labels do not need to be 0/1; any distinct `f64` values
+/// work. Hyperparameter meaning matches [`fit`].
+#[must_use]
+pub fn fit_ovr(
+    x: &[Vec<f64>],
+    y: &[f64],
+    lr: f64,
+    max_iters: usize,
+    tol: f64,
+    c: f64,
+) -> MathResult<OvRResult> {
+    crate::validate::validate_xy(x, y)?;
+    let mut classes = y.to_vec();
+    classes.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    classes.dedup();
+    if classes.len() < 2 {
+        return Err(MathError::InvalidArgument(
+            "one-vs-rest logistic needs at least 2 classes",
+        ));
+    }
+    let mut models = Vec::with_capacity(classes.len());
+    for &class in &classes {
+        let binary: Vec<f64> = y.iter().map(|&yi| if yi == class { 1.0 } else { 0.0 }).collect();
+        models.push(fit(x, &binary, lr, max_iters, tol, c)?);
+    }
+    Ok(OvRResult { models, classes })
+}
+
+/// Predict per-class probabilities (softmax-normalized) for a fitted `OvR` model.
+#[must_use]
+pub fn predict_proba_ovr(x: &[Vec<f64>], model: &OvRResult) -> Vec<Vec<f64>> {
+    x.iter()
+        .map(|row| {
+            let scores: Vec<f64> = model
+                .models
+                .iter()
+                .map(|m| {
+                    let z = m.intercept + row.iter().zip(&m.coefficients).map(|(xi, ci)| xi * ci).sum::<f64>();
+                    sigmoid(z)
+                })
+                .collect();
+            let sum: f64 = scores.iter().sum();
+            if sum.abs() < 1e-12 {
+                vec![1.0 / scores.len() as f64; scores.len()]
+            } else {
+                scores.into_iter().map(|s| s / sum).collect()
+            }
+        })
+        .collect()
+}
+
+/// Predict class labels for a fitted `OvR` model.
+#[must_use]
+pub fn predict_ovr(x: &[Vec<f64>], model: &OvRResult) -> Vec<f64> {
+    predict_proba_ovr(x, model)
+        .iter()
+        .map(|probs| {
+            let (argmax, _) = probs
+                .iter()
+                .enumerate()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
+                .unwrap_or((0, &0.0));
+            model.classes[argmax]
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -216,5 +299,30 @@ mod tests {
         assert!(fit(&x, &y, 0.0, 100, 1e-6, f64::INFINITY).is_err());
         assert!(fit(&x, &y, 0.1, 0, 1e-6, f64::INFINITY).is_err());
         assert!(fit(&x, &y, 0.1, 100, 1e-6, -1.0).is_err());
+    }
+
+    #[test]
+    fn ovr_multiclass() {
+        // Three well-separated clusters in 2D.
+        let x: Vec<Vec<f64>> = vec![
+            vec![0.0, 0.0], vec![0.1, 0.0], vec![0.0, 0.1],
+            vec![5.0, 0.0], vec![5.1, 0.0], vec![5.0, 0.1],
+            vec![0.0, 5.0], vec![0.1, 5.0], vec![0.0, 5.1],
+        ];
+        let y: Vec<f64> = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0];
+        let model = fit_ovr(&x, &y, 0.5, 2000, 1e-8, 1.0).unwrap();
+        assert_eq!(model.classes, vec![0.0, 1.0, 2.0]);
+        let preds = predict_ovr(&x, &model);
+        let correct = preds
+            .iter()
+            .zip(&y)
+            .filter(|(p, t)| (*p - *t).abs() < 0.5)
+            .count();
+        assert!(correct >= 8, "only {correct}/9 correct");
+        let probs = predict_proba_ovr(&x, &model);
+        for row in &probs {
+            assert!((row.iter().sum::<f64>() - 1.0).abs() < 1e-6);
+        }
+        assert!(fit_ovr(&x, &[0.0; 9], 0.5, 2000, 1e-8, 1.0).is_err());
     }
 }

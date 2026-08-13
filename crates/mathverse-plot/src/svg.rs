@@ -411,8 +411,34 @@ impl SvgPlot {
     }
 
     /// Generate the SVG string
+    /// Rough byte estimate of the assembled SVG, used to pre-size the output
+    /// buffer so `generate()` avoids most reallocations. Derived from the
+    /// number of series points, image cells, and ticks plus a fixed baseline.
+    fn estimate_output_bytes(&self) -> usize {
+        let points: usize = self
+            .series
+            .iter()
+            .map(|s| s.points.len())
+            .chain(self.secondary.iter().map(|s| s.points.len()))
+            .sum();
+        let cells: usize = self
+            .images
+            .iter()
+            .map(|i| i.cols() * i.rows())
+            .chain(self.heatmaps.iter().map(|h| h.rows() * h.cols()))
+            .sum();
+        8 * 1024
+            + points * 48
+            + cells * 56
+            + self.config.tick_count.saturating_mul(2) as usize * 96
+    }
+
     pub fn generate(&self) -> String {
-        let mut svg = String::new();
+        // Pre-allocate generously to avoid reallocation churn while assembling
+        // the SVG via `push_str`. A full plot is typically tens of KB; a dense
+        // imshow grid can reach hundreds of KB, so estimate from data volume.
+        let estimate = self.estimate_output_bytes();
+        let mut svg = String::with_capacity(estimate);
 
         // Get theme settings (use defaults if no theme set)
         let (bg_color, text_color, _axis_color, font_family, title_size, label_size, _tick_size) = if let Some(ref theme) = self.theme {

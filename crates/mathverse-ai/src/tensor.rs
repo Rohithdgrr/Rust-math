@@ -30,7 +30,7 @@ impl fmt::Display for Tensor {
 /// Advance a SplitMix64 state; return uniform in [0, 1).
 ///
 /// SplitMix64 has better statistical quality than the previously used
-/// xorshift64\* (it passes BigCrush with a good mixing function) while
+/// xorshift64* (it passes BigCrush with a good mixing function) while
 /// remaining dependency-free and trivial to seed. It is still **not**
 /// cryptographically secure — use a dedicated CSPRNG for security contexts.
 fn splitmix64(state: &mut u64) -> u64 {
@@ -199,6 +199,29 @@ impl Tensor {
         let numel: usize = shape.iter().product();
         let data: Vec<f64> = (0..numel).map(|_| normal_sample(&mut state)).collect();
         Self { shape: shape.to_vec(), data }
+    }
+
+    /// Standard-normal random with crypto-secure RNG seeding.
+    ///
+    /// Uses `getrandom::fill` to obtain cryptographically secure randomness
+    /// for seeding the internal SplitMix64-derived RNG. The generation logic
+    /// is identical to [`randn_seeded`], but the initial seed is derived from
+    /// an OS-provided CSPRNG rather than a predictable counter.
+    #[cfg(feature = "secure-rng")]
+    pub fn randn_secure(shape: &[usize]) -> MathResult<Self> {
+        use getrandom::fill;
+        let numel: usize = shape.iter().product();
+
+        // Seed the RNG with cryptographically secure randomness
+        let mut seed: u64 = 0;
+        let mut buf = [0u8; 8];
+        fill(&mut buf)?;
+        seed = u64::from_le_bytes(buf);
+
+        let mut state = seed.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let data: Vec<f64> = (0..numel).map(|_| normal_sample(&mut state)).collect();
+
+        Ok(Self { shape: shape.to_vec(), data })
     }
 
     // -----------------------------------------------------------------------

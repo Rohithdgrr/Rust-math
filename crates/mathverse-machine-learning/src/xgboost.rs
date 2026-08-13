@@ -24,13 +24,12 @@ impl TreeNode {
         if self.is_leaf {
             return self.value;
         }
-        if x[self.feature] <= self.threshold {
-            // Safety: internal nodes always have both children
-            self.left.as_ref().expect("internal node must have left child").predict_single(x)
+        let child = if x[self.feature] <= self.threshold {
+            self.left.as_deref()
         } else {
-            // Safety: internal nodes always have both children
-            self.right.as_ref().expect("internal node must have right child").predict_single(x)
-        }
+            self.right.as_deref()
+        };
+        child.map_or(0.0, |c| c.predict_single(x))
     }
 }
 
@@ -59,6 +58,9 @@ fn build_tree(
     gamma: f64,
 ) -> TreeNode {
     if depth >= max_depth || x.len() <= 2 {
+        if targets.is_empty() {
+            return TreeNode::leaf(0.0);
+        }
         let mean = targets.iter().sum::<f64>() / targets.len() as f64;
         return TreeNode::leaf(mean);
     }

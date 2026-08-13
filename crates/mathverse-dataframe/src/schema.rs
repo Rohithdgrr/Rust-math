@@ -1,3 +1,4 @@
+use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt;
@@ -9,6 +10,8 @@ use crate::errors::{DataFrameError, DataFrameResult};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Schema {
     fields: Vec<Field>,
+    /// O(log n) name → index lookup, rebuilt on mutation.
+    name_idx: BTreeMap<String, usize>,
 }
 
 /// A single field in a schema: a column name and its dtype.
@@ -45,12 +48,17 @@ impl Schema {
     /// Creates an empty schema.
     #[must_use]
     pub fn empty() -> Self {
-        Self { fields: Vec::new() }
+        Self { fields: Vec::new(), name_idx: BTreeMap::new() }
     }
 
     /// Creates a schema from a list of (name, dtype) pairs.
     pub fn from_fields(fields: Vec<Field>) -> Self {
-        Self { fields }
+        let name_idx: BTreeMap<String, usize> = fields
+            .iter()
+            .enumerate()
+            .map(|(i, f)| (f.name.clone(), i))
+            .collect();
+        Self { fields, name_idx }
     }
 
     /// Returns the number of columns.
@@ -76,40 +84,51 @@ impl Schema {
             })
     }
 
-    /// Returns the index of a column by name, or an error if not found.
+    /// Returns the index of a column by name — O(log n).
     #[must_use]
     pub fn index_of(&self, name: &str) -> DataFrameResult<usize> {
-        self.fields
-            .iter()
-            .position(|f| f.name == name)
+        self.name_idx
+            .get(name)
+            .copied()
             .ok_or_else(|| DataFrameError::ColumnNotFound(name.to_string()))
     }
 
-    /// Returns the dtype of a column by name.
+    /// Returns the dtype of a column by name — O(log n).
     #[must_use]
     pub fn dtype_of(&self, name: &str) -> DataFrameResult<DType> {
         self.index_of(name).map(|i| self.fields[i].dtype)
     }
 
-    /// Adds a field to the schema. Returns an error if the name already exists.
+    /// Adds a field to the schema. Returns an error if the name already exists — O(log n).
     pub fn add_field(&mut self, field: Field) -> DataFrameResult<()> {
-        if self.fields.iter().any(|f| f.name == field.name) {
+        if self.name_idx.contains_key(field.name.as_str()) {
             return Err(DataFrameError::DuplicateColumn(field.name));
         }
+        let idx = self.fields.len();
+        self.name_idx.insert(field.name.clone(), idx);
         self.fields.push(field);
         Ok(())
     }
 
-    /// Removes a field by name, returning the removed field.
+    /// Removes a field by name, returning the removed field — O(n) shift.
     pub fn remove_field(&mut self, name: &str) -> DataFrameResult<Field> {
         let idx = self.index_of(name)?;
-        Ok(self.fields.remove(idx))
+        self.name_idx.remove(name);
+        let field = self.fields.remove(idx);
+        // Rebuild index after shift
+        self.name_idx.clear();
+        for (i, f) in self.fields.iter().enumerate() {
+            self.name_idx.insert(f.name.clone(), i);
+        }
+        Ok(field)
     }
 
-    /// Renames a column.
+    /// Renames a column — O(log n).
     pub fn rename(&mut self, old_name: &str, new_name: impl Into<String>) -> DataFrameResult<()> {
         let idx = self.index_of(old_name)?;
+        self.name_idx.remove(old_name);
         self.fields[idx].name = new_name.into();
+        self.name_idx.insert(self.fields[idx].name.clone(), idx);
         Ok(())
     }
 
@@ -123,10 +142,10 @@ impl Schema {
         self.fields.iter().map(|f| f.dtype)
     }
 
-    /// Returns `true` if the schema contains a column with the given name.
+    /// Returns `true` if the schema contains a column with the given name — O(log n).
     #[must_use]
     pub fn contains(&self, name: &str) -> bool {
-        self.fields.iter().any(|f| f.name == name)
+        self.name_idx.contains_key(name)
     }
 
     /// Returns the underlying fields.

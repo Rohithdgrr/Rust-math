@@ -408,4 +408,67 @@ mod tests {
         let corrected = UnionBound::bonferroni(0.05, 10);
         assert!((corrected - 0.005).abs() < 1e-10);
     }
+
+    #[test]
+    fn test_markov_inequality_edge_cases() {
+        // Threshold = 0 should return 1.0
+        let bound = MarkovInequality::bound(1.0, 0.0);
+        assert_eq!(bound, 1.0);
+        
+        // Negative threshold should return 1.0
+        let bound = MarkovInequality::bound(1.0, -1.0);
+        assert_eq!(bound, 1.0);
+        
+        // Expected value = 0 should return 1.0 (or handle gracefully)
+        let bound = MarkovInequality::bound(0.0, 1.0);
+        assert!(bound <= 1.0);
+    }
+
+    #[test]
+    fn test_chebyshev_edge_cases() {
+        // k = 0 should return 1.0
+        let bound = ChebyshevInequality::bound(1.0, 0.0);
+        assert_eq!(bound, 1.0);
+        
+        // Negative k should return 1.0
+        let bound = ChebyshevInequality::bound(1.0, -1.0);
+        assert_eq!(bound, 1.0);
+    }
+
+    #[test]
+    fn test_hoeffding_edge_cases() {
+        // epsilon = 0 should return 1.0
+        let bound = HoeffdingInequality::bound(100, 1.0, 0.0);
+        assert_eq!(bound, 1.0);
+        
+        // Negative epsilon should return 1.0
+        let bound = HoeffdingInequality::bound(100, 1.0, -0.1);
+        assert_eq!(bound, 1.0);
+    }
+
+    #[test]
+    fn test_chernoff_edge_cases() {
+        // delta = 0 should return 1.0
+        let bound = ChernoffBound::bernoulli_bound(0.5, 100, 0.0);
+        assert!((bound - 1.0).abs() < 1e-10);
+        
+        // delta >= 1 should return 1.0
+        let bound = ChernoffBound::bernoulli_bound(0.5, 100, 1.0);
+        assert!((bound - 1.0).abs() < 1e-10);
+        
+        // delta > 1 should return 1.0
+        let bound = ChernoffBound::bernoulli_bound(0.5, 100, 2.0);
+        assert!((bound - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_union_bound_edge_cases() {
+        // Empty probabilities
+        let bound = UnionBound::bound(&[]);
+        assert_eq!(bound, 0.0);
+        
+        // Single probability
+        let bound = UnionBound::bound(&[0.5]);
+        assert!((bound - 0.5).abs() < 1e-10);
+    }
 }

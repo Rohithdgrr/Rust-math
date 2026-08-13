@@ -79,6 +79,7 @@ impl ProbabilityGeneratingFunction {
             / (4.0 * epsilon * epsilon);
 
         second_derivative + first_derivative - first_derivative * first_derivative
+        // Note: this is (d²G/dt²) + (dG/dt) - (dG/dt)², correct for the MGF second derivative formula
     }
 }
 

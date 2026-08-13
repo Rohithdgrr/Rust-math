@@ -78,6 +78,74 @@ pub fn brier_score(pred_proba: &[Vec<f64>], target: &[f64]) -> f64 {
     score / target.len() as f64
 }
 
+/// Silhouette score for clustering quality (range -1 to 1, higher is better).
+///
+/// For each sample `i`, `a(i)` is the mean distance to other samples in its own
+/// cluster and `b(i)` is the mean distance to the nearest neighboring cluster.
+/// The per-sample silhouette is `(b - a) / max(a, b)` (0 for singleton
+/// clusters); the score is the mean across samples.
+#[must_use]
+pub fn silhouette_score(
+    x: &[Vec<f64>],
+    labels: &[usize],
+    dist: impl Fn(&[f64], &[f64]) -> f64,
+) -> f64 {
+    let n = x.len();
+    if n == 0 || x.len() != labels.len() {
+        return 0.0;
+    }
+    // Group samples by cluster label in a sparse map: O(1) lookup, and no
+    // allocation proportional to the largest label value (dense Vec would
+    // OOM on a single huge label).
+    let mut clusters: std::collections::HashMap<usize, Vec<usize>> =
+        std::collections::HashMap::new();
+    for (i, &l) in labels.iter().enumerate() {
+        clusters.entry(l).or_default().push(i);
+    }
+
+    let mut total = 0.0;
+    let mut count = 0usize;
+    for idx in 0..n {
+        let l = labels[idx];
+        let our_cluster = &clusters[&l];
+        let a = if our_cluster.len() <= 1 {
+            0.0
+        } else {
+            let sum: f64 = our_cluster
+                .iter()
+                .filter(|&&j| j != idx)
+                .map(|&j| dist(&x[idx], &x[j]))
+                .sum();
+            sum / (our_cluster.len() - 1) as f64
+        };
+        let b = clusters
+            .iter()
+            .filter(|(&lc, _)| lc != l)
+            .map(|(_, members)| {
+                let sum: f64 = members.iter().map(|&j| dist(&x[idx], &x[j])).sum();
+                sum / members.len() as f64
+            })
+            .fold(f64::INFINITY, f64::min);
+        let s = if our_cluster.len() <= 1 || b == f64::INFINITY {
+            0.0
+        } else {
+            let denom = a.max(b);
+            if denom.abs() < 1e-12 {
+                0.0
+            } else {
+                (b - a) / denom
+            }
+        };
+        total += s;
+        count += 1;
+    }
+    if count == 0 {
+        0.0
+    } else {
+        total / count as f64
+    }
+}
+
 /// Computes calibration curve (reliability diagram) with n_bins bins.
 #[must_use]
 pub fn calibration_curve(
@@ -85,14 +153,13 @@ pub fn calibration_curve(
     target: &[f64],
     n_bins: usize,
 ) -> Vec<(f64, f64, usize)> {
+    if n_bins == 0 || pred_proba.is_empty() {
+        return Vec::new();
+    }
     let mut bins: Vec<(f64, f64, usize)> = vec![(0.0, 0.0, 0); n_bins];
 
     for (probs, &t) in pred_proba.iter().zip(target.iter()) {
-        let prob = if !probs.is_empty() {
-            probs[1.min(probs.len() - 1)]
-        } else {
-            0.0
-        };
+        let prob = probs.last().copied().unwrap_or(0.0);
         let bin_idx = ((prob * n_bins as f64) as usize).min(n_bins - 1);
         bins[bin_idx].0 += prob;
         bins[bin_idx].1 += t;
@@ -383,5 +450,33 @@ mod tests {
         assert_eq!(cm.tp[1], 1);
         assert_eq!(cm.fp[0], 1);
         assert_eq!(cm.fn_[1], 1);
+    }
+
+    #[test]
+    fn test_silhouette_two_well_separated_clusters() {
+        let x: Vec<Vec<f64>> = vec![
+            vec![0.0, 0.0], vec![0.1, 0.0], vec![0.0, 0.1],
+            vec![10.0, 10.0], vec![10.1, 10.0], vec![10.0, 10.1],
+        ];
+        let labels = vec![0, 0, 0, 1, 1, 1];
+        let s = silhouette_score(&x, &labels, crate::knn::euclidean);
+        assert!(s > 0.7, "well-separated clusters should score high, got {s}");
+    }
+
+    #[test]
+    fn test_silhouette_single_cluster_is_zero() {
+        let x: Vec<Vec<f64>> = vec![vec![0.0, 0.0], vec![0.1, 0.0], vec![0.0, 0.1]];
+        let labels = vec![0, 0, 0];
+        let s = silhouette_score(&x, &labels, crate::knn::euclidean);
+        assert!((s).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_silhouette_sparse_labels_ok() {
+        // A huge label value must not cause an allocation proportional to it.
+        let x: Vec<Vec<f64>> = vec![vec![0.0; 3], vec![5.0; 3]];
+        let labels = vec![0, usize::MAX];
+        let s = silhouette_score(&x, &labels, crate::knn::euclidean);
+        assert!((0.0..=1.0).contains(&s));
     }
 }

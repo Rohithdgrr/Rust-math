@@ -49,7 +49,10 @@ pub fn to_json_string(df: &DataFrame) -> String {
             }
             out.push_str(&json_escape(name));
             out.push(':');
-            let col = df.column_by_index(ci).expect("column index within range");
+            let col = match df.column_by_index(ci) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
             if col.is_null(row) {
                 out.push_str("null");
                 continue;
@@ -61,6 +64,9 @@ pub fn to_json_string(df: &DataFrame) -> String {
                 AnyColumn::Int32(s) => out.push_str(&s.data()[row].to_string()),
                 AnyColumn::Bool(s) => out.push_str(if s.data()[row] { "true" } else { "false" }),
                 AnyColumn::Utf8(s) => out.push_str(&json_escape(&s.data()[row])),
+                AnyColumn::Date(s) | AnyColumn::DateTime(s) | AnyColumn::Duration(s) => {
+                    out.push_str(&s.data()[row].to_string());
+                }
             }
         }
         out.push('}');
@@ -288,6 +294,7 @@ fn parse_json(input: &str) -> DataFrameResult<Value> {
     let mut parser = Parser {
         bytes: input.as_bytes(),
         pos: 0,
+        depth: 0,
     };
     parser.skip_ws();
     let value = parser.parse_value()?;
@@ -298,9 +305,13 @@ fn parse_json(input: &str) -> DataFrameResult<Value> {
     Ok(value)
 }
 
+/// Maximum nesting depth for the JSON parser to prevent stack overflow.
+const MAX_JSON_DEPTH: usize = 128;
+
 struct Parser<'a> {
     bytes: &'a [u8],
     pos: usize,
+    depth: usize,
 }
 
 impl<'a> Parser<'a> {
@@ -438,11 +449,16 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_array(&mut self) -> DataFrameResult<Value> {
+        if self.depth >= MAX_JSON_DEPTH {
+            return Err(self.err("maximum nesting depth exceeded"));
+        }
+        self.depth += 1;
         self.expect(b'[')?;
         let mut items = Vec::new();
         self.skip_ws();
         if self.peek() == Some(b']') {
             self.pos += 1;
+            self.depth -= 1;
             return Ok(Value::Array(items));
         }
         loop {
@@ -451,18 +467,26 @@ impl<'a> Parser<'a> {
             self.skip_ws();
             match self.next() {
                 Some(b',') => continue,
-                Some(b']') => return Ok(Value::Array(items)),
+                Some(b']') => {
+                    self.depth -= 1;
+                    return Ok(Value::Array(items));
+                }
                 _ => return Err(self.err("expected ',' or ']' in array")),
             }
         }
     }
 
     fn parse_object(&mut self) -> DataFrameResult<Value> {
+        if self.depth >= MAX_JSON_DEPTH {
+            return Err(self.err("maximum nesting depth exceeded"));
+        }
+        self.depth += 1;
         self.expect(b'{')?;
         let mut fields = Vec::new();
         self.skip_ws();
         if self.peek() == Some(b'}') {
             self.pos += 1;
+            self.depth -= 1;
             return Ok(Value::Object(fields));
         }
         loop {
@@ -476,7 +500,10 @@ impl<'a> Parser<'a> {
             self.skip_ws();
             match self.next() {
                 Some(b',') => continue,
-                Some(b'}') => return Ok(Value::Object(fields)),
+                Some(b'}') => {
+                    self.depth -= 1;
+                    return Ok(Value::Object(fields));
+                }
                 _ => return Err(self.err("expected ',' or '}' in object")),
             }
         }

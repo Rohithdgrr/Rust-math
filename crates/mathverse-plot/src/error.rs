@@ -16,6 +16,26 @@ pub enum PlotError {
     /// IO failures (writing output files, etc.).
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+
+    /// XML generation / serialization failure.
+    #[error("xml generation failed: {0}")]
+    Xml(String),
+
+    /// The requested output format is not supported by this backend.
+    #[error("unsupported output format: {0}")]
+    UnsupportedFormat(String),
+
+    /// Font metrics / text layout failure.
+    #[error("font error: {0}")]
+    Font(String),
+
+    /// Backend-specific rendering failure.
+    #[error("backend error: {0}")]
+    Backend(String),
+
+    /// Downsampling failed (e.g. degenerate series).
+    #[error("downsampling failed: {0}")]
+    Downsample(String),
 }
 
 /// Convenient result alias for fallible plot operations.

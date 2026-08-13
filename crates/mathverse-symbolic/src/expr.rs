@@ -158,6 +158,29 @@ impl Expr {
         vars.into_iter().collect()
     }
 
+    /// Convert this expression to a SymPy-compatible string representation.
+    ///
+    /// The returned string can be evaluated with `sympy.sympify()` in Python.
+    #[must_use]
+    pub fn to_sympy_string(&self) -> String {
+        match self {
+            Expr::Constant(c) => c.to_string(),
+            Expr::Variable(name) => name.clone(),
+            Expr::Add(a, b) => format!("({} + {})", a.to_sympy_string(), b.to_sympy_string()),
+            Expr::Sub(a, b) => format!("({} - {})", a.to_sympy_string(), b.to_sympy_string()),
+            Expr::Mul(a, b) => format!("({} * {})", a.to_sympy_string(), b.to_sympy_string()),
+            Expr::Div(a, b) => format!("({} / {})", a.to_sympy_string(), b.to_sympy_string()),
+            Expr::Pow(a, b) => format!("({} ** {})", a.to_sympy_string(), b.to_sympy_string()),
+            Expr::Neg(a) => format!("(-{})", a.to_sympy_string()),
+            Expr::Ln(a) => format!("ln({})", a.to_sympy_string()),
+            Expr::Exp(a) => format!("exp({})", a.to_sympy_string()),
+            Expr::Sin(a) => format!("sin({})", a.to_sympy_string()),
+            Expr::Cos(a) => format!("cos({})", a.to_sympy_string()),
+            Expr::Tan(a) => format!("tan({})", a.to_sympy_string()),
+            Expr::Sqrt(a) => format!("sqrt({})", a.to_sympy_string()),
+        }
+    }
+
     fn collect_variables(&self, vars: &mut std::collections::HashSet<String>) {
         match self {
             Expr::Variable(name) => {

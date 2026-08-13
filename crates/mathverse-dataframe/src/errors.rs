@@ -43,6 +43,8 @@ pub enum DataFrameError {
     Io(String),
     /// Invalid operation.
     InvalidOperation(String),
+    /// Resource limit exceeded (e.g. JSON depth, allocation size).
+    ResourceExhausted(String),
 }
 
 impl fmt::Display for DataFrameError {
@@ -78,6 +80,7 @@ impl fmt::Display for DataFrameError {
             }
             Self::Io(msg) => write!(f, "I/O error: {msg}"),
             Self::InvalidOperation(msg) => write!(f, "invalid operation: {msg}"),
+            Self::ResourceExhausted(msg) => write!(f, "resource exhausted: {msg}"),
         }
     }
 }

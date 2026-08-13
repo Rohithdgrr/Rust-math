@@ -69,8 +69,9 @@ pub fn bfgs(grad: &dyn Fn(&[f64]) -> Vec<f64>, x0: &[f64], tol: f64, max_iters: 
         let sy: f64 = s.iter().zip(&y).map(|(a, b)| a * b).sum();
         // BFGS inverse-Hessian update: H ← (I - ρsyᵀ)H(I - ρysᵀ) + ρssᵀ,
         // with ρ = 1/(sᵀy), only applied when the curvature condition holds.
-        if sy > 1e-30 {
-            let rho = 1.0 / sy;
+        let curvature = sy;
+        if curvature > 1e-30 {
+            let rho = 1.0 / curvature;
             let hy: Vec<f64> = (0..n).map(|i| (0..n).map(|j| h[i][j] * y[j]).sum::<f64>()).collect();
             let yhy: f64 = y.iter().zip(&hy).map(|(a, b)| a * b).sum();
             let mut new_h = vec![vec![0.0; n]; n];
@@ -82,6 +83,13 @@ pub fn bfgs(grad: &dyn Fn(&[f64]) -> Vec<f64>, x0: &[f64], tol: f64, max_iters: 
                 }
             }
             h = new_h;
+        } else {
+            // Powell's damping: add a small multiple of the identity to preserve
+            // positive definiteness when the curvature condition fails.
+            let sigma = -curvature / (y.iter().map(|v| v * v).sum::<f64>().max(1e-30));
+            for i in 0..n {
+                h[i][i] += sigma;
+            }
         }
         x = next;
         g = g_new;

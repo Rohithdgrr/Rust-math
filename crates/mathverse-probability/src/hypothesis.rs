@@ -198,7 +198,7 @@ impl ChiSquaredTest {
             }
         }
 
-        let df = observed.len() - 1;
+        let df = if observed.is_empty() { 0 } else { observed.len() - 1 };
         let p_value = Self::p_value(chi_sq, df);
 
         TestResult::new(chi_sq, p_value, 0.05)
@@ -652,5 +652,73 @@ mod tests {
         let b = vec![6.0, 7.0, 8.0, 9.0, 10.0, 11.0];
         let res = KolmogorovSmirnovTest::two_sample(&a, &b);
         assert!(res.p_value < 0.05, "shifted samples should reject H0");
+    }
+
+    #[test]
+    fn test_z_test_edge_cases() {
+        // Test with very small sample size - null is NOT rejected
+        let result = ZTest::one_sample(5.0, 4.0, 1.0, 2, AlternativeHypothesis::Greater);
+        assert!(!result.reject_null);
+        
+        // Test with large sample size - null IS rejected
+        let result = ZTest::one_sample(5.0, 4.0, 1.0, 10000, AlternativeHypothesis::Greater);
+        assert!(result.reject_null);
+    }
+
+    #[test]
+    fn test_t_test_edge_cases() {
+        // Small sample size
+        let result = TTest::one_sample(5.0, 1.0, 4.0, 3, AlternativeHypothesis::TwoSided);
+        assert!(result.test_statistic > 0.0);
+        
+        // Large sample size
+        let result = TTest::one_sample(5.0, 1.0, 4.0, 1000, AlternativeHypothesis::TwoSided);
+        assert!(result.test_statistic > 0.0);
+    }
+
+    #[test]
+    fn test_chi_squared_test_edge_cases() {
+        // Empty observed/expected
+        let result = ChiSquaredTest::goodness_of_fit(&[], &[]);
+        assert!(result.test_statistic.is_nan());
+        
+        // Single cell
+        let result = ChiSquaredTest::goodness_of_fit(&[1.0], &[1.0]);
+        assert!(result.test_statistic >= 0.0);
+    }
+
+    #[test]
+    fn test_power_analysis_edge_cases() {
+        // Very high effect size
+        let power = PowerAnalysis::calculate_power(10.0, 100, 0.05, TestType::ZTest);
+        assert!(power > 0.99);
+        
+        // Very low effect size
+        let power = PowerAnalysis::calculate_power(0.1, 100, 0.05, TestType::ZTest);
+        assert!(power > 0.0 && power < 0.5);
+    }
+
+    #[test]
+    fn test_sprt_edge_cases() {
+        // Alpha = 0.1 (not exactly 0)
+        let decision = SPRT::test(3.5, 0.1, 0.1);
+        assert!(matches!(decision, SPRTDecision::Continue));
+        
+        // Beta = 0.9 (not exactly 1)
+        let decision = SPRT::test(3.5, 0.5, 0.9);
+        assert!(matches!(decision, SPRTDecision::AcceptNull));
+    }
+
+    #[test]
+    fn test_multiple_testing_edge_cases() {
+        // Single p-value
+        let p_values = vec![0.01];
+        let rejected = MultipleTesting::bonferroni(&p_values, 0.05);
+        assert_eq!(rejected.len(), 1);
+        
+        // All p-values same
+        let p_values = vec![0.05; 10];
+        let rejected = MultipleTesting::bonferroni(&p_values, 0.05);
+        assert_eq!(rejected.len(), 10);
     }
 }

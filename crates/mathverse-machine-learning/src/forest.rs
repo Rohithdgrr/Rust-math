@@ -3,6 +3,7 @@
 use crate::tree::DecisionTree;
 
 /// Random forest classifier.
+#[derive(Debug, Clone)]
 pub struct RandomForest {
     /// Fitted decision trees.
     trees: Vec<DecisionTree>,

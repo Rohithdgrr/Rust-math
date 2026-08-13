@@ -37,6 +37,7 @@ use crate::errors::{DataFrameError, DataFrameResult};
 pub struct GroupBy<'a> {
     df: &'a DataFrame,
     keys: Vec<String>,
+    ascending: bool,
 }
 
 /// Aggregation operations available on grouped data.
@@ -88,6 +89,11 @@ impl<'a> GroupBy<'a> {
     #[must_use]
     pub fn keys(&self) -> &[String] {
         &self.keys
+    }
+
+    /// Sets the sort order for grouped output. Default is ascending.
+    pub fn sort_order(&mut self, ascending: bool) {
+        self.ascending = ascending;
     }
 
     /// Aggregates each numeric column not used as a key with the given
@@ -197,8 +203,61 @@ impl<'a> GroupBy<'a> {
         self.agg(AggOp::NUnique)
     }
 
-    /// Groups rows into `(encoded_key, row_indices)` pairs, sorted ascending
-    /// by key. Rows with any null key are dropped.
+    /// Transforms each non-key numeric column by broadcasting the group
+    /// aggregation back to the original DataFrame's shape. Returns a new
+    /// DataFrame with the same number of rows as the original, where each
+    /// row's value is the aggregated value for its group.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a non-key column is non-numeric or the
+    /// aggregation fails.
+    pub fn transform(&self, op: AggOp) -> DataFrameResult<DataFrame> {
+        let groups = self.build_groups()?;
+        let mut result = DataFrame::new();
+
+        // Add key columns unchanged.
+        for name in &self.keys {
+            result.add_any_column(self.df.column(name)?.clone())?;
+        }
+
+        // For each non-key numeric column, compute per-group aggregated
+        // values and broadcast back to original positions.
+        for name in self.df.column_names() {
+            if self.keys.iter().any(|k| k == name) {
+                continue;
+            }
+            let col = self.df.column(name)?;
+            if !is_numeric(col) {
+                return Err(DataFrameError::InvalidOperation(format!(
+                    "transform {op:?} requires numeric columns; `{name}` is {}",
+                    col.dtype()
+                )));
+            }
+
+            // Build a map from row index -> group value.
+            let mut row_values: alloc::collections::BTreeMap<usize, f64> =
+                alloc::collections::BTreeMap::new();
+            for (_, rows) in &groups {
+                let sub = col.select_rows(rows)?;
+                let val = apply_op(&sub, op)?;
+                for &row in rows {
+                    row_values.insert(row, val);
+                }
+            }
+
+            // Build the output column.
+            let data: Vec<f64> = (0..self.df.nrows())
+                .map(|i| row_values.get(&i).copied().unwrap_or(f64::NAN))
+                .collect();
+            let out_name = format!("{}_{}", name, op.suffix());
+            result.add_column(&out_name, data)?;
+        }
+        Ok(result)
+    }
+
+    /// Groups rows into `(encoded_key, row_indices)` pairs, sorted by key.
+    /// Rows with any null key are dropped.
     fn build_groups(&self) -> DataFrameResult<Vec<(Vec<u8>, Vec<usize>)>> {
         let mut groups: alloc::collections::BTreeMap<Vec<u8>, Vec<usize>> =
             alloc::collections::BTreeMap::new();
@@ -217,7 +276,11 @@ impl<'a> GroupBy<'a> {
                 groups.entry(key).or_default().push(row);
             }
         }
-        Ok(groups.into_iter().collect())
+        let mut result: Vec<_> = groups.into_iter().collect();
+        if !self.ascending {
+            result.reverse();
+        }
+        Ok(result)
     }
 
     /// Adds the key columns to the result, one row per group.
@@ -247,7 +310,104 @@ impl DataFrame {
         Ok(GroupBy {
             df: self,
             keys: by.iter().map(|s| String::from(*s)).collect(),
+            ascending: true,
         })
+    }
+
+    /// Creates a pivot table by aggregating `values_col` grouped by
+    /// `index_col` (rows) and `columns_col` (columns).
+    ///
+    /// Returns a new DataFrame where:
+    /// - The first column contains unique `index_col` values (named `index_col`)
+    /// - Each subsequent column is named `{columns_col}={value}` and contains
+    ///   the aggregated value for that (index, column) combination
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if columns don't exist or `values_col` is non-numeric.
+    pub fn pivot_table(
+        &self,
+        values_col: &str,
+        index_col: &str,
+        columns_col: &str,
+        op: AggOp,
+    ) -> DataFrameResult<Self> {
+        if !self.has_column(values_col) {
+            return Err(DataFrameError::ColumnNotFound(values_col.to_string()));
+        }
+        if !self.has_column(index_col) {
+            return Err(DataFrameError::ColumnNotFound(index_col.to_string()));
+        }
+        if !self.has_column(columns_col) {
+            return Err(DataFrameError::ColumnNotFound(columns_col.to_string()));
+        }
+
+        let values = self.column(values_col)?;
+        if !is_numeric(values) {
+            return Err(DataFrameError::InvalidOperation(format!(
+                "pivot_table values column must be numeric; `{values_col}` is {}",
+                values.dtype()
+            )));
+        }
+
+        // Collect unique index values (using encoded keys for ordering).
+        let index_col_data = self.column(index_col)?;
+        let columns_col_data = self.column(columns_col)?;
+
+        // Build (index_key, column_key) -> Vec<row> mapping.
+        let mut cell_map: alloc::collections::BTreeMap<Vec<u8>, alloc::collections::BTreeMap<Vec<u8>, Vec<usize>>> =
+            alloc::collections::BTreeMap::new();
+        // Track unique column keys in order.
+        let mut col_keys_seen: alloc::collections::BTreeMap<Vec<u8>, String> = alloc::collections::BTreeMap::new();
+        // Track unique index keys in order.
+        let mut idx_keys_seen: alloc::collections::BTreeMap<Vec<u8>, String> = alloc::collections::BTreeMap::new();
+
+        for row in 0..self.nrows() {
+            if index_col_data.is_null(row) || columns_col_data.is_null(row) || values.is_null(row) {
+                continue;
+            }
+            let mut idx_key = Vec::new();
+            encode_key_value(index_col_data, row, &mut idx_key);
+            let mut col_key = Vec::new();
+            encode_key_value(columns_col_data, row, &mut col_key);
+
+            // Get display names.
+            let idx_name = cell_display_name(index_col_data, row);
+            let col_name = cell_display_name(columns_col_data, row);
+
+            idx_keys_seen.entry(idx_key.clone()).or_insert(idx_name);
+            col_keys_seen.entry(col_key.clone()).or_insert(col_name);
+            cell_map.entry(idx_key).or_default().entry(col_key).or_default().push(row);
+        }
+
+        // Build result DataFrame.
+        let mut result = DataFrame::new();
+
+        // Index column.
+        let idx_values: Vec<String> = idx_keys_seen.values().cloned().collect();
+        result.add_column(index_col, idx_values)?;
+
+        // One column per unique column-group value.
+        let col_keys: Vec<Vec<u8>> = col_keys_seen.keys().cloned().collect();
+        for col_key in &col_keys {
+            let col_name = &col_keys_seen[col_key];
+            let out_col_name = format!("{columns_col}={col_name}");
+            let mut values_out = Vec::with_capacity(idx_keys_seen.len());
+            for idx_key in idx_keys_seen.keys() {
+                match cell_map.get(idx_key).and_then(|m| m.get(col_key)) {
+                    Some(rows) => {
+                        let sub = values.select_rows(rows)?;
+                        values_out.push(apply_op(&sub, op)?);
+                    }
+                    None => {
+                        values_out.push(f64::NAN);
+                    }
+                }
+            }
+            result.add_column(&out_col_name, values_out)?;
+        }
+
+        Ok(result)
     }
 }
 
@@ -275,6 +435,10 @@ fn encode_key_value(col: &AnyColumn, row: usize, out: &mut Vec<u8>) {
             out.extend_from_slice(s.data()[row].as_bytes());
             out.push(0); // separator so ("ab","c") != ("a","bc")
         }
+        AnyColumn::Date(s) | AnyColumn::DateTime(s) | AnyColumn::Duration(s) => {
+            let v = s.data()[row];
+            out.extend_from_slice(&(v ^ i64::MIN).to_be_bytes());
+        }
     }
 }
 
@@ -297,6 +461,21 @@ fn is_numeric(col: &AnyColumn) -> bool {
             | AnyColumn::Int64(_)
             | AnyColumn::Int32(_)
     )
+}
+
+/// Returns a display string for a cell value.
+fn cell_display_name(col: &AnyColumn, row: usize) -> String {
+    match col {
+        AnyColumn::Float64(s) => alloc::format!("{}", s.data()[row]),
+        AnyColumn::Float32(s) => alloc::format!("{}", s.data()[row]),
+        AnyColumn::Int64(s) => alloc::format!("{}", s.data()[row]),
+        AnyColumn::Int32(s) => alloc::format!("{}", s.data()[row]),
+        AnyColumn::Bool(s) => alloc::format!("{}", s.data()[row]),
+        AnyColumn::Utf8(s) => s.data()[row].clone(),
+        AnyColumn::Date(s) => alloc::format!("Date({})", s.data()[row]),
+        AnyColumn::DateTime(s) => alloc::format!("DateTime({})", s.data()[row]),
+        AnyColumn::Duration(s) => alloc::format!("Duration({})", s.data()[row]),
+    }
 }
 
 /// Applies an aggregation operation to a (possibly null-containing) column.
@@ -407,5 +586,39 @@ mod tests {
         };
         assert!((sorted[0] - 20.0).abs() < 1e-12);
         assert!((sorted[1] - 25.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn group_transform_mean() {
+        let df = sample();
+        let t = df.group_by(&["city"]).unwrap().transform(AggOp::Mean).unwrap();
+        assert_eq!(t.nrows(), df.nrows()); // same shape
+        assert_eq!(t.ncols(), df.ncols());
+        let temps = t.column("temp_mean").unwrap().as_f64().unwrap();
+        // NYC mean = (20 + 22) / 2 = 21, LA mean = (25 + 30) / 2 = 27.5
+        let mut vals: Vec<f64> = temps.data().iter().copied().collect();
+        vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        assert!((vals[0] - 21.0).abs() < 1e-12);
+        assert!((vals[3] - 27.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn pivot_table_mean() {
+        let mut df = DataFrame::new();
+        df.add_column("city", vec![
+            String::from("NYC"), String::from("NYC"),
+            String::from("LA"), String::from("LA"),
+        ]).unwrap();
+        df.add_column("season", vec![
+            String::from("summer"), String::from("winter"),
+            String::from("summer"), String::from("winter"),
+        ]).unwrap();
+        df.add_column("temp", vec![30.0, 0.0, 25.0, 10.0]).unwrap();
+
+        let pivot = df.pivot_table("temp", "city", "season", AggOp::Mean).unwrap();
+        assert_eq!(pivot.nrows(), 2); // NYC, LA
+        assert!(pivot.has_column("city"));
+        assert!(pivot.has_column("season=summer"));
+        assert!(pivot.has_column("season=winter"));
     }
 }

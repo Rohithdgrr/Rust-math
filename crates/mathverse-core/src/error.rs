@@ -43,6 +43,8 @@ pub enum MathError {
     InvalidBase,
     /// Input must be non-negative.
     NegativeInput,
+    /// Numerical failure: NaN/Inf detected during computation.
+    NumericalFailure(&'static str),
 }
 
 /// Convenience alias used everywhere.
@@ -79,6 +81,7 @@ impl MathError {
             Self::InfiniteSolutions => "infinitely many solutions",
             Self::InvalidBase => "invalid base",
             Self::NegativeInput => "input must be non-negative",
+            Self::NumericalFailure(m) => m,
         }
     }
 

@@ -39,6 +39,16 @@ impl Position {
         Self::Data(p.x, p.y)
     }
 
+    /// Extract the underlying data coordinates when this position is anchored
+    /// in data space (the [`Position::Data`] variant); `None` otherwise.
+    #[must_use]
+    pub fn data_xy(&self) -> Option<(f64, f64)> {
+        match self {
+            Position::Data(x, y) => Some((*x, *y)),
+            _ => None,
+        }
+    }
+
     /// Resolve to pixel coordinates.
     ///
     /// * `x_px` / `y_px` map data coordinates to pixels (scale-aware).

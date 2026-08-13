@@ -120,6 +120,9 @@ fn build_tree(
 
 fn find_best_split(x: &[Vec<f64>], y: &[f64]) -> Option<(usize, f64, f64)> {
     let n = y.len();
+    if n < 2 {
+        return None;
+    }
     let p = x[0].len();
     let parent_impurity = gini(y);
     let mut best = None;

@@ -14,6 +14,7 @@ pub fn xml_escape(text: &str) -> String {
             '<' => escaped.push_str("&lt;"),
             '>' => escaped.push_str("&gt;"),
             '"' => escaped.push_str("&quot;"),
+            '\'' => escaped.push_str("&apos;"),
             _ => escaped.push(ch),
         }
     }

@@ -58,8 +58,13 @@
 pub mod canny;
 pub mod color;
 pub mod connected_components;
+pub mod connected_components_8;
 pub mod error;
+pub mod gaussian_pyramid;
+pub mod harris;
 pub mod hough;
+pub mod template_matching;
+pub mod optical_flow;
 pub mod integral_image;
 pub mod io;
 pub mod morphology;
