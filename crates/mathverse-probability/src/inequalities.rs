@@ -56,7 +56,6 @@ impl ChernoffBound {
     /// Chernoff bound for sum of Bernoulli random variables.
     pub fn bernoulli_bound(p: f64, n: usize, delta: f64) -> f64 {
         let mu = p * n as f64;
-        let _x = (1.0 + delta) * mu;
 
         if delta <= 0.0 {
             return 1.0;
@@ -144,11 +143,11 @@ impl AzumaInequality {
     }
 }
 
-/// McDiarmid's inequality: concentration for functions with bounded differences.
+/// `McDiarmid`'s inequality: concentration for functions with bounded differences.
 pub struct McDiarmidInequality;
 
 impl McDiarmidInequality {
-    /// McDiarmid's bounded differences inequality.
+    /// `McDiarmid`'s bounded differences inequality.
     pub fn bound(c_i: &[f64], epsilon: f64) -> f64 {
         if epsilon <= 0.0 {
             return 1.0;
@@ -160,7 +159,7 @@ impl McDiarmidInequality {
         bound.min(1.0)
     }
 
-    /// McDiarmid for functions with uniform bounded differences.
+    /// `McDiarmid` for functions with uniform bounded differences.
     pub fn uniform_bound(n: usize, c: f64, epsilon: f64) -> f64 {
         Self::bound(&vec![c; n], epsilon)
     }
@@ -321,7 +320,7 @@ impl DoobInequality {
 pub struct UnionBound;
 
 impl UnionBound {
-    /// Union bound: P(∪A_i) ≤ ΣP(A_i).
+    /// Union bound: `P(∪A_i)` ≤ `ΣP(A_i)`.
     pub fn bound(probabilities: &[f64]) -> f64 {
         probabilities.iter().sum::<f64>().min(1.0)
     }
@@ -451,14 +450,15 @@ mod tests {
         // delta = 0 should return 1.0
         let bound = ChernoffBound::bernoulli_bound(0.5, 100, 0.0);
         assert!((bound - 1.0).abs() < 1e-10);
-        
-        // delta >= 1 should return 1.0
+
+        // delta >= 1: the bound exp(-mu*delta^2/(2+delta)) is valid and tight
+        // (bounded by 1.0), not exactly 1.0.
         let bound = ChernoffBound::bernoulli_bound(0.5, 100, 1.0);
-        assert!((bound - 1.0).abs() < 1e-10);
-        
-        // delta > 1 should return 1.0
+        assert!(bound > 0.0 && bound < 1.0);
+
         let bound = ChernoffBound::bernoulli_bound(0.5, 100, 2.0);
-        assert!((bound - 1.0).abs() < 1e-10);
+        assert!(bound > 0.0 && bound < 1.0);
+        assert!(ChernoffBound::bernoulli_bound(0.5, 100, 1.0) < 1e-3, "large delta gives tight bound");
     }
 
     #[test]

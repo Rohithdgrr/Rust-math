@@ -2,6 +2,14 @@
 //! smooth-coloring helpers.
 //!
 //! Run with: `cargo run -p mathverse-complex --example mandelbrot`
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::unreadable_literal,
+    clippy::needless_range_loop
+)]
 
 use mathverse_complex::{mandelbrot_iterate, Complex};
 

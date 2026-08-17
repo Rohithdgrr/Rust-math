@@ -1,9 +1,9 @@
 //! Deterministic pseudo-random numbers (xoshiro256\*\*), dependency-free.
 //!
 //! Seed for reproducible simulations; not for cryptography. xoshiro256** is a
-//! fast, high-quality PRNG that passes BigCrush.
+//! fast, high-quality PRNG that passes `BigCrush`.
 
-/// SplitMix64 mixer used to seed the xoshiro256** state from a single seed.
+/// `SplitMix64` mixer used to seed the xoshiro256** state from a single seed.
 fn splitmix64(state: &mut u64) -> u64 {
     *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
     let mut z = *state;
@@ -85,7 +85,7 @@ mod tests {
         let mut rng = Rng::new(42);
         let n = 500_000;
         let sum: f64 = (0..n).map(|_| rng.uniform()).sum();
-        let mean = sum / n as f64;
+        let mean = sum / f64::from(n);
         assert!((mean - 0.5).abs() < 0.01, "mean {mean}");
     }
 }

@@ -212,7 +212,6 @@ impl MG1Queue {
     pub fn average_number_in_queue(&self) -> f64 {
         let rho = self.utilization();
         let lambda = self.arrival_rate;
-        let _es = self.mean_service_time;
         let var_s = self.variance_service_time;
 
         (lambda * lambda * var_s + rho * rho) / (2.0 * (1.0 - rho))
@@ -455,9 +454,8 @@ impl QueueDiscipline {
     #[must_use]
     pub fn waiting_time_factor(&self) -> f64 {
         match self {
-            QueueDiscipline::FIFO => 1.0,
-            QueueDiscipline::LIFO => 1.0, // Same average, different distribution
-            QueueDiscipline::SIRO => 1.0, // Same average
+            // All have the same average; only the waiting-time distribution differs.
+            QueueDiscipline::FIFO | QueueDiscipline::LIFO | QueueDiscipline::SIRO => 1.0,
             QueueDiscipline::Priority => 0.5, // Approximate for high priority
         }
     }

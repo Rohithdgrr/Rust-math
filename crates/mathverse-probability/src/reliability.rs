@@ -15,11 +15,11 @@ impl SurvivalFunction {
     pub fn from_hazard(hazard: impl Fn(f64) -> f64, t: f64) -> f64 {
         // S(t) = exp(-∫₀ᵗ λ(s) ds)
         let n = 1000;
-        let dt = t / n as f64;
+        let dt = t / f64::from(n);
         let mut integral = 0.0;
 
         for i in 0..n {
-            let s = (i as f64 + 0.5) * dt;
+            let s = (f64::from(i) + 0.5) * dt;
             integral += hazard(s) * dt;
         }
 
@@ -38,6 +38,10 @@ impl SurvivalFunction {
     }
 
     /// Kaplan-Meier estimator for censored data.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `times` contains NaN.
     pub fn kaplan_meier(times: &[f64], events: &[bool]) -> Vec<(f64, f64)> {
         let n = times.len();
         if n == 0 {
@@ -90,11 +94,11 @@ impl HazardFunction {
     /// Cumulative hazard function H(t) = ∫₀ᵗ h(s) ds.
     pub fn cumulative(hazard: impl Fn(f64) -> f64, t: f64) -> f64 {
         let n = 1000;
-        let dt = t / n as f64;
+        let dt = t / f64::from(n);
         let mut integral = 0.0;
 
         for i in 0..n {
-            let s = (i as f64 + 0.5) * dt;
+            let s = (f64::from(i) + 0.5) * dt;
             integral += hazard(s) * dt;
         }
 
@@ -102,6 +106,10 @@ impl HazardFunction {
     }
 
     /// Nelson-Aalen estimator for cumulative hazard.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `times` contains NaN.
     pub fn nelson_aalen(times: &[f64], events: &[bool]) -> Vec<(f64, f64)> {
         let n = times.len();
         if n == 0 {
@@ -166,11 +174,11 @@ impl MTTF {
     /// MTTF from survival function: E\[T\] = integral of S(t) dt.
     pub fn from_survival(survival: impl Fn(f64) -> f64, max_time: f64) -> f64 {
         let n = 10000;
-        let dt = max_time / n as f64;
+        let dt = max_time / f64::from(n);
         let mut integral = 0.0;
 
         for i in 0..n {
-            let t = (i as f64 + 0.5) * dt;
+            let t = (f64::from(i) + 0.5) * dt;
             integral += survival(t) * dt;
         }
 
@@ -286,7 +294,7 @@ impl CensoredData {
         }
 
         let mttf = if n_observed > 0 {
-            sum_observed / n_observed as f64
+            sum_observed / f64::from(n_observed)
         } else {
             0.0
         };

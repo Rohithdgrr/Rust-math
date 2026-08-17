@@ -15,19 +15,36 @@
 //! Several method names follow the `cmath`/`numpy` conventions for Python
 //! parity: [`Complex::phase`], [`Complex::to_polar`], [`Complex::rect`] and
 //! [`Complex::is_close`].
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::unreadable_literal,
+    clippy::needless_range_loop
+)]
 
 use core::fmt;
 use core::ops::{Add, Div, Mul, Neg, Sub};
 use mathverse_core::traits::RealFull;
 
 pub mod analysis;
+pub mod batch;
+pub mod activations;
+pub mod convolution;
+pub mod correlation;
+pub mod distributions;
 pub mod fft;
 pub mod matrix;
+pub mod pca;
+pub mod polar;
 pub mod polynomial;
+pub mod regression;
 pub mod special_functions;
+pub mod wavelets;
 
 pub use analysis::ComplexAnalysis;
-pub use fft::{fft, ifft};
+pub use fft::{fft, fft_in_place, ifft};
 pub use matrix::ComplexMatrix;
 pub use polynomial::{eval_polynomial, polynomial_roots};
 pub use special_functions::ComplexSpecialFunctions;
@@ -39,6 +56,8 @@ pub type C64 = Complex<f64>;
 
 /// Complex number `re + im·i` over any real type `T` (defaults to `f64`).
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[must_use]
 pub struct Complex<T: RealFull = f64> {
     /// Real part.
     pub re: T,
@@ -108,7 +127,14 @@ impl<T: RealFull> Complex<T> {
     }
     /// Principal argument in `(-π, π]` (equiv. `cmath.phase(z)`).
     pub fn arg(&self) -> T {
-        self.im.atan2(self.re)
+        let theta = self.im.atan2(self.re);
+        // atan2(0, -x) = π but atan2(-0, -x) = -π; normalize to principal
+        // branch (-π, π] so that negative reals always get arg = π.
+        if self.re < T::zero() && self.im == T::zero() {
+            T::from_f64(core::f64::consts::PI)
+        } else {
+            theta
+        }
     }
     /// `(r, θ)` such that `self == r·e^(iθ)` (equiv. `cmath.polar(z)`).
     pub fn to_polar(&self) -> (T, T) {
@@ -182,18 +208,21 @@ impl<T: RealFull> Complex<T> {
     /// `self^p = e^(p·ln self)`, principal branch.
     ///
     /// For `0^p` the standard limiting convention is used: `0` when
-    /// `Re(p) > 0`, `+∞` when `Re(p) < 0`, and `1` for `p = 0` (and purely
-    /// imaginary `p`), matching the combinatorial `0^0 = 1` identity and
-    /// numpy's complex power.
+    /// `Re(p) > 0`, `+∞` when `Re(p) < 0`, `1` for `p = 0` (combinatorial
+    /// convention), and `NaN` for purely imaginary exponents where the limit
+    /// does not converge.
     pub fn pow(&self, p: Complex<T>) -> Complex<T> {
         if self.is_zero() {
             return if p.re > T::zero() {
                 Complex::<T>::zero()
             } else if p.re < T::zero() {
                 Complex::<T>::new(T::from_f64(f64::INFINITY), T::zero())
-            } else {
-                // 0^0 (or 0^(i·y)): conventionally 1
+            } else if p.im == T::zero() {
+                // 0^0 = 1 (combinatorial convention)
                 Complex::<T>::one()
+            } else {
+                // 0^(i·y) is undefined — limit does not converge
+                Complex::<T>::new(T::from_f64(f64::NAN), T::from_f64(f64::NAN))
             };
         }
         (p * self.ln()).exp()
@@ -377,8 +406,9 @@ impl<T: RealFull> Mul for Complex<T> {
 }
 impl<T: RealFull> Div for Complex<T> {
     type Output = Complex<T>;
+    // self · (1/o) with an overflow-safe reciprocal (Smith's algorithm)
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, o: Complex<T>) -> Complex<T> {
-        // self · (1/o) with an overflow-safe reciprocal (Smith's algorithm)
         self * o.recip()
     }
 }
@@ -415,19 +445,19 @@ impl<T: RealFull> Div<T> for Complex<T> {
     }
 }
 
-impl<'a, 'b, T: RealFull> Add<&'b Complex<T>> for &'a Complex<T> {
+impl<'b, T: RealFull> Add<&'b Complex<T>> for &Complex<T> {
     type Output = Complex<T>;
     fn add(self, o: &'b Complex<T>) -> Complex<T> {
         Complex::<T>::new(self.re + o.re, self.im + o.im)
     }
 }
-impl<'a, 'b, T: RealFull> Sub<&'b Complex<T>> for &'a Complex<T> {
+impl<'b, T: RealFull> Sub<&'b Complex<T>> for &Complex<T> {
     type Output = Complex<T>;
     fn sub(self, o: &'b Complex<T>) -> Complex<T> {
         Complex::<T>::new(self.re - o.re, self.im - o.im)
     }
 }
-impl<'a, 'b, T: RealFull> Mul<&'b Complex<T>> for &'a Complex<T> {
+impl<'b, T: RealFull> Mul<&'b Complex<T>> for &Complex<T> {
     type Output = Complex<T>;
     fn mul(self, o: &'b Complex<T>) -> Complex<T> {
         Complex::<T>::new(
@@ -436,37 +466,38 @@ impl<'a, 'b, T: RealFull> Mul<&'b Complex<T>> for &'a Complex<T> {
         )
     }
 }
-impl<'a, 'b, T: RealFull> Div<&'b Complex<T>> for &'a Complex<T> {
+impl<'b, T: RealFull> Div<&'b Complex<T>> for &Complex<T> {
     type Output = Complex<T>;
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, o: &'b Complex<T>) -> Complex<T> {
         *self * o.recip()
     }
 }
-impl<'a, T: RealFull> Neg for &'a Complex<T> {
+impl<T: RealFull> Neg for &Complex<T> {
     type Output = Complex<T>;
     fn neg(self) -> Complex<T> {
         Complex::<T>::new(-self.re, -self.im)
     }
 }
-impl<'a, T: RealFull> Add<T> for &'a Complex<T> {
+impl<T: RealFull> Add<T> for &Complex<T> {
     type Output = Complex<T>;
     fn add(self, o: T) -> Complex<T> {
         Complex::<T>::new(self.re + o, self.im)
     }
 }
-impl<'a, T: RealFull> Sub<T> for &'a Complex<T> {
+impl<T: RealFull> Sub<T> for &Complex<T> {
     type Output = Complex<T>;
     fn sub(self, o: T) -> Complex<T> {
         Complex::<T>::new(self.re - o, self.im)
     }
 }
-impl<'a, T: RealFull> Mul<T> for &'a Complex<T> {
+impl<T: RealFull> Mul<T> for &Complex<T> {
     type Output = Complex<T>;
     fn mul(self, o: T) -> Complex<T> {
         Complex::<T>::new(self.re * o, self.im * o)
     }
 }
-impl<'a, T: RealFull> Div<T> for &'a Complex<T> {
+impl<T: RealFull> Div<T> for &Complex<T> {
     type Output = Complex<T>;
     fn div(self, o: T) -> Complex<T> {
         Complex::<T>::new(self.re / o, self.im / o)
@@ -483,6 +514,39 @@ impl<T: RealFull> From<(T, T)> for Complex<T> {
     fn from((re, im): (T, T)) -> Complex<T> {
         Complex::<T>::new(re, im)
     }
+}
+
+#[cfg(feature = "rand")]
+impl rand::distributions::Distribution<Complex<f64>> for rand::distributions::Standard {
+    /// Sample a complex number with independent standard-normal real and
+    /// imaginary parts (circular Gaussian).
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Complex<f64> {
+        let re: f64 = rng.gen();
+        let im: f64 = rng.gen();
+        Complex::new(re, im)
+    }
+}
+
+/// Sample a complex number uniformly distributed on the unit disk.
+#[cfg(feature = "rand")]
+pub fn complex_uniform_disk<R: rand::Rng + ?Sized>(rng: &mut R) -> Complex<f64> {
+    loop {
+        let re: f64 = rng.gen();
+        let im: f64 = rng.gen();
+        let z = Complex::new(re, im);
+        if z.norm_sq() <= 1.0 {
+            return z;
+        }
+    }
+}
+
+/// Sample a complex number from a circular Gaussian with standard deviation
+/// `sigma` (i.e., `Re` and `Im` are independent `N(0, sigma²)`).
+#[cfg(feature = "rand")]
+pub fn complex_gaussian<R: rand::Rng + ?Sized>(rng: &mut R, sigma: f64) -> Complex<f64> {
+    let re: f64 = rng.gen::<f64>() * sigma;
+    let im: f64 = rng.gen::<f64>() * sigma;
+    Complex::new(re, im)
 }
 
 /// Iterate `z → z² + c` until escape or `max_iterations`.

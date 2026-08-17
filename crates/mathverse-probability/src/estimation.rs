@@ -85,7 +85,7 @@ impl MLE {
             let ll = log_likelihood(&new_params);
             if ll > best_ll {
                 best_ll = ll;
-                best_params = new_params.clone();
+                best_params.clone_from(&new_params);
                 params = new_params;
             }
         }
@@ -104,6 +104,72 @@ pub fn aic(log_likelihood: f64, k: usize) -> f64 {
 #[must_use]
 pub fn bic(log_likelihood: f64, k: usize, n: usize) -> f64 {
     (k as f64) * (n as f64).ln() - 2.0 * log_likelihood
+}
+
+/// Deviance Information Criterion: `D(theta_bar) + 2 p_D`, where the effective
+/// number of parameters is `p_D = mean(D) - D(theta_bar)` and `D = -2 ln L`.
+///
+/// `log_likelihoods` is the chain of posterior log-likelihood draws;
+/// `log_likelihood_at_estimate` is the log-likelihood evaluated at the
+/// posterior mean (or mode) of the parameters. Lower is better.
+#[must_use]
+pub fn dic(log_likelihoods: &[f64], log_likelihood_at_estimate: f64) -> f64 {
+    if log_likelihoods.is_empty() {
+        return f64::NAN;
+    }
+    let mean_deviance = -2.0 * log_likelihoods.iter().sum::<f64>() / log_likelihoods.len() as f64;
+    let deviance_at_estimate = -2.0 * log_likelihood_at_estimate;
+    let p_d = mean_deviance - deviance_at_estimate;
+    mean_deviance + p_d
+}
+
+/// Widely Applicable Information Criterion (WAIC), computed from posterior
+/// draws of per-observation log-likelihoods.
+///
+/// `log_likelihood_samples[i][j]` is the log-likelihood of observation `j`
+/// under posterior draw `i` (rows = draws, columns = observations). Returns
+/// `(waic, p_waic)`; lower WAIC is better. The log pointwise predictive
+/// density is accumulated with log-sum-exp so long draws cannot underflow.
+#[must_use]
+pub fn waic(log_likelihood_samples: &[Vec<f64>]) -> (f64, f64) {
+    if log_likelihood_samples.is_empty() {
+        return (f64::NAN, f64::NAN);
+    }
+    let n_draws = log_likelihood_samples.len() as f64;
+    let n_obs = log_likelihood_samples[0].len();
+    let mut lppd = 0.0;
+    let mut p_waic = 0.0;
+
+    for obs in 0..n_obs {
+        let mut max = f64::NEG_INFINITY;
+        for row in log_likelihood_samples {
+            if row[obs] > max {
+                max = row[obs];
+            }
+        }
+        if max == f64::NEG_INFINITY {
+            continue;
+        }
+        let sum: f64 = log_likelihood_samples
+            .iter()
+            .map(|row| (row[obs] - max).exp())
+            .sum();
+        lppd += max + sum.ln() - n_draws.ln();
+
+        let mean = log_likelihood_samples.iter().map(|row| row[obs]).sum::<f64>() / n_draws;
+        let var = if n_draws > 1.0 {
+            log_likelihood_samples
+                .iter()
+                .map(|row| (row[obs] - mean).powi(2))
+                .sum::<f64>()
+                / (n_draws - 1.0)
+        } else {
+            0.0
+        };
+        p_waic += var;
+    }
+
+    (-2.0 * (lppd - p_waic), p_waic)
 }
 
 /// Method of Moments Estimation.
@@ -143,8 +209,8 @@ impl MethodOfMoments {
             return (0.0, 1.0);
         }
 
-        let min = data.iter().cloned().fold(f64::INFINITY, f64::min);
-        let max = data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let min = data.iter().copied().fold(f64::INFINITY, f64::min);
+        let max = data.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let n = data.len() as f64;
 
         let a = min - (max - min) / (n + 1.0);
@@ -277,10 +343,6 @@ impl CramerRaoBound {
         parameter: f64,
         epsilon: f64,
     ) -> f64 {
-        let ll_plus = log_likelihood(parameter + epsilon, 0.0);
-        let ll_minus = log_likelihood(parameter - epsilon, 0.0);
-        let _first_derivative = (ll_plus - ll_minus) / (2.0 * epsilon);
-
         let ll_plus_plus = log_likelihood(parameter + epsilon, 0.0);
         let ll_plus_minus = log_likelihood(parameter - epsilon, 0.0);
         let second_derivative = (ll_plus_plus - 2.0 * log_likelihood(parameter, 0.0)
@@ -389,14 +451,14 @@ impl ConfidenceIntervals {
             high *= 2.0;
         }
         for _ in 0..80 {
-            let mid = (low + high) / 2.0;
+            let mid = f64::midpoint(low, high);
             if normal_cdf(mid) < target {
                 low = mid;
             } else {
                 high = mid;
             }
         }
-        (low + high) / 2.0
+        f64::midpoint(low, high)
     }
 
     fn critical_t(alpha: f64, df: usize) -> f64 {
@@ -430,14 +492,14 @@ impl ConfidenceIntervals {
             high *= 2.0;
         }
         for _ in 0..80 {
-            let mid = (low + high) / 2.0;
+            let mid = f64::midpoint(low, high);
             if gamma.cdf(mid) < target {
                 low = mid;
             } else {
                 high = mid;
             }
         }
-        (low + high) / 2.0
+        f64::midpoint(low, high)
     }
 }
 
@@ -447,6 +509,10 @@ pub struct RobustEstimation;
 
 impl RobustEstimation {
     /// Median (robust to outliers).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `data` is empty or contains NaN.
     #[must_use]
     pub fn median(data: &[f64]) -> f64 {
         let mut sorted = data.to_vec();
@@ -454,13 +520,17 @@ impl RobustEstimation {
         let n = sorted.len();
 
         if n.is_multiple_of(2) {
-            (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
+            f64::midpoint(sorted[n / 2 - 1], sorted[n / 2])
         } else {
             sorted[n / 2]
         }
     }
 
     /// Trimmed mean.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `data` contains NaN.
     #[must_use]
     pub fn trimmed_mean(data: &mut [f64], trim_fraction: f64) -> f64 {
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -513,6 +583,10 @@ impl RobustEstimation {
     }
 
     /// Winsorized mean.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `data` is empty, contains NaN, or `percentile` is outside [0, 1].
     #[must_use]
     pub fn winsorized_mean(data: &mut [f64], percentile: f64) -> f64 {
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -523,13 +597,13 @@ impl RobustEstimation {
         let upper_bound = data[n - 1 - k];
 
         let mut sum = 0.0;
-        for i in 0..n {
+        for (i, &v) in data.iter().enumerate() {
             if i < k {
                 sum += lower_bound;
             } else if i >= n - k {
                 sum += upper_bound;
             } else {
-                sum += data[i];
+                sum += v;
             }
         }
 
@@ -582,7 +656,7 @@ impl BayesianEstimation {
             let posterior = log_prior(&new_params) + log_likelihood(&new_params);
             if posterior > best_posterior {
                 best_posterior = posterior;
-                best_params = new_params.clone();
+                best_params.clone_from(&new_params);
                 params = new_params;
             }
         }
@@ -600,6 +674,10 @@ impl Bootstrap {
     ///
     /// Returns (lower, upper) quantiles of the bootstrap statistic.
     /// Uses a fixed number of bootstrap replicates for determinism.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `statistic` returns NaN.
     #[must_use]
     pub fn percentile_ci<F>(
         data: &[f64],

@@ -196,7 +196,9 @@ impl StratifiedSampling {
     pub fn latin_hypercube(dim: usize, n_samples: usize, rng: &mut Rng) -> Vec<Vec<f64>> {
         let mut samples = vec![vec![0.0; dim]; n_samples];
 
-        for d in 0..dim {
+        // Build one shuffled column per dimension
+        let mut cols = Vec::with_capacity(dim);
+        for _ in 0..dim {
             let mut perm: Vec<usize> = (0..n_samples).collect();
             // Fisher-Yates shuffle
             for i in (1..n_samples).rev() {
@@ -204,8 +206,16 @@ impl StratifiedSampling {
                 perm.swap(i, j);
             }
 
-            for i in 0..n_samples {
-                samples[i][d] = (perm[i] as f64 + rng.uniform()) / n_samples as f64;
+            cols.push(
+                perm.iter()
+                    .map(|&p| (p as f64 + rng.uniform()) / n_samples as f64)
+                    .collect::<Vec<f64>>(),
+            );
+        }
+
+        for (i, sample) in samples.iter_mut().enumerate() {
+            for (d, col) in cols.iter().enumerate() {
+                sample[d] = col[i];
             }
         }
 
@@ -237,6 +247,10 @@ impl Resampling {
     }
 
     /// Bootstrap confidence interval.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n_bootstrap` is 0 or `statistic` returns NaN.
     #[must_use]
     pub fn bootstrap_ci(
         data: &[f64],
@@ -314,7 +328,7 @@ impl VarianceReduction {
             let u = rng.uniform();
             let x1 = integrand(u);
             let x2 = integrand(1.0 - u);
-            let avg = (x1 + x2) / 2.0;
+            let avg = f64::midpoint(x1, x2);
 
             sum += avg;
             sum_sq += avg * avg;
@@ -381,7 +395,6 @@ pub struct ParticleFilter<T> {
 }
 
 impl<T: Clone> ParticleFilter<T> {
-    #[must_use]
     pub fn new(initial_particles: Vec<T>) -> Self {
         let n = initial_particles.len();
         ParticleFilter {
@@ -431,9 +444,8 @@ impl<T: Clone> ParticleFilter<T> {
 
     /// Update particle weights.
     pub fn update_weights(&mut self, new_weights: Vec<f64>) {
-        let n = self.weights.len();
-        for i in 0..n {
-            self.weights[i] *= new_weights[i];
+        for (w, &nw) in self.weights.iter_mut().zip(&new_weights) {
+            *w *= nw;
         }
 
         // Normalize weights

@@ -2777,11 +2777,8 @@ version = "0.1.1"
 dependencies = [
  "criterion 0.5.1",
  "mathverse-core",
- "mathverse-lazy",
  "mathverse-matrix",
  "mathverse-probability",
- "mathverse-serde",
- "mathverse-simd",
  "mathverse-statistics",
  "mathverse-trigonometry",
  "mathverse-vector",
@@ -2811,6 +2808,11 @@ version = "0.2.1"
 dependencies = [
  "criterion 0.5.1",
  "mathverse-core",
+ "ndarray",
+ "rand 0.8.7",
+ "rand_distr",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2905,13 +2907,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mathverse-lazy"
-version = "0.1.1"
-dependencies = [
- "mathverse-core",
-]
-
-[[package]]
 name = "mathverse-linear-algebra"
 version = "0.1.2"
 dependencies = [
@@ -2962,17 +2957,8 @@ version = "0.1.2"
 dependencies = [
  "mathverse-core",
  "mathverse-matrix",
- "mathverse-optimization",
  "mathverse-vector",
  "rand 0.9.5",
-]
-
-[[package]]
-name = "mathverse-optimization"
-version = "0.1.2"
-dependencies = [
- "mathverse-core",
- "mathverse-probability",
 ]
 
 [[package]]
@@ -3037,21 +3023,17 @@ dependencies = [
  "mathverse-finance",
  "mathverse-graph",
  "mathverse-graphics",
- "mathverse-lazy",
  "mathverse-linear-algebra",
  "mathverse-machine-learning",
  "mathverse-matrix",
  "mathverse-ndarray-interop",
  "mathverse-number-theory",
  "mathverse-numerical",
- "mathverse-optimization",
  "mathverse-parallel",
  "mathverse-physics",
  "mathverse-plot",
  "mathverse-probability",
- "mathverse-serde",
  "mathverse-signal",
- "mathverse-simd",
  "mathverse-special",
  "mathverse-statistics",
  "mathverse-symbolic",
@@ -3061,7 +3043,6 @@ dependencies = [
  "mathverse-vector",
  "mathverse-views",
  "mathverse-vision",
- "mathverse-wasm",
 ]
 
 [[package]]
@@ -3069,19 +3050,8 @@ name = "mathverse-probability"
 version = "0.1.2"
 dependencies = [
  "mathverse-core",
-]
-
-[[package]]
-name = "mathverse-serde"
-version = "0.1.1"
-dependencies = [
- "bincode",
- "mathverse-core",
- "mathverse-matrix",
- "mathverse-vector",
- "safetensors",
+ "rand 0.9.5",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -3091,13 +3061,6 @@ dependencies = [
  "mathverse-complex",
  "mathverse-core",
  "mathverse-transforms",
-]
-
-[[package]]
-name = "mathverse-simd"
-version = "0.1.1"
-dependencies = [
- "mathverse-core",
 ]
 
 [[package]]
@@ -3175,19 +3138,6 @@ dependencies = [
  "mathverse-core",
  "minifb",
  "nokhwa",
-]
-
-[[package]]
-name = "mathverse-wasm"
-version = "0.1.1"
-dependencies = [
- "js-sys",
- "mathverse-core",
- "mathverse-matrix",
- "mathverse-simd",
- "mathverse-vector",
- "mathverse-views",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -3622,6 +3572,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]
@@ -4534,6 +4485,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
+name = "rand_distr"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32cb0b9bc82b0a0876c2dd994a7e7a2683d3e7390ca40e6886785ef0c7e3ee31"
+dependencies = [
+ "num-traits",
+ "rand 0.8.7",
+]
+
+[[package]]
 name = "rand_xorshift"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4784,16 +4745,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96b02de82ddbe1b636e6170c21be622223aea188ef2e139be0a5b219ec215323"
 dependencies = [
  "bytemuck",
-]
-
-[[package]]
-name = "safetensors"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44560c11236a6130a46ce36c836a62936dc81ebf8c36a37947423571be0e55b6"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]

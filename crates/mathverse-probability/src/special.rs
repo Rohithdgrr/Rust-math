@@ -1,3 +1,16 @@
+/// Lanczos approximation coefficients shared by `gamma_fn` and `ln_gamma`.
+const LANCZOS_COEFFS: [f64; 9] = [
+    0.999_999_999_999_809_9,
+    676.520_368_121_885_1,
+    -1_259.139_216_722_402_8,
+    771.323_428_777_653_1,
+    -176.615_029_162_140_6,
+    12.507_343_278_686_905,
+    -0.138_571_095_265_720_12,
+    9.984_369_578_019_572e-6,
+    1.505_632_735_149_311_6e-7,
+];
+
 #[must_use]
 pub fn gamma_fn(x: f64) -> f64 {
     if x < 0.5 {
@@ -9,17 +22,7 @@ pub fn gamma_fn(x: f64) -> f64 {
     } else {
         let z = x - 1.0;
         let g = 7.0;
-        let coeffs = [
-            0.999_999_999_999_809_9,
-            676.5203681218851,
-            -1259.1392167224028,
-            771.323_428_777_653_1,
-            -176.615_029_162_140_6,
-            12.507343278686905,
-            -0.13857109526572012,
-            9.984_369_578_019_572e-6,
-            1.5056327351493116e-7,
-        ];
+        let coeffs = LANCZOS_COEFFS;
 
         let mut a = coeffs[0];
         for (i, &c) in coeffs.iter().enumerate().skip(1) {
@@ -35,10 +38,10 @@ pub fn gamma_fn(x: f64) -> f64 {
 pub fn erf(x: f64) -> f64 {
     let sign = if x < 0.0 { -1.0 } else { 1.0 };
     let x = x.abs();
-    let t = 1.0 / (1.0 + 0.3275911 * x);
+    let t = 1.0 / (1.0 + 0.327_591_1 * x);
     let y = 1.0
-        - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t
-            + 0.254829592)
+        - (((((1.061_405_429 * t - 1.453_152_027) * t) + 1.421_413_741) * t - 0.284_496_736) * t
+            + 0.254_829_592)
             * t
             * (-x * x).exp();
     sign * y
@@ -51,6 +54,19 @@ pub fn erfc(x: f64) -> f64 {
 
 #[must_use]
 pub fn lower_gamma(s: f64, x: f64) -> f64 {
+    reg_lower_gamma(s, x) * gamma_fn(s)
+}
+
+/// Regularized lower incomplete gamma `P(s, x) = gamma(s, x) / Gamma(s)`.
+///
+/// Computed directly in probability space so the result stays finite even
+/// when `Gamma(s)` overflows (s >= ~172).
+#[must_use]
+pub(crate) fn reg_lower_gamma(s: f64, x: f64) -> f64 {
+    const EPS: f64 = 1e-14;
+    const MAX_ITERS: usize = 10_000;
+    const FPMIN: f64 = 1e-300;
+
     if x < 0.0 || s <= 0.0 || !s.is_finite() || !x.is_finite() {
         return 0.0;
     }
@@ -58,13 +74,9 @@ pub fn lower_gamma(s: f64, x: f64) -> f64 {
         return 0.0;
     }
 
-    const EPS: f64 = 1e-14;
-    const MAX_ITERS: usize = 10_000;
-    const FPMIN: f64 = 1e-300;
-
     let gln = ln_gamma(s);
     if x < s + 1.0 {
-        // Series for P(s, x), then scale by Γ(s).
+        // Series for P(s, x).
         let mut ap = s;
         let mut sum = 1.0 / s;
         let mut delta = sum;
@@ -76,10 +88,9 @@ pub fn lower_gamma(s: f64, x: f64) -> f64 {
                 break;
             }
         }
-        let p = sum * (s * x.ln() - x - gln).exp();
-        p * gln.exp()
+        sum * (s * x.ln() - x - gln).exp()
     } else {
-        // Continued fraction for Q(s, x), then use γ(s,x) = Γ(s) * (1 - Q(s,x)).
+        // Continued fraction for Q(s, x), then P = 1 - Q.
         let mut b = x + 1.0 - s;
         let mut c = 1.0 / FPMIN;
         let mut d = 1.0 / b.max(FPMIN);
@@ -106,8 +117,7 @@ pub fn lower_gamma(s: f64, x: f64) -> f64 {
         }
 
         let q = (s * x.ln() - x - gln).exp() * h;
-        let p = (1.0 - q).clamp(0.0, 1.0);
-        p * gln.exp()
+        (1.0 - q).clamp(0.0, 1.0)
     }
 }
 
@@ -139,17 +149,7 @@ pub fn ln_gamma(x: f64) -> f64 {
 
     let z = x - 1.0;
     let g = 7.0;
-    let coeffs = [
-        0.999_999_999_999_809_9,
-        676.5203681218851,
-        -1259.1392167224028,
-        771.323_428_777_653_1,
-        -176.615_029_162_140_6,
-        12.507343278686905,
-        -0.13857109526572012,
-        9.984_369_578_019_572e-6,
-        1.5056327351493116e-7,
-    ];
+    let coeffs = LANCZOS_COEFFS;
 
     let mut a = coeffs[0];
     for (i, &c) in coeffs.iter().enumerate().skip(1) {
@@ -158,6 +158,63 @@ pub fn ln_gamma(x: f64) -> f64 {
 
     let t = z + g + 0.5;
     0.5 * (2.0 * core::f64::consts::PI).ln() + (z + 0.5) * t.ln() - t + a.ln()
+}
+
+/// Adaptive Simpson quadrature of `f` over `[a, b]` with absolute tolerance
+/// `tol` (plus a relative term), capped at `max_eval` function evaluations.
+/// Returns the estimated integral.
+#[must_use]
+pub(crate) fn adaptive_simpson(
+    f: &dyn Fn(f64) -> f64,
+    a: f64,
+    b: f64,
+    tol: f64,
+    max_eval: usize,
+) -> f64 {
+    fn simpson(f: &dyn Fn(f64) -> f64, a: f64, b: f64) -> f64 {
+        let m = 0.5 * (a + b);
+        (b - a) / 6.0 * (f(a) + 4.0 * f(m) + f(b))
+    }
+
+    fn step(
+        f: &dyn Fn(f64) -> f64,
+        a: f64,
+        b: f64,
+        fa: f64,
+        fm: f64,
+        fb: f64,
+        whole: f64,
+        tol: f64,
+        depth: usize,
+        max_eval: usize,
+        evals: &mut usize,
+    ) -> f64 {
+        let m = 0.5 * (a + b);
+        let lm = 0.5 * (a + m);
+        let rm = 0.5 * (m + b);
+        let flm = f(lm);
+        let frm = f(rm);
+        *evals += 2;
+        let left = (m - a) / 6.0 * (fa + 4.0 * flm + fm);
+        let right = (b - m) / 6.0 * (fm + 4.0 * frm + fb);
+        let delta = left + right - whole;
+        if depth >= 24 || *evals > max_eval || (delta.abs() <= 15.0 * tol) {
+            return left + right + delta / 15.0;
+        }
+        let tol_half = 0.5 * tol;
+        step(f, a, m, fa, flm, fm, left, tol_half, depth + 1, max_eval, evals)
+            + step(f, m, b, fm, frm, fb, right, tol_half, depth + 1, max_eval, evals)
+    }
+
+    if b <= a {
+        return 0.0;
+    }
+    let fa = f(a);
+    let fm = f(0.5 * (a + b));
+    let fb = f(b);
+    let mut evals = 3usize;
+    let whole = simpson(f, a, b);
+    step(f, a, b, fa, fm, fb, whole, tol, 0, max_eval, &mut evals)
 }
 
 #[cfg(test)]
@@ -183,5 +240,19 @@ mod tests {
         let lg = lower_gamma(s, 100.0);
         let g = gamma_fn(s);
         assert!((lg - g).abs() / g < 1e-10);
+    }
+
+    #[test]
+    fn adaptive_simpson_integrates_polynomials_exactly() {
+        let f = |x: f64| x * x * x - 2.0 * x + 1.0;
+        let i = adaptive_simpson(&f, 0.0, 3.0, 1e-12, 100_000);
+        assert!((i - (81.0 / 4.0 - 9.0 + 3.0)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn adaptive_simpson_integrates_gaussian_tail() {
+        let f = |x: f64| (-0.5 * x * x).exp() / (2.0 * core::f64::consts::PI).sqrt();
+        let i = adaptive_simpson(&f, -5.0, 5.0, 1e-10, 100_000);
+        assert!((i - 1.0).abs() < 1e-7);
     }
 }

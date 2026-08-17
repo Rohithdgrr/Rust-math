@@ -10,7 +10,6 @@ pub struct RandomWalk {
 }
 
 impl RandomWalk {
-    #[must_use]
     pub fn new(step_size: f64, initial: f64) -> Self {
         RandomWalk {
             step_size,
@@ -18,7 +17,7 @@ impl RandomWalk {
         }
     }
 
-    /// Take one step (±step_size with equal probability).
+    /// Take one step (±`step_size` with equal probability).
     pub fn step(&mut self, rng: &mut Rng) -> f64 {
         let direction = if rng.uniform() < 0.5 { -1.0 } else { 1.0 };
         self.current += direction * self.step_size;
@@ -44,7 +43,6 @@ pub struct BrownianMotion {
 }
 
 impl BrownianMotion {
-    #[must_use]
     pub fn new(dt: f64, initial: f64) -> Self {
         BrownianMotion {
             dt,
@@ -99,7 +97,6 @@ pub struct PoissonProcess {
 }
 
 impl PoissonProcess {
-    #[must_use]
     pub fn new(rate: f64) -> Self {
         PoissonProcess {
             rate,
@@ -150,7 +147,6 @@ pub struct GaussianProcess {
 }
 
 impl GaussianProcess {
-    #[must_use]
     pub fn new<F1, F2>(mean_fn: F1, kernel_fn: F2) -> Self
     where
         F1: Fn(f64) -> f64 + 'static,
@@ -192,6 +188,10 @@ impl GaussianProcess {
     }
 
     /// Sample from the GP at given points.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the covariance matrix built from `kernel_fn` is not positive definite.
     #[must_use]
     pub fn sample(&self, x_points: &[f64], rng: &mut Rng) -> Vec<f64> {
         let n = x_points.len();
@@ -228,7 +228,6 @@ pub struct OrnsteinUhlenbeck {
 }
 
 impl OrnsteinUhlenbeck {
-    #[must_use]
     pub fn new(theta: f64, mu: f64, sigma: f64, initial: f64, dt: f64) -> Self {
         OrnsteinUhlenbeck {
             theta,
@@ -275,7 +274,6 @@ pub struct JumpDiffusion {
 }
 
 impl JumpDiffusion {
-    #[must_use]
     pub fn new(
         drift: f64,
         volatility: f64,
@@ -338,7 +336,6 @@ pub struct LevyProcess {
 }
 
 impl LevyProcess {
-    #[must_use]
     pub fn new(alpha: f64, beta: f64, scale: f64, initial: f64, dt: f64) -> Self {
         LevyProcess {
             alpha,

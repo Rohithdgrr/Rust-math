@@ -13,7 +13,6 @@ pub struct TestResult {
 }
 
 impl TestResult {
-    #[must_use]
     pub fn new(test_statistic: f64, p_value: f64, alpha: f64) -> Self {
         TestResult {
             test_statistic,
@@ -30,7 +29,6 @@ pub struct ZTest;
 
 impl ZTest {
     /// One-sample Z-test.
-    #[must_use]
     pub fn one_sample(
         sample_mean: f64,
         population_mean: f64,
@@ -45,7 +43,6 @@ impl ZTest {
     }
 
     /// Two-sample Z-test.
-    #[must_use]
     pub fn two_sample(
         mean1: f64,
         mean2: f64,
@@ -81,7 +78,6 @@ pub struct TTest;
 
 impl TTest {
     /// One-sample T-test.
-    #[must_use]
     pub fn one_sample(
         sample_mean: f64,
         sample_std: f64,
@@ -97,7 +93,6 @@ impl TTest {
     }
 
     /// Two-sample T-test (equal variances).
-    #[must_use]
     pub fn two_sample_equal_var(
         mean1: f64,
         mean2: f64,
@@ -118,7 +113,6 @@ impl TTest {
     }
 
     /// Two-sample T-test (unequal variances, Welch's t-test).
-    #[must_use]
     pub fn two_sample_unequal_var(
         mean1: f64,
         mean2: f64,
@@ -180,7 +174,6 @@ impl ChiSquaredTest {
     /// Returns a `TestResult` with `test_statistic = NaN` if `observed` and
     /// `expected` differ in length, or if an expected count is zero while the
     /// observed count is nonzero (a degenerate/undefined cell).
-    #[must_use]
     pub fn goodness_of_fit(observed: &[f64], expected: &[f64]) -> TestResult {
         if observed.len() != expected.len() {
             return TestResult::new(f64::NAN, 1.0, 0.05);
@@ -205,7 +198,6 @@ impl ChiSquaredTest {
     }
 
     /// Chi-squared test of independence.
-    #[must_use]
     pub fn independence(contingency: &[Vec<f64>]) -> TestResult {
         let n_rows = contingency.len();
         let n_cols = contingency[0].len();
@@ -261,7 +253,6 @@ pub struct FTest;
 
 impl FTest {
     /// F-test for equality of variances.
-    #[must_use]
     pub fn variance_equality(var1: f64, var2: f64, n1: usize, n2: usize) -> TestResult {
         let f = if var1 > var2 {
             var1 / var2
@@ -296,7 +287,6 @@ pub struct LikelihoodRatioTest;
 
 impl LikelihoodRatioTest {
     /// Likelihood ratio test statistic.
-    #[must_use]
     pub fn test_statistic(
         log_likelihood_null: f64,
         log_likelihood_alt: f64,
@@ -374,14 +364,14 @@ impl PowerAnalysis {
         let mut low = 0.0;
         let mut high = 5.0;
         for _ in 0..50 {
-            let mid = (low + high) / 2.0;
+            let mid = f64::midpoint(low, high);
             if 1.0 - normal_cdf(mid) < alpha / 2.0 {
                 low = mid;
             } else {
                 high = mid;
             }
         }
-        (low + high) / 2.0
+        f64::midpoint(low, high)
     }
 }
 
@@ -404,10 +394,14 @@ impl MultipleTesting {
     }
 
     /// Holm-Bonferroni correction (step-down).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `p_values` contains NaN.
     #[must_use]
     pub fn holm_bonferroni(p_values: &[f64], alpha: f64) -> Vec<bool> {
         let n = p_values.len();
-        let mut indexed: Vec<(usize, f64)> = p_values.iter().cloned().enumerate().collect();
+        let mut indexed: Vec<(usize, f64)> = p_values.iter().copied().enumerate().collect();
         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
         let mut rejected = vec![false; n];
@@ -426,10 +420,14 @@ impl MultipleTesting {
     }
 
     /// Benjamini-Hochberg procedure (FDR control).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `p_values` contains NaN.
     #[must_use]
     pub fn benjamini_hochberg(p_values: &[f64], q: f64) -> Vec<bool> {
         let n = p_values.len();
-        let mut indexed: Vec<(usize, f64)> = p_values.iter().cloned().enumerate().collect();
+        let mut indexed: Vec<(usize, f64)> = p_values.iter().copied().enumerate().collect();
         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
         let mut rejected = vec![false; n];
@@ -530,7 +528,10 @@ pub struct KolmogorovSmirnovTest;
 
 impl KolmogorovSmirnovTest {
     /// One-sample test of `data` against the CDF of `dist`.
-    #[must_use]
+    ///
+    /// # Panics
+    ///
+    /// Panics if `data` contains NaN.
     pub fn one_sample(data: &[f64], dist: &dyn ContinuousDist) -> TestResult {
         let mut sorted = data.to_vec();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -551,7 +552,10 @@ impl KolmogorovSmirnovTest {
     }
 
     /// Two-sample test of `a` vs `b`.
-    #[must_use]
+    ///
+    /// # Panics
+    ///
+    /// Panics if `a` or `b` contains NaN.
     pub fn two_sample(a: &[f64], b: &[f64]) -> TestResult {
         let mut xs = a.to_vec();
         let mut ys = b.to_vec();
@@ -579,7 +583,7 @@ impl KolmogorovSmirnovTest {
     fn kolmogorov_p(x: f64) -> f64 {
         let mut total = 0.0;
         for k in 1..=100 {
-            let term = 2.0 * (-2.0 * (k as f64).powi(2) * x * x).exp();
+            let term = 2.0 * (-2.0 * f64::from(k).powi(2) * x * x).exp();
             total += if k % 2 == 1 { term } else { -term };
             if term < 1e-10 {
                 break;
@@ -678,10 +682,15 @@ mod tests {
 
     #[test]
     fn test_chi_squared_test_edge_cases() {
-        // Empty observed/expected
+        // Empty observed/expected: no cells, statistic is 0.0 (per contract,
+        // NaN is only returned on length mismatch or zero-expected cells).
         let result = ChiSquaredTest::goodness_of_fit(&[], &[]);
+        assert_eq!(result.test_statistic, 0.0);
+
+        // Mismatched lengths produce NaN
+        let result = ChiSquaredTest::goodness_of_fit(&[1.0], &[1.0, 1.0]);
         assert!(result.test_statistic.is_nan());
-        
+
         // Single cell
         let result = ChiSquaredTest::goodness_of_fit(&[1.0], &[1.0]);
         assert!(result.test_statistic >= 0.0);
@@ -700,12 +709,16 @@ mod tests {
 
     #[test]
     fn test_sprt_edge_cases() {
-        // Alpha = 0.1 (not exactly 0)
-        let decision = SPRT::test(3.5, 0.1, 0.1);
+        // Alpha = 0.1 (not exactly 0): thresholds are
+        // A = ln(0.1/0.9) = -2.197, B = ln(0.9/0.1) = 2.197.
+        // LLR = 0.5 sits between them -> Continue.
+        let decision = SPRT::test(0.5, 0.1, 0.1);
         assert!(matches!(decision, SPRTDecision::Continue));
-        
-        // Beta = 0.9 (not exactly 1)
-        let decision = SPRT::test(3.5, 0.5, 0.9);
+
+        // Beta = 0.9 (not exactly 1): thresholds are
+        // A = ln(0.9/0.95) = -0.054, B = ln(0.1/0.05) = 0.693.
+        // LLR = -0.5 is below A -> AcceptNull.
+        let decision = SPRT::test(-0.5, 0.05, 0.9);
         assert!(matches!(decision, SPRTDecision::AcceptNull));
     }
 

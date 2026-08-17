@@ -96,7 +96,7 @@ impl Entropy {
 pub struct KLDivergence;
 
 impl KLDivergence {
-    /// KL divergence D_KL(P || Q) = Σ p(x) log(p(x)/q(x)).
+    /// KL divergence `D_KL(P` || Q) = Σ p(x) log(p(x)/q(x)).
     #[must_use]
     pub fn discrete(p: &[f64], q: &[f64]) -> f64 {
         if p.len() != q.len() {
@@ -158,7 +158,7 @@ impl KLDivergence {
         let mut m = vec![0.0; n];
 
         for i in 0..n {
-            m[i] = (p[i] + q[i]) / 2.0;
+            m[i] = f64::midpoint(p[i], q[i]);
         }
 
         0.5 * Self::discrete(p, &m) + 0.5 * Self::discrete(q, &m)
@@ -416,8 +416,8 @@ impl FisherInformation {
                 theta_plus[i] += epsilon;
                 theta_minus[i] -= epsilon;
 
-                let mut theta_plus_j = theta_plus.to_vec();
-                let mut theta_minus_j = theta_minus.to_vec();
+                let mut theta_plus_j = theta_plus.clone();
+                let mut theta_minus_j = theta_minus.clone();
                 theta_plus_j[j] += epsilon;
                 theta_minus_j[j] -= epsilon;
 
@@ -454,10 +454,8 @@ impl InformationBottleneck {
 
         // Initialize clustering
         let mut p_t_given_x = vec![vec![0.0; n_clusters]; n_x];
-        for i in 0..n_x {
-            for k in 0..n_clusters {
-                p_t_given_x[i][k] = 1.0 / n_clusters as f64;
-            }
+        for row in &mut p_t_given_x {
+            row.fill(1.0 / n_clusters as f64);
         }
 
         let mut ib_value = 0.0;
@@ -520,7 +518,7 @@ impl InformationBottleneck {
                 }
 
                 // Softmax
-                let max_weight = weights.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+                let max_weight = weights.iter().copied().fold(f64::NEG_INFINITY, f64::max);
                 let exp_weights: Vec<f64> =
                     weights.iter().map(|&w| (w - max_weight).exp()).collect();
                 let sum: f64 = exp_weights.iter().sum();

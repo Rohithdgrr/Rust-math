@@ -26,7 +26,6 @@ pub use mathverse_combinatorics::*;
 pub use mathverse_graph::*;
 pub use mathverse_transforms::*;
 pub use mathverse_signal::*;
-pub use mathverse_optimization::*;
 pub use mathverse_numerical::*;
 pub use mathverse_equations::*;
 pub use mathverse_ai::*;
@@ -35,13 +34,9 @@ pub use mathverse_vision::*;
 pub use mathverse_graphics::*;
 
 // New ecosystem crates (Feature 1-9)
-pub use mathverse_lazy::*;
 pub use mathverse_ndarray_interop::*;
-pub use mathverse_serde::*;
-pub use mathverse_simd::*;
 pub use mathverse_parallel::*;
 pub use mathverse_views::*;
-pub use mathverse_wasm::*;
 
 #[cfg(feature = "plot")]
 pub use mathverse_plot::*;

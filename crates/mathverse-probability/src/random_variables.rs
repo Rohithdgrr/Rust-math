@@ -35,7 +35,7 @@ impl SumOfRandomVariables {
         let dx = (b - a) / n as f64;
         let mut result = vec![0.0; 2 * n];
 
-        for i in 0..2 * n {
+        for (i, slot) in result.iter_mut().enumerate() {
             let x = a + i as f64 * dx;
             let mut integral = 0.0;
 
@@ -44,7 +44,7 @@ impl SumOfRandomVariables {
                 integral += pdf1(y) * pdf2(x - y) * dx;
             }
 
-            result[i] = integral;
+            *slot = integral;
         }
 
         result
@@ -93,8 +93,8 @@ impl ProductOfRandomVariables {
     /// Product of independent uniform random variables.
     #[must_use]
     pub fn uniform_product(a1: f64, b1: f64, a2: f64, b2: f64) -> (f64, f64) {
-        let mean1 = (a1 + b1) / 2.0;
-        let mean2 = (a2 + b2) / 2.0;
+        let mean1 = f64::midpoint(a1, b1);
+        let mean2 = f64::midpoint(a2, b2);
         let var1 = (b1 - a1).powi(2) / 12.0;
         let var2 = (b2 - a2).powi(2) / 12.0;
 
@@ -110,25 +110,25 @@ impl RatioOfRandomVariables {
     /// Ratio of independent normal random variables (Cauchy-like).
     #[must_use]
     pub fn normal_ratio(mean1: f64, sigma1: f64, mean2: f64, sigma2: f64) -> (f64, f64) {
-        if mean2 != 0.0 {
+        if mean2 == 0.0 {
+            (0.0, f64::INFINITY)
+        } else {
             let mean_ratio = mean1 / mean2;
             let var_ratio =
                 sigma1 * sigma1 / mean2.powi(2) + mean1 * mean1 * sigma2 * sigma2 / mean2.powi(4);
             (mean_ratio, var_ratio)
-        } else {
-            (0.0, f64::INFINITY)
         }
     }
 
     /// Ratio of independent random variables (delta method).
     #[must_use]
     pub fn general_ratio(mean1: f64, var1: f64, mean2: f64, var2: f64) -> (f64, f64) {
-        if mean2 != 0.0 {
+        if mean2 == 0.0 {
+            (0.0, f64::INFINITY)
+        } else {
             let mean_ratio = mean1 / mean2;
             let var_ratio = var1 / mean2.powi(2) + mean1 * mean1 * var2 / mean2.powi(4);
             (mean_ratio, var_ratio)
-        } else {
-            (0.0, f64::INFINITY)
         }
     }
 }
@@ -263,11 +263,11 @@ impl OrderStatistics {
 
         // Numerical integration
         let steps = 1000;
-        let dx = (b - a) / steps as f64;
+        let dx = (b - a) / f64::from(steps);
         let mut integral = 0.0;
 
         for i in 0..steps {
-            let x = a + (i as f64 + 0.5) * dx;
+            let x = a + (f64::from(i) + 0.5) * dx;
             integral += integrand(x) * dx;
         }
 
@@ -284,11 +284,11 @@ impl OrderStatistics {
 
         // Numerical integration
         let steps = 1000;
-        let dx = (b - a) / steps as f64;
+        let dx = (b - a) / f64::from(steps);
         let mut integral = 0.0;
 
         for i in 0..steps {
-            let x = a + (i as f64 + 0.5) * dx;
+            let x = a + (f64::from(i) + 0.5) * dx;
             integral += integrand(x) * dx;
         }
 
@@ -302,12 +302,16 @@ impl OrderStatistics {
             return 0.0;
         }
 
-        let min = data.iter().cloned().fold(f64::INFINITY, f64::min);
-        let max = data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let min = data.iter().copied().fold(f64::INFINITY, f64::min);
+        let max = data.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         max - min
     }
 
     /// Interquartile range.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `data` is empty or contains NaN.
     #[must_use]
     pub fn iqr(data: &mut [f64]) -> f64 {
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());

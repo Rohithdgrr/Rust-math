@@ -138,11 +138,10 @@ impl OrderStatistics {
 
         let pivot_index = Self::partition(data, left, right);
 
-        if k == pivot_index {
-        } else if k < pivot_index {
-            Self::quickselect(data, k, left, pivot_index);
-        } else {
-            Self::quickselect(data, k, pivot_index + 1, right);
+        match k.cmp(&pivot_index) {
+            core::cmp::Ordering::Equal => {}
+            core::cmp::Ordering::Less => Self::quickselect(data, k, left, pivot_index),
+            core::cmp::Ordering::Greater => Self::quickselect(data, k, pivot_index + 1, right),
         }
     }
 
@@ -216,7 +215,7 @@ impl PercentileMethod {
                 if lower == upper {
                     sorted_data[lower]
                 } else {
-                    (sorted_data[lower] + sorted_data[upper]) / 2.0
+                    f64::midpoint(sorted_data[lower], sorted_data[upper])
                 }
             }
             PercentileMethod::Lower => {

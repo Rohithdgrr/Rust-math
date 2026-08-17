@@ -1,6 +1,8 @@
 ﻿//! Distributions: moments, pmf/pdf, cdf. Sampling lives in the parent module.
 
-use crate::{markov_distribution, markov_step, rng::Rng, special::ln_gamma, F64Ext};
+use crate::{rng::Rng, special::ln_gamma, F64Ext};
+#[cfg(test)]
+use crate::{markov_distribution, markov_step};
 
 /// Common moment API for every distribution.
 pub trait Distribution {
@@ -14,15 +16,44 @@ pub trait Distribution {
 pub trait DiscreteDist: Distribution {
     fn pmf(&self, k: i64) -> f64;
     fn cdf(&self, k: i64) -> f64;
-    /// Inverse-CDF sampling with safety limit.
+
+    /// Smallest value with non-negligible probability mass (inclusive).
+    fn support_min(&self) -> i64 {
+        0
+    }
+
+    /// Largest value with non-negligible probability mass (inclusive).
+    fn support_max(&self) -> i64 {
+        i64::MAX / 2
+    }
+
+    /// Inverse-CDF sampling: exponential search for an upper bound, then a
+    /// binary search for the smallest `k` with `cdf(k) >= u`. O(log support)
+    /// CDF evaluations instead of a linear walk.
     fn sample(&self, rng: &mut Rng) -> i64 {
         let u = rng.uniform();
-        let mut k = 0i64;
-        const MAX_ITER: i64 = 1_000_000;
-        while self.cdf(k) < u && k < MAX_ITER {
-            k += 1;
+        let max = self.support_max();
+
+        let mut hi = self.support_min();
+        let mut step = 1i64;
+        while self.cdf(hi) < u && hi < max {
+            hi = hi.saturating_add(step);
+            step = step.saturating_mul(2);
         }
-        k
+        if hi > max {
+            hi = max;
+        }
+
+        let mut lo = self.support_min();
+        while lo < hi {
+            let mid = lo + (hi - lo) / 2;
+            if self.cdf(mid) < u {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        lo
     }
 }
 
@@ -42,14 +73,14 @@ pub trait ContinuousDist: Distribution {
         let mut lo = -1e10;
         let mut hi = 1e10;
         for _ in 0..200 {
-            let mid = (lo + hi) / 2.0;
+            let mid = f64::midpoint(lo, hi);
             if self.cdf(mid) < q {
                 lo = mid;
             } else {
                 hi = mid;
             }
         }
-        (lo + hi) / 2.0
+        f64::midpoint(lo, hi)
     }
 
     /// Survival function: `1 - cdf(x)`.
@@ -91,6 +122,12 @@ impl DiscreteDist for Bernoulli {
             _ => 1.0,
         }
     }
+    fn support_min(&self) -> i64 {
+        0
+    }
+    fn support_max(&self) -> i64 {
+        1
+    }
 }
 
 /// `Binomial(n, p)`: successes in `n` independent trials.
@@ -108,7 +145,6 @@ impl Distribution for Binomial {
     }
 }
 impl Binomial {
-    const EPS: f64 = 1e-10;
     /// Log-space PMF (returns None on underflow).
     fn ln_pmf(&self, k: u64) -> Option<f64> {
         let k_eff = k.min(self.n - k);
@@ -183,7 +219,7 @@ impl Binomial {
         ln_val.exp()
     }
 
-    /// Raw ln_pmf without underflow guard.
+    /// Raw `ln_pmf` without underflow guard.
     fn ln_pmf_raw(&self, k: u64) -> f64 {
         let k_eff = k.min(self.n - k);
         let ln_coeff = ln_gamma(self.n as f64 + 1.0)
@@ -213,7 +249,27 @@ impl DiscreteDist for Binomial {
         }
     }
     fn cdf(&self, k: i64) -> f64 {
-        (0..=k).map(|i| self.pmf(i)).sum()
+        if k < 0 {
+            return 0.0;
+        }
+        let n = self.n.min(i64::MAX as u64) as i64;
+        if k >= n {
+            return 1.0;
+        }
+        if self.p == 0.0 {
+            return 1.0;
+        }
+        if self.p == 1.0 {
+            return 0.0;
+        }
+        let k = k as f64;
+        (self.n as f64 - k, k + 1.0).beta_inc(1.0 - self.p)
+    }
+    fn support_min(&self) -> i64 {
+        0
+    }
+    fn support_max(&self) -> i64 {
+        self.n.min(i64::MAX as u64) as i64
     }
 }
 
@@ -296,7 +352,7 @@ impl Poisson {
         ln_val.exp()
     }
 
-    /// Raw ln_pmf without underflow guard.
+    /// Raw `ln_pmf` without underflow guard.
     fn ln_pmf_raw(&self, k: i64) -> f64 {
         let kf = k as f64;
         kf * self.lambda.ln() - self.lambda - ln_gamma(kf + 1.0)
@@ -322,7 +378,18 @@ impl DiscreteDist for Poisson {
         }
     }
     fn cdf(&self, k: i64) -> f64 {
-        (0..=k).map(|i| self.pmf(i)).sum()
+        if k < 0 {
+            return 0.0;
+        }
+        if self.lambda < 0.0 || !self.lambda.is_finite() {
+            return f64::NAN;
+        }
+        if self.lambda == 0.0 {
+            return 1.0;
+        }
+        // P(X <= k) = Q(k+1, lambda) = 1 - P(k+1, lambda), the regularized
+        // upper incomplete gamma (DLMF 8.7.3). O(1) instead of summing k pmfs.
+        1.0 - crate::special::reg_lower_gamma(k as f64 + 1.0, self.lambda)
     }
 }
 
@@ -334,7 +401,7 @@ pub struct Uniform {
 }
 impl Distribution for Uniform {
     fn mean(&self) -> f64 {
-        (self.a + self.b) / 2.0
+        f64::midpoint(self.a, self.b)
     }
     fn variance(&self) -> f64 {
         (self.b - self.a).powi(2) / 12.0
@@ -400,38 +467,38 @@ pub fn erf(x: f64) -> f64 {
 
 /// Inverse normal CDF (Beasley-Springer-Moro algorithm, ~1e-9 accuracy).
 fn norm_ppf(q: f64) -> f64 {
-    debug_assert!((0.0..=1.0).contains(&q));
     // Rational approximation constants (Beasley-Springer-Moro)
     const A: [f64; 6] = [
-        -3.969683028665376e+01,
-        2.209460984245205e+02,
-        -2.759285104469687e+02,
-        1.383577518672690e+02,
-        -3.066479806614716e+01,
-        2.506628277459239e+00,
+        -3.969_683_028_665_376e+01,
+        2.209_460_984_245_205e+02,
+        -2.759_285_104_469_687e+02,
+        1.383_577_518_672_69e2,
+        -3.066_479_806_614_716e+01,
+        2.506_628_277_459_239e+00,
     ];
     const B: [f64; 5] = [
-        -5.447609879822406e+01,
-        1.615858368580409e+02,
-        -1.556989798598866e+02,
-        6.680131188771972e+01,
-        -1.328068155288572e+01,
+        -5.447_609_879_822_406e+01,
+        1.615_858_368_580_409e+02,
+        -1.556_989_798_598_866e+02,
+        6.680_131_188_771_972e+01,
+        -1.328_068_155_288_572e+01,
     ];
     const C: [f64; 6] = [
-        -7.784894002430293e-03,
-        -3.223964580411365e-01,
-        -2.400758277161838e+00,
-        -2.549732539343734e+00,
-        4.374664141464968e+00,
-        2.938163982698783e+00,
+        -7.784_894_002_430_293e-03,
+        -3.223_964_580_411_365e-01,
+        -2.400_758_277_161_838e+00,
+        -2.549_732_539_343_734e+00,
+        4.374_664_141_464_968e+00,
+        2.938_163_982_698_783e+00,
     ];
     const D: [f64; 4] = [
-        7.784695709041462e-03,
-        3.224671290700398e-01,
-        2.445134137142996e+00,
-        3.754408661907416e+00,
+        7.784_695_709_041_462e-03,
+        3.224_671_290_700_398e-01,
+        2.445_134_137_142_996e+00,
+        3.754_408_661_907_416e+00,
     ];
 
+    debug_assert!((0.0..=1.0).contains(&q));
     let p_low = 0.02425;
     let p_high = 1.0 - p_low;
     let q_val;
@@ -659,7 +726,7 @@ impl Distribution for StudentsT {
 impl ContinuousDist for StudentsT {
     fn pdf(&self, x: f64) -> f64 {
         let nu = self.nu;
-        let coeff = ((nu + 1.0) / 2.0).gamma()
+        let coeff = f64::midpoint(nu, 1.0).gamma()
             / (nu.sqrt() * core::f64::consts::PI.sqrt() * (nu / 2.0).gamma());
         coeff * (1.0 + x * x / nu).powf(-(nu + 1.0) / 2.0)
     }
@@ -706,7 +773,7 @@ impl ContinuousDist for FDistribution {
         } else {
             let d1 = self.d1;
             let d2 = self.d2;
-            let coeff = ((d1 + d2) / 2.0).gamma() / ((d1 / 2.0).gamma() * (d2 / 2.0).gamma())
+            let coeff = f64::midpoint(d1, d2).gamma() / ((d1 / 2.0).gamma() * (d2 / 2.0).gamma())
                 * (d1 / d2).powf(d1 / 2.0);
             coeff * x.powf(d1 / 2.0 - 1.0) * (1.0 + d1 * x / d2).powf(-(d1 + d2) / 2.0)
         }
@@ -773,8 +840,10 @@ impl DiscreteDist for NegativeBinomial {
             0.0
         } else {
             let k = k as f64;
-            let coeff = (self.r + k - 1.0).gamma() / (k.gamma() * self.r.gamma());
-            coeff * self.p.powf(self.r) * (1.0 - self.p).powf(k)
+            let ln_coeff = ln_gamma(self.r + k)
+                - ln_gamma(k + 1.0)
+                - ln_gamma(self.r);
+            (ln_coeff + self.r * self.p.ln() + k * (1.0 - self.p).ln()).exp()
         }
     }
     fn cdf(&self, k: i64) -> f64 {
@@ -807,19 +876,23 @@ impl DiscreteDist for Hypergeometric {
         }
         let x = x as u64;
 
+        if self.k > self.n || self.n_draws > self.n {
+            return f64::NAN;
+        }
+
         let min_x = self.n_draws.saturating_sub(self.n - self.k);
         let max_x = self.k.min(self.n_draws);
         if x < min_x || x > max_x {
             return 0.0;
         }
 
-        let n_minus_k = self.n - self.k;
+        let n_minus_k = i128::from(self.n - self.k);
         let ln_num = ln_gamma(self.k as f64 + 1.0)
             - ln_gamma(x as f64 + 1.0)
             - ln_gamma((self.k - x) as f64 + 1.0)
             + ln_gamma(n_minus_k as f64 + 1.0)
             - ln_gamma((self.n_draws - x) as f64 + 1.0)
-            - ln_gamma((n_minus_k - self.n_draws + x) as f64 + 1.0);
+            - ln_gamma((n_minus_k - i128::from(self.n_draws) + i128::from(x)) as f64 + 1.0);
         let ln_den = ln_gamma(self.n as f64 + 1.0)
             - ln_gamma(self.n_draws as f64 + 1.0)
             - ln_gamma((self.n - self.n_draws) as f64 + 1.0);
@@ -827,6 +900,12 @@ impl DiscreteDist for Hypergeometric {
     }
     fn cdf(&self, k: i64) -> f64 {
         (0..=k).map(|i| self.pmf(i)).sum()
+    }
+    fn support_min(&self) -> i64 {
+        self.n_draws.saturating_sub(self.n - self.k) as i64
+    }
+    fn support_max(&self) -> i64 {
+        (self.k.min(self.n_draws)) as i64
     }
 }
 
@@ -1313,8 +1392,8 @@ mod tests {
             sigma: 1.0,
         };
         assert!((n.cdf(0.0) - 0.5).abs() < 1e-9);
-        assert!((n.cdf(1.0) - 0.841344746).abs() < 1e-6);
-        assert!((n.cdf(-1.0) - 0.158655254).abs() < 1e-6);
+        assert!((n.cdf(1.0) - 0.841_344_746).abs() < 1e-6);
+        assert!((n.cdf(-1.0) - 0.158_655_254).abs() < 1e-6);
         assert!((n.pdf(0.0) - 1.0 / (2.0 * core::f64::consts::PI).sqrt()).abs() < 1e-12);
         let t = StudentsT { nu: 1.0 };
         assert!((t.pdf(0.0) - 1.0 / core::f64::consts::PI).abs() < 1e-12);
@@ -1326,7 +1405,7 @@ mod tests {
         let ig = InverseGaussian { mu: 2.0, lambda: 5.0 };
         assert!((ig.mean() - 2.0).abs() < 1e-12);
         assert!((ig.variance() - 8.0 / 5.0).abs() < 1e-12);
-        assert!(ig.pdf(0.0) == 0.0);
+        assert_eq!(ig.pdf(0.0), 0.0);
         assert!(ig.pdf(2.0) > 0.0);
         assert!((ig.cdf(0.0) - 0.0).abs() < 1e-12);
         assert!(ig.cdf(2.0) > 0.5, "right-skewed: cdf at mean exceeds 0.5");
@@ -1421,7 +1500,6 @@ mod tests {
     #[test]
     fn geometric_p_edge_cases() {
         // Edge cases: p -> 0 and p -> 1
-        let p0 = Geometric { p: 0.0 };
         // p=0 is degenerate, pmf should handle it
         let p1 = Geometric { p: 1.0 };
         assert_eq!(p1.pmf(1), 1.0);
@@ -1439,6 +1517,62 @@ mod tests {
         // Test with large r
         let nb2 = NegativeBinomial { r: 100.0, p: 0.5 };
         assert!(nb2.pmf(100).is_finite());
+    }
+
+    #[test]
+    fn binomial_closed_form_cdf_matches_sum() {
+        for (n, p) in [(20, 0.3), (50, 0.7), (5, 0.5)] {
+            let b = Binomial { n, p };
+            let mut running = 0.0;
+            for k in 0..=n {
+                running += b.pmf(k as i64);
+                assert!(
+                    (b.cdf(k as i64) - running).abs() < 1e-9,
+                    "n={n}, p={p}, k={k}: cdf={} sum={}",
+                    b.cdf(k as i64),
+                    running
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn poisson_closed_form_cdf_matches_sum() {
+        for lambda in [0.5, 2.0, 10.0, 100.0] {
+            let p = Poisson { lambda };
+            let mut running = 0.0;
+            for k in 0..=50 {
+                running += p.pmf(k);
+                assert!(
+                    (p.cdf(k) - running).abs() < 1e-9,
+                    "lambda={lambda}, k={k}: cdf={} sum={}",
+                    p.cdf(k),
+                    running
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn poisson_cdf_large_k_stays_finite() {
+        let p = Poisson { lambda: 5.0 };
+        assert!((p.cdf(1000) - 1.0).abs() < 1e-12);
+        let p_big = Poisson { lambda: 500.0 };
+        assert!(p_big.cdf(600).is_finite());
+        assert!(p_big.cdf(600) > 0.999);
+        assert!(p_big.cdf(400).is_finite());
+        assert!(p_big.cdf(400) < 1e-4);
+    }
+
+    #[test]
+    fn hypergeometric_pmf_sums_to_one() {
+        let h = Hypergeometric {
+            n: 52,
+            k: 13,
+            n_draws: 5,
+        };
+        let total: f64 = (h.support_min()..=h.support_max()).map(|x| h.pmf(x)).sum();
+        assert!((total - 1.0).abs() < 1e-9);
     }
 
     #[test]
@@ -1555,7 +1689,7 @@ mod tests {
 
         // PPF at 0.5 should be ln(2)
         let ppf = e.ppf(0.5);
-        assert!((ppf - 0.6931471805599453).abs() < 1e-10);
+        assert!((ppf - core::f64::consts::LN_2).abs() < 1e-10);
     }
 
     #[test]

@@ -48,7 +48,7 @@ impl ConditionalProbability {
             .collect()
     }
 
-    /// Law of total probability: P(B) = Σ P(B|A_i) * P(A_i).
+    /// Law of total probability: P(B) = Σ `P(B|A_i)` * `P(A_i)`.
     pub fn total_probability(p_b_given_a: &[f64], p_a: &[f64]) -> f64 {
         p_b_given_a
             .iter()
@@ -359,10 +359,8 @@ impl ConditionalIndependence {
 
         // Compute P(X|Z)
         let mut p_x_given_z = vec![0.0; n_x];
-        for i in 0..n_x {
-            for j in 0..n_y {
-                p_x_given_z[i] += joint_xyz[i][j][z_idx];
-            }
+        for (i, total) in p_x_given_z.iter_mut().enumerate() {
+            *total = joint_xyz[i].iter().map(|row| row[z_idx]).sum();
         }
 
         // Compute P(X|Y,Z) and compare
@@ -381,7 +379,7 @@ impl ConditionalIndependence {
 pub struct Martingales;
 
 impl Martingales {
-    /// Check if sequence is a martingale: E[X_{n+1} | X_1,...,X_n] = X_n.
+    /// Check if sequence is a martingale: E[X_{n+1} | `X_1,...,X_n`] = `X_n`.
     pub fn is_martingale(
         transition_probs: &[Vec<f64>],
         current_state: usize,
@@ -401,7 +399,7 @@ impl Martingales {
         (expected - current_state as f64).abs() < tolerance
     }
 
-    /// Check if sequence is a submartingale: E[X_{n+1} | ...] ≥ X_n.
+    /// Check if sequence is a submartingale: E[X_{n+1} | ...] ≥ `X_n`.
     pub fn is_submartingale(transition_probs: &[Vec<f64>], current_state: usize) -> bool {
         let n = transition_probs.len();
         if current_state >= n {
@@ -416,7 +414,7 @@ impl Martingales {
         expected >= current_state as f64
     }
 
-    /// Check if sequence is a supermartingale: E[X_{n+1} | ...] ≤ X_n.
+    /// Check if sequence is a supermartingale: E[X_{n+1} | ...] ≤ `X_n`.
     pub fn is_supermartingale(transition_probs: &[Vec<f64>], current_state: usize) -> bool {
         let n = transition_probs.len();
         if current_state >= n {

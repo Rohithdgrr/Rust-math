@@ -146,6 +146,10 @@ impl ConvergenceType {
     }
 
     /// Check convergence in distribution (via CDF comparison).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `sequence` contains NaN.
     pub fn in_distribution(
         sequence: &[f64],
         target_cdf: impl Fn(f64) -> f64,
@@ -155,9 +159,9 @@ impl ConvergenceType {
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
         let n = sorted.len();
-        for i in 0..n {
+        for (i, &s) in sorted.iter().enumerate() {
             let empirical_cdf = (i + 1) as f64 / n as f64;
-            let target = target_cdf(sorted[i]);
+            let target = target_cdf(s);
 
             if (empirical_cdf - target).abs() > tolerance {
                 return false;
@@ -183,12 +187,11 @@ impl LargeDeviations {
     /// Cramér's theorem approximation (simplified).
     pub fn cramers_bound(
         sample_mean: f64,
-        true_mean: f64,
+        _true_mean: f64,
         rate_function: impl Fn(f64) -> f64,
         n: usize,
     ) -> f64 {
         let x = sample_mean;
-        let _mu = true_mean;
         let rate = rate_function(x);
 
         // P(|X_n - mu| >= |x - mu|) ≈ exp(-n * rate)
@@ -254,6 +257,10 @@ impl BerryEsseen {
     }
 
     /// Check if CLT approximation is within Berry-Esseen bound.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `samples` contains NaN.
     pub fn check_approximation(samples: &[f64], target_cdf: impl Fn(f64) -> f64) -> bool {
         let third_moment = Self::third_absolute_moment(samples);
         let variance = samples.iter().map(|&x| x * x).sum::<f64>() / samples.len() as f64;
@@ -300,7 +307,7 @@ impl RenewalTheory {
         let mut idx = 0;
 
         while current_time <= max_time {
-            renewal_counts.push(count as f64);
+            renewal_counts.push(f64::from(count));
             current_time += dt;
 
             while idx < interarrival_times.len() && current_time >= interarrival_times[idx] {
@@ -313,6 +320,10 @@ impl RenewalTheory {
     }
 
     /// Key renewal theorem (simplified).
+    ///
+    /// # Panics
+    ///
+    /// Never panics; returns 0.0 when `renewal_function` is empty or `mean_interarrival` is 0.
     pub fn key_renewal_theorem(renewal_function: &[f64], mean_interarrival: f64, dt: f64) -> f64 {
         if renewal_function.is_empty() || mean_interarrival == 0.0 {
             return 0.0;
@@ -339,7 +350,7 @@ mod tests {
     #[test]
     fn test_clt_normality() {
         let mut rng = Rng::new(42);
-        let samples = CentralLimitTheorem::simulate_clt(|r| r.uniform(), 30, 1000, &mut rng);
+        let samples = CentralLimitTheorem::simulate_clt(Rng::uniform, 30, 1000, &mut rng);
 
         let (skewness, kurtosis) = CentralLimitTheorem::normality_test(&samples);
         // For normal distribution, skewness ≈ 0, kurtosis ≈ 0
@@ -349,7 +360,7 @@ mod tests {
 
     #[test]
     fn test_convergence_in_probability() {
-        let sequence: Vec<f64> = (0..1000).map(|i| 0.5 + 1.0 / (i + 1) as f64).collect();
+        let sequence: Vec<f64> = (0..1000).map(|i| 0.5 + 1.0 / f64::from(i + 1)).collect();
         assert!(ConvergenceType::in_probability(&sequence, 0.5, 0.1, 0.1));
     }
 

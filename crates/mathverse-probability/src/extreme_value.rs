@@ -230,26 +230,26 @@ impl GEVDistribution {
         let mu = self.location;
         let sigma = self.scale;
 
-        let z = if xi != 0.0 {
-            1.0 + xi * (x - mu) / sigma
-        } else {
+        let z = if xi == 0.0 {
             (x - mu) / sigma
+        } else {
+            1.0 + xi * (x - mu) / sigma
         };
 
         if z <= 0.0 {
             return 0.0;
         }
 
-        let t = if xi != 0.0 {
-            z.powf(-1.0 / xi)
-        } else {
+        let t = if xi == 0.0 {
             (-z).exp()
+        } else {
+            z.powf(-1.0 / xi)
         };
 
-        let exponent = if xi != 0.0 {
-            -(1.0 + xi) * z.ln() - t
-        } else {
+        let exponent = if xi == 0.0 {
             -z - t
+        } else {
+            -(1.0 + xi) * z.ln() - t
         };
 
         exponent.exp() / sigma
@@ -262,20 +262,20 @@ impl GEVDistribution {
         let mu = self.location;
         let sigma = self.scale;
 
-        let z = if xi != 0.0 {
-            1.0 + xi * (x - mu) / sigma
-        } else {
+        let z = if xi == 0.0 {
             (x - mu) / sigma
+        } else {
+            1.0 + xi * (x - mu) / sigma
         };
 
         if z <= 0.0 {
             return if xi > 0.0 { 0.0 } else { 1.0 };
         }
 
-        if xi != 0.0 {
-            (-z.powf(-1.0 / xi)).exp()
-        } else {
+        if xi == 0.0 {
             (-z).exp()
+        } else {
+            (-z.powf(-1.0 / xi)).exp()
         }
     }
 
@@ -292,10 +292,10 @@ impl GEVDistribution {
 
         let y = -(-p.ln()).ln();
 
-        if xi != 0.0 {
-            mu + sigma * (y.powf(-xi) - 1.0) / xi
-        } else {
+        if xi == 0.0 {
             mu - sigma * y
+        } else {
+            mu + sigma * (y.powf(-xi) - 1.0) / xi
         }
     }
 
@@ -383,7 +383,6 @@ pub struct PeakOverThreshold {
 }
 
 impl PeakOverThreshold {
-    #[must_use]
     pub fn new(threshold: f64, data: Vec<f64>) -> Self {
         let excesses: Vec<f64> = data
             .into_iter()
@@ -434,10 +433,10 @@ impl PeakOverThreshold {
         let n = exceedance_rate * return_period;
         let p = 1.0 - 1.0 / n;
 
-        let quantile = if shape != 0.0 {
-            scale * (p.powf(-shape) - 1.0) / shape
-        } else {
+        let quantile = if shape == 0.0 {
             -scale * p.ln()
+        } else {
+            scale * (p.powf(-shape) - 1.0) / shape
         };
 
         self.threshold + quantile
@@ -452,7 +451,6 @@ pub struct BlockMaxima {
 }
 
 impl BlockMaxima {
-    #[must_use]
     pub fn new(block_size: usize, data: Vec<f64>) -> Self {
         BlockMaxima { block_size, data }
     }
@@ -470,7 +468,7 @@ impl BlockMaxima {
             if start < self.data.len() {
                 let block_max = self.data[start..end]
                     .iter()
-                    .cloned()
+                    .copied()
                     .fold(f64::NEG_INFINITY, f64::max);
                 maxima.push(block_max);
             }
@@ -510,12 +508,15 @@ pub struct ExtremeValueIndices {
 }
 
 impl ExtremeValueIndices {
-    #[must_use]
     pub fn new(data: Vec<f64>) -> Self {
         ExtremeValueIndices { data }
     }
 
     /// r-largest order statistics.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `r` is 0.
     #[must_use]
     pub fn r_largest(&self, r: usize) -> Vec<Vec<f64>> {
         let n = self.data.len();
@@ -550,7 +551,7 @@ impl ExtremeValueIndices {
                         clusters.push(
                             current_cluster
                                 .iter()
-                                .cloned()
+                                .copied()
                                 .fold(f64::NEG_INFINITY, f64::max),
                         );
                         current_cluster.clear();
@@ -565,7 +566,7 @@ impl ExtremeValueIndices {
             clusters.push(
                 current_cluster
                     .iter()
-                    .cloned()
+                    .copied()
                     .fold(f64::NEG_INFINITY, f64::max),
             );
         }
@@ -582,7 +583,7 @@ mod tests {
     fn test_gumbel_evd() {
         let gev = GumbelEVD::new(0.0, 1.0).unwrap();
         let mean = gev.mean();
-        assert!((mean - 0.5772156649015329).abs() < 1e-10);
+        assert!((mean - 0.577_215_664_901_532_9).abs() < 1e-10);
 
         let cdf = gev.cdf(0.0);
         assert!((cdf - (-1.0_f64).exp()).abs() < 1e-10);
@@ -607,7 +608,7 @@ mod tests {
     fn test_gev_distribution() {
         let gev = GEVDistribution::new(0.0, 1.0, 0.0).unwrap();
         let mean = gev.mean();
-        assert!((mean - 0.5772156649015329).abs() < 1e-10);
+        assert!((mean - 0.577_215_664_901_532_9).abs() < 1e-10);
     }
 
     #[test]
@@ -628,7 +629,7 @@ mod tests {
 
     #[test]
     fn test_block_maxima() {
-        let data: Vec<f64> = (0..100).map(|i| i as f64).collect();
+        let data: Vec<f64> = (0..100).map(f64::from).collect();
         let bm = BlockMaxima::new(10, data);
         let maxima = bm.compute();
         assert_eq!(maxima.len(), 10);

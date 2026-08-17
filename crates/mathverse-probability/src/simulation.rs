@@ -36,7 +36,7 @@ impl MonteCarloSimulation {
             }
         }
 
-        let p = count as f64 / n_samples as f64;
+        let p = f64::from(count) / n_samples as f64;
         let variance = p * (1.0 - p) / n_samples as f64;
 
         (p, variance.sqrt())
@@ -131,7 +131,6 @@ impl Default for EventDrivenSimulation {
 }
 
 impl EventDrivenSimulation {
-    #[must_use]
     pub fn new() -> Self {
         EventDrivenSimulation {
             current_time: 0.0,
@@ -140,6 +139,10 @@ impl EventDrivenSimulation {
     }
 
     /// Schedule an event.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `event.time` is NaN.
     pub fn schedule(&mut self, event: SimulationEvent) {
         self.event_queue.push(event);
         self.event_queue
@@ -406,7 +409,7 @@ impl SimulationVarianceReduction {
         for _ in 0..n_samples {
             let y1 = estimator(rng);
             let y2 = estimator(rng); // Would use complementary RNG in practice
-            let avg = (y1 + y2) / 2.0;
+            let avg = f64::midpoint(y1, y2);
 
             sum += avg;
             sum_sq += avg * avg;

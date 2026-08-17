@@ -30,20 +30,15 @@ mathverse-combinatorics = { path = "../mathverse-combinatorics", version = "0.1.
 mathverse-graph = { path = "../mathverse-graph", version = "0.1.2" }
 mathverse-transforms = { path = "../mathverse-transforms", version = "0.1.2" }
 mathverse-signal = { path = "../mathverse-signal", version = "0.1.2" }
-mathverse-optimization = { path = "../mathverse-optimization", version = "0.1.2" }
 mathverse-numerical = { path = "../mathverse-numerical", version = "0.1.2" }
 mathverse-equations = { path = "../mathverse-equations", version = "0.1.2" }
 mathverse-ai = { path = "../mathverse-ai", version = "0.1.2" }
 mathverse-machine-learning = { path = "../mathverse-machine-learning", version = "0.1.2" }
 mathverse-vision = { path = "../mathverse-vision", version = "0.1.2" }
 mathverse-graphics = { path = "../mathverse-graphics", version = "0.1.2" }
-mathverse-lazy = { path = "../mathverse-lazy", version = "0.1.0" }
 mathverse-ndarray-interop = { path = "../mathverse-ndarray-interop", version = "0.1.0" }
-mathverse-serde = { path = "../mathverse-serde", version = "0.1.0" }
-mathverse-simd = { path = "../mathverse-simd", version = "0.1.0" }
 mathverse-parallel = { path = "../mathverse-parallel", version = "0.1.0" }
 mathverse-views = { path = "../mathverse-views", version = "0.1.0" }
-mathverse-wasm = { path = "../mathverse-wasm", version = "0.1.0" }
 
 [lints]
 workspace = true

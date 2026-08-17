@@ -29,7 +29,7 @@ impl ComplexAnalysis {
         let derivative = Self::nth_derivative(&g, z0, order - 1, h);
 
         // Divide by factorial
-        let factorial: f64 = (1..=order - 1).map(|x| x as f64).product();
+        let factorial: f64 = (1..order).map(|x| x as f64).product();
         derivative / Complex::real(factorial)
     }
 
@@ -81,7 +81,7 @@ impl ComplexAnalysis {
 
         for k in 0..=n {
             let coeff = Self::binomial_coefficient(n, k) as f64;
-            let sign: f64 = if (n - k) % 2 == 0 { 1.0 } else { -1.0 };
+            let sign: f64 = if (n - k).is_multiple_of(2) { 1.0 } else { -1.0 };
             let z_k = z + Complex::new((k as f64 - n as f64 / 2.0) * h, 0.0);
             let term = f(z_k) * Complex::real(coeff * sign);
             result = result + term;
@@ -180,7 +180,7 @@ impl ComplexAnalysis {
     }
 
     /// Compute Laurent series coefficients around z0.
-    /// Returns (a_n for n >= 0, a_n for n < 0)
+    /// Returns (`a_n` for n >= 0, `a_n` for n < 0)
     pub fn laurent_series_coefficients(
         f: &dyn Fn(Complex) -> Complex,
         z0: Complex,

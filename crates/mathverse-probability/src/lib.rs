@@ -2,9 +2,12 @@
 //!
 //! Probability and stochastic processes: distributions, Bayesian inference,
 //! Monte Carlo methods, Markov chains, queueing theory, extreme value theory,
-//! hypothesis testing, estimation, and more.
+//! survival analysis, Kalman filtering, variational inference, and more.
 //!
-//! Dependency-free deterministic RNG (xorshift64\*); seed for reproducibility.
+//! Dependency-free deterministic RNG (xoshiro256\*\*); seed for reproducibility.
+//! Optional `rand` and `serde` integrations are available via the `rand` and
+//! `serde` features. The crate is `no_std`-compatible (disable the default
+//! `std` feature).
 //!
 //! # Quick start
 //!
@@ -21,67 +24,64 @@
 //! ```
 
 #![forbid(unsafe_code)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
-#![allow(missing_docs)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::cast_possible_wrap)]
-#![allow(clippy::suboptimal_flops)]
-#![allow(clippy::imprecise_flops)]
-#![allow(clippy::while_float)]
-#![allow(clippy::missing_const_for_fn)]
-#![allow(clippy::use_self)]
-#![allow(clippy::manual_midpoint)]
-#![allow(clippy::needless_pass_by_value)]
-#![allow(clippy::doc_markdown)]
-#![allow(clippy::missing_panics_doc)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::must_use_candidate)]
-#![allow(clippy::option_if_let_else)]
-
-#![allow(clippy::cast_lossless)]
-#![allow(clippy::cloned_instead_of_copied)]
-#![allow(clippy::unused_self)]
-#![allow(clippy::no_effect_underscore_binding)]
-#![allow(clippy::match_same_arms)]
-#![allow(clippy::comparison_chain)]
-#![allow(clippy::if_not_else)]
-#![allow(clippy::redundant_clone)]
-
-#![allow(clippy::many_single_char_names)]
-
-#![allow(clippy::unreadable_literal)]
-#![allow(clippy::assigning_clones)]
-#![allow(clippy::implicit_clone)]
+#![cfg_attr(not(feature = "std"), no_std)]
+// Deliberate, documented suppression set (replaces the former ~30 blanket allows).
+// Numeric casts: this crate's API is f64-centric; `as` casts on counts, indices,
+// and sample sizes are idiomatic and bounded by construction.
 #![allow(
-    unstable_name_collisions,
-    clippy::needless_range_loop,
-    clippy::type_complexity,
-    clippy::double_must_use
+    missing_docs, // public fields/methods are documented at module level
+    clippy::cast_precision_loss, // `as f64` on u64/usize counts
+    clippy::cast_sign_loss, // unsigned counts -> f64
+    clippy::cast_possible_truncation, // bounded i64/u64 -> smaller ints (indices, powi exponents)
+    clippy::cast_possible_wrap, // i64 <-> u64 within known bounds
+    unstable_name_collisions, // intentional F64Ext re-export methods (powf, etc.)
+    clippy::needless_pass_by_value, // public API takes owned values by design
+    clippy::type_complexity, // public fn-pointer types are the API
+    clippy::float_cmp, // exact boundary checks are intentional (p==0/1, alpha==1, signum, ties)
+    clippy::similar_names, // domain notation (p_xy/p_y, f_xy/f_y) is conventional
 )]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+/// `alloc` re-exports for `no_std` builds. With `std` enabled these come from
+/// the standard prelude and this module is empty.
+pub mod prelude {
+    #[cfg(not(feature = "std"))]
+    pub use alloc::{boxed::Box, string::String, string::ToString, vec, vec::Vec};
+}
 
 pub mod bayesian;
 pub mod conditional;
+pub mod copulas_extended;
+pub mod dirichlet_multinomial;
 pub mod distributions;
+pub mod em_algorithm;
 pub mod estimation;
 pub mod extreme_value;
 pub mod generating_functions;
 pub mod hypothesis;
 pub mod inequalities;
 pub mod information;
+pub mod kalman;
 pub mod limit_theorems;
 pub mod markov;
+pub mod mcmc_diagnostics;
 pub mod multivariate;
+pub mod online_stats;
 pub mod properties;
 pub mod queueing;
+pub mod random_graphs;
 pub mod random_variables;
 pub mod reliability;
 pub mod rng;
 pub mod sampling;
 pub mod simulation;
 pub mod special;
+pub mod stable;
 pub mod stochastic;
+pub mod survival;
+pub mod variational;
 
 /// Extension trait for `f64` providing special mathematical functions.
 pub trait F64Ext {

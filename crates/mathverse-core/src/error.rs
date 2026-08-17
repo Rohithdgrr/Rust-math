@@ -67,7 +67,9 @@ impl MathError {
         match self {
             Self::Domain => "input is outside the function domain",
             Self::DivisionByZero => "division by zero",
-            Self::InvalidArgument(m) | Self::NotConverged(m) => m,
+            Self::InvalidArgument(m)
+            | Self::NotConverged(m)
+            | Self::NumericalFailure(m) => m,
             Self::DimensionMismatch => "dimension mismatch",
             Self::Overflow => "numeric overflow",
             Self::Underflow => "numeric underflow",
@@ -81,7 +83,6 @@ impl MathError {
             Self::InfiniteSolutions => "infinitely many solutions",
             Self::InvalidBase => "invalid base",
             Self::NegativeInput => "input must be non-negative",
-            Self::NumericalFailure(m) => m,
         }
     }
 
@@ -97,7 +98,10 @@ impl MathError {
     /// ```
     #[must_use]
     pub const fn has_context(&self) -> bool {
-        matches!(self, Self::InvalidArgument(_) | Self::NotConverged(_))
+        matches!(
+            self,
+            Self::InvalidArgument(_) | Self::NotConverged(_) | Self::NumericalFailure(_)
+        )
     }
 }
 

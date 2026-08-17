@@ -11,12 +11,15 @@ categories = ["science", "mathematics"]
 
 [dependencies]
 mathverse-core = { path = "../mathverse-core", version = "0.1.2" }
-
+rand = { version = "0.9", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
 
 [lints]
 workspace = true
 [features]
 default = ["std"]
 std = []
+rand = ["dep:rand"]
+serde = ["dep:serde"]
 
 [dev-dependencies]

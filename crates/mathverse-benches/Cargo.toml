@@ -15,12 +15,9 @@ criterion = { version = "0.5", features = ["html_reports"] }
 mathverse-core = { path = "../mathverse-core", version = "0.1.1" }
 mathverse-vector = { path = "../mathverse-vector", version = "0.1.1" }
 mathverse-matrix = { path = "../mathverse-matrix", version = "0.1.1" }
-mathverse-simd = { path = "../mathverse-simd", version = "0.1.1" }
-mathverse-lazy = { path = "../mathverse-lazy", version = "0.1.1" }
 mathverse-views = { path = "../mathverse-views", version = "0.1.1" }
 mathverse-statistics = { path = "../mathverse-statistics", version = "0.1.1" }
 mathverse-probability = { path = "../mathverse-probability", version = "0.1.1" }
-mathverse-serde = { path = "../mathverse-serde", version = "0.1.1" }
 mathverse-trigonometry = { path = "../mathverse-trigonometry", version = "0.2.1" }
 
 [[bench]]
@@ -29,14 +26,6 @@ harness = false
 
 [[bench]]
 name = "matrix_bench"
-harness = false
-
-[[bench]]
-name = "simd_bench"
-harness = false
-
-[[bench]]
-name = "lazy_bench"
 harness = false
 
 [[bench]]

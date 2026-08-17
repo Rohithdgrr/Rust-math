@@ -1,5 +1,13 @@
 //! Integration tests: exercise `mathverse-complex` exactly as an external
 //! consumer would, through the public API only.
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::unreadable_literal,
+    clippy::needless_range_loop
+)]
 
 use mathverse_complex::{
     eval_polynomial, fft, ifft, mandelbrot_iterate, mandelbrot_smooth, polynomial_roots, Complex,
@@ -15,10 +23,10 @@ fn generic_precision_c32_and_c64() {
     // C64 (default) and C32 both compile and behave consistently.
     let z64 = Complex::new(1.0, 2.0);
     let z32: C32 = Complex::new(1.0f32, 2.0);
-    assert!((z64.norm() - z32.norm() as f64).abs() < 1e-6);
-    assert!((z64.arg() - z32.arg() as f64).abs() < 1e-6);
-    assert_eq!(z64.re, 1.0);
-    assert_eq!(z32.im, 2.0f32);
+    assert!((z64.norm() - f64::from(z32.norm())).abs() < 1e-6);
+    assert!((z64.arg() - f64::from(z32.arg())).abs() < 1e-6);
+    assert!((z64.re - 1.0).abs() < 1e-12);
+    assert!((z32.im - 2.0f32).abs() < 1e-6);
 }
 
 #[test]
@@ -41,12 +49,12 @@ fn display_edge_cases_do_not_panic() {
 fn numpy_cmath_parity_names() {
     // phase/to_polar/rect/is_close mirror cmath; re/im are public fields
     let z: Complex = Complex::new(0.0, 1.0);
-    assert_eq!(z.phase(), z.arg());
+    assert!((z.phase() - z.arg()).abs() < 1e-12);
     let (r, theta) = z.to_polar();
     let back = Complex::rect(r, theta);
     assert!(z.is_close(&back, 1e-12, 1e-12));
-    assert_eq!(z.re, 0.0);
-    assert_eq!(z.im, 1.0);
+    assert!(z.re.abs() < 1e-12);
+    assert!((z.im - 1.0).abs() < 1e-12);
 }
 
 #[test]
@@ -206,4 +214,193 @@ fn special_functions_public_api() {
     // J₀(1) ≈ 0.7652
     let j0 = ComplexSpecialFunctions::bessel_j(Complex::zero(), Complex::one(), 50);
     assert!((j0.re - 0.7651976865).abs() < 1e-6);
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn serde_roundtrip() {
+    let z = Complex::new(1.5, -2.7);
+    let json = serde_json::to_string(&z).unwrap();
+    let z2: Complex = serde_json::from_str(&json).unwrap();
+    assert_eq!(z, z2);
+
+    let m = ComplexMatrix::from_data(
+        vec![Complex::new(1.0, 0.0), Complex::new(0.0, 1.0)],
+        1,
+        2,
+    );
+    let json = serde_json::to_string(&m).unwrap();
+    let m2: ComplexMatrix = serde_json::from_str(&json).unwrap();
+    assert_eq!(m.get(0, 0), m2.get(0, 0));
+    assert_eq!(m.get(0, 1), m2.get(0, 1));
+}
+
+#[cfg(feature = "rand")]
+#[test]
+fn rand_complex_sampling() {
+    use mathverse_complex::{complex_gaussian, complex_uniform_disk};
+    let mut rng = rand::thread_rng();
+    let z: Complex = rand::random();
+    // Standard sample should produce finite values
+    assert!(z.re.is_finite() && z.im.is_finite());
+
+    // Disk sample should be inside the unit disk
+    for _ in 0..100 {
+        let z = complex_uniform_disk(&mut rng);
+        assert!(z.norm() <= 1.0 + 1e-12);
+    }
+
+    // Gaussian sample with sigma=0 should be (near) zero
+    let z = complex_gaussian(&mut rng, 0.0);
+    assert!(z.norm() < 1e-15);
+}
+
+#[test]
+fn fft_in_place_api() {
+    use mathverse_complex::fft_in_place;
+    let x: Vec<Complex> = (0..16)
+        .map(|i| Complex::new(f64::from(i), 0.0))
+        .collect();
+    let mut buf = x.clone();
+    fft_in_place(&mut buf);
+    let y = mathverse_complex::fft(&x);
+    for (a, b) in buf.iter().zip(y.iter()) {
+        assert!((a - b).norm() < 1e-12);
+    }
+}
+
+#[test]
+fn hessenberg_reduction() {
+    // A diagonal matrix is already Hessenberg
+    let mut m = ComplexMatrix::new(3, 3);
+    m.set(0, 0, Complex::real(1.0));
+    m.set(1, 1, Complex::real(2.0));
+    m.set(2, 2, Complex::real(3.0));
+    let h = m.hessenberg_reduction();
+    // Subdiagonal should be zero (within tolerance)
+    assert!(h.get(2, 0).norm() < 1e-10);
+
+    // A general matrix
+    let mut m = ComplexMatrix::new(3, 3);
+    m.set(0, 0, Complex::real(6.0));
+    m.set(0, 1, Complex::real(2.0));
+    m.set(0, 2, Complex::real(1.0));
+    m.set(1, 0, Complex::real(3.0));
+    m.set(1, 1, Complex::real(1.0));
+    m.set(2, 0, Complex::real(4.0));
+    m.set(2, 1, Complex::real(5.0));
+    let h = m.hessenberg_reduction();
+    // h[2][0] should be zero
+    assert!(h.get(2, 0).norm() < 1e-10);
+}
+
+#[test]
+fn modified_bessel_i() {
+    use mathverse_complex::ComplexSpecialFunctions;
+    // I_0(0) = 1
+    let i0 = ComplexSpecialFunctions::bessel_i(Complex::zero(), Complex::zero(), 50);
+    assert!((i0.re - 1.0).abs() < 1e-10);
+    // I_1(1) ≈ 0.5652
+    let i1 = ComplexSpecialFunctions::bessel_i(Complex::one(), Complex::one(), 50);
+    assert!((i1.re - 0.5651591040).abs() < 1e-4);
+}
+
+#[test]
+fn modified_bessel_k() {
+    use mathverse_complex::ComplexSpecialFunctions;
+    // K_0(1) ≈ 0.4210
+    let k0 = ComplexSpecialFunctions::bessel_k(Complex::zero(), Complex::one(), 50);
+    assert!((k0.re - 0.4210).abs() < 0.5);
+}
+
+#[test]
+fn hankel_functions() {
+    use mathverse_complex::ComplexSpecialFunctions;
+    let z = Complex::real(2.0);
+    let h1 = ComplexSpecialFunctions::hankel_h1(Complex::zero(), z, 50);
+    let h2 = ComplexSpecialFunctions::hankel_h2(Complex::zero(), z, 50);
+    // H1 = J + iY, H2 = J - iY => H1 + H2 = 2J
+    let j0 = ComplexSpecialFunctions::bessel_j(Complex::zero(), z, 50);
+    let sum = h1 + h2;
+    assert!((sum.re - 2.0 * j0.re).abs() < 1e-6);
+    assert!((sum.im).abs() < 1e-6);
+}
+
+#[test]
+fn incomplete_gamma() {
+    use mathverse_complex::ComplexSpecialFunctions;
+    // γ(1, 1) = 1 - e^{-1} ≈ 0.6321
+    let gl = ComplexSpecialFunctions::gamma_lower(Complex::one(), Complex::one(), 50);
+    assert!((gl.re - (1.0 - (-1.0_f64).exp())).abs() < 1e-4);
+    // Γ(1, 1) = e^{-1} ≈ 0.3679
+    let gu = ComplexSpecialFunctions::gamma_upper(Complex::one(), Complex::one(), 50);
+    assert!((gu.re - (-1.0_f64).exp()).abs() < 1e-4);
+}
+
+#[test]
+fn sinpi_cospi() {
+    use mathverse_complex::ComplexSpecialFunctions;
+    // sin(π·0.5) = 1
+    let s = ComplexSpecialFunctions::sinpi(Complex::real(0.5));
+    assert!((s.re - 1.0).abs() < 1e-10);
+    // cos(π·0.5) = 0
+    let c = ComplexSpecialFunctions::cospi(Complex::real(0.5));
+    assert!(c.re.abs() < 1e-10);
+    // sin(π·0) = 0
+    let s0 = ComplexSpecialFunctions::sinpi(Complex::zero());
+    assert!(s0.norm() < 1e-10);
+    // cos(π·0) = 1
+    let c0 = ComplexSpecialFunctions::cospi(Complex::zero());
+    assert!((c0.re - 1.0).abs() < 1e-10);
+}
+
+#[test]
+fn lambert_w() {
+    use mathverse_complex::ComplexSpecialFunctions;
+    // W(1) ≈ 0.5671 (Omega constant)
+    let w = ComplexSpecialFunctions::lambert_w(Complex::one());
+    assert!((w.re - 0.5671432904).abs() < 0.01);
+    // W(0) = 0
+    let w0 = ComplexSpecialFunctions::lambert_w(Complex::zero());
+    assert!(w0.norm() < 1e-10);
+}
+
+#[test]
+fn elliptic_integrals() {
+    use mathverse_complex::ComplexSpecialFunctions;
+    // K(0) = π/2
+    let k0 = ComplexSpecialFunctions::elliptic_k(Complex::zero());
+    assert!((k0.re - std::f64::consts::PI / 2.0).abs() < 1e-6);
+    // E(0) = π/2
+    let e0 = ComplexSpecialFunctions::elliptic_e(Complex::zero());
+    assert!((e0.re - std::f64::consts::PI / 2.0).abs() < 1e-6);
+}
+
+#[test]
+fn pow_zero_imaginary_exponent() {
+    // 0^i should be NaN (not 1)
+    let z: Complex<f64> = Complex::new(0.0, 0.0);
+    let p: Complex<f64> = Complex::new(0.0, 1.0);
+    let result = z.pow(p);
+    assert!(result.re.is_nan() && result.im.is_nan(), "0^i should be NaN");
+}
+
+#[test]
+fn matrix_eigenvectors() {
+    let mut m = ComplexMatrix::new(2, 2);
+    m.set(0, 0, Complex::real(2.0));
+    m.set(0, 1, Complex::real(1.0));
+    m.set(1, 0, Complex::real(1.0));
+    m.set(1, 1, Complex::real(2.0));
+    let vecs = m.eigenvectors(100, 1e-10).unwrap();
+    // A*vec should be lambda*vec for each eigenvector
+    let v0 = Complex::new(vecs.get(0, 0).re, vecs.get(0, 0).im);
+    let v1 = Complex::new(vecs.get(0, 1).re, vecs.get(0, 1).im);
+    let av0 = m.get(0, 0) * v0 + m.get(0, 1) * v1;
+    // eigenvalue is av0/v0
+    let lam = av0 / v0;
+    // lambda should be real (2±1)
+    assert!(lam.im.abs() < 1e-4, "eigenvalue should be real, got {lam}");
+    assert!((lam.re - 3.0).abs() < 1e-3 || (lam.re - 1.0).abs() < 1e-3,
+        "eigenvalue should be 1 or 3, got {lam}");
 }

@@ -5,7 +5,7 @@
 pub struct ProbabilityGeneratingFunction;
 
 impl ProbabilityGeneratingFunction {
-    /// PGF: G(s) = E[s^X] = Σ p_k * s^k.
+    /// PGF: G(s) = E[s^X] = Σ `p_k` * s^k.
     #[must_use]
     pub fn compute(pmf: &[f64], s: f64) -> f64 {
         pmf.iter()
@@ -278,8 +278,8 @@ impl LaplaceTransform {
     #[must_use]
     pub fn power_t(n: u32, s: f64) -> f64 {
         if s > 0.0 {
-            let factorial = (1..=n).product::<u32>() as f64;
-            factorial / s.powf(n as f64 + 1.0)
+            let factorial = f64::from((1..=n).product::<u32>());
+            factorial / s.powf(f64::from(n) + 1.0)
         } else {
             f64::INFINITY
         }
@@ -363,11 +363,11 @@ impl ZTransform {
 
     fn inverse_integral(x_func: impl Fn(f64) -> f64, k: f64) -> f64 {
         let n = 1000;
-        let dtheta = 2.0 * core::f64::consts::PI / n as f64;
+        let dtheta = 2.0 * core::f64::consts::PI / f64::from(n);
         let mut integral = 0.0;
 
         for i in 0..n {
-            let theta = i as f64 * dtheta;
+            let theta = f64::from(i) * dtheta;
             let z = theta.cos();
             let value = x_func(z) * (theta * k).cos();
             integral += value * dtheta;
@@ -388,7 +388,7 @@ impl CumulantGeneratingFunction {
         mgf(t).ln()
     }
 
-    /// nth cumulant from CGF: κ_n = K^(n)(0).
+    /// nth cumulant from CGF: `κ_n` = K^(n)(0).
     #[must_use]
     pub fn nth_cumulant(cgf: impl Fn(f64) -> f64, n: u32, epsilon: f64) -> f64 {
         if n == 0 {

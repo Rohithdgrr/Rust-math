@@ -2,6 +2,14 @@
 //! and special functions.
 //!
 //! Run with: `cargo bench -p mathverse-complex`
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::unreadable_literal,
+    clippy::needless_range_loop
+)]
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use mathverse_complex::{fft, polynomial_roots, Complex, ComplexMatrix, ComplexSpecialFunctions};
@@ -35,10 +43,10 @@ fn bench_fft(c: &mut Criterion) {
             .map(|k| Complex::new((k as f64 * 0.1).sin(), 0.0))
             .collect();
         c.bench_with_input(BenchmarkId::new("fft", n), &signal, |b, s| {
-            b.iter(|| fft(s))
+            b.iter(|| fft(s));
         });
         c.bench_with_input(BenchmarkId::new("dft_naive", n), &signal, |b, s| {
-            b.iter(|| naive_dft(s))
+            b.iter(|| naive_dft(s));
         });
     }
 }
@@ -57,11 +65,11 @@ fn bench_matrix(c: &mut Criterion) {
     let b = ComplexMatrix::identity(8);
     // unwrap: a bench should fail loudly (panic) if the op ever returns Err
     c.bench_function("matrix_mul_8x8", |bencher| {
-        bencher.iter(|| a.mul(&b).unwrap())
+        bencher.iter(|| a.mul(&b).unwrap());
     });
     c.bench_function("matrix_det_8x8", |bencher| bencher.iter(|| a.determinant()));
     c.bench_function("matrix_eig_8x8", |bencher| {
-        bencher.iter(|| a.eigenvalues(500, 1e-10).unwrap())
+        bencher.iter(|| a.eigenvalues(500, 1e-10).unwrap());
     });
 }
 
@@ -76,7 +84,7 @@ fn bench_polynomial(c: &mut Criterion) {
         Complex::one(),
     ];
     c.bench_function("polynomial_roots_deg5", |b| {
-        b.iter(|| polynomial_roots(&coeffs, 100, 1e-12))
+        b.iter(|| polynomial_roots(&coeffs, 100, 1e-12));
     });
 }
 
@@ -84,11 +92,11 @@ fn bench_special_functions(c: &mut Criterion) {
     let z = Complex::new(0.7, -1.3);
     c.bench_function("gamma", |b| b.iter(|| ComplexSpecialFunctions::gamma(z)));
     c.bench_function("zeta", |b| {
-        b.iter(|| ComplexSpecialFunctions::zeta(Complex::real(2.0), 100))
+        b.iter(|| ComplexSpecialFunctions::zeta(Complex::real(2.0), 100));
     });
     c.bench_function("erf", |b| b.iter(|| ComplexSpecialFunctions::erf(z, 60)));
     c.bench_function("bessel_j", |b| {
-        b.iter(|| ComplexSpecialFunctions::bessel_j(Complex::zero(), z, 50))
+        b.iter(|| ComplexSpecialFunctions::bessel_j(Complex::zero(), z, 50));
     });
 }
 

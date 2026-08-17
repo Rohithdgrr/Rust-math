@@ -1,6 +1,14 @@
 //! Fast Fourier Transform: spectral peak detection + round-trip identity.
 //!
 //! Run with: `cargo run -p mathverse-complex --example fft`
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::unreadable_literal,
+    clippy::needless_range_loop
+)]
 
 use mathverse_complex::{fft, ifft, Complex};
 

@@ -17,7 +17,6 @@ pub struct BetaPrior {
 }
 
 impl BetaPrior {
-    #[must_use]
     pub fn new(alpha: f64, beta: f64) -> Self {
         BetaPrior { alpha, beta }
     }
@@ -75,13 +74,11 @@ pub struct NormalPrior {
 }
 
 impl NormalPrior {
-    #[must_use]
     pub fn new(mu: f64, sigma: f64) -> Self {
         NormalPrior { mu, sigma }
     }
 
     /// Posterior after observing data with known variance.
-    #[must_use]
     pub fn posterior_known_variance(&self, data: &[f64], known_variance: f64) -> NormalPrior {
         let n = data.len() as f64;
         let sample_mean = data.iter().sum::<f64>() / n;
@@ -126,7 +123,6 @@ pub struct GammaPrior {
 }
 
 impl GammaPrior {
-    #[must_use]
     pub fn new(shape: f64, rate: f64) -> Self {
         GammaPrior { shape, rate }
     }
@@ -166,7 +162,6 @@ pub struct DirichletPrior {
 }
 
 impl DirichletPrior {
-    #[must_use]
     pub fn new(alpha: Vec<f64>) -> Self {
         DirichletPrior { alpha }
     }
@@ -240,6 +235,10 @@ pub struct CredibleInterval;
 
 impl CredibleInterval {
     /// Compute credible interval from samples.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `samples` is empty.
     #[must_use]
     pub fn from_samples(samples: &[f64], alpha: f64) -> (f64, f64) {
         let mut sorted = samples.to_vec();
@@ -253,6 +252,10 @@ impl CredibleInterval {
     }
 
     /// Highest posterior density (HPD) interval.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `samples` is empty.
     #[must_use]
     pub fn hpd(samples: &[f64], alpha: f64) -> (f64, f64) {
         let mut sorted = samples.to_vec();
@@ -318,8 +321,8 @@ impl BayesFactor {
 
         // Compute determinant of Hessian
         let mut det = 1.0;
-        for i in 0..n {
-            det *= hessian[i][i];
+        for (i, row) in hessian.iter().enumerate() {
+            det *= row[i];
         }
 
         (log_posterior + 0.5 * (2.0 * core::f64::consts::PI).ln() * n as f64 - 0.5 * det.ln()).exp()
@@ -334,7 +337,6 @@ pub struct HierarchicalModel {
 }
 
 impl HierarchicalModel {
-    #[must_use]
     pub fn new<F>(hyperprior: Box<dyn Prior>, likelihood: F) -> Self
     where
         F: Fn(&[f64], &[f64]) -> f64 + 'static,
@@ -345,13 +347,47 @@ impl HierarchicalModel {
         }
     }
 
-    /// Sample from hierarchical model using Gibbs sampling.
-    pub fn sample(&self, _data: &[f64], n_samples: usize, rng: &mut Rng) -> Vec<Vec<f64>> {
-        let mut samples = Vec::new();
+    /// Sample from the posterior using random-walk Metropolis-Hastings.
+    ///
+    /// The target distribution is `prior(theta) * likelihood(data, theta)`.
+    /// A burn-in of `BURN_IN` draws is discarded before `n_samples` draws are
+    /// collected (every draw after burn-in is kept, accepted or not, which
+    /// makes the output a valid MCMC sample).
+    pub fn sample(&self, data: &[f64], n_samples: usize, rng: &mut Rng) -> Vec<Vec<f64>> {
+        const BURN_IN: usize = 500;
+        const PROPOSAL_SD: f64 = 0.1;
 
-        for _ in 0..n_samples {
-            let hyperparams = self.hyperprior.sample(rng);
-            samples.push(hyperparams);
+        let mut theta = self.hyperprior.sample(rng);
+        if theta.iter().any(|v| !v.is_finite()) {
+            theta = vec![0.0; theta.len()];
+        }
+
+        let likelihood = &self.likelihood;
+        let mut current_log_post =
+            self.hyperprior.log_pdf(&theta) + likelihood(data, &theta);
+
+        let mut samples = Vec::with_capacity(n_samples);
+        for i in 0..BURN_IN + n_samples {
+            let mut proposal = theta.clone();
+            for p in &mut proposal {
+                *p += crate::distributions::Normal {
+                    mu: 0.0,
+                    sigma: PROPOSAL_SD,
+                }
+                .sample(rng);
+            }
+
+            let prop_log_post = self.hyperprior.log_pdf(&proposal) + likelihood(data, &proposal);
+            let log_alpha = prop_log_post - current_log_post;
+            let accepted = log_alpha >= 0.0 || rng.uniform() < log_alpha.exp();
+            if accepted {
+                theta = proposal;
+                current_log_post = prop_log_post;
+            }
+
+            if i >= BURN_IN {
+                samples.push(theta.clone());
+            }
         }
 
         samples
@@ -364,35 +400,104 @@ pub struct EmpiricalBayes;
 
 impl EmpiricalBayes {
     /// Estimate hyperparameters by maximizing marginal likelihood.
-    pub fn estimate(
-        marginal_likelihood: impl Fn(&[f64]) -> f64,
-        initial: &[f64],
-        rng: &mut Rng,
-    ) -> Vec<f64> {
-        let mut params = initial.to_vec();
-        let mut best_params = params.clone();
-        let mut best_ll = marginal_likelihood(&params);
+    ///
+    /// Uses a deterministic Nelder-Mead simplex maximizer with a fixed
+    /// iteration budget. Gradient-free, so it works on black-box marginal
+    /// likelihoods. Returns the best vertex found.
+    #[must_use]
+    pub fn estimate(marginal_likelihood: impl Fn(&[f64]) -> f64, initial: &[f64]) -> Vec<f64> {
+        const MAX_ITERS: usize = 5_000;
+        const ALPHA: f64 = 1.0;
+        const GAMMA: f64 = 2.0;
+        const RHO: f64 = 0.5;
+        const SIGMA: f64 = 0.5;
 
-        // Simple hill climbing
-        for _ in 0..1000 {
-            let mut new_params = params.clone();
-            for p in &mut new_params {
-                *p += crate::distributions::Normal {
-                    mu: 0.0,
-                    sigma: 0.1,
-                }
-                .sample(rng);
+        let score = |v: &[f64]| {
+            let s = marginal_likelihood(v);
+            if s.is_nan() {
+                f64::NEG_INFINITY
+            } else {
+                s
+            }
+        };
+
+        let n = initial.len();
+        let mut simplex: Vec<(Vec<f64>, f64)> = Vec::with_capacity(n + 1);
+        simplex.push((initial.to_vec(), score(initial)));
+        for i in 0..n {
+            let mut v = initial.to_vec();
+            let step = if v[i].abs() > 1e-10 { 0.05 * v[i].abs() } else { 0.05 };
+            v[i] += step;
+            let s = score(&v);
+            simplex.push((v, s));
+        }
+
+        for _ in 0..MAX_ITERS {
+            simplex.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
+
+            let best_score = simplex[0].1;
+            let converged = simplex
+                .iter()
+                .skip(1)
+                .all(|(_, s)| (s - best_score).abs() <= 1e-9 * (1.0 + best_score.abs()));
+            if converged {
+                break;
             }
 
-            let ll = marginal_likelihood(&new_params);
-            if ll > best_ll {
-                best_ll = ll;
-                best_params = new_params.clone();
-                params = new_params;
+            let worst_idx = simplex.len() - 1;
+            let worst = simplex[worst_idx].0.clone();
+            let centroid: Vec<f64> = (0..n)
+                .map(|i| simplex[..worst_idx].iter().map(|(v, _)| v[i]).sum::<f64>() / n as f64)
+                .collect();
+
+            let reflect: Vec<f64> = centroid
+                .iter()
+                .zip(&worst)
+                .map(|(&c, &w)| c + ALPHA * (c - w))
+                .collect();
+            let f_reflect = score(&reflect);
+
+            if f_reflect > simplex[0].1 {
+                let expand: Vec<f64> = centroid
+                    .iter()
+                    .zip(&reflect)
+                    .map(|(&c, &r)| c + GAMMA * (r - c))
+                    .collect();
+                let f_expand = score(&expand);
+                if f_expand > f_reflect {
+                    simplex[worst_idx] = (expand, f_expand);
+                } else {
+                    simplex[worst_idx] = (reflect, f_reflect);
+                }
+            } else if f_reflect > simplex[worst_idx].1 {
+                simplex[worst_idx] = (reflect, f_reflect);
+            } else {
+                let contract: Vec<f64> = centroid
+                    .iter()
+                    .zip(&worst)
+                    .map(|(&c, &w)| c + RHO * (w - c))
+                    .collect();
+                let f_contract = score(&contract);
+                if f_contract > simplex[worst_idx].1 {
+                    simplex[worst_idx] = (contract, f_contract);
+                } else {
+                    // Shrink the simplex towards the best vertex.
+                    let best = simplex[0].0.clone();
+                    for entry in simplex.iter_mut().skip(1) {
+                        entry.0 = entry
+                            .0
+                            .iter()
+                            .zip(&best)
+                            .map(|(&v, &b)| b + SIGMA * (v - b))
+                            .collect();
+                        entry.1 = score(&entry.0);
+                    }
+                }
             }
         }
 
-        best_params
+        simplex.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
+        simplex[0].0.clone()
     }
 }
 
@@ -447,7 +552,7 @@ mod tests {
 
     #[test]
     fn test_credible_interval() {
-        let samples: Vec<f64> = (0..1000).map(|i| i as f64).collect();
+        let samples: Vec<f64> = (0..1000).map(f64::from).collect();
         let (lower, upper) = CredibleInterval::from_samples(&samples, 0.05);
         assert!(lower < upper);
     }
@@ -473,11 +578,12 @@ mod tests {
 
     #[test]
     fn test_beta_prior_edge_cases() {
-        // Alpha = 0, Beta = 0 should produce NaN
+        // Alpha = 0, Beta = 0 is an improper prior. With no data the
+        // posterior equals the prior (0, 0), not NaN.
         let prior = BetaPrior::new(0.0, 0.0);
         let posterior = prior.posterior(0, 0);
-        // Prior with alpha=0, beta=0 is degenerate - posterior has NaN parameters
-        assert!(posterior.alpha.is_nan() || posterior.beta.is_nan());
+        assert_eq!(posterior.alpha, 0.0);
+        assert_eq!(posterior.beta, 0.0);
     }
 
     #[test]
@@ -488,6 +594,38 @@ mod tests {
         let posterior = prior.posterior_known_variance(&data, 1.0);
         // With sigma=0, posterior sigma should also be 0 or handle gracefully
         assert!(posterior.sigma >= 0.0);
+    }
+
+    #[test]
+    fn test_hierarchical_model_posterior_mean() {
+        let prior = BetaPrior::new(2.0, 2.0);
+        let model = HierarchicalModel::new(
+            Box::new(prior),
+            |data: &[f64], theta: &[f64]| {
+                let successes = data[0];
+                let trials = data[1];
+                theta[0].powf(successes) * (1.0 - theta[0]).powf(trials - successes)
+            },
+        );
+
+        let data = vec![5.0, 10.0];
+        let mut rng = Rng::new(7);
+        let samples = model.sample(&data, 4_000, &mut rng);
+        assert_eq!(samples.len(), 4_000);
+
+        let mean = samples.iter().map(|s| s[0]).sum::<f64>() / samples.len() as f64;
+        // Beta(2, 2) prior + 5/10 successes: posterior is Beta(7, 7), mean 0.5.
+        assert!((mean - 0.5).abs() < 0.05, "posterior mean was {mean}");
+        assert!(samples.iter().all(|s| s[0] > 0.0 && s[0] < 1.0));
+    }
+
+    #[test]
+    fn test_empirical_bayes_maximizes_likelihood() {
+        // Marginal likelihood = exp(-(x^2 + y^2)): maximum at (0, 0) = 1.
+        let ml = |params: &[f64]| (-(params[0] * params[0] + params[1] * params[1])).exp();
+        let optimum = EmpiricalBayes::estimate(ml, &[2.0, -1.5]);
+        assert!(ml(&optimum) > 0.99, "found value {}", ml(&optimum));
+        assert!(optimum[0].abs() < 0.1 && optimum[1].abs() < 0.1);
     }
 
     #[test]

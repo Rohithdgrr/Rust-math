@@ -25,9 +25,9 @@ impl CovarianceMatrix {
         }
 
         // Check symmetry
-        for i in 0..dim {
-            for j in 0..dim {
-                if (data[i][j] - data[j][i]).abs() > 1e-10 {
+        for (i, row_i) in data.iter().enumerate() {
+            for (j, &v) in row_i.iter().enumerate() {
+                if (v - data[j][i]).abs() > 1e-10 {
                     return Err("Covariance matrix must be symmetric".to_string());
                 }
             }
@@ -81,9 +81,9 @@ impl CovarianceMatrix {
         }
 
         let divisor = if n > 1 { (n - 1) as f64 } else { 1.0 };
-        for i in 0..n_vars {
-            for j in 0..n_vars {
-                cov[i][j] /= divisor;
+        for row in &mut cov {
+            for v in row.iter_mut() {
+                *v /= divisor;
             }
         }
 
@@ -116,21 +116,15 @@ impl CovarianceMatrix {
 
         for i in 0..n {
             for j in 0..=i {
-                let mut sum = 0.0;
-
                 if j == i {
-                    for k in 0..j {
-                        sum += l[j][k] * l[j][k];
-                    }
+                    let sum: f64 = l[j][..j].iter().map(|&v| v * v).sum();
                     let diag = self.data[i][i] - sum;
                     if diag <= 0.0 {
                         return Err("Matrix is not positive definite".to_string());
                     }
                     l[i][j] = diag.sqrt();
                 } else {
-                    for k in 0..j {
-                        sum += l[i][k] * l[j][k];
-                    }
+                    let sum: f64 = l[i][..j].iter().zip(&l[j][..j]).map(|(&a, &b)| a * b).sum();
                     l[i][j] = (self.data[i][j] - sum) / l[j][j];
                 }
             }
@@ -154,14 +148,14 @@ impl CorrelationMatrix {
         let n = cov.dimension;
         let mut corr = vec![vec![0.0; n]; n];
 
-        for i in 0..n {
-            for j in 0..n {
+        for (i, row) in corr.iter_mut().enumerate() {
+            for (j, entry) in row.iter_mut().enumerate() {
                 let std_i = cov.variance(i).sqrt();
                 let std_j = cov.variance(j).sqrt();
                 if std_i > 0.0 && std_j > 0.0 {
-                    corr[i][j] = cov.get(i, j) / (std_i * std_j);
+                    *entry = cov.get(i, j) / (std_i * std_j);
                 } else {
-                    corr[i][j] = if i == j { 1.0 } else { 0.0 };
+                    *entry = if i == j { 1.0 } else { 0.0 };
                 }
             }
         }
@@ -252,12 +246,12 @@ impl CorrelationMatrix {
             return Ok(0.0);
         }
 
-        Ok((concordant - discordant) as f64 / total as f64)
+        Ok(f64::from(concordant - discordant) / f64::from(total))
     }
 
     fn ranks(data: &[f64]) -> Vec<f64> {
         let n = data.len();
-        let mut indexed: Vec<(usize, f64)> = data.iter().cloned().enumerate().collect();
+        let mut indexed: Vec<(usize, f64)> = data.iter().copied().enumerate().collect();
         indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
         let mut ranks = vec![0.0; n];
@@ -287,34 +281,47 @@ impl CorrelationMatrix {
 pub struct MultivariateNormal {
     pub mean: Vec<f64>,
     pub covariance: CovarianceMatrix,
+    cached_inv: Vec<Vec<f64>>,
+    cached_det: f64,
+    cached_cholesky: Vec<Vec<f64>>,
 }
 
 impl MultivariateNormal {
     /// Create a new multivariate normal distribution.
+    ///
+    /// The determinant, inverse and Cholesky factor of the covariance matrix
+    /// are computed once here and cached, so `pdf` and `sample` do not repeat
+    /// the O(n^3) factorizations on every call.
     pub fn new(mean: Vec<f64>, covariance: CovarianceMatrix) -> Result<Self, String> {
         if mean.len() != covariance.dimension {
             return Err("Mean dimension must match covariance dimension".to_string());
         }
 
-        if !covariance.is_positive_definite() {
-            return Err("Covariance matrix must be positive definite".to_string());
-        }
+        let cached_cholesky = covariance.cholesky()?;
+        let cached_det = Self::determinant(&covariance.data);
+        let cached_inv = Self::inverse(&covariance.data);
 
-        Ok(MultivariateNormal { mean, covariance })
+        Ok(MultivariateNormal {
+            mean,
+            covariance,
+            cached_inv,
+            cached_det,
+            cached_cholesky,
+        })
     }
 
     /// Sample from the multivariate normal distribution.
     #[must_use]
     pub fn sample(&self, rng: &mut Rng) -> Vec<f64> {
         let n = self.mean.len();
-        let l = self.covariance.cholesky().unwrap();
+        let l = &self.cached_cholesky;
 
         // Generate standard normal samples
         let mut z = vec![0.0; n];
-        for i in 0..n {
+        for z_i in &mut z {
             let u1 = rng.uniform().max(1e-300);
             let u2 = rng.uniform();
-            z[i] = (-2.0 * u1.ln()).sqrt() * (2.0 * core::f64::consts::PI * u2).cos();
+            *z_i = (-2.0 * u1.ln()).sqrt() * (2.0 * core::f64::consts::PI * u2).cos();
         }
 
         // Transform: x = μ + L * z
@@ -332,12 +339,12 @@ impl MultivariateNormal {
     #[must_use]
     pub fn pdf(&self, x: &[f64]) -> f64 {
         let n = self.mean.len();
-        let det = self.determinant(&self.covariance.data);
+        let det = self.cached_det;
         if det <= 0.0 {
             return 0.0;
         }
 
-        let inv = self.inverse(&self.covariance.data);
+        let inv = &self.cached_inv;
         let diff: Vec<f64> = x.iter().zip(self.mean.iter()).map(|(a, b)| a - b).collect();
 
         let mut quadratic = 0.0;
@@ -352,7 +359,7 @@ impl MultivariateNormal {
     }
 
     #[must_use]
-    fn determinant(&self, matrix: &[Vec<f64>]) -> f64 {
+    fn determinant(matrix: &[Vec<f64>]) -> f64 {
         let n = matrix.len();
         if n == 1 {
             return matrix[0][0];
@@ -369,9 +376,9 @@ impl MultivariateNormal {
             // Pivot
             let mut max_row = i;
             let mut max_val = lu[i][i].abs();
-            for j in (i + 1)..n {
-                if lu[j][i].abs() > max_val {
-                    max_val = lu[j][i].abs();
+            for (j, row) in lu.iter().enumerate().skip(i + 1) {
+                if row[i].abs() > max_val {
+                    max_val = row[i].abs();
                     max_row = j;
                 }
             }
@@ -388,10 +395,11 @@ impl MultivariateNormal {
             det *= lu[i][i];
 
             // Eliminate
-            for j in (i + 1)..n {
-                let factor = lu[j][i] / lu[i][i];
-                for k in i..n {
-                    lu[j][k] -= factor * lu[i][k];
+            let pivot_row: Vec<f64> = lu[i].clone();
+            for row in lu.iter_mut().skip(i + 1) {
+                let factor = row[i] / pivot_row[i];
+                for (k, v) in row.iter_mut().enumerate().skip(i) {
+                    *v -= factor * pivot_row[k];
                 }
             }
         }
@@ -399,16 +407,16 @@ impl MultivariateNormal {
         det
     }
 
-    fn inverse(&self, matrix: &[Vec<f64>]) -> Vec<Vec<f64>> {
+    fn inverse(matrix: &[Vec<f64>]) -> Vec<Vec<f64>> {
         let n = matrix.len();
         let mut aug = vec![vec![0.0; 2 * n]; n];
 
         // Augment with identity matrix
-        for i in 0..n {
-            for j in 0..n {
-                aug[i][j] = matrix[i][j];
+        for (i, row) in aug.iter_mut().enumerate() {
+            for (j, entry) in row.iter_mut().enumerate().take(n) {
+                *entry = matrix[i][j];
             }
-            aug[i][n + i] = 1.0;
+            row[n + i] = 1.0;
         }
 
         // Gaussian elimination
@@ -416,9 +424,9 @@ impl MultivariateNormal {
             // Pivot
             let mut max_row = i;
             let mut max_val = aug[i][i].abs();
-            for j in (i + 1)..n {
-                if aug[j][i].abs() > max_val {
-                    max_val = aug[j][i].abs();
+            for (j, row) in aug.iter().enumerate().skip(i + 1) {
+                if row[i].abs() > max_val {
+                    max_val = row[i].abs();
                     max_row = j;
                 }
             }
@@ -433,16 +441,17 @@ impl MultivariateNormal {
             }
 
             // Scale row
-            for j in 0..2 * n {
-                aug[i][j] /= pivot;
+            for v in &mut aug[i] {
+                *v /= pivot;
             }
 
             // Eliminate column
-            for j in 0..n {
+            let pivot_row: Vec<f64> = aug[i].clone();
+            for (j, row) in aug.iter_mut().enumerate() {
                 if j != i {
-                    let factor = aug[j][i];
-                    for k in 0..2 * n {
-                        aug[j][k] -= factor * aug[i][k];
+                    let factor = row[i];
+                    for (k, v) in row.iter_mut().enumerate() {
+                        *v -= factor * pivot_row[k];
                     }
                 }
             }
@@ -480,15 +489,19 @@ impl GaussianCopula {
     }
 
     /// Sample from the copula.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the correlation matrix is not positive definite.
     #[must_use]
     pub fn sample(&self, rng: &mut Rng) -> Vec<f64> {
         let n = self.correlation.dimension;
         let mean = vec![0.0; n];
         let mut cov_data = vec![vec![0.0; n]; n];
 
-        for i in 0..n {
-            for j in 0..n {
-                cov_data[i][j] = self.correlation.get(i, j);
+        for (i, row) in cov_data.iter_mut().enumerate() {
+            for (j, entry) in row.iter_mut().enumerate() {
+                *entry = self.correlation.get(i, j);
             }
         }
 
@@ -518,9 +531,9 @@ mod tests {
         ];
 
         let cov = CovarianceMatrix::from_samples(&samples).unwrap();
-        assert!((cov.variance(0) - 1.6666667).abs() < 1e-6);
-        assert!((cov.variance(1) - 1.6666667).abs() < 1e-6);
-        assert!((cov.get(0, 1) - 1.6666667).abs() < 1e-6);
+        assert!((cov.variance(0) - 1.666_666_7).abs() < 1e-6);
+        assert!((cov.variance(1) - 1.666_666_7).abs() < 1e-6);
+        assert!((cov.get(0, 1) - 1.666_666_7).abs() < 1e-6);
     }
 
     #[test]

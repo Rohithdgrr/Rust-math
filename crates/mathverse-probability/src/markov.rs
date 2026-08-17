@@ -99,19 +99,19 @@ impl HiddenMarkovModel {
         let mut log_alpha = vec![f64::NEG_INFINITY; self.n_states];
 
         // Initialization
-        for i in 0..self.n_states {
-            log_alpha[i] = self.initial[i].ln() + self.emission[i][observations[0]].ln();
+        for (i, a) in log_alpha.iter_mut().enumerate() {
+            *a = self.initial[i].ln() + self.emission[i][observations[0]].ln();
         }
 
         // Induction
-        for t in 1..observations.len() {
+        for (_, &obs) in observations.iter().enumerate().skip(1) {
             let mut new_log_alpha = vec![f64::NEG_INFINITY; self.n_states];
-            for j in 0..self.n_states {
-                for i in 0..self.n_states {
-                    let log_prob = log_alpha[i] + self.transition[i][j].ln();
-                    new_log_alpha[j] = log_sum_exp(new_log_alpha[j], log_prob);
+            for (j, alpha_j) in new_log_alpha.iter_mut().enumerate() {
+                for (i, &alpha_i) in log_alpha.iter().enumerate() {
+                    let log_prob = alpha_i + self.transition[i][j].ln();
+                    *alpha_j = log_sum_exp(*alpha_j, log_prob);
                 }
-                new_log_alpha[j] += self.emission[j][observations[t]].ln();
+                *alpha_j += self.emission[j][obs].ln();
             }
             log_alpha = new_log_alpha;
         }
@@ -120,48 +120,51 @@ impl HiddenMarkovModel {
     }
 
     /// Viterbi algorithm: find most likely state sequence.
+    ///
+    /// Computed in log-space so long observation sequences do not underflow
+    /// to zero (which previously made the argmax degenerate toward state 0).
     pub fn viterbi(&self, observations: &[usize]) -> Vec<usize> {
         let t = observations.len();
         if t == 0 {
             return Vec::new();
         }
 
-        let mut delta = vec![vec![0.0; self.n_states]; t];
+        let mut delta = vec![vec![f64::NEG_INFINITY; self.n_states]; t];
         let mut psi = vec![vec![0usize; self.n_states]; t];
 
         // Initialization
-        for i in 0..self.n_states {
-            delta[0][i] = self.initial[i] * self.emission[i][observations[0]];
-            psi[0][i] = 0;
+        for (i, d) in delta[0].iter_mut().enumerate() {
+            *d = self.initial[i].ln() + self.emission[i][observations[0]].ln();
         }
 
         // Recursion
-        for t in 1..observations.len() {
-            for j in 0..self.n_states {
-                let mut max_val = 0.0;
+        for (t, &obs) in observations.iter().enumerate().skip(1) {
+            let prev_row: Vec<f64> = delta[t - 1].clone();
+            for (j, d) in delta[t].iter_mut().enumerate() {
+                let mut max_val = f64::NEG_INFINITY;
                 let mut max_idx = 0;
 
-                for i in 0..self.n_states {
-                    let val = delta[t - 1][i] * self.transition[i][j];
+                for (i, &prev) in prev_row.iter().enumerate() {
+                    let val = prev + self.transition[i][j].ln();
                     if val > max_val {
                         max_val = val;
                         max_idx = i;
                     }
                 }
 
-                delta[t][j] = max_val * self.emission[j][observations[t]];
+                *d = max_val + self.emission[j][obs].ln();
                 psi[t][j] = max_idx;
             }
         }
 
         // Termination
         let mut path = vec![0usize; t];
-        let mut max_val = 0.0;
+        let mut max_val = f64::NEG_INFINITY;
         let mut max_idx = 0;
 
-        for i in 0..self.n_states {
-            if delta[t - 1][i] > max_val {
-                max_val = delta[t - 1][i];
+        for (i, &v) in delta[t - 1].iter().enumerate() {
+            if v > max_val {
+                max_val = v;
                 max_idx = i;
             }
         }
@@ -212,7 +215,6 @@ pub struct MetropolisHastings {
 }
 
 impl MetropolisHastings {
-    #[must_use]
     pub fn new<F1, F2>(target_log_prob: F1, proposal: F2) -> Self
     where
         F1: Fn(&[f64]) -> f64 + 'static,
@@ -283,7 +285,6 @@ pub struct GibbsSampler {
 }
 
 impl GibbsSampler {
-    #[must_use]
     pub fn new(conditional_dists: Vec<Box<dyn Fn(usize, &[f64], &mut Rng) -> f64>>) -> Self {
         GibbsSampler { conditional_dists }
     }
@@ -458,11 +459,9 @@ impl StationaryDistribution {
     }
 
     fn is_aperiodic(transition: &[Vec<f64>]) -> bool {
-        let n = transition.len();
-
         // Check if any state has self-loop
-        for i in 0..n {
-            if transition[i][i] > 0.0 {
+        for (i, row) in transition.iter().enumerate() {
+            if row[i] > 0.0 {
                 return true;
             }
         }
@@ -512,11 +511,13 @@ impl AbsorbingMarkovChain {
         }
 
         // Compute I - Q
-        for i in 0..t {
-            q[i][i] = 1.0 - q[i][i];
-            for j in (i + 1)..t {
-                q[i][j] = -q[i][j];
-                q[j][i] = -q[j][i];
+        for (i, qi) in q.iter_mut().enumerate() {
+            for (j, v) in qi.iter_mut().enumerate() {
+                if i == j {
+                    *v = 1.0 - *v;
+                } else {
+                    *v = -*v;
+                }
             }
         }
 
@@ -600,9 +601,9 @@ impl AbsorbingMarkovChain {
         for i in 0..n {
             let mut max_row = i;
             let mut max_val = aug[i][i].abs();
-            for j in (i + 1)..n {
-                if aug[j][i].abs() > max_val {
-                    max_val = aug[j][i].abs();
+            for (j, row) in aug.iter().enumerate().skip(i + 1) {
+                if row[i].abs() > max_val {
+                    max_val = row[i].abs();
                     max_row = j;
                 }
             }
@@ -616,15 +617,16 @@ impl AbsorbingMarkovChain {
                 return Err("Matrix is singular".to_string());
             }
 
-            for j in 0..2 * n {
-                aug[i][j] /= pivot;
+            for v in &mut aug[i] {
+                *v /= pivot;
             }
 
-            for j in 0..n {
+            let pivot_row: Vec<f64> = aug[i].clone();
+            for (j, row) in aug.iter_mut().enumerate() {
                 if j != i {
-                    let factor = aug[j][i];
-                    for k in 0..2 * n {
-                        aug[j][k] -= factor * aug[i][k];
+                    let factor = row[i];
+                    for (k, v) in row.iter_mut().enumerate() {
+                        *v -= factor * pivot_row[k];
                     }
                 }
             }
