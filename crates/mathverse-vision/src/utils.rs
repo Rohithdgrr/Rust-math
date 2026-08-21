@@ -1,4 +1,4 @@
-#! Utility functions for computer vision.
+//! Utility functions for computer vision.
 
 use crate::Image;
 

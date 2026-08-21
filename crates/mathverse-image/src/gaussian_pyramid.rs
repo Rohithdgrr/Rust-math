@@ -1,4 +1,4 @@
-#! Gaussian Pyramid
+//! Gaussian Pyramid
 //!
 //! Multi-scale image representation via successive Gaussian blur and subsampling.
 //! Each octave halves the width and height, enabling scale-invariant processing.
@@ -14,16 +14,17 @@
 //!
 //! ```rust
 //! use mathverse_image::gaussian_pyramid::gaussian_pyramid;
+//! use mathverse_image::GrayImage;
 //!
 //! let img = GrayImage::new(512, 512).unwrap();
 //! let pyramid = gaussian_pyramid(&img, 3);
 //! // pyramid[0] = 512×512 original
 //! // pyramid[1] = 256×256 first octave
 //! // pyramid[2] = 128×128 second octave
-//! // pyramid[3] =  64×64 third octave
+//! // pyramid[3] =  64×64 third octave (only with octaves >= 4)
 //! ```
 
-use crate::{gaussian_blur, GrayImage};
+use crate::GrayImage;
 
 /// Build a Gaussian pyramid with the given number of octaves.
 ///
@@ -39,7 +40,8 @@ use crate::{gaussian_blur, GrayImage};
 /// # Returns
 ///
 /// `Vec<GrayImage>` where index `i` is level `i` (0 = original).
-/// Level `i` has dimensions `img.w / 2ⁱ × img.h / 2ⁱ`.
+/// Level `i` has dimensions `img.w / 2ⁱ × img.h / 2ⁱ`. When the image
+/// becomes too small to halve further, remaining levels repeat a 1×1 image.
 ///
 /// # Panics
 ///
@@ -53,11 +55,11 @@ use crate::{gaussian_blur, GrayImage};
 ///
 /// let img = GrayImage::new(64, 64).unwrap();
 /// let pyramid = gaussian_pyramid(&img, 4);
-// assert_eq!(pyramid.len(), 4);
- // assert_eq!(pyramid[0].w, 64);  // level 0: original
- // assert_eq!(pyramid[1].w, 32);  // level 1: 64/2
- // assert_eq!(pyramid[2].w, 16);  // level 2: 64/4
- // assert_eq!(pyramid[3].w,  8);  // level 3: 64/8
+/// assert_eq!(pyramid.len(), 4);
+/// assert_eq!(pyramid[0].w, 64);  // level 0: original
+/// assert_eq!(pyramid[1].w, 32);  // level 1: 64/2
+/// assert_eq!(pyramid[2].w, 16);  // level 2: 64/4
+/// assert_eq!(pyramid[3].w, 8);   // level 3: 64/8
 /// ```
 pub fn gaussian_pyramid(img: &GrayImage, octaves: usize) -> Vec<GrayImage> {
     let mut pyramid = Vec::with_capacity(octaves);
@@ -69,13 +71,15 @@ pub fn gaussian_pyramid(img: &GrayImage, octaves: usize) -> Vec<GrayImage> {
         // sigma = 0.5 * (current level downsampling factor)
         let level = pyramid.len();
         let sigma = 0.5 * (level as f64);
-        let radius = ((4.0 * sigma) + 0.5).ceil() as usize;
-        if radius < 1 {
-            radius = 1;
-        }
+        let radius = (((4.0 * sigma) + 0.5).ceil() as usize).max(1);
 
-        // Clamp radius to not exceed current image dimensions
-        let max_radius = current.w.min(current.h) / 2;
+        // Clamp radius to not exceed current image dimensions; if the image
+        // is already 1×1 there is nothing left to blur or subsample.
+        if current.w <= 1 || current.h <= 1 {
+            pyramid.push(current.clone());
+            continue;
+        }
+        let max_radius = (current.w.min(current.h) / 2).max(1);
         let effective_radius = radius.min(max_radius);
 
         // Gaussian blur
@@ -91,8 +95,8 @@ pub fn gaussian_pyramid(img: &GrayImage, octaves: usize) -> Vec<GrayImage> {
                 subsampled.set(x / 2, y / 2, blurred.get(x, y));
             }
         }
+        pyramid.push(subsampled.clone());
         current = subsampled;
-        pyramid.push(current);
     }
     pyramid
 }
@@ -142,14 +146,16 @@ mod tests {
             }
         }
         let pyramid = gaussian_pyramid(&img, 3);
-        // Original should be unchanged
-        assert!((pyramid[0].get(0, 0) - 0.0).abs() < 1e-10);
-        assert!((pyramid[0].get(31, 31) - 1.0).abs() < 1e-10);
-        // Lower levels should have smoother values
-        // Level 1 downsampled: pixel at (0,0) should be original (0,0)
-        assert!((pyramid[1].get(0, 0) - 0.0).abs() < 1e-10);
-        // Level 2 downsampled: pixel at (0,0) should be original (0,0)
-        assert!((pyramid[2].get(0, 0) - 0.0).abs() < 1e-10);
+        // Original should be unchanged (level 0 is the untouched input)
+        assert_eq!(pyramid[0].get(0, 0), img.get(0, 0));
+        assert_eq!(pyramid[0].get(31, 31), img.get(31, 31));
+        // Lower levels should be smoothed: the bright far corner stays high
+        // while the dark corner picks up only a little bleed from neighbours
+        // (border-clamped blur).
+        assert!(pyramid[1].get(0, 0) >= 0.0 && pyramid[1].get(0, 0) < 0.02);
+        assert!(pyramid[2].get(0, 0) >= 0.0 && pyramid[2].get(0, 0) < 0.08);
+        // And the bright corner remains recognizably bright after downsampling.
+        assert!(pyramid[1].get(15, 15) > 0.9);
     }
 
     #[test]

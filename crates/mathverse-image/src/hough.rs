@@ -1,4 +1,4 @@
-#! Hough Line Transform
+//! Hough Line Transform
 //!
 //! Detects line segments in binary or edge images using the Standard Hough Transform.
 //! Accumulates votes in a (rho, theta) parameter space to identify lines.
@@ -45,17 +45,17 @@
 //! use mathverse_image::{canny::canny, GrayImage};
 //!
 //! let mut img = GrayImage::new(256, 256).unwrap();
-//! // Draw a vertical line at x=128
+//! // Draw a vertical edge at x=128
 //! for y in 0..256 {
 //!     for x in 0..256 {
 //!         img.set(x, y, if x >= 128 { 1.0 } else { 0.0 });
-!     }
+//!     }
 //! }
 //! // Apply Canny edge detection
 //! let edges = canny(&img, 1.5, 0.05, 0.15);
 //! // Detect lines
 //! let lines = hough_line_transform(&edges, 180, 1.0, 100);
-//! // Should detect the vertical line: rho ≈ 64.0 (distance from origin), theta ≈ π/2
+//! // The vertical edge at x=128 concentrates at theta ≈ 0, rho ≈ 128
 //! assert!(!lines.is_empty());
 //! for (rho, theta) in &lines {
 //!     println!("Line: rho={:.2}, theta={:.3} rad ({:.1}°)", rho, theta, theta * 180.0 / std::f64::consts::PI);
@@ -66,7 +66,7 @@
 //!
 //! - The accumulator uses rho indexing: rho_idx = ((rho + D) / rho_resolution).round() as usize
 //! - Clamps rho_idx to valid range to prevent out-of-bounds access
-//! - Returns lines sorted by vote count (highest first) would be a nice enhancement
+//! - Returns lines sorted by vote count (highest first)
 //! - For best results, apply Canny edge detection before calling this function
 
 use crate::GrayImage;
@@ -77,20 +77,6 @@ use std::f64::consts::PI;
 /// - `rho`: Perpendicular distance from origin to line in pixels
 /// - `theta`: Angle of normal vector from origin to line in radians [0, π)
 type Line = (f64, f64);
-
-/// Accumulator bin for Hough Transform voting.
-struct AccumulatorBin {
-    /// Rho index into the accumulator array
-    rho_idx: usize,
-    /// Vote count
-    votes: usize,
-}
-
-impl AccumulatorBin {
-    fn new(rho_idx: usize) -> Self {
-        AccumulatorBin { rho_idx, votes: 1 }
-    }
-}
 
 /// Detects line segments in an image using the Standard Hough Transform.
 ///
@@ -123,13 +109,12 @@ pub fn hough_line_transform(
 ) -> Vec<Line> {
     let w = img.w;
     let h = img.h;
-    let total_pixels = w * h;
 
     // Compute image diagonal for rho range
-    let diag = (w as f64.powi(2) + h as f64.powi(2)).sqrt();
+    let diag = ((w * w + h * h) as f64).sqrt();
 
-    // Theta range: 0 to π (exclusive)
-    let theta_step = PI / (theta_resolution as f64 - 1.0);
+    // Theta range: 0 to π (exclusive); guard against degenerate resolutions
+    let theta_step = PI / (theta_resolution.max(2) as f64 - 1.0);
 
     // Rho range: -diag to +diag
     // Number of rho bins: ceil(2 * diag / rho_resolution) + 1
@@ -169,37 +154,34 @@ pub fn hough_line_transform(
         }
     }
 
-    // Find peaks in the accumulator above threshold
-    let mut lines: Vec<Line> = Vec::new();
-
+    // Find peaks in the accumulator above threshold, keeping vote counts so
+    // the result can be sorted by votes (most voted lines first).
+    let mut peaks: Vec<(usize, f64, f64)> = Vec::new();
     for theta_idx in 0..theta_resolution {
         for rho_idx in 0..num_rho_bins {
             let votes = accumulator[theta_idx * num_rho_bins + rho_idx];
             if votes >= threshold {
                 let rho = (rho_idx as f64 - rho_offset) * rho_resolution;
                 let theta = theta_idx as f64 * theta_step;
-                lines.push((rho, theta));
+                peaks.push((votes, rho, theta));
             }
         }
     }
 
-    // Sort by vote count descending (we need to track votes, so redo with tracking)
-    // Actually, let us re-approach: track votes during peak detection
-    lines.sort_by(|a, b| {
-        // We can't easily get vote counts now, so just return by rho then theta
-        a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    // Sort by vote count descending; `total_cmp` keeps the order total even
+    // if a coordinate is NaN.
+    peaks.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.total_cmp(&a.1)));
 
     // Remove duplicate lines (lines with very close rho and theta)
     let mut unique_lines: Vec<Line> = Vec::new();
-    for line in &lines {
+    for (_, rho, theta) in &peaks {
         let is_duplicate = unique_lines.iter().any(|ul| {
-            let rho_diff = (line.0 - ul.0).abs();
-            let theta_diff = (line.1 - ul.1).abs();
+            let rho_diff = (*rho - ul.0).abs();
+            let theta_diff = (*theta - ul.1).abs();
             rho_diff < rho_resolution && theta_diff < (PI / theta_resolution as f64)
         });
         if !is_duplicate {
-            unique_lines.push(*line);
+            unique_lines.push((*rho, *theta));
         }
     }
 
@@ -221,21 +203,20 @@ mod tests {
             }
         }
 
-        // Hough transform: should detect line with rho ≈ 0 (line through origin at x=50)
-        // Actually for a vertical line at x=50 in a 100×100 image,
-        // the distance from origin is 50 pixels, and theta = π/2 (vertical normal)
+        // Hough transform with ρ = x·cosθ + y·sinθ: a vertical line x=50 is
+        // concentrated at θ = 0 (normal points along +x), ρ ≈ 50.
         let lines = hough_line_transform(&img, 180, 1.0, 20);
         // Should detect at least one line
         assert!(!lines.is_empty(), "Should detect vertical line");
 
-        // Find the line closest to theta = π/2 (90°)
+        // Find the line closest to theta = 0
         let vertical_lines: Vec<_> = lines
             .iter()
-            .filter(|(_, theta)| ((theta - PI / 2.0).abs()).abs() < 0.1)
+            .filter(|(_, theta)| theta.abs() < 0.1 || (PI - theta).abs() < 0.1)
             .collect();
         assert!(
             !vertical_lines.is_empty(),
-            "Should detect lines near theta=π/2 for vertical line"
+            "Should detect lines near theta=0 for vertical line"
         );
 
         // For vertical line at x=50, rho should be around 50 (distance from origin)
@@ -256,17 +237,19 @@ mod tests {
             }
         }
 
+        // With ρ = x·cosθ + y·sinθ, a horizontal line y=50 concentrates at
+        // θ = π/2 (normal points along +y), ρ ≈ 50.
         let lines = hough_line_transform(&img, 180, 1.0, 20);
         assert!(!lines.is_empty(), "Should detect horizontal line");
 
-        // For horizontal line at y=50, theta should be 0 (normal is horizontal)
+        // For horizontal line at y=50, theta should be π/2 (normal vertical)
         let horizontal_lines: Vec<_> = lines
             .iter()
-            .filter(|(_, theta)| theta.abs() < 0.1 || (PI - theta).abs() < 0.1)
+            .filter(|(_, theta)| (theta - PI / 2.0).abs() < 0.1)
             .collect();
         assert!(
             !horizontal_lines.is_empty(),
-            "Should detect lines near theta=0 for horizontal line"
+            "Should detect lines near theta=π/2 for horizontal line"
         );
     }
 

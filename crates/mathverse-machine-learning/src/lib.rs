@@ -57,15 +57,16 @@ pub mod preprocessing_adv;
 pub mod svm;
 pub mod tree;
 mod validate;
-/// XGBoost gradient boosting implementation.
-
-/// Run a complete ML: generate a synthetic dataset, fit a pipeline, and evaluate via cross-validation.
+/// Run a complete ML workflow: generate a synthetic dataset, fit a pipeline,
+/// and evaluate via cross-validation.
+///
+/// Returns the negated mean cross-validated score (higher is better).
 ///
 /// # Example
 ///
 /// ```
 /// use mathverse_ml::learn;
-/// use mathverse_ml::pipeline::{PipelineStep, ModelType};
+/// use mathverse_ml::pipeline::{Pipeline, PipelineStep, ModelType};
 /// use mathverse_ml::datasets::make_classification;
 ///
 /// let (x, y) = make_classification(200, 4, 2, 42);
@@ -73,8 +74,8 @@ mod validate;
 ///     PipelineStep::Standardize,
 ///     PipelineStep::Model(ModelType::Logistic),
 /// ]);
-/// let mean_mse = learn(&x, &y, &pipeline, 5);
-/// println!("Mean cross-validated MSE: {:.4}", mean_mse);
+/// let score = learn(&x, &y, &pipeline, 5);
+/// println!("Negated mean cross-validated loss: {:.4}", score);
 /// ```
 #[must_use]
 pub fn learn(
@@ -86,14 +87,15 @@ pub fn learn(
     let scores = evaluation::cross_val_score(x, y, k, |train_x, train_y, test_x| {
         pipeline.predict(test_x)
     });
-    let mean: f64 = scores.iter().sum::<f64>() / scores.len() as f64;
-    -mean // return negative MSE (higher is better)
+    // `cross_val_score` already yields negative MSE per fold, so the mean is
+    // directly the "higher is better" aggregate.
+    scores.iter().sum::<f64>() / scores.len() as f64
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::datasets::make_classification;
+    use crate::datasets::{make_classification, make_regression};
     use crate::pipeline::{Pipeline, PipelineStep, ModelType};
 
     #[test]
@@ -109,9 +111,15 @@ mod tests {
 
     #[test]
     fn test_learn_linear() {
-        let (x, y) = make_regression(100, 3, 0.1, 42); // wait make_regression is in datasets
-        // This test may fail if make_regression not in scope; we'll keep simple
-        let _ = (x, y, pipeline, mean_mse);
+        let (x, y) = make_regression(100, 3, 0.1, 42);
+        let pipeline = Pipeline::new(vec![
+            PipelineStep::Standardize,
+            PipelineStep::Model(ModelType::Linear),
+        ]);
+        let score = learn(&x, &y, &pipeline, 5);
+        assert!(score.is_finite(), "cross-validated score must be finite");
     }
 }
+
+/// XGBoost gradient boosting implementation.
 pub mod xgboost;

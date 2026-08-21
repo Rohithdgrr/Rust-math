@@ -1,4 +1,4 @@
-#! Harris Corner Detector
+//! Harris Corner Detector
 //!
 //! Detects corners in a grayscale image using the Harris corner detection algorithm.
 //! The algorithm computes the cornerness measure R = det(M) - k·trace(M)²
@@ -53,17 +53,17 @@
 //! - Returns corners as (x, y, R) tuples sorted by response (descending)
 //! - Non-maximum suppression is applied internally
 
-use crate::{gaussian_blur, GrayImage, sobel};
+use crate::GrayImage;
 
 /// Detects corners in a grayscale image using the Harris algorithm.
 ///
 /// # Algorithm
 ///
 /// 1. Compute gradients (Gx, Gy) via Sobel
-/// 2. Compute second-moment matrix components (Gaussian smoothed)
-/// 3. Compute Harris response R = det(M) - k·trace(M)²
-/// 4. Apply non-maximum suppression
-/// 5. Filter by threshold
+/// 2. Accumulate a per-pixel structure tensor over a `(2r+1)²` window
+/// 3. Compute the local Harris response R = det(S) − k·trace(S)²
+/// 4. Filter by threshold
+/// 5. Apply 3×3 non-maximum suppression
 /// 6. Sort by response descending
 ///
 /// # Precision
@@ -102,58 +102,76 @@ pub fn harris(img: &GrayImage, k: f64, threshold: f64) -> Vec<(f64, f64, f64)> {
         }
     }
 
-    // Gaussian smooth the gradient components
-    let sigma = 1.0;
-    let blurred_gx = gaussian_blur(&gx_img, 1, sigma);
-    let blurred_gy = gaussian_blur(&gy_img, 1, sigma);
+    // Structure-tensor accumulation window (5×5) around each pixel.
+    const WIN_RADIUS: i64 = 2;
 
-    // Compute averaged second-moment matrix components
-    let mut sum_mxx: f64 = 0.0;
-    let mut sum_my_y: f64 = 0.0;
-    let mut sum_mxy: f64 = 0.0;
-    let mut count: f64 = 0.0;
-
-    for y in 1..img.h - 1 {
-        for x in 1..img.w - 1 {
-            let gx = blurred_gx.get(x, y);
-            let gy = blurred_gy.get(x, y);
-            let gx2 = gx * gx;
-            let gy2 = gy * gy;
-            let gx_gy = gx * gy;
-
-            sum_mxx += gx2;
-            sum_my_y += gy2;
-            sum_mxy += gx_gy;
-            count += 1.0;
-        }
-    }
-
-    let num_pixels = if count > 0.0 { count } else { 1.0 };
-    let mxx = sum_mxx / num_pixels;
-    let myy = sum_my_y / num_pixels;
-    let mxy = sum_mxy / num_pixels;
-
-    // Compute Harris response R = det(M) - k·trace(M)²
-    // det(M) = Mxx·Myy - Mxy²
-    // trace(M) = Mxx + Myy
-    let mut responses: Vec<(f64, f64, f64)> = Vec::new();
-
-    for y in 1..img.h - 1 {
-        for x in 1..img.w - 1 {
-            let det_m = mxx * myy - mxy * mxy;
-            let trace_m = mxx + myy;
-            let response = det_m - k * trace_m * trace_m;
+    let mut candidates: Vec<(usize, usize, f64)> = Vec::new();
+    for y in 0..img.h {
+        for x in 0..img.w {
+            let (mut sxx, mut syy, mut sxy) = (0.0f64, 0.0f64, 0.0f64);
+            for dy in -WIN_RADIUS..=WIN_RADIUS {
+                for dx in -WIN_RADIUS..=WIN_RADIUS {
+                    let sx = (x as i64 + dx).clamp(0, img.w as i64 - 1) as usize;
+                    let sy = (y as i64 + dy).clamp(0, img.h as i64 - 1) as usize;
+                    let gx = gx_img.get(sx, sy);
+                    let gy = gy_img.get(sx, sy);
+                    sxx += gx * gx;
+                    syy += gy * gy;
+                    sxy += gx * gy;
+                }
+            }
+            // Harris response R = det(S) − k·trace(S)²
+            let det_s = sxx * syy - sxy * sxy;
+            let trace_s = sxx + syy;
+            let response = det_s - k * trace_s * trace_s;
 
             if response > threshold {
-                responses.push((x as f64, y as f64, response));
+                candidates.push((x, y, response));
             }
         }
     }
 
-    // Sort by response descending
-    responses.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
+    // Non-maximum suppression: keep only pixels whose response is the strict
+    // maximum within their 3×3 neighbourhood (ties keep the first scanned).
+    let resp_at = |cx: usize, cy: usize| -> Option<f64> {
+        candidates
+            .iter()
+            .find(|(x, y, _)| *x == cx && *y == cy)
+            .map(|(_, _, r)| *r)
+    };
 
-    responses
+    let mut corners: Vec<(usize, usize, f64)> = Vec::new();
+    for &(x, y, r) in &candidates {
+        let mut is_max = true;
+        'outer: for dy in -1i64..=1 {
+            for dx in -1i64..=1 {
+                if dx == 0 && dy == 0 {
+                    continue;
+                }
+                let nx = x as i64 + dx;
+                let ny = y as i64 + dy;
+                if nx < 0 || ny < 0 || nx >= img.w as i64 || ny >= img.h as i64 {
+                    continue;
+                }
+                if let Some(nr) = resp_at(nx as usize, ny as usize) {
+                    if nr > r {
+                        is_max = false;
+                        break 'outer;
+                    }
+                }
+            }
+        }
+        if is_max {
+            corners.push((x, y, r));
+        }
+    }
+
+    // Sort by response descending. `total_cmp` gives a total order, so the
+    // sort never panics even if a response is NaN (NaN sorts deterministically
+    // instead of aborting with a `partial_cmp().unwrap()` panic).
+    corners.sort_by(|a, b| b.2.total_cmp(&a.2));
+
+    corners.into_iter().map(|(x, y, r)| (x as f64, y as f64, r)).collect()
 }
 
 #[cfg(test)]

@@ -4,6 +4,28 @@
 use crate::Matrix;
 use mathverse_core::error::{MathError, MathResult};
 
+/// Maximum number of full sweeps for the one-sided Jacobi SVD.
+///
+/// One-sided Jacobi converges quadratically and typical matrices reach the
+/// `off < 1e-14` stopping criterion within ~6–12 sweeps; the cap only bounds
+/// worst-case runtime. If the cap is hit before convergence the best available
+/// factorization is returned (accuracy may be degraded for extreme inputs).
+pub const MAX_SVD_SWEEPS: usize = 30;
+
+/// Convergence threshold on the relative off-diagonal energy for the
+/// one-sided Jacobi SVD.
+pub const SVD_OFF_DIAGONAL_TOL: f64 = 1e-14;
+
+/// Maximum number of sweeps for the cyclic Jacobi symmetric eigensolver.
+///
+/// Same quadratic-convergence behaviour as [`MAX_SVD_SWEEPS`]: the cap is a
+/// worst-case guard, not the expected iteration count.
+pub const MAX_JACOBI_SWEEPS: usize = 50;
+
+/// Stopping threshold on the largest off-diagonal magnitude for the
+/// symmetric Jacobi eigensolver.
+pub const JACOBI_OFF_DIAGONAL_TOL: f64 = 1e-14;
+
 /// LU decomposition with partial pivoting: `P A = L U` (unit-diagonal L).
 #[derive(Debug, Clone)]
 pub struct Lu {
@@ -16,7 +38,13 @@ pub struct Lu {
 }
 
 impl Matrix {
-    /// LU with partial pivoting; [`MathError::Singular`] if a pivot is zero.
+    /// LU with partial pivoting.
+    ///
+    /// Fails with [`MathError::Singular`] when a pivot drops to (or below)
+    /// `ε · n · ‖A‖∞`, i.e. when elimination proves the matrix numerically
+    /// singular at machine precision *relative to the input scale*. Merely
+    /// ill-conditioned inputs (e.g. condition ~1e13) still factor fine — use
+    /// [`crate::condition`] to assess quality separately.
     pub fn lu(&self) -> MathResult<Lu> {
         if !self.is_square() {
             return Err(MathError::DimensionMismatch);
@@ -25,6 +53,11 @@ impl Matrix {
         let mut a = self.data.clone();
         let mut pivots: Vec<usize> = (0..n).collect();
         let mut sign = 1.0f64;
+        // Relative singularity threshold: scales with the largest input
+        // magnitude so both huge and tiny well-formed matrices are treated
+        // consistently.
+        let anorm = self.data.iter().fold(0.0f64, |m, &v| m.max(v.abs()));
+        let tol = f64::EPSILON * (n.max(1) as f64) * anorm;
         for k in 0..n {
             let mut p = k;
             let mut max = a[k * n + k].abs();
@@ -35,7 +68,8 @@ impl Matrix {
                     p = i;
                 }
             }
-            if max == 0.0 {
+            if !(max > tol) {
+                // Covers exact zeros and numerically-dead pivots alike.
                 return Err(MathError::Singular);
             }
             if p != k {
@@ -164,11 +198,16 @@ pub struct Svd {
 }
 
 impl Matrix {
+    /// SVD via one-sided Jacobi rotations.
+    ///
+    /// Sweeps until the relative off-diagonal column energy drops below
+    /// [`SVD_OFF_DIAGONAL_TOL`], capped at [`MAX_SVD_SWEEPS`] sweeps (see the
+    /// constant's notes on convergence).
     pub fn svd(&self) -> MathResult<Svd> {
         let (m, n) = (self.rows, self.cols);
         let mut b = self.clone();
         let mut v = Matrix::identity(n);
-        for _ in 0..30 {
+        for _ in 0..MAX_SVD_SWEEPS {
             let mut off = 0.0;
             for p in 0..n {
                 for q in (p + 1)..n {
@@ -185,7 +224,7 @@ impl Matrix {
                     }
                 }
             }
-            if off < 1e-14 {
+            if off < SVD_OFF_DIAGONAL_TOL {
                 break;
             }
             for p in 0..n {
@@ -249,8 +288,12 @@ impl Matrix {
 
 impl Matrix {
     /// Eigenvalues and eigenvectors (as columns) of a symmetric matrix,
-    /// via Jacobi rotations. Errors if `A` is not symmetric.
-    /// # ponytail: symmetric-only; general matrices need the shifted QR algorithm, add when needed.
+    /// via cyclic Jacobi rotations. Errors if `A` is not symmetric.
+    ///
+    /// Sweeps until the largest off-diagonal magnitude drops below
+    /// [`JACOBI_OFF_DIAGONAL_TOL`], capped at [`MAX_JACOBI_SWEEPS`] sweeps
+    /// (see that constant's notes on convergence). Eigenpairs are returned
+    /// sorted by descending eigenvalue.
     pub fn eigen_symmetric(&self) -> MathResult<(Vec<f64>, Matrix)> {
         if !self.is_symmetric(1e-12) {
             return Err(MathError::InvalidArgument("eigen_symmetric requires a symmetric matrix"));
@@ -258,7 +301,7 @@ impl Matrix {
         let n = self.rows;
         let mut a = self.clone();
         let mut v = Matrix::identity(n);
-        for _ in 0..50 {
+        for _ in 0..MAX_JACOBI_SWEEPS {
             let (mut p, mut q, mut mx) = (0usize, 1usize, 0.0f64);
             for i in 0..n {
                 for j in (i + 1)..n {
@@ -270,7 +313,7 @@ impl Matrix {
                     }
                 }
             }
-            if mx < 1e-14 {
+            if mx < JACOBI_OFF_DIAGONAL_TOL {
                 break;
             }
             let (app, aqq, apq) = (a.get(p, p), a.get(q, q), a.get(p, q));
@@ -441,5 +484,24 @@ mod tests {
         }
         let nonsym = Matrix::from_rows(&[&[1.0, 2.0], &[0.0, 1.0]]).unwrap();
         assert!(nonsym.eigen_symmetric().is_err());
+    }
+
+    #[test]
+    fn lu_detects_exact_dependency() {
+        // Rank-deficient: second row is a multiple of the first.
+        let m = Matrix::from_rows(&[&[1.0, 2.0], &[2.0, 4.0]]).unwrap();
+        assert!(m.lu().is_err());
+        assert!(Matrix::zeros(3, 3).lu().is_err());
+    }
+
+    #[test]
+    fn lu_tolerates_ill_conditioned_but_invertible() {
+        // Condition number ~1e13: numerically singular at single precision,
+        // but perfectly factorable in f64 — must NOT be rejected.
+        let m = Matrix::diagonal(&[1.0, 1e-13]);
+        assert!(m.lu().is_ok());
+        // Scale-invariance: the same shape scaled by 1e-150 factors too.
+        let tiny = Matrix::diagonal(&[1e-150, 1e-163]);
+        assert!(tiny.lu().is_ok());
     }
 }

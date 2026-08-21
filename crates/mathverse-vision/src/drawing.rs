@@ -1,4 +1,4 @@
-#! Drawing primitives on images.
+//! Drawing primitives on images.
 
 use crate::Image;
 

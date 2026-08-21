@@ -1,4 +1,4 @@
-#! Basic video I/O support.
+//! Basic video I/O support.
 
 use crate::Image;
 use std::fs::File;

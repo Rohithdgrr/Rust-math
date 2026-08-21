@@ -216,7 +216,7 @@ fn boosting_and_xgboost_regress_and_classify() {
     assert!((mean(&bp) - mean(&y)).abs() < 300.0, "gbr drift: {}", mean(&bp));
 
     let mut xgr = xgboost::XGBoostRegressor::new(30, 0.1, 4, 1.0, 0.0);
-    xgr.fit(&x, &y);
+    xgr.fit(&x, &y).unwrap();
     let xp = xgr.predict(&x);
     assert!(is_finite(mean(&xp)));
 
@@ -229,7 +229,7 @@ fn boosting_and_xgboost_regress_and_classify() {
     assert!(accuracy(&gcpred, &by) > 0.5, "gbc acc: {}", accuracy(&gcpred, &by));
 
     let mut xgc = xgboost::XGBoostClassifier::new(30, 0.1, 4, 1.0, 0.0);
-    xgc.fit(&bx, &by);
+    xgc.fit(&bx, &by).unwrap();
     let xproba = xgc.predict_proba(&bx);
     assert!(xproba.iter().all(|&p| (0.0..=1.0).contains(&p)));
     let xcpred = xgc.predict(&bx);

@@ -6,6 +6,22 @@ pub struct GaussianQuadrature;
 
 impl GaussianQuadrature {
     /// Integrate using Gaussian-Legendre quadrature.
+    ///
+    /// An `n`-point rule is exact for polynomials of degree `2n − 1`. For
+    /// `n ≤ 8` the classic tabulated nodes are used; for larger `n` the
+    /// nodes and weights are computed with Newton–Raphson iteration on the
+    /// Legendre polynomial, so every `n` yields a true Gaussian rule (there
+    /// is no silent fallback to a lower-order formula).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mathverse_numerical::integration::GaussianQuadrature;
+    ///
+    /// // ∫₀¹ x¹⁰ dx = 1/11, exact with n = 6 since 2·6 − 1 ≥ 10
+    /// let result = GaussianQuadrature::integrate(&|x| x.powi(10), 0.0, 1.0, 6);
+    /// assert!((result - 1.0 / 11.0).abs() < 1e-14);
+    /// ```
     pub fn integrate(f: &dyn Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
         let (nodes, weights) = Self::legendre_nodes_weights(n);
         
@@ -18,9 +34,13 @@ impl GaussianQuadrature {
         0.5 * (b - a) * sum
     }
 
-    /// Get Legendre polynomial nodes and weights.
+    /// Get Legendre polynomial nodes and weights on `[-1, 1]`.
+    ///
+    /// For `n ≤ 8` the classic tabulated rules are used; for larger `n`
+    /// [`GaussianQuadrature::gauss_legendre_newton`] computes the rule.
     fn legendre_nodes_weights(n: usize) -> (Vec<f64>, Vec<f64>) {
         match n {
+            0 => (Vec::new(), Vec::new()),
             1 => (vec![0.0], vec![2.0]),
             2 => (vec![-0.5773502691896257, 0.5773502691896257], vec![1.0, 1.0]),
             3 => (vec![-0.7745966692414834, 0.0, 0.7745966692414834],
@@ -35,13 +55,58 @@ impl GaussianQuadrature {
                 vec![0.1294849661688697, 0.2797053914892766, 0.3818300505051189, 0.4179591836734694, 0.3818300505051189, 0.2797053914892766, 0.1294849661688697]),
             8 => (vec![-0.9602898564975363, -0.7966664774136267, -0.5255324099163290, -0.1834346424956498, 0.1834346424956498, 0.5255324099163290, 0.7966664774136267, 0.9602898564975363],
                 vec![0.1012285362903763, 0.2223810344533745, 0.3137066458778873, 0.3626837833783620, 0.3626837833783620, 0.3137066458778873, 0.2223810344533745, 0.1012285362903763]),
-            _ => {
-                // Fallback to trapezoidal for higher n
-                let nodes: Vec<f64> = (0..n).map(|i| -1.0 + 2.0 * i as f64 / (n - 1) as f64).collect();
-                let weights = vec![2.0 / n as f64; n];
-                (nodes, weights)
-            }
+            _ => Self::gauss_legendre_newton(n),
         }
+    }
+
+    /// Gauss-Legendre nodes and weights for arbitrary `n` via Newton-Raphson
+    /// root finding on `P_n` (the classical `gauleg` construction).
+    ///
+    /// The `i`-th root is seeded with `cos(π(i + 3/4)/(n + 1/2))`, which is
+    /// accurate enough that iteration converges to machine precision in a
+    /// handful of steps. Weights follow from
+    /// `w = 2 / ((1 − x²) · P′ₙ(x))²`.
+    fn gauss_legendre_newton(n: usize) -> (Vec<f64>, Vec<f64>) {
+        let mut nodes = vec![0.0; n];
+        let mut weights = vec![0.0; n];
+        let half = (n + 1) / 2;
+
+        for i in 0..half {
+            // Initial guess for the i-th root of P_n (i-th from +1 downward).
+            let mut z =
+                (core::f64::consts::PI * (i as f64 + 0.75) / (n as f64 + 0.5)).cos();
+
+            let (mut x, mut w) = (z, 0.0);
+            for _ in 0..100 {
+                // Evaluate P_n(z) by the three-term recurrence; P_{n-1} is
+                // carried in `p_prev`.
+                let (mut p, mut p_prev) = (1.0f64, 0.0f64);
+                for j in 1..=n {
+                    let mut p_next =
+                        ((2 * j) as f64 - 1.0) * z * p - (j as f64 - 1.0) * p_prev;
+                    p_next /= j as f64;
+                    p_prev = p;
+                    p = p_next;
+                }
+                // (z² − 1) P′_n(z) = n (z P_n(z) − P_{n−1}(z))
+                let dp = n as f64 * (z * p - p_prev) / (z * z - 1.0);
+                let dz = -p / dp;
+                z += dz;
+                x = z;
+                w = 2.0 / ((1.0 - z * z) * dp * dp);
+                if dz.abs() <= 1e-15 {
+                    break;
+                }
+            }
+
+            // Roots come in ± pairs; fill symmetric slots.
+            nodes[i] = -x;
+            weights[i] = w;
+            nodes[n - 1 - i] = x;
+            weights[n - 1 - i] = w;
+        }
+
+        (nodes, weights)
     }
 
     /// 2D Gaussian quadrature.
@@ -406,6 +471,31 @@ mod tests {
     fn test_gaussian_quadrature() {
         let result = GaussianQuadrature::integrate(&|x| x * x, -1.0, 1.0, 5);
         assert!((result - 2.0 / 3.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_gaussian_quadrature_high_order_is_true_gauss_rule() {
+        // n > 8 previously degraded to a trapezoidal-like fallback; now it
+        // must remain a genuine degree-(2n−1)-exact Gaussian rule.
+        // ∫₋₁¹ x¹⁰ dx = 2/11 — exact for n ≥ 6, and certainly for n = 12.
+        let result = GaussianQuadrature::integrate(&|x| x.powi(10), -1.0, 1.0, 12);
+        assert!((result - 2.0 / 11.0).abs() < 1e-13);
+
+        // ∫₋₁¹ x²⁰ dx = 2/21 — needs degree-40 exactness, i.e. n ≥ 21 > 8.
+        let result = GaussianQuadrature::integrate(&|x| x.powi(20), -1.0, 1.0, 21);
+        assert!((result - 2.0 / 21.0).abs() < 1e-12);
+
+        // Weights sum to the length of [-1, 1] and the rule is symmetric.
+        let (nodes, weights) = GaussianQuadrature::gauss_legendre_newton(16);
+        let total: f64 = weights.iter().sum();
+        assert!((total - 2.0).abs() < 1e-12);
+        for (&x, &w) in nodes.iter().zip(weights.iter()) {
+            assert!(w >= 0.0 && x.abs() <= 1.0);
+        }
+        let mirrored: Vec<f64> = nodes.iter().rev().copied().collect();
+        for (a, b) in nodes.iter().zip(mirrored.iter()) {
+            assert!((a + b).abs() < 1e-12);
+        }
     }
 
     #[test]

@@ -108,7 +108,9 @@ impl GrayImage {
                         window.push(self.get(nx, ny));
                     }
                 }
-                window.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                // total_cmp: NaN pixel values sort deterministically instead
+                // of panicking via partial_cmp().unwrap().
+                window.sort_by(|a, b| a.total_cmp(b));
                 let median = window[window.len() / 2];
                 out.set(x, y, median);
             }

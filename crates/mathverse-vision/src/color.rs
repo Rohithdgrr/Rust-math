@@ -1,4 +1,4 @@
-#! Color space conversions and operations.
+//! Color space conversions and operations.
 
 use crate::Image;
 

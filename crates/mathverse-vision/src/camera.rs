@@ -1,4 +1,4 @@
-#! Camera module for mathverse-vision.
+//! Camera module for mathverse-vision.
 
 use crate::Image;
 

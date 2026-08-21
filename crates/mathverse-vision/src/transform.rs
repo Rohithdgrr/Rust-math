@@ -1,4 +1,4 @@
-#! Image transformations: resize, rotate, affine.
+//! Image transformations: resize, rotate, affine.
 
 use crate::Image;
 

@@ -1,17 +1,26 @@
-#! Dense Optical Flow
+//! Dense Optical Flow — pyramidal Lucas-Kanade
 //!
-//! Implements the Dense Lucas-Kanade optical flow algorithm for estimating
-//! pixel-level motion between two consecutive grayscale frames.
+//! Estimates pixel-level motion between two consecutive grayscale frames
+//! using the multi-scale (pyramidal) Lucase-Kanade method of Bouguet.
 //!
 //! # Algorithm
 //!
-//! 1. Build Gaussian pyramids for both frames (pyramid_levels octaves)
-//! 2. Compute image gradients at the coarsest level: Ix, Iy, It
-//! 3. Iteratively refine flow vectors using the Lucas-Kanade approach:
-//!    - Solve the 2×2 normal equations: [ΣIx²  ΣIxIy; ΣIxIy  ΣIy²] · [u; v] = [-ΣIxIt; -ΣIyIt]
-//! 4. Upsample flow vectors to next level using pyramid flow accumulation
-//! 5. Repeat until original resolution is reached
-//! 6. Return dense flow field (u, v) for all pixels
+//! 1. Build Gaussian pyramids for both frames (`pyramid_levels` octaves,
+//!    automatically capped so the coarsest level keeps ≥ 8 px per side).
+//! 2. Start with a zero flow guess at the coarsest level.
+//! 3. For each level, coarse → fine:
+//!    - Propagate the coarser flow estimate: `g ← 2 · upsample(flow_coarse)`
+//!      (bilinear interpolation, scaled by the level ratio).
+//!    - Refine per pixel with Gauss–Newton iterations solving the 2×2
+//!      Lucas-Kanade normal equations over a `(2r+1)²` window:
+//!      `A·Δd = Σ ∇I·(I(q) − J(q + g + d))`,
+//!      where `A = Σ ∇I∇Iᵀ` depends only on the previous frame's gradients
+//!      and is therefore computed once per pixel per level.
+//!    - Pixels whose window is degenerate (`det A` below an epsilon — flat
+//!      regions and pure aperture problems) keep their propagated estimate
+//!      instead of an unreliable solve.
+//! 4. Return the level-0 flow field: `u[i]`, `v[i]` in row-major order,
+//!    positive `u` = rightward motion, positive `v` = downward motion.
 //!
 //! # Typical Usage
 //!
@@ -19,24 +28,14 @@
 //! use mathverse_image::optical_flow::dense_optical_flow;
 //! use mathverse_image::GrayImage;
 //!
-//! // frame1 and frame2 are consecutive grayscale frames
 //! let frame1 = GrayImage::new(256, 256).unwrap();
 //! let frame2 = GrayImage::new(256, 256).unwrap();
-//! // ... populate frames with image data ...
 //!
-//! let flow = dense_optical_flow(&frame1, &frame2, 4);
-//! // flow.u and flow.v are f64 arrays with motion vectors per pixel
-//! // Positive u = rightward motion, positive v = downward motion
+//! let flow = dense_optical_flow(&frame1, &frame2, 3);
+//! assert_eq!(flow.u.len(), 256 * 256);
 //! ```
-//!
-//! # Returns
-//!
-//! `OpticalFlow { u: Vec<f64>, v: Vec<f64> }` where:
-//! - `u[i]` = horizontal motion vector for pixel i (positive = right)
-//! - `v[i]` = vertical motion vector for pixel i (positive = down)
-//! - Arrays have length `img.w × img.h`, indexed in row-major order
 
-use crate::{gaussian_blur, GrayImage, sobel};
+use crate::GrayImage;
 
 /// Optical flow result containing horizontal and vertical motion vectors.
 #[derive(Debug, Clone, PartialEq)]
@@ -47,197 +46,210 @@ pub struct OpticalFlow {
     pub v: Vec<f64>,
 }
 
+/// Half-width of the integration window (`7×7` with radius 3).
+const WIN_RADIUS: i64 = 3;
+/// Number of Gauss–Newton refinement iterations per level.
+const REFINE_ITERS: usize = 3;
+/// Smallest side length allowed at the coarsest pyramid level.
+const MIN_COARSE_SIDE: i64 = 8;
+/// Determinant threshold below which a window solve is considered degenerate.
+const DET_EPSILON: f64 = 1e-6;
+
+/// Bilinear sample of a scalar field stored row-major, with clamped borders.
+fn sample_field(field: &[f64], w: usize, h: usize, x: f64, y: f64) -> f64 {
+    let xf = x.clamp(0.0, (w - 1) as f64);
+    let yf = y.clamp(0.0, (h - 1) as f64);
+    let x0 = xf.floor() as usize;
+    let y0 = yf.floor() as usize;
+    let x1 = (x0 + 1).min(w - 1);
+    let y1 = (y0 + 1).min(h - 1);
+    let fx = xf - x0 as f64;
+    let fy = yf - y0 as f64;
+    let v00 = field[y0 * w + x0];
+    let v10 = field[y0 * w + x1];
+    let v01 = field[y1 * w + x0];
+    let v11 = field[y1 * w + x1];
+    v00 * (1.0 - fx) * (1.0 - fy)
+        + v10 * fx * (1.0 - fy)
+        + v01 * (1.0 - fx) * fy
+        + v11 * fx * fy
+}
+
+/// Halve an image: Gaussian anti-alias blur followed by 2× subsampling.
+fn downsample(img: &GrayImage) -> GrayImage {
+    let blurred = img.gaussian_blur(1, 1.0);
+    let nw = ((blurred.w + 1) / 2).max(1);
+    let nh = ((blurred.h + 1) / 2).max(1);
+    let mut out = GrayImage::new(nw, nh).unwrap();
+    for y in (0..blurred.h).step_by(2) {
+        for x in (0..blurred.w).step_by(2) {
+            out.set(x / 2, y / 2, blurred.get(x, y));
+        }
+    }
+    out
+}
+
 /// Computes dense optical flow between two consecutive grayscale frames.
 ///
-/// Uses the iterative Lucas-Kanade method with Gaussian pyramid for multi-scale flow estimation.
+/// Uses the pyramidal Lucas-Kanade method: a Gaussian pyramid provides a
+/// coarse-to-fine flow initialization so displacements larger than the
+/// integration window can still be recovered.
 ///
 /// # Arguments
 ///
 /// * `prev` — The previous grayscale frame
-/// * `curr` — The current grayscale frame (must have same dimensions as prev)
-/// * `pyramid_levels` — Number of octaves in the Gaussian pyramid (default: 4);
-///   more levels = better accuracy for large motions but slower computation
+/// * `curr` — The current grayscale frame (same dimensions as `prev`)
+/// * `pyramid_levels` — Requested number of pyramid levels (≥ 1). The count
+///   is capped so the coarsest level keeps at least 8 pixels per side; more
+///   levels improve accuracy for large motions at proportional cost.
 ///
 /// # Returns
 ///
-/// `OpticalFlow { u, v }` containing dense motion vectors for all pixels.
-/// - `u[i]` = horizontal displacement (positive = right, negative = left)
-/// - `v[i]` = vertical displacement (positive = down, negative = up)
+/// [`OpticalFlow`] with dense motion vectors for every pixel (row-major):
+/// `u[i]` = horizontal displacement (positive = right),
+/// `v[i]` = vertical displacement (positive = down).
 ///
-/// # Algorithm Details
+/// # Panics
 ///
-/// The implementation follows these steps:
-/// 1. Build Gaussian pyramids for both images (reduces resolution by 2× per octave)
-/// 2. At the coarsest level, compute image gradients (Ix, Iy) via Sobel and
-///    the temporal gradient It = prev - curr (up-sampled)
-/// 3. Solve the normal equations using a 3×3 Gaussian-weighted window
-/// 4. Upsample the flow field by 2× (insert zeros, then apply Gaussian blur)
-/// 5. Repeat for each level down to the original resolution
-/// 6. Return the final dense flow field
+/// Panics if the two frames differ in size or if `pyramid_levels == 0`.
 ///
 /// # Precision
 ///
-/// All calculations use f64 arithmetic. The flow vectors can be larger than
-/// pixel dimensions for large inter-frame motions, especially with multiple pyramid levels.
+/// All calculations use `f64` arithmetic. Flow values may exceed one pixel
+/// when multiple pyramid levels are used.
 pub fn dense_optical_flow(prev: &GrayImage, curr: &GrayImage, pyramid_levels: usize) -> OpticalFlow {
-    // Validate inputs
-    if prev.w != curr.w || prev.h != curr.h {
-        panic!("Both frames must have the same dimensions");
+    assert_eq!(prev.w, curr.w, "both frames must have the same width");
+    assert_eq!(prev.h, curr.h, "both frames must have the same height");
+    assert!(pyramid_levels >= 1, "pyramid_levels must be >= 1");
+
+    // Cap the pyramid so the coarsest level never drops below MIN_COARSE_SIDE.
+    let min_side = prev.w.min(prev.h) as i64;
+    let mut levels = 1usize;
+    while levels < pyramid_levels && (min_side >> levels) >= MIN_COARSE_SIDE {
+        levels += 1;
     }
-    if pyramid_levels < 1 {
-        panic!("pyramid_levels must be >= 1");
+
+    // Build Gaussian pyramids (level 0 = original resolution).
+    let mut prev_pyr = Vec::with_capacity(levels);
+    let mut curr_pyr = Vec::with_capacity(levels);
+    prev_pyr.push(prev.clone());
+    curr_pyr.push(curr.clone());
+    for lvl in 1..levels {
+        prev_pyr.push(downsample(&prev_pyr[lvl - 1]));
+        curr_pyr.push(downsample(&curr_pyr[lvl - 1]));
     }
-    if pyramid_levels > 6 {
-        //warn!("pyramid_levels > 6 may be unnecessary and very slow");
-    }
 
-    let img_w = prev.w;
-    let img_h = prev.h;
-    let total_pixels = img_w * img_h;
+    // Zero flow at the coarsest level.
+    let coarse = levels - 1;
+    let mut u = vec![0.0f64; prev_pyr[coarse].w * prev_pyr[coarse].h];
+    let mut v = vec![0.0f64; prev_pyr[coarse].w * prev_pyr[coarse].h];
 
-    // Build Gaussian pyramids for both images
-    let mut prev_pyramid = Vec::with_capacity(pyramid_levels);
-    let mut curr_pyramid = Vec::with_capacity(pyramid_levels);
+    for level in (0..levels).rev() {
+        let iprev = &prev_pyr[level];
+        let icurr = &curr_pyr[level];
+        let (lw, lh) = (iprev.w, iprev.h);
 
-    let mut prev_level = prev.clone();
-    let mut curr_level = curr.clone();
+        // Propagate the coarser flow guess: g = 2 · upsample(flow_coarser).
+        if level < levels - 1 {
+            let (gw, gh) = (prev_pyr[level + 1].w, prev_pyr[level + 1].h);
+            let mut gu = vec![0.0f64; lw * lh];
+            let mut gv = vec![0.0f64; lw * lh];
+            for y in 0..lh {
+                for x in 0..lw {
+                    let cx = x as f64 / 2.0;
+                    let cy = y as f64 / 2.0;
+                    gu[y * lw + x] = 2.0 * sample_field(&u, gw, gh, cx, cy);
+                    gv[y * lw + x] = 2.0 * sample_field(&v, gw, gh, cx, cy);
+                }
+            }
+            u = gu;
+            v = gv;
+        }
 
-    for _ in 0..pyramid_levels {
-        prev_pyramid.push(prev_level.clone());
-        curr_pyramid.push(curr_level.clone());
-        // Downsample: apply Gaussian blur then subsample by 2
-        let blurred_prev = prev_level.gaussian_blur(2, 1.0);
-        let blurred_curr = curr_level.gaussian_blur(2, 1.0);
-        let new_w = (blurred_prev.w + 1) / 2;
-        let new_h = (blurred_prev.h + 1) / 2;
-        prev_level = GrayImage::new(new_w, new_h).unwrap();
-        curr_level = GrayImage::new(new_w, new_h).unwrap();
-
-        // Subsample: take every other pixel
-        for y in (0..blurred_prev.h).step_by(2) {
-            for x in (0..blurred_prev.w).step_by(2) {
-                let v = blurred_prev.get(x, y);
-                prev_level.set(x / 2, y / 2, v);
+        // Spatial gradients of the previous frame at this level
+        // (central differences; borders get one-sided differences).
+        let mut ix = vec![0.0f64; lw * lh];
+        let mut iy = vec![0.0f64; lw * lh];
+        for y in 0..lh {
+            for x in 0..lw {
+                let xm = x.saturating_sub(1);
+                let xp = (x + 1).min(lw - 1);
+                let ym = y.saturating_sub(1);
+                let yp = (y + 1).min(lh - 1);
+                ix[y * lw + x] = (iprev.get(xp, y) - iprev.get(xm, y))
+                    / (xp - xm) as f64;
+                iy[y * lw + x] = (iprev.get(x, yp) - iprev.get(x, ym))
+                    / (yp - ym) as f64;
             }
         }
-        for y in (0..blurred_curr.h).step_by(2) {
-            for x in (0..blurred_curr.w).step_by(2) {
-                let v = blurred_curr.get(x, y);
-                curr_level.set(x / 2, y / 2, v);
-            }
-        }
-    }
 
-    // Initialize flow field at coarsest level as zeros
-    let coarse_w = img_w >> pyramid_levels; // integer division by 2^pyramid_levels
-    let coarse_h = img_h >> pyramid_levels;
-    let mut u: Vec<f64> = vec![0.0; coarse_w * coarse_h];
-    let mut v: Vec<f64> = vec![0.0; coarse_w * coarse_h];
+        let mut next_u = u.clone();
+        let mut next_v = v.clone();
 
-    // Gaussian kernel for upsampling and weighting
-    let kernel_size = 5;
-    let kernel: Vec<f64> = (0..kernel_size)
-        .map(|i| {
-            let x = (i as i64 - 2i64) as f64;
-            let coeff = (-0.5 * (x * x) / (2.0)).exp();
-            coeff / kernel.iter().map(|c| *c).sum::<f64>() // normalize
-        })
-        .collect();
-    // Actually let me use a simpler approach - just use a uniform weight for upsampling
+        for y in 0..lh {
+            for x in 0..lw {
+                let g_u = u[y * lw + x];
+                let g_v = v[y * lw + x];
 
-    // Pyramid: iterate from coarsest to finest
-    for level_idx in (0..pyramid_levels).rev() {
-        // Current level dimensions
-        let level_w = if level_idx == pyramid_levels - 1 {
-            img_w
-        } else {
-            img_w >> (pyramid_levels - 1 - level_idx)
-        };
-        let level_h = if level_idx == pyramid_levels - 1 {
-            img_h
-        } else {
-            img_h >> (pyramid_levels - 1 - level_idx)
-        };
+                // Window sum of ∇I∇Iᵀ — independent of the warp, so computed once.
+                let (mut a11, mut a12, mut a22) = (0.0f64, 0.0f64, 0.0f64);
+                for dy in -WIN_RADIUS..=WIN_RADIUS {
+                    for dx in -WIN_RADIUS..=WIN_RADIUS {
+                        let sx = (x as i64 + dx).clamp(0, lw as i64 - 1) as usize;
+                        let sy = (y as i64 + dy).clamp(0, lh as i64 - 1) as usize;
+                        let gx = ix[sy * lw + sx];
+                        let gy = iy[sy * lw + sx];
+                        a11 += gx * gx;
+                        a12 += gx * gy;
+                        a22 += gy * gy;
+                    }
+                }
+                let det = a11 * a22 - a12 * a12;
+                if det <= DET_EPSILON {
+                    // Textureless region or pure 1-D structure (aperture
+                    // problem): keep the propagated estimate unsolved.
+                    continue;
+                }
 
-        // Upsample flow from finer level (if not the coarsest)
-        if level_idx < pyramid_levels - 1 {
-            // Double the flow field resolution
-            let mut u_finer = Vec::with_capacity(level_w * level_h);
-            let mut v_finer = Vec::with_capacity(level_w * level_h);
-
-            for y in 0..level_h {
-                for x in 0..level_w {
-                    // Check if this pixel comes from upsampled coarser flow
-                    let cx = x / 2;
-                    let cy = y / 2;
-                    let base_idx = cx + cy * (level_w / 2);
-                    let mut sum_u: f64 = 0.0;
-                    let mut sum_v: f64 = 0.0;
-                    let mut weight_sum: f64 = 0.0;
-
-                    // Collect 2×2 neighborhood from coarser flow
-                    for dy in 0..2 {
-                        for dx in 0..2 {
-                            let nx = cx + dx;
-                            let ny = cy + dy;
-                            if nx < (level_w / 2) && ny < (level_h / 2) {
-                                let coarse_idx = nx + ny * (level_w / 2);
-                                let w = if dx == 0 && dy == 0 { 0.75 } else { 0.25 };
-                                sum_u += w * u[coarse_idx];
-                                sum_v += w * v[coarse_idx];
-                                weight_sum += w;
-                            }
+                // Gauss–Newton refinement of d starting from the propagated guess.
+                let mut d_u = 0.0f64;
+                let mut d_v = 0.0f64;
+                for _ in 0..REFINE_ITERS {
+                    let (mut b1, mut b2) = (0.0f64, 0.0f64);
+                    for dy in -WIN_RADIUS..=WIN_RADIUS {
+                        for dx in -WIN_RADIUS..=WIN_RADIUS {
+                            let sx = (x as i64 + dx).clamp(0, lw as i64 - 1) as usize;
+                            let sy = (y as i64 + dy).clamp(0, lh as i64 - 1) as usize;
+                            let j_val = sample_field(
+                                &icurr.data,
+                                lw,
+                                lh,
+                                sx as f64 + g_u + d_u,
+                                sy as f64 + g_v + d_v,
+                            );
+                            // Residual of I(q) − J(q + g + d); its gradient
+                            // step is Δd = A⁻¹·Σ ∇I·residual.
+                            let residual = iprev.data[sy * lw + sx] - j_val;
+                            b1 += ix[sy * lw + sx] * residual;
+                            b2 += iy[sy * lw + sx] * residual;
                         }
                     }
-                    if weight_sum > 0.0 {
-                        u_finer.push(sum_u / weight_sum);
-                        v_finer.push(sum_v / weight_sum);
-                    } else {
-                        u_finer.push(0.0);
-                        v_finer.push(0.0);
-                    }
+                    d_u += (a22 * b1 - a12 * b2) / det;
+                    d_v += (a11 * b2 - a12 * b1) / det;
                 }
-            }
-            u = u_finer;
-            v = v_finer;
-        }
 
-        // Compute image gradients at this level
-        // Use Sobel to get Ix, Iy at the current level
-        const GX: [f64; 9] = [-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0];
-        const GY: [f64; 9] = [-1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0];
-
-        let mut ix: Vec<f64> = vec![0.0; level_w * level_h];
-        let mut iy: Vec<f64> = vec![0.0; level_w * level_h];
-
-        for y in 1..level_h - 1 {
-            for x in 1..level_w - 1 {
-                let mut gx_val: f64 = 0.0;
-                let mut gy_val: f64 = 0.0;
-                for ky in 0..3 {
-                    for kx in 0..3 {
-                        let px = (x as i64 + kx as i64 - 1).clamp(0, (level_w - 1) as i64) as usize;
-                        let py = (y as i64 + ky as i64 - 1).clamp(0, (level_h - 1) as i64) as usize;
-                        let p_prev = prev_pyramid[level_idx].get(px, py);
-                        let p_curr = curr_pyramid[level_idx].get(px, py);
-                        // Actually I need to compute the temporal derivative It = I_curr - I_prev
-                        // But I have the pyramid levels... let me reconsider.
-                        // At each pyramid level, I should compute gradients of the *current* pyramid level image
-                    }
-                }
+                next_u[y * lw + x] = g_u + d_u;
+                next_v[y * lw + x] = g_v + d_v;
             }
         }
-        // This is getting complex. Let me simplify the implementation.
-        // For now, return zero flow and note that full implementation requires
-        // more careful pyramid management.
+
+        u = next_u;
+        v = next_v;
     }
 
-    // TODO: Full Lucas-Kanade implementation with pyramid
-    // For now return zero flow
-    OpticalFlow {
-        u: vec![0.0; total_pixels],
-        v: vec![0.0; total_pixels],
-    }
+    debug_assert_eq!(u.len(), prev.w * prev.h);
+    debug_assert_eq!(v.len(), prev.w * prev.h);
+    OpticalFlow { u, v }
 }
 
 #[cfg(test)]
@@ -250,47 +262,73 @@ mod tests {
         let mut frame1 = GrayImage::new(32, 32).unwrap();
         let mut frame2 = GrayImage::new(32, 32).unwrap();
 
-        // Create a simple translating pattern in frame2
-        for y in 0..32 {
-            for x in 0..32 {
-                let v = if x < 16 { 0.0 } else { 1.0 };
-                frame1.set(x, y, v);
-                // frame2 has the pattern shifted right by 2 pixels
-                let shifted_x = (x + 2).min(31);
-                frame2.set(shifted_x, y, v);
+        // Bright square with corners (full 2-D texture) at (8, 8)..(15, 15),
+        // shifted right by 2 pixels in frame2.
+        for y in 8..16 {
+            for x in 8..16 {
+                frame1.set(x, y, 1.0);
+                frame2.set((x + 2).min(31), y, 1.0);
             }
         }
 
         let flow = dense_optical_flow(&frame1, &frame2, 1);
-        // Should detect rightward motion (positive u)
-        // Check a few pixels
-        let center_idx = 16 + 16 * 32; // pixel at (16, 16)
-        // The flow should be approximately (2.0, 0.0) for a 2-pixel right shift
-        // With pyramid_levels=1, accuracy may vary
-        assert!(flow.u.len() == 1024, "Flow u should have 1024 elements (32×32)");
-        assert!(flow.v.len() == 1024, "Flow v should have 1024 elements (32×32)");
+        assert_eq!(flow.u.len(), 1024, "flow u should cover 32×32");
+        assert_eq!(flow.v.len(), 1024, "flow v should cover 32×32");
+
+        // Interior pixels of the square see the full pattern and should
+        // recover the +2 px horizontal displacement.
+        let interior_u: Vec<f64> = (9..15)
+            .flat_map(|y| (9..15).map(move |x| (x, y)))
+            .map(|(x, y)| flow.u[y * 32 + x])
+            .collect();
+        let mean_u: f64 = interior_u.iter().sum::<f64>() / interior_u.len() as f64;
+        assert!(
+            mean_u > 1.0,
+            "interior should show rightward motion ≈ 2 px, mean_u={mean_u}"
+        );
+    }
+
+    #[test]
+    fn test_optical_flow_vertical_motion() {
+        let mut frame1 = GrayImage::new(32, 32).unwrap();
+        let mut frame2 = GrayImage::new(32, 32).unwrap();
+
+        // Square shifted down by 2 pixels.
+        for y in 8..16 {
+            for x in 8..16 {
+                frame1.set(x, y, 1.0);
+                frame2.set(x, (y + 2).min(31), 1.0);
+            }
+        }
+
+        let flow = dense_optical_flow(&frame1, &frame2, 1);
+        let interior_v: Vec<f64> = (9..15)
+            .flat_map(|y| (9..15).map(move |x| (x, y)))
+            .map(|(x, y)| flow.v[y * 32 + x])
+            .collect();
+        let mean_v: f64 = interior_v.iter().sum::<f64>() / interior_v.len() as f64;
+        assert!(
+            mean_v > 1.0,
+            "interior should show downward motion ≈ 2 px, mean_v={mean_v}"
+        );
     }
 
     #[test]
     fn test_optical_flow_same_frame() {
         let mut frame1 = GrayImage::new(32, 32).unwrap();
-        let mut frame2 = GrayImage::new(32, 32).unwrap();
-
-        // Identical frames should have zero flow
         for y in 0..32 {
             for x in 0..32 {
-                let v = (x + y) as f64 / 64.0;
-                frame1.set(x, y, v);
-                frame2.set(x, y, v);
+                frame1.set(x, y, (x + y) as f64 / 64.0);
             }
         }
+        let frame2 = frame1.clone();
 
         let flow = dense_optical_flow(&frame1, &frame2, 1);
         // All flows should be near zero
         let u_sum: f64 = flow.u.iter().sum();
         let v_sum: f64 = flow.v.iter().sum();
-        assert!((u_sum).abs() < 0.1, "Identical frames should have zero flow u, sum={}", u_sum);
-        assert!((v_sum).abs() < 0.1, "Identical frames should have zero flow v, sum={}", v_sum);
+        assert!(u_sum.abs() < 0.1, "identical frames should have zero flow u, sum={}", u_sum);
+        assert!(v_sum.abs() < 0.1, "identical frames should have zero flow v, sum={}", v_sum);
     }
 
     #[test]
@@ -298,30 +336,34 @@ mod tests {
         let mut frame1 = GrayImage::new(64, 64).unwrap();
         let mut frame2 = GrayImage::new(64, 64).unwrap();
 
-        // Create pattern
-        for y in 0..64 {
-            for x in 0..64 {
-                let v = if x < 32 { 0.0 } else { 1.0 };
+        // Same textured block in both frames, shifted right by 3 px.
+        for y in 20..30 {
+            for x in 20..30 {
+                let v = ((x / 3 + y / 2) % 2) as f64;
                 frame1.set(x, y, v);
-                frame2.set(x, y, v);
+                frame2.set(x + 3, y, v);
             }
         }
 
-        // Test with different pyramid levels
         let flow1 = dense_optical_flow(&frame1, &frame2, 1);
         let flow2 = dense_optical_flow(&frame1, &frame2, 2);
-        // Both should produce valid flow fields
         assert_eq!(flow1.u.len(), flow2.u.len());
         assert_eq!(flow1.v.len(), flow2.v.len());
+
+        // Multi-scale should also recover the displacement direction.
+        let mean_u2: f64 = (21..29)
+            .flat_map(|y| (21..29).map(move |x| (x, y)))
+            .map(|(x, y)| flow2.u[y * 64 + x])
+            .sum::<f64>()
+            / 64.0;
+        assert!(mean_u2 > 1.0, "pyramid flow should track rightward motion, got {mean_u2}");
     }
 
     #[test]
-    fn test_optical_flow_same_dimensions() {
+    #[should_panic(expected = "same")]
+    fn test_optical_flow_dimension_mismatch_panics() {
         let frame1 = GrayImage::new(32, 32).unwrap();
-        let frame2 = GrayImage::new(16, 16).unwrap(); // Different dimensions
-
-        // This should panic or return empty flow
-        // For now, just verify the function runs without panic on same dimensions
-        let _flow = dense_optical_flow(&frame1, &frame1, 1);
+        let frame2 = GrayImage::new(16, 16).unwrap();
+        let _ = dense_optical_flow(&frame1, &frame2, 1);
     }
 }

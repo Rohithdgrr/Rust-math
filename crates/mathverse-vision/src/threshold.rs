@@ -1,4 +1,4 @@
-#! Thresholding operations.
+//! Thresholding operations.
 
 use crate::Image;
 

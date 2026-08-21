@@ -4,7 +4,7 @@
 //! loss to compute gradients, then read them from `.grad` on each tensor.
 
 use crate::tensor::Tensor;
-use mathverse_core::error::MathError;
+use mathverse_core::error::{MathError, MathResult};
 use std::cell::RefCell;
 
 /// Assert two shapes match, panicking with a clear message if not.
@@ -94,7 +94,8 @@ fn sum_keepdim(t: &Tensor, axis: usize) -> Result<Tensor, MathError> {
     Ok(Tensor { shape: out_shape, data: out_data })
 }
 
-fn reduce_broadcast_grad(mut grad: Tensor, target_shape: &[usize]) -> Result<Tensor, MathError> {
+fn reduce_broadcast_grad(grad: &Tensor, target_shape: &[usize]) -> Result<Tensor, MathError> {
+    let mut grad = grad.clone();
     if grad.shape == target_shape {
         return Ok(grad);
     }
@@ -129,6 +130,24 @@ pub fn clear_graph() {
     GRAD_REGISTRY.with(|g| g.borrow_mut().clear());
 }
 
+/// Append an entry to the computation graph, grow the gradient registry to
+/// match, and return the new node id.
+fn push_node(tensor: Tensor, inputs: Vec<usize>, op: BackwardOp) -> usize {
+    let id = GRAPH.with(|g| {
+        let mut g = g.borrow_mut();
+        let id = g.len();
+        g.push(GraphEntry::Op { tensor, inputs, op });
+        id
+    });
+    GRAD_REGISTRY.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.len() <= id {
+            g.resize_with(id + 1, || None);
+        }
+    });
+    id
+}
+
 /// A tensor with gradient tracking.
 #[derive(Clone)]
 pub struct GradTensor {
@@ -158,10 +177,19 @@ impl GradTensor {
     }
 
     /// Create a leaf tensor from data + shape.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `data.len()` does not match the product of `shape`. For a
+    /// fallible constructor use [`GradTensor::try_from_data`].
     pub fn from_data(shape: &[usize], data: Vec<f64>) -> Self {
-        let t = Tensor::from_vec(shape, data);
-        assert!(t.is_ok(), "from_vec failed for shape {:?}", shape);
-        Self::new(t.expect("shape check above"))
+        Self::try_from_data(shape, data)
+            .expect("GradTensor::from_data: data length does not match shape")
+    }
+
+    /// Fallible variant of [`GradTensor::from_data`].
+    pub fn try_from_data(shape: &[usize], data: Vec<f64>) -> MathResult<Self> {
+        Ok(Self::new(Tensor::from_vec(shape, data)?))
     }
 
     /// Zero the gradient.
@@ -218,8 +246,17 @@ impl GradTensor {
     }
 
     /// Backward pass from this tensor.
+    ///
+    /// # Panics
+    ///
+    /// Panics if gradient computation fails; see [`GradTensor::try_backward`].
     pub fn backward(&mut self, scale: f64) {
         backward(self, scale)
+    }
+
+    /// Fallible backward pass from this tensor.
+    pub fn try_backward(&mut self, scale: f64) -> MathResult<()> {
+        try_backward(self, scale)
     }
 
     /// Return accumulated gradient after backward.
@@ -229,226 +266,153 @@ impl GradTensor {
 }
 
 /// Add two GradTensors (tracked).
+///
+/// # Panics
+///
+/// Panics if the operand shapes differ (a programmer error, not runtime data
+/// dependence). The same applies to [`mul`], [`sub`], [`div`] and [`matmul`].
 pub fn add(a: &GradTensor, b: &GradTensor) -> GradTensor {
     assert_shape!(a.tensor, b.tensor);
-    let out = a.tensor.add(&b.tensor).unwrap();
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id, b.node_id], op: BackwardOp::Add });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    // Shape pre-checked above, so elementwise add cannot fail here.
+    let out = a.tensor.add(&b.tensor).expect("shape checked by assert_shape!");
+    let id = push_node(out.clone(), vec![a.node_id, b.node_id], BackwardOp::Add);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// Multiply two GradTensors (tracked).
+///
+/// # Panics
+///
+/// Panics if the operand shapes differ.
 pub fn mul(a: &GradTensor, b: &GradTensor) -> GradTensor {
     assert_shape!(a.tensor, b.tensor);
-    let out = a.tensor.mul(&b.tensor).unwrap();
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id, b.node_id], op: BackwardOp::Mul });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let out = a.tensor.mul(&b.tensor).expect("shape checked by assert_shape!");
+    let id = push_node(out.clone(), vec![a.node_id, b.node_id], BackwardOp::Mul);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// Element-wise subtraction (tracked).
+///
+/// # Panics
+///
+/// Panics if the operand shapes differ.
 pub fn sub(a: &GradTensor, b: &GradTensor) -> GradTensor {
     assert_shape!(a.tensor, b.tensor);
-    let out = a.tensor.sub(&b.tensor).unwrap();
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id, b.node_id], op: BackwardOp::Sub });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let out = a.tensor.sub(&b.tensor).expect("shape checked by assert_shape!");
+    let id = push_node(out.clone(), vec![a.node_id, b.node_id], BackwardOp::Sub);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// Element-wise division (tracked).
+///
+/// # Panics
+///
+/// Panics if the operand shapes differ.
 pub fn div(a: &GradTensor, b: &GradTensor) -> GradTensor {
     assert_shape!(a.tensor, b.tensor);
-    let out = a.tensor.div(&b.tensor).unwrap();
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id, b.node_id], op: BackwardOp::Div });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let out = a.tensor.div(&b.tensor).expect("shape checked by assert_shape!");
+    let id = push_node(out.clone(), vec![a.node_id, b.node_id], BackwardOp::Div);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// Negate a tensor (tracked).
 pub fn neg(a: &GradTensor) -> GradTensor {
     let out = a.tensor.neg();
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id], op: BackwardOp::Neg });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let id = push_node(out.clone(), vec![a.node_id], BackwardOp::Neg);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// Sigmoid activation (tracked).
 pub fn sigmoid(a: &GradTensor) -> GradTensor {
     let out = crate::activations::sigmoid(&a.tensor);
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id], op: BackwardOp::Sigmoid });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let id = push_node(out.clone(), vec![a.node_id], BackwardOp::Sigmoid);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// Tanh activation (tracked).
 pub fn tanh(a: &GradTensor) -> GradTensor {
     let out = crate::activations::tanh(&a.tensor);
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id], op: BackwardOp::Tanh });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let id = push_node(out.clone(), vec![a.node_id], BackwardOp::Tanh);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// Matrix multiply (tracked).
+///
+/// # Panics
+///
+/// Panics if inner dimensions do not match (`a.shape[1] != b.shape[0]`).
 pub fn matmul(a: &GradTensor, b: &GradTensor) -> GradTensor {
     assert_matmul!(a.tensor, b.tensor);
-    let out = a.tensor.matmul(&b.tensor).unwrap();
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id, b.node_id], op: BackwardOp::Matmul });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let out = a.tensor.matmul(&b.tensor).expect("dims checked by assert_matmul!");
+    let id = push_node(out.clone(), vec![a.node_id, b.node_id], BackwardOp::Matmul);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// ReLU (tracked).
 pub fn relu_op(a: &GradTensor) -> GradTensor {
     let out = crate::activations::relu(&a.tensor);
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id], op: BackwardOp::ReLU });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let id = push_node(out.clone(), vec![a.node_id], BackwardOp::ReLU);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// Sum all elements (tracked).
 pub fn sum(a: &GradTensor) -> GradTensor {
     let val = a.tensor.sum();
     let out = Tensor::scalar(val);
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![a.node_id], op: BackwardOp::Sum });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let id = push_node(out.clone(), vec![a.node_id], BackwardOp::Sum);
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
 /// MSE loss (tracked).
+///
+/// # Panics
+///
+/// Panics if the operand shapes differ.
 pub fn mse_loss(pred: &GradTensor, target: &GradTensor) -> GradTensor {
     assert_shape!(pred.tensor, target.tensor);
-    let val = crate::losses::mse(&pred.tensor, &target.tensor).unwrap();
+    let val =
+        crate::losses::mse(&pred.tensor, &target.tensor).expect("shape checked by assert_shape!");
     let out = Tensor::scalar(val);
-    let out_id = GRAPH.with(|g| {
-        let mut g = g.borrow_mut();
-        let id = g.len();
-        g.push(GraphEntry::Op { tensor: out.clone(), inputs: vec![pred.node_id, target.node_id], op: BackwardOp::MseLoss });
-        id
-    });
-    GRAD_REGISTRY.with(|g| {
-        let mut g = g.borrow_mut();
-        if g.len() <= out_id {
-            g.resize_with(out_id + 1, || None);
-        }
-    });
-    GradTensor { tensor: out, grad: None, node_id: out_id }
+    let id = push_node(
+        out.clone(),
+        vec![pred.node_id, target.node_id],
+        BackwardOp::MseLoss,
+    );
+    GradTensor { tensor: out, grad: None, node_id: id }
 }
 
-/// Backward pass from a scalar loss tensor. Computes gradients for all nodes
-/// in the graph and stores them in the gradient registry.
+/// Backward pass from a scalar loss tensor.
+///
+/// # Panics
+///
+/// Panics with the underlying [`MathError`] if gradient reduction fails
+/// (e.g. inconsistent shapes recorded in the graph). Prefer
+/// [`try_backward`] in code that must not panic.
 pub fn backward(loss: &mut GradTensor, scale: f64) {
-    GRAPH.with(|g| {
+    if let Err(e) = try_backward(loss, scale) {
+        panic!("backward failed: {e}");
+    }
+}
+
+/// Fallible variant of [`backward`]: propagates shape/broadcast errors as
+/// [`MathResult`] instead of panicking.
+///
+/// Computes gradients for all nodes in the graph and stores them in the
+/// gradient registry; returns `Ok(())` on success.
+pub fn try_backward(loss: &mut GradTensor, scale: f64) -> MathResult<()> {
+    let mut grads: Vec<Option<Tensor>> = GRAPH.with(|g| vec![None; g.borrow().len()]);
+
+    // Seed: d(loss)/d(loss) = scale, shaped like the loss itself so that
+    // downstream shape checks (e.g. matmul backward) see consistent ranks.
+    grads[loss.node_id] = Some(Tensor::full(&loss.tensor.shape, scale));
+
+    GRAPH.with(|g| -> MathResult<()> {
         let g = g.borrow();
-        let n = g.len();
-        let mut grads: Vec<Option<Tensor>> = vec![None; n];
 
-        // Seed: d(loss)/d(loss) = 1
-        grads[loss.node_id] = Some(Tensor::scalar(scale));
-
-        // Reverse pass
-        for i in (0..n).rev() {
+        // Reverse pass over the graph
+        for i in (0..g.len()).rev() {
             let grad_out = match &grads[i] {
-                Some(g) => g.clone(),
+                Some(gv) => gv.clone(),
                 None => continue,
             };
 
@@ -458,71 +422,110 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                     let input_ids = inputs.clone();
                     let input_grads = match op {
                         BackwardOp::Add => vec![
-                            reduce_broadcast_grad(grad_out.clone(), &tensor_from_entry(&g[input_ids[0]]).shape).unwrap(),
-                            reduce_broadcast_grad(grad_out.clone(), &tensor_from_entry(&g[input_ids[1]]).shape).unwrap(),
+                            reduce_broadcast_grad(&grad_out, &tensor_from_entry(&g[input_ids[0]]).shape)?,
+                            reduce_broadcast_grad(&grad_out, &tensor_from_entry(&g[input_ids[1]]).shape)?,
                         ],
                         BackwardOp::Sub => vec![
-                            reduce_broadcast_grad(grad_out.clone(), &tensor_from_entry(&g[input_ids[0]]).shape).unwrap(),
-                            reduce_broadcast_grad(grad_out.clone().neg(), &tensor_from_entry(&g[input_ids[1]]).shape).unwrap(),
+                            reduce_broadcast_grad(&grad_out, &tensor_from_entry(&g[input_ids[0]]).shape)?,
+                            reduce_broadcast_grad(&grad_out.neg(), &tensor_from_entry(&g[input_ids[1]]).shape)?,
                         ],
                         BackwardOp::Mul => {
                             let a = tensor_from_entry(&g[input_ids[0]]);
                             let b = tensor_from_entry(&g[input_ids[1]]);
-                            let b_expanded = b.broadcast_to(&grad_out.shape).unwrap();
-                            let a_expanded = a.broadcast_to(&grad_out.shape).unwrap();
-                            let grad_a = grad_out.mul(&b_expanded).unwrap();
-                            let grad_b = grad_out.mul(&a_expanded).unwrap();
+                            let b_expanded =
+                                b.broadcast_to(&grad_out.shape)
+                                    .map_err(|_| autograd_error("autograd mul: cannot broadcast operand b to grad shape"))?;
+                            let a_expanded =
+                                a.broadcast_to(&grad_out.shape)
+                                    .map_err(|_| autograd_error("autograd mul: cannot broadcast operand a to grad shape"))?;
+                            let grad_a = grad_out
+                                .mul(&b_expanded)
+                                .map_err(|_| autograd_error("autograd mul: grad_a computation failed"))?;
+                            let grad_b = grad_out
+                                .mul(&a_expanded)
+                                .map_err(|_| autograd_error("autograd mul: grad_b computation failed"))?;
                             vec![
-                                reduce_broadcast_grad(grad_a, &a.shape).unwrap(),
-                                reduce_broadcast_grad(grad_b, &b.shape).unwrap(),
+                                reduce_broadcast_grad(&grad_a, &a.shape)?,
+                                reduce_broadcast_grad(&grad_b, &b.shape)?,
                             ]
                         }
                         BackwardOp::Div => {
                             let a = tensor_from_entry(&g[input_ids[0]]);
                             let b = tensor_from_entry(&g[input_ids[1]]);
-                            let b_expanded = b.broadcast_to(&grad_out.shape).unwrap();
-                            let a_expanded = a.broadcast_to(&grad_out.shape).unwrap();
-                            let inv_b = Tensor::ones(&b_expanded.shape).div(&b_expanded).unwrap();
-                            let grad_a = grad_out.mul(&inv_b).unwrap();
+                            let b_expanded =
+                                b.broadcast_to(&grad_out.shape)
+                                    .map_err(|_| autograd_error("autograd div: cannot broadcast operand b to grad shape"))?;
+                            let a_expanded =
+                                a.broadcast_to(&grad_out.shape)
+                                    .map_err(|_| autograd_error("autograd div: cannot broadcast operand a to grad shape"))?;
+                            let inv_b = Tensor::ones(&b_expanded.shape)
+                                .div(&b_expanded)
+                                .map_err(|_| autograd_error("autograd div: 1/b computation failed"))?;
+                            let grad_a = grad_out
+                                .mul(&inv_b)
+                                .map_err(|_| autograd_error("autograd div: grad_a computation failed"))?;
+                            let inv_b_sq = inv_b
+                                .mul(&inv_b)
+                                .map_err(|_| autograd_error("autograd div: (1/b)² computation failed"))?;
                             let grad_b = grad_out
                                 .mul(&a_expanded.mul_scalar(-1.0))
-                                .unwrap()
-                                .mul(&inv_b.mul(&inv_b).unwrap())
-                                .unwrap();
+                                .map_err(|_| autograd_error("autograd div: grad_b numerator failed"))?
+                                .mul(&inv_b_sq)
+                                .map_err(|_| autograd_error("autograd div: grad_b computation failed"))?;
                             vec![
-                                reduce_broadcast_grad(grad_a, &a.shape).unwrap(),
-                                reduce_broadcast_grad(grad_b, &b.shape).unwrap(),
+                                reduce_broadcast_grad(&grad_a, &a.shape)?,
+                                reduce_broadcast_grad(&grad_b, &b.shape)?,
                             ]
                         }
                         BackwardOp::Neg => vec![grad_out.neg()],
                         BackwardOp::Matmul => {
                             let a = tensor_from_entry(&g[input_ids[0]]);
                             let b = tensor_from_entry(&g[input_ids[1]]);
-                            let bt = b.transpose().unwrap();
-                            let at = a.transpose().unwrap();
+                            let bt = b.transpose().map_err(|_| autograd_error("autograd matmul: transpose failed"))?;
+                            let at = a.transpose().map_err(|_| autograd_error("autograd matmul: transpose failed"))?;
                             assert_matmul!(grad_out, bt);
                             assert_matmul!(at, grad_out);
-                            vec![grad_out.matmul(&bt).unwrap(), at.matmul(&grad_out).unwrap()]
+                            let ga = grad_out
+                                .matmul(&bt)
+                                .map_err(|_| autograd_error("autograd matmul: grad wrt a failed"))?;
+                            let gb = at
+                                .matmul(&grad_out)
+                                .map_err(|_| autograd_error("autograd matmul: grad wrt b failed"))?;
+                            vec![ga, gb]
                         }
                         BackwardOp::ReLU => {
                             let input = tensor_from_entry(&g[input_ids[0]]);
                             let mask = crate::activations::relu_grad(&input);
                             assert_shape!(grad_out, mask);
-                            vec![grad_out.mul(&mask).unwrap()]
+                            let gated = grad_out
+                                .mul(&mask)
+                                .map_err(|_| autograd_error("autograd relu: mask multiply failed"))?;
+                            vec![gated]
                         }
                         BackwardOp::Sigmoid => {
                             let input = tensor_from_entry(&g[input_ids[0]]);
                             let sig = crate::activations::sigmoid(&input);
-                            let grad_activation = sig.mul(&Tensor::ones(&sig.shape).sub(&sig).unwrap()).unwrap();
-                            vec![grad_out.mul(&grad_activation).unwrap()]
+                            let ones = Tensor::ones(&sig.shape);
+                            let grad_activation = sig
+                                .mul(&ones.sub(&sig).map_err(|_| autograd_error("autograd sigmoid: 1−σ failed"))?)
+                                .map_err(|_| autograd_error("autograd sigmoid: σ(1−σ) failed"))?;
+                            let gated = grad_out
+                                .mul(&grad_activation)
+                                .map_err(|_| autograd_error("autograd sigmoid: chain multiply failed"))?;
+                            vec![gated]
                         }
                         BackwardOp::Tanh => {
                             let input = tensor_from_entry(&g[input_ids[0]]);
                             let tanh = crate::activations::tanh(&input);
-                            let grad_activation = Tensor::ones(&tanh.shape)
-                                .sub(&tanh.mul(&tanh).unwrap())
-                                .unwrap();
-                            vec![grad_out.mul(&grad_activation).unwrap()]
+                            let ones = Tensor::ones(&tanh.shape);
+                            let sq = tanh.mul(&tanh).map_err(|_| autograd_error("autograd tanh: tanh² failed"))?;
+                            let grad_activation = ones
+                                .sub(&sq)
+                                .map_err(|_| autograd_error("autograd tanh: 1−tanh² failed"))?;
+                            let gated = grad_out
+                                .mul(&grad_activation)
+                                .map_err(|_| autograd_error("autograd tanh: chain multiply failed"))?;
+                            vec![gated]
                         }
                         BackwardOp::Sum => {
                             let input = tensor_from_entry(&g[input_ids[0]]);
@@ -532,8 +535,9 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                             let pred = tensor_from_entry(&g[input_ids[0]]);
                             let target = tensor_from_entry(&g[input_ids[1]]);
                             assert_shape!(pred, target);
-                            let g = crate::losses::mse_grad(&pred, &target).unwrap();
-                            vec![g, Tensor::zeros(&target.shape)]
+                            let gd = crate::losses::mse_grad(&pred, &target)
+                                .map_err(|_| autograd_error("autograd mse_loss: mse_grad failed"))?;
+                            vec![gd, Tensor::zeros(&target.shape)]
                         }
                     };
                     for (j, &input_id) in input_ids.iter().enumerate() {
@@ -541,7 +545,8 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
                             grads[input_id] = Some(match &grads[input_id] {
                                 Some(existing) => {
                                     assert_shape!(existing, &input_grads[j]);
-                                    existing.add(&input_grads[j]).unwrap()
+                                    existing.add(&input_grads[j])
+                                        .map_err(|_| autograd_error("autograd accumulate: gradient accumulation failed"))?
                                 }
                                 None => input_grads[j].clone(),
                             });
@@ -551,21 +556,30 @@ pub fn backward(loss: &mut GradTensor, scale: f64) {
             }
         }
 
-        // Write computed gradients back to the registry
-        GRAD_REGISTRY.with(|reg| {
-            let mut reg = reg.borrow_mut();
-            for (id, grad) in grads.into_iter().enumerate() {
-                if let Some(g) = grad {
-                    if id < reg.len() {
-                        reg[id] = Some(g);
-                    }
+        Ok(())
+    })?;
+
+    // Write computed gradients back to the registry
+    GRAD_REGISTRY.with(|reg| {
+        let mut reg = reg.borrow_mut();
+        for (id, grad) in grads.into_iter().enumerate() {
+            if let Some(gv) = grad {
+                if id < reg.len() {
+                    reg[id] = Some(gv);
                 }
             }
-        });
+        }
     });
 
     // Update the loss tensor's grad
-    loss.grad = Some(Tensor::scalar(scale));
+    loss.grad = Some(Tensor::full(&loss.tensor.shape, scale));
+    Ok(())
+}
+
+/// Build an [`MathError::InvalidArgument`] for an internal autodiff failure —
+/// used to surface broken graphs without panicking.
+fn autograd_error(msg: &'static str) -> MathError {
+    MathError::InvalidArgument(msg)
 }
 
 /// Look up the gradient for a node by its node_id.
@@ -671,5 +685,34 @@ mod tests {
         // d/dx MSE = 2*(x-t)/n → 2*(1-2)/2=-1, 2*(3-1)/2=2
         assert_eq!(get_grad(pred.node_id).unwrap().data, vec![-1.0, 2.0]);
         assert_eq!(get_grad(target.node_id).unwrap().data, vec![0.0, 0.0]);
+    }
+
+    #[test]
+    fn try_backward_matches_backward() {
+        clear_graph();
+        let a = GradTensor::from_data(&[2, 2], vec![1.0, 2.0, 3.0, 4.0]);
+        let b = GradTensor::from_data(&[2, 2], vec![5.0, 6.0, 7.0, 8.0]);
+        let mut loss = sum(&mul(&a, &b));
+        assert!(loss.try_backward(2.0).is_ok());
+        // d/dx (x·y) summed = y, scaled by 2
+        assert_eq!(get_grad(a.node_id).unwrap().data, vec![10.0, 12.0, 14.0, 16.0]);
+    }
+
+    #[test]
+    fn try_from_data_rejects_bad_shape() {
+        assert!(GradTensor::try_from_data(&[2, 2], vec![1.0, 2.0, 3.0]).is_err());
+        assert!(GradTensor::try_from_data(&[2], vec![1.0, 2.0]).is_ok());
+    }
+
+    #[test]
+    fn matmul_backward_via_try() {
+        clear_graph();
+        // (1×2) @ (2×1) → scalar; d/da = bᵀ, d/db = aᵀ
+        let a = GradTensor::from_data(&[1, 2], vec![3.0, 4.0]);
+        let b = GradTensor::from_data(&[2, 1], vec![5.0, 6.0]);
+        let mut loss = matmul(&a, &b);
+        assert!(loss.try_backward(1.0).is_ok());
+        assert_eq!(get_grad(a.node_id).unwrap().data, vec![5.0, 6.0]);
+        assert_eq!(get_grad(b.node_id).unwrap().data, vec![3.0, 4.0]);
     }
 }
