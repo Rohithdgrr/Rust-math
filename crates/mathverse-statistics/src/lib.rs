@@ -22,34 +22,26 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
-#![allow(clippy::approx_constant)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_possible_wrap)]
-#![allow(clippy::float_cmp)]
-#![allow(clippy::many_single_char_names)]
-#![allow(clippy::needless_range_loop)]
-#![allow(clippy::module_name_repetitions)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::missing_panics_doc)]
-#![allow(clippy::return_self_not_must_use)]
-#![allow(clippy::missing_const_for_fn)]
-#![allow(clippy::unreadable_literal)]
-#![allow(clippy::manual_range_contains)]
-#![allow(unused_assignments)]
-#![allow(clippy::suboptimal_flops)]
-#![allow(clippy::explicit_iter_loop)]
-#![allow(clippy::needless_for_each)]
-#![allow(clippy::double_must_use)]
-#![allow(clippy::doc_markdown)]
-#![allow(clippy::manual_midpoint)]
-#![allow(clippy::redundant_closure_for_method_calls)]
-#![allow(clippy::cast_lossless)]
+// Exact float comparisons in tests compare integer-valued results by design.
+#![cfg_attr(test, allow(clippy::float_cmp))]
+// Integer<->float casts are pervasive in statistics code and each conversion
+// carries a single documented safety argument in [`conv`] (counts are exact
+// below 2^53; index conversions operate on pre-clamped values). Silencing
+// these pedantic lints crate-wide keeps that argument in one place instead
+// of duplicating it at ~140 call sites.
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap,
+    // Statistical constants (z-quantiles, critical values) are conventionally
+    // written as bare 16-digit literals.
+    clippy::unreadable_literal
+)]
 
 extern crate alloc;
 
+pub mod conv;
 pub mod density;
 pub mod descriptive;
 pub mod distributions;
@@ -97,9 +89,7 @@ pub use matrix::{
     precision_matrix, PCA,
 };
 
-pub use fit::{
-    bootstrapped_mean, fit_normal, ks_test,
-};
+pub use fit::{bootstrapped_mean, fit_normal, ks_test};
 
 pub use inference::{
     benjamini_hochberg, bonferroni, bootstrap_ci, cohens_d, effect_size_from_t, eta_squared,

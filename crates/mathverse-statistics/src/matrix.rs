@@ -37,16 +37,16 @@ pub fn covariance_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
         ));
     }
     let mut means = vec![0.0; p];
-    for row in data.iter() {
+    for row in data {
         for j in 0..p {
             means[j] += row[j];
         }
     }
-    for m in means.iter_mut() {
+    for m in &mut means {
         *m /= n as f64;
     }
     let mut cov = vec![vec![0.0; p]; p];
-    for row in data.iter() {
+    for row in data {
         for i in 0..p {
             for j in 0..p {
                 cov[i][j] += (row[i] - means[i]) * (row[j] - means[j]);
@@ -72,7 +72,6 @@ pub fn covariance_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
 /// let corr = correlation_matrix(&data).unwrap();
 /// assert!((corr[0][1] - 1.0).abs() < 1e-10);
 /// ```
-#[must_use]
 pub fn correlation_matrix(data: &[&[f64]]) -> MathResult<Vec<Vec<f64>>> {
     let cov = covariance_matrix(data)?;
     let p = cov.len();
@@ -136,12 +135,12 @@ pub fn pca(data: &[&[f64]]) -> MathResult<PCA> {
         ));
     }
     let mut means = vec![0.0; p];
-    for row in data.iter() {
+    for row in data {
         for j in 0..p {
             means[j] += row[j];
         }
     }
-    for m in means.iter_mut() {
+    for m in &mut means {
         *m /= n as f64;
     }
     let centered: Vec<Vec<f64>> = data
@@ -149,7 +148,7 @@ pub fn pca(data: &[&[f64]]) -> MathResult<PCA> {
         .map(|row| row.iter().zip(&means).map(|(x, m)| x - m).collect())
         .collect();
 
-    let cov = covariance_matrix(&centered.iter().map(|r| r.as_slice()).collect::<Vec<_>>())?;
+    let cov = covariance_matrix(&centered.iter().map(std::vec::Vec::as_slice).collect::<Vec<_>>())?;
 
     let k = p.min(n);
     let mut components = Vec::new();
@@ -306,7 +305,7 @@ fn power_iteration(matrix: &[Vec<f64>]) -> (f64, Vec<f64>) {
         if norm < 1e-30 {
             break;
         }
-        for x in new_b.iter_mut() {
+        for x in &mut new_b {
             *x /= norm;
         }
         b = new_b;
@@ -369,16 +368,14 @@ mod tests {
     fn cholesky_inverse_test() {
         let a = vec![vec![4.0, 2.0], vec![2.0, 3.0]];
         let inv = cholesky_inverse(&a).unwrap();
-        let prod = vec![
-            vec![
+        let prod = [vec![
                 a[0][0] * inv[0][0] + a[0][1] * inv[1][0],
                 a[0][0] * inv[0][1] + a[0][1] * inv[1][1],
             ],
             vec![
                 a[1][0] * inv[0][0] + a[1][1] * inv[1][0],
                 a[1][0] * inv[0][1] + a[1][1] * inv[1][1],
-            ],
-        ];
+            ]];
         assert!((prod[0][0] - 1.0).abs() < 1e-10);
         assert!(prod[0][1].abs() < 1e-10);
         assert!(prod[1][0].abs() < 1e-10);

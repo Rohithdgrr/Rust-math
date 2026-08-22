@@ -1,6 +1,7 @@
 //! Checked and saturating arithmetic operations for overflow safety.
 
 /// Checked addition: returns `None` on overflow.
+#[must_use]
 pub fn checked_add(a: f64, b: f64) -> Option<f64> {
     let result = a + b;
     if result.is_infinite() && (a.is_finite() && b.is_finite()) {
@@ -11,6 +12,7 @@ pub fn checked_add(a: f64, b: f64) -> Option<f64> {
 }
 
 /// Checked subtraction: returns `None` on overflow.
+#[must_use]
 pub fn checked_sub(a: f64, b: f64) -> Option<f64> {
     let result = a - b;
     if result.is_infinite() && (a.is_finite() && b.is_finite()) {
@@ -21,6 +23,7 @@ pub fn checked_sub(a: f64, b: f64) -> Option<f64> {
 }
 
 /// Checked multiplication: returns `None` on overflow.
+#[must_use]
 pub fn checked_mul(a: f64, b: f64) -> Option<f64> {
     let result = a * b;
     if result.is_infinite() && (a.is_finite() && b.is_finite() && a != 0.0 && b != 0.0) {
@@ -31,6 +34,7 @@ pub fn checked_mul(a: f64, b: f64) -> Option<f64> {
 }
 
 /// Checked division: returns `None` on overflow or division by zero.
+#[must_use]
 pub fn checked_div(a: f64, b: f64) -> Option<f64> {
     if b == 0.0 {
         None
@@ -45,6 +49,7 @@ pub fn checked_div(a: f64, b: f64) -> Option<f64> {
 }
 
 /// Saturating addition: clamps to `f64::MAX` / `f64::MIN` on overflow.
+#[must_use]
 pub fn saturating_add(a: f64, b: f64) -> f64 {
     let result = a + b;
     if result.is_infinite() {
@@ -55,6 +60,7 @@ pub fn saturating_add(a: f64, b: f64) -> f64 {
 }
 
 /// Saturating subtraction: clamps to `f64::MAX` / `f64::MIN` on overflow.
+#[must_use]
 pub fn saturating_sub(a: f64, b: f64) -> f64 {
     let result = a - b;
     if result.is_infinite() {
@@ -65,6 +71,7 @@ pub fn saturating_sub(a: f64, b: f64) -> f64 {
 }
 
 /// Saturating multiplication: clamps to `f64::MAX` / `f64::MIN` on overflow.
+#[must_use]
 pub fn saturating_mul(a: f64, b: f64) -> f64 {
     let result = a * b;
     if result.is_infinite() {
@@ -75,16 +82,19 @@ pub fn saturating_mul(a: f64, b: f64) -> f64 {
 }
 
 /// Wrapping addition (modular arithmetic on the float bit pattern).
+#[must_use]
 pub fn wrapping_add(a: f64, b: f64) -> f64 {
     a + b
 }
 
 /// Returns `true` if `a` and `b` are approximately equal within `tol`.
+#[must_use]
 pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
     (a - b).abs() <= tol
 }
 
 /// Returns `true` if `a` and `b` are approximately equal relative to their magnitude.
+#[must_use]
 pub fn approx_eq_rel(a: f64, b: f64, rel_tol: f64) -> bool {
     if a == b { return true; }
     let diff = (a - b).abs();
@@ -93,21 +103,25 @@ pub fn approx_eq_rel(a: f64, b: f64, rel_tol: f64) -> bool {
 }
 
 /// Clamps `x` to `[lo, hi]`.
+#[must_use]
 pub fn clamp(x: f64, lo: f64, hi: f64) -> f64 {
     x.clamp(lo, hi)
 }
 
 /// Linear interpolation: `a + t * (b - a)`.
+#[must_use]
 pub fn lerp(a: f64, b: f64, t: f64) -> f64 {
     a + t * (b - a)
 }
 
 /// Inverse linear interpolation: given `y` in `[lerp(a, b, 0), lerp(a, b, 1)]`, returns `t`.
+#[must_use]
 pub fn inverse_lerp(a: f64, b: f64, y: f64) -> f64 {
     if (b - a).abs() < f64::EPSILON { 0.0 } else { (y - a) / (b - a) }
 }
 
 /// Remaps `x` from `[in_lo, in_hi]` to `[out_lo, out_hi]`.
+#[must_use]
 pub fn remap(x: f64, in_lo: f64, in_hi: f64, out_lo: f64, out_hi: f64) -> f64 {
     let t = inverse_lerp(in_lo, in_hi, x);
     lerp(out_lo, out_hi, t)

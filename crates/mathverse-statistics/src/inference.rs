@@ -33,7 +33,7 @@ where
     (stats[lo_idx.min(n_boot - 1)], stats[hi_idx.min(n_boot - 1)])
 }
 
-/// Simple xorshift64 PRNG for no_std compatibility.
+/// Simple xorshift64 PRNG for `no_std` compatibility.
 struct XorShift64 {
     state: u64,
 }
@@ -420,7 +420,7 @@ mod tests {
     #[test]
     fn sample_size_test() {
         let n = sample_size_two_sample(0.8, 0.05, 0.8);
-        assert!(n >= 10 && n <= 200);
+        assert!((10..=200).contains(&n));
     }
 
     #[test]
@@ -431,7 +431,7 @@ mod tests {
     #[test]
     fn bootstrap_ci_test() {
         let data = [1.0, 2.0, 3.0, 4.0, 5.0];
-        let (lo, hi) = bootstrap_ci(&data, |d| mean(d), 1000, 0.05, 42);
+        let (lo, hi) = bootstrap_ci(&data, mean, 1000, 0.05, 42);
         assert!(lo < 3.0 && hi > 3.0);
     }
 }

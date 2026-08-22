@@ -29,32 +29,43 @@ pub fn idct2(x: &[f64]) -> Vec<f64> {
 
 /// Discrete Cosine Transform, Type I (orthonormal).
 ///
-/// Endpoints (`i = 0`, `i = N-1`) are weighted by `0.5`, matching the DCT-I
-/// boundary convention. Requires `N ≥ 2`; shorter inputs are returned
-/// unchanged.
+/// `X[k] = √(2/(N−1))·u(k)·Σᵢ u(i)·x[i]·cos(π·i·k/(N−1))` where `u(0) =
+/// u(N−1) = 1/√2` and `u = 1` elsewhere. The matrix is symmetric and
+/// orthogonal, so DCT-I is its own inverse. Requires `N ≥ 2`; shorter
+/// inputs are returned unchanged.
 pub fn dct1(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     if n < 2 { return x.to_vec(); }
     (0..n).map(|k| {
         let s: f64 = (0..n).map(|i| {
-            let scale = if i == 0 || i == n - 1 { 0.5 } else { 1.0 };
+            let scale = if i == 0 || i == n - 1 {
+                core::f64::consts::FRAC_1_SQRT_2
+            } else {
+                1.0
+            };
             scale * x[i] * (core::f64::consts::PI * i as f64 * k as f64 / (n - 1) as f64).cos()
         }).sum();
-        let c = if k == 0 || k == n - 1 { (1.0 / (2.0 * (n - 1) as f64)).sqrt() } else { (1.0 / (n - 1) as f64).sqrt() };
+        let c = if k == 0 || k == n - 1 {
+            (1.0 / (n - 1) as f64).sqrt()
+        } else {
+            (2.0 / (n - 1) as f64).sqrt()
+        };
         c * s
     }).collect()
 }
 
 /// Discrete Cosine Transform, Type III (orthonormal).
 ///
-/// Related to DCT-II by transposition; often used as the inverse of a
-/// non-orthonormal DCT-II variant.
+/// `X[k] = Σᵢ w(i)·x[i]·cos(π·(k+0.5)·i/N)` with `w(0) = √(1/N)` and
+/// `w(i) = √(2/N)` otherwise — the exact transpose (inverse) of the
+/// orthonormal [`dct2`].
 pub fn dct3(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     (0..n).map(|k| {
-        let c = if k == 0 { (1.0 / n as f64).sqrt() } else { (2.0 / n as f64).sqrt() };
-        let s: f64 = (0..n).map(|i| x[i] * (core::f64::consts::PI * i as f64 * (k as f64 + 0.5) / n as f64).cos()).sum();
-        c * s
+        (0..n).map(|i| {
+            let w = if i == 0 { (1.0 / n as f64).sqrt() } else { (2.0 / n as f64).sqrt() };
+            w * x[i] * (core::f64::consts::PI * (k as f64 + 0.5) * i as f64 / n as f64).cos()
+        }).sum()
     }).collect()
 }
 

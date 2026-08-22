@@ -7,9 +7,9 @@ use mathverse_core::error::{MathError, MathResult};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tensor {
     /// Tensor shape in row-major order.
-    pub shape: Vec<usize>,
+    pub(crate) shape: Vec<usize>,
     /// Flat row-major data buffer.
-    pub data: Vec<f64>,
+    pub(crate) data: Vec<f64>,
 }
 
 impl fmt::Display for Tensor {
@@ -336,6 +336,21 @@ impl Tensor {
 
     /// Borrow data as slice.
     pub fn as_slice(&self) -> &[f64] { &self.data }
+
+    /// Borrow the flat row-major data buffer.
+    #[must_use]
+    pub fn data(&self) -> &[f64] { &self.data }
+
+    /// Mutably borrow the flat row-major data buffer.
+    pub fn data_mut(&mut self) -> &mut [f64] { &mut self.data }
+
+    /// Consume into Vec (alias of [`Tensor::to_vec`]).
+    #[must_use]
+    pub fn into_data(self) -> Vec<f64> { self.data }
+
+    /// Consume into `(shape, data)` parts.
+    #[must_use]
+    pub fn into_parts(self) -> (Vec<usize>, Vec<f64>) { (self.shape, self.data) }
 
     /// Consume into Vec.
     pub fn to_vec(self) -> Vec<f64> { self.data }
@@ -777,30 +792,31 @@ impl Tensor {
     /// # Errors
     ///
     /// Returns `MathError::OutOfRange` if any index is outside `[0, axis_size)`.
-    pub fn gather(&self, axis: usize, indices: &Tensor) -> MathResult<Tensor> {
+    /// Gather along `axis`: selects slices of `self` using integer indices.
+    ///
+    /// The result has the same shape as `self` except `shape[axis]` becomes
+    /// `indices.len()`; element `[.., k, ..]` of the output is
+    /// `self[.., indices[k], ..]`.
+    pub fn gather(&self, axis: usize, indices: &[usize]) -> MathResult<Tensor> {
         if axis >= self.shape.len() { return Err(MathError::InvalidArgument("gather: axis out of range")); }
-        let mut out_data = Vec::with_capacity(indices.numel());
         let axis_size = self.shape[axis];
-        let _outer: usize = self.shape[..axis].iter().product();
+        let outer: usize = self.shape[..axis].iter().product();
         let inner: usize = self.shape[axis + 1..].iter().product();
-        let iouter: usize = indices.shape[..axis].iter().product();
-        let iinner: usize = indices.shape[axis + 1..].iter().product();
-        for io in 0..iouter {
-            for k in 0..indices.shape[axis] {
-                for ii in 0..iinner {
-                    let idx = io * indices.shape[axis] * iinner + k * iinner + ii;
-                    let gi = indices.data[idx];
-                    if gi < 0.0 || gi.fract() != 0.0 || gi as usize >= axis_size {
-                        return Err(MathError::OutOfRange);
-                    }
-                    let gather_idx = gi as usize;
+        for &gi in indices {
+            if gi >= axis_size { return Err(MathError::OutOfRange); }
+        }
+        let mut out_data = Vec::with_capacity(indices.len() * outer * inner);
+        for io in 0..outer {
+            for &gather_idx in indices {
+                for ii in 0..inner {
                     let src_flat = io * axis_size * inner + gather_idx * inner + ii;
                     out_data.push(self.data[src_flat]);
                 }
             }
         }
-        let out_shape = indices.shape.clone();
-        Ok(Tensor { shape: out_shape, data: out_data })
+        let mut out_shape = self.shape.clone();
+        out_shape[axis] = indices.len();
+        Tensor::new(&out_shape, &out_data)
     }
 
     /// Scatter add: adds `src` into a zero tensor at positions given by `indices`.
@@ -808,24 +824,28 @@ impl Tensor {
     /// # Errors
     ///
     /// Returns `MathError::OutOfRange` if any index is outside `[0, axis_size)`.
-    pub fn scatter_add(&self, axis: usize, indices: &Tensor, src: &Tensor) -> MathResult<Tensor> {
+    /// Scatter-add along `axis`: adds `src` slices of `self` at the given
+    /// integer indices.
+    ///
+    /// `src` must have the same shape as `self` except `shape[axis]` equals
+    /// `indices.len()`; `out[.., indices[k], ..] += src[.., k, ..]`.
+    /// Overlapping indices accumulate (true add, not overwrite).
+    pub fn scatter_add(&self, axis: usize, indices: &[usize], src: &Tensor) -> MathResult<Tensor> {
         if axis >= self.shape.len() { return Err(MathError::InvalidArgument("scatter_add: axis out of range")); }
-        let mut out = self.clone();
         let axis_size = self.shape[axis];
-        let _outer: usize = self.shape[..axis].iter().product();
+        let outer: usize = self.shape[..axis].iter().product();
         let inner: usize = self.shape[axis + 1..].iter().product();
-        let iouter: usize = indices.shape[..axis].iter().product();
-        let iinner: usize = indices.shape[axis + 1..].iter().product();
-        for io in 0..iouter {
-            for k in 0..indices.shape[axis] {
-                for ii in 0..iinner {
-                    let idx = io * indices.shape[axis] * iinner + k * iinner + ii;
-                    let si = indices.data[idx];
-                    if si < 0.0 || si.fract() != 0.0 || si as usize >= axis_size {
-                        return Err(MathError::OutOfRange);
-                    }
-                    let scatter_idx = si as usize;
-                    let src_flat = io * src.shape[axis] * inner + k * inner + ii;
+        for &si in indices {
+            if si >= axis_size { return Err(MathError::OutOfRange); }
+        }
+        let mut expected = self.shape.clone();
+        expected[axis] = indices.len();
+        if src.shape != expected { return Err(MathError::DimensionMismatch); }
+        let mut out = self.clone();
+        for io in 0..outer {
+            for (k, &scatter_idx) in indices.iter().enumerate() {
+                for ii in 0..inner {
+                    let src_flat = io * indices.len() * inner + k * inner + ii;
                     let dst_flat = io * axis_size * inner + scatter_idx * inner + ii;
                     out.data[dst_flat] += src.data[src_flat];
                 }
@@ -1719,6 +1739,29 @@ mod tests {
             ref_val += a.data[2 * 7 + k] * b.data[k * 4 + 3];
         }
         assert!((c.data[2 * 4 + 3] - ref_val).abs() < 1e-9);
+    }
+
+    #[test]
+    fn gather_integer_indices() {
+        // [2, 3]: rows [1, 2, 3] and [4, 5, 6]; gather row index 1 twice.
+        let x = Tensor::new(&[2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
+        let out = x.gather(0, &[1, 1]).unwrap();
+        assert_eq!(out.shape(), &[2, 3]);
+        assert_eq!(out.as_slice(), &[4.0, 5.0, 6.0, 4.0, 5.0, 6.0]);
+        assert!(x.gather(0, &[2]).is_err());
+    }
+
+    #[test]
+    fn scatter_add_integer_indices() {
+        let x = Tensor::zeros(&[2, 2]);
+        let src = Tensor::new(&[3, 2], &[1.0, 1.0, 2.0, 2.0, 3.0, 3.0]).unwrap();
+        let out = x.scatter_add(0, &[0, 1, 0], &src).unwrap();
+        assert_eq!(out.shape(), &[2, 2]);
+        // Row 0 receives src rows 0 and 2; row 1 receives src row 1.
+        assert_eq!(out.as_slice(), &[4.0, 4.0, 2.0, 2.0]);
+        assert!(x.scatter_add(0, &[5], &src).is_err());
+        let bad_src = Tensor::new(&[1, 3], &[1.0, 2.0, 3.0]).unwrap();
+        assert!(x.scatter_add(0, &[0], &bad_src).is_err());
     }
 }
 

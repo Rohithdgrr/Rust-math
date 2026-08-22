@@ -3074,6 +3074,7 @@ dependencies = [
 name = "mathverse-statistics"
 version = "0.1.2"
 dependencies = [
+ "criterion 0.5.1",
  "mathverse-core",
  "mathverse-probability",
 ]

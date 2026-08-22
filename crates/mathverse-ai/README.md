@@ -34,7 +34,7 @@ AI/ML mathematical primitives: tensors, activations, losses, optimizers, and att
 | `attention` | Transformer attention math | `scaled_dot_product_attention`, `multi_head_attention`, `apply_rope` |
 | `layers` | Neural network layers | `Linear`, `LayerNorm`, `BatchNorm`, `Dropout` |
 | `models` | Model architectures | `Sequential`, `MLP`, `TransformerBlock` |
-| `autograd` | Automatic differentiation | Backward pass computation |
+| `autograd` | Automatic differentiation | Explicit `ComputationGraph`, `GradTensor`, `backward` |
 | `data` | Data loading utilities | `DataLoader`, `Batch`, `train_test_split` |
 
 ## Installation
@@ -53,7 +53,7 @@ fn main() {
     // Create tensors
     let logits = Tensor::new(&[1, 3], &[2.0, 1.0, 0.5]).unwrap();
     let probs = softmax(&logits, 1).unwrap();
-    println!("Softmax: {:?}", probs.data);
+    println!("Softmax: {:?}", probs.as_slice());
     // Softmax: [0.5906, 0.2447, 0.1647]
 
     // MSE loss
@@ -188,6 +188,38 @@ let y = apply_rope(&x, 8, 10000.0);
 
 - Attention: `Attention(Q,K,V) = softmax(QKᵀ / √dₖ) V`
 - RoPE: `θ_i = pos / base^(2i/d)`, apply 2D rotation to each pair
+
+---
+
+### Autograd
+
+Reverse-mode automatic differentiation over an explicit, user-owned
+`ComputationGraph`. There is no hidden global state — create a graph, register
+variables, run `backward`, and read gradients. Multiple independent graphs can
+coexist (and be trained concurrently on different threads).
+
+```rust
+use mathverse_ai::{Tensor, ComputationGraph};
+
+let mut g = ComputationGraph::new();
+
+// Leaves: variables with gradients
+let x = g.variable(Tensor::new(&[2, 1], &[1.0, 2.0]).unwrap());
+let w = g.variable(Tensor::new(&[1, 2], &[3.0, -1.0]).unwrap());
+
+// Forward: y = w·x (shape [1, 1]), then L = sum(y)
+let y = w.matmul(&x);
+let l = y.sum();
+
+// Backward: seeds ∂L/∂L = 1 and propagates in reverse topological order
+g.backward(&l);
+
+assert_eq!(g.grad_of(&w).unwrap().as_slice(), &[1.0, 2.0]);
+assert_eq!(g.grad_of(&x).unwrap().as_slice(), &[3.0, -1.0]);
+```
+
+Gradients are retrieved with `graph.grad_of(&node)` and reset with
+`graph.zero_grad()` or cleared entirely with `graph.clear()`.
 
 ---
 

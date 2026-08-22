@@ -21,8 +21,7 @@ impl Sgd {
 
     /// Perform one optimization step. `params` and `grads` must have same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        debug_assert_eq!(params.len(), grads.len(), "Sgd: params/grads length mismatch");
-        if params.len() != grads.len() { return; }
+        assert_eq!(params.len(), grads.len(), "Sgd: params/grads length mismatch");
         if !self.initialized {
             self.velocity = vec![0.0; params.len()];
             self.initialized = true;
@@ -64,8 +63,7 @@ impl Adam {
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        debug_assert_eq!(params.len(), grads.len(), "Adam: params/grads length mismatch");
-        if params.len() != grads.len() { return; }
+        assert_eq!(params.len(), grads.len(), "Adam: params/grads length mismatch");
         if !self.initialized {
             self.m = vec![0.0; params.len()];
             self.v = vec![0.0; params.len()];
@@ -117,8 +115,7 @@ impl AdamW {
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        debug_assert_eq!(params.len(), grads.len(), "AdamW: params/grads length mismatch");
-        if params.len() != grads.len() { return; }
+        assert_eq!(params.len(), grads.len(), "AdamW: params/grads length mismatch");
         if !self.initialized {
             self.m = vec![0.0; params.len()];
             self.v = vec![0.0; params.len()];
@@ -243,8 +240,7 @@ impl RMSprop {
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        debug_assert_eq!(params.len(), grads.len(), "RMSprop: params/grads length mismatch");
-        if params.len() != grads.len() { return; }
+        assert_eq!(params.len(), grads.len(), "RMSprop: params/grads length mismatch");
         if !self.initialized {
             self.avg_sq = vec![0.0; params.len()];
             self.velocity = vec![0.0; params.len()];
@@ -285,8 +281,7 @@ impl Lion {
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        debug_assert_eq!(params.len(), grads.len(), "Lion: params/grads length mismatch");
-        if params.len() != grads.len() { return; }
+        assert_eq!(params.len(), grads.len(), "Lion: params/grads length mismatch");
         if !self.initialized {
             self.m = vec![0.0; params.len()];
             self.initialized = true;
@@ -323,8 +318,7 @@ impl AdaGrad {
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        debug_assert_eq!(params.len(), grads.len(), "AdaGrad: params/grads length mismatch");
-        if params.len() != grads.len() { return; }
+        assert_eq!(params.len(), grads.len(), "AdaGrad: params/grads length mismatch");
         if !self.initialized {
             self.sum_sq = vec![0.0; params.len()];
             self.initialized = true;
@@ -364,8 +358,7 @@ impl AdaDelta {
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        debug_assert_eq!(params.len(), grads.len(), "AdaDelta: params/grads length mismatch");
-        if params.len() != grads.len() { return; }
+        assert_eq!(params.len(), grads.len(), "AdaDelta: params/grads length mismatch");
         if !self.initialized {
             self.avg_sq = vec![0.0; params.len()];
             self.avg_dx = vec![0.0; params.len()];
@@ -411,8 +404,7 @@ impl Nadam {
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        debug_assert_eq!(params.len(), grads.len(), "Nadam: params/grads length mismatch");
-        if params.len() != grads.len() { return; }
+        assert_eq!(params.len(), grads.len(), "Nadam: params/grads length mismatch");
         if !self.initialized {
             self.m = vec![0.0; params.len()];
             self.v = vec![0.0; params.len()];

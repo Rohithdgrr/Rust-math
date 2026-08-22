@@ -518,8 +518,10 @@ impl<T: RealFull> From<(T, T)> for Complex<T> {
 
 #[cfg(feature = "rand")]
 impl rand::distributions::Distribution<Complex<f64>> for rand::distributions::Standard {
-    /// Sample a complex number with independent standard-normal real and
-    /// imaginary parts (circular Gaussian).
+    /// Sample a complex number whose real and imaginary parts are each
+    /// uniform in `[0, 1)` — matching `rand`'s `Standard` semantics for
+    /// floats. For circular Gaussian sampling use [`complex_gaussian`] or
+    /// `rand_distr::StandardNormal`.
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Complex<f64> {
         let re: f64 = rng.gen();
         let im: f64 = rng.gen();
@@ -531,8 +533,8 @@ impl rand::distributions::Distribution<Complex<f64>> for rand::distributions::St
 #[cfg(feature = "rand")]
 pub fn complex_uniform_disk<R: rand::Rng + ?Sized>(rng: &mut R) -> Complex<f64> {
     loop {
-        let re: f64 = rng.gen();
-        let im: f64 = rng.gen();
+        let re = rng.gen::<f64>() * 2.0 - 1.0;
+        let im = rng.gen::<f64>() * 2.0 - 1.0;
         let z = Complex::new(re, im);
         if z.norm_sq() <= 1.0 {
             return z;
@@ -544,9 +546,9 @@ pub fn complex_uniform_disk<R: rand::Rng + ?Sized>(rng: &mut R) -> Complex<f64> 
 /// `sigma` (i.e., `Re` and `Im` are independent `N(0, sigma²)`).
 #[cfg(feature = "rand")]
 pub fn complex_gaussian<R: rand::Rng + ?Sized>(rng: &mut R, sigma: f64) -> Complex<f64> {
-    let re: f64 = rng.gen::<f64>() * sigma;
-    let im: f64 = rng.gen::<f64>() * sigma;
-    Complex::new(re, im)
+    let re: f64 = rng.sample(rand_distr::StandardNormal);
+    let im: f64 = rng.sample(rand_distr::StandardNormal);
+    Complex::new(sigma * re, sigma * im)
 }
 
 /// Iterate `z → z² + c` until escape or `max_iterations`.
@@ -896,5 +898,47 @@ mod tests {
         assert!((z * z.conjugate() - Complex::real(z.norm_sq())).norm() < 1e-12);
         let w: Complex = Complex::new(0.8, 0.6);
         assert!((w.ln().exp() - w).norm() < 1e-12);
+    }
+
+    // ---- rand-feature regression tests ------------------------------------
+
+    #[cfg(feature = "rand")]
+    mod rand_tests {
+        use super::*;
+
+        #[test]
+        fn uniform_disk_covers_all_quadrants() {
+            use rand::{rngs::StdRng, SeedableRng};
+            let mut rng = StdRng::seed_from_u64(7);
+            let mut neg_re = false;
+            let mut neg_im = false;
+            for _ in 0..2000 {
+                let z = complex_uniform_disk(&mut rng);
+                assert!(z.norm_sq() <= 1.0);
+                neg_re |= z.re < 0.0;
+                neg_im |= z.im < 0.0;
+            }
+            // Regression: gen() alone is [0,1), which sampled only the
+            // first quadrant of the disk.
+            assert!(neg_re, "no negative real parts sampled");
+            assert!(neg_im, "no negative imaginary parts sampled");
+        }
+
+        #[test]
+        fn gaussian_is_normal_not_uniform() {
+            use rand::{rngs::StdRng, SeedableRng};
+            let mut rng = StdRng::seed_from_u64(7);
+            let n = 20_000;
+            let sigma = 1.0;
+            let samples: Vec<Complex> =
+                (0..n).map(|_| complex_gaussian(&mut rng, sigma)).collect();
+            let mean_re: f64 = samples.iter().map(|z| z.re).sum::<f64>() / f64::from(n as i32);
+            let var_re: f64 = samples.iter().map(|z| z.re * z.re).sum::<f64>() / f64::from(n as i32)
+                - mean_re * mean_re;
+            assert!(mean_re.abs() < 0.05, "mean {mean_re}");
+            // Regression: uniform[0,1)*sigma has variance ~sigma²/12 ≈ 0.083,
+            // a true N(0, σ²) has variance σ² = 1.
+            assert!((var_re - sigma * sigma).abs() < 0.1, "variance {var_re}");
+        }
     }
 }

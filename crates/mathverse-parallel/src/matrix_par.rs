@@ -6,10 +6,10 @@ use rayon::prelude::*;
 
 /// Parallel matrix-vector product.
 pub fn par_mat_vec(m: &Matrix, v: &Vector) -> Vector {
-    let data: Vec<f64> = (0..m.rows)
+    let data: Vec<f64> = (0..m.rows())
         .into_par_iter()
         .map(|i| {
-            (0..m.cols)
+            (0..m.cols())
                 .map(|j| m.get(i, j) * v.get(j))
                 .sum()
         })
@@ -19,14 +19,14 @@ pub fn par_mat_vec(m: &Matrix, v: &Vector) -> Vector {
 
 /// Parallel matrix-matrix product.
 pub fn par_mat_mul(a: &Matrix, b: &Matrix) -> Matrix {
-    let mut out = Matrix::zeros(a.rows, b.cols);
+    let mut out = Matrix::zeros(a.rows(), b.cols());
     // Parallelize over rows of the result
-    out.data
-        .par_chunks_mut(b.cols)
+    out.data_mut()
+        .par_chunks_mut(b.cols())
         .enumerate()
         .for_each(|(i, row)| {
-            for j in 0..b.cols {
-                row[j] = (0..a.cols).map(|k| a.get(i, k) * b.get(k, j)).sum();
+            for j in 0..b.cols() {
+                row[j] = (0..a.cols()).map(|k| a.get(i, k) * b.get(k, j)).sum();
             }
         });
     out
@@ -35,46 +35,42 @@ pub fn par_mat_mul(a: &Matrix, b: &Matrix) -> Matrix {
 /// Parallel element-wise matrix addition.
 pub fn par_mat_add(a: &Matrix, b: &Matrix) -> Matrix {
     let data: Vec<f64> = a
-        .data
+        .data()
         .par_iter()
-        .zip(b.data.par_iter())
+        .zip(b.data().par_iter())
         .map(|(x, y)| x + y)
         .collect();
-    Matrix {
-        rows: a.rows,
-        cols: a.cols,
-        data,
-    }
+    Matrix::new(a.rows(), a.cols(), data).expect("shape matches data length")
 }
 
 /// Parallel matrix trace.
 pub fn par_trace(m: &Matrix) -> f64 {
-    (0..m.rows).into_par_iter().map(|i| m.get(i, i)).sum()
+    (0..m.rows()).into_par_iter().map(|i| m.get(i, i)).sum()
 }
 
 /// Parallel Frobenius norm of a matrix.
 pub fn par_frobenius_norm(m: &Matrix) -> f64 {
-    m.data.par_iter().map(|x| x * x).sum::<f64>().sqrt()
+    m.data().par_iter().map(|x| x * x).sum::<f64>().sqrt()
 }
 
 /// Parallel column means.
 pub fn par_col_means(m: &Matrix) -> Vec<f64> {
-    (0..m.cols)
+    (0..m.cols())
         .into_par_iter()
         .map(|j| {
-            let sum: f64 = (0..m.rows).map(|i| m.get(i, j)).sum();
-            sum / m.rows as f64
+            let sum: f64 = (0..m.rows()).map(|i| m.get(i, j)).sum();
+            sum / m.rows() as f64
         })
         .collect()
 }
 
 /// Parallel row means.
 pub fn par_row_means(m: &Matrix) -> Vec<f64> {
-    (0..m.rows)
+    (0..m.rows())
         .into_par_iter()
         .map(|i| {
-            let sum: f64 = (0..m.cols).map(|j| m.get(i, j)).sum();
-            sum / m.cols as f64
+            let sum: f64 = (0..m.cols()).map(|j| m.get(i, j)).sum();
+            sum / m.cols() as f64
         })
         .collect()
 }
@@ -82,16 +78,12 @@ pub fn par_row_means(m: &Matrix) -> Vec<f64> {
 /// Parallel element-wise matrix multiplication (Hadamard product).
 pub fn par_hadamard(a: &Matrix, b: &Matrix) -> Matrix {
     let data: Vec<f64> = a
-        .data
+        .data()
         .par_iter()
-        .zip(b.data.par_iter())
+        .zip(b.data().par_iter())
         .map(|(x, y)| x * y)
         .collect();
-    Matrix {
-        rows: a.rows,
-        cols: a.cols,
-        data,
-    }
+    Matrix::new(a.rows(), a.cols(), data).expect("shape matches data length")
 }
 
 #[cfg(test)]

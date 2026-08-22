@@ -30,20 +30,42 @@ pub struct DataLoader {
 impl DataLoader {
     /// Create a new [`DataLoader`].
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `x.shape[0]` is not present (i.e. `x` is scalar).
-    pub fn new(x: Tensor, y: Tensor, batch_size: usize, shuffle: bool) -> Self {
+    /// Returns [`MathError`] if the inputs are scalar, `x` and `y` have
+    /// different lengths, or `batch_size` is zero.
+    pub fn new(x: Tensor, y: Tensor, batch_size: usize, shuffle: bool) -> MathResult<Self> {
+        Self::validate(&x, &y, batch_size)?;
         let n = x.shape[0];
         let indices: Vec<usize> = (0..n).collect();
-        Self { x, y, batch_size, shuffle, seed: 0xABCD, indices, pos: 0 }
+        Ok(Self { x, y, batch_size, shuffle, seed: 0xABCD, indices, pos: 0 })
     }
 
     /// Create a new [`DataLoader`] with a specific shuffle seed.
-    pub fn with_seed(x: Tensor, y: Tensor, batch_size: usize, shuffle: bool, seed: u64) -> Self {
+    ///
+    /// # Errors
+    ///
+    /// Same validation as [`DataLoader::new`].
+    pub fn with_seed(x: Tensor, y: Tensor, batch_size: usize, shuffle: bool, seed: u64) -> MathResult<Self> {
+        Self::validate(&x, &y, batch_size)?;
         let n = x.shape[0];
         let indices: Vec<usize> = (0..n).collect();
-        Self { x, y, batch_size, shuffle, seed, indices, pos: 0 }
+        Ok(Self { x, y, batch_size, shuffle, seed, indices, pos: 0 })
+    }
+
+    /// Validates loader inputs: non-scalar tensors of equal length and a
+    /// non-zero batch size.
+    fn validate(x: &Tensor, y: &Tensor, batch_size: usize) -> MathResult<()> {
+        if x.shape.is_empty() || y.shape.is_empty() {
+            return Err(MathError::InvalidArgument("DataLoader inputs must have at least 1 dimension"));
+        }
+        if x.shape[0] != y.shape[0] {
+            return Err(MathError::DimensionMismatch);
+        }
+        if batch_size == 0 {
+            return Err(MathError::InvalidArgument("batch_size must be > 0"));
+        }
+        Ok(())
     }
 
     /// Reset iterator. Uses the loader's seed for deterministic shuffling.
@@ -169,7 +191,7 @@ mod tests {
     fn dataloader_test() {
         let x = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
         let y = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
-        let mut loader = DataLoader::new(x, y, 3, false);
+        let mut loader = DataLoader::new(x, y, 3, false).unwrap();
         assert_eq!(loader.num_batches(), 4);
         let batch = loader.next().unwrap();
         assert_eq!(batch.x.shape, vec![3, 1]);

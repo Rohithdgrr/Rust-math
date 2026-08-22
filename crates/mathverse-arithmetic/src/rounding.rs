@@ -19,6 +19,7 @@ pub enum RoundingMode {
 }
 
 /// Round `x` according to the specified mode.
+#[must_use]
 pub fn round_with_mode(x: f64, mode: RoundingMode) -> f64 {
     match mode {
         RoundingMode::TowardZero => x.trunc(),
@@ -40,17 +41,20 @@ pub fn round_with_mode(x: f64, mode: RoundingMode) -> f64 {
 }
 
 /// Round `x` to `decimal_places` decimal places using the specified mode.
+#[must_use]
 pub fn round_to_with_mode(x: f64, decimal_places: i32, mode: RoundingMode) -> f64 {
     let factor = 10.0_f64.powi(decimal_places);
     round_with_mode(x * factor, mode) / factor
 }
 
 /// Round `x` to the nearest integer, breaking ties to even (IEEE 754 default).
+#[must_use]
 pub fn round_ties_even(x: f64) -> f64 {
     x.round_ties_even()
 }
 
 /// Quantize `x` to have the same number of decimal places as `reference`.
+#[must_use]
 pub fn quantize(x: f64, reference: f64) -> f64 {
     let frac = reference.fract();
     if frac == 0.0 {

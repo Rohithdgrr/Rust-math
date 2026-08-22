@@ -2,7 +2,7 @@
 //!
 //! Solve 2×2 and 3×3 linear systems `Ax = b` via Cramer's rule.
 //!
-//! All operations return [`Result<T, AlgebraError>`](crate::Result).
+//! All operations return [`Result<T, MathError>`](crate::Result).
 //!
 //! ## Examples
 //!
@@ -16,7 +16,7 @@
 //! ```
 
 use crate::determinant::{det_2x2, det_3x3};
-use crate::{AlgebraError, TOL};
+use crate::{MathError, TOL};
 
 /// Solve a 2×2 system via Cramer's rule.
 ///
@@ -25,7 +25,7 @@ use crate::{AlgebraError, TOL};
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] if `det(a) ≈ 0`.
+/// Returns [`MathError::Singular`] if `det(a) ≈ 0`.
 ///
 /// # Examples
 ///
@@ -38,10 +38,10 @@ use crate::{AlgebraError, TOL};
 /// let x = solve_2x2(&a, &b).unwrap();
 /// assert_eq!(x, [3.0, 1.0]);
 /// ```
-pub fn solve_2x2(a: &[f64; 4], b: &[f64; 2]) -> Result<[f64; 2], AlgebraError> {
+pub fn solve_2x2(a: &[f64; 4], b: &[f64; 2]) -> Result<[f64; 2], MathError> {
     let d = det_2x2(a);
     if d.abs() < TOL {
-        return Err(AlgebraError::Singular);
+        return Err(MathError::Singular);
     }
     Ok([
         (b[0] * a[3] - b[1] * a[1]) / d,
@@ -55,7 +55,7 @@ pub fn solve_2x2(a: &[f64; 4], b: &[f64; 2]) -> Result<[f64; 2], AlgebraError> {
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] if `det(a) ≈ 0`.
+/// Returns [`MathError::Singular`] if `det(a) ≈ 0`.
 ///
 /// # Examples
 ///
@@ -68,10 +68,10 @@ pub fn solve_2x2(a: &[f64; 4], b: &[f64; 2]) -> Result<[f64; 2], AlgebraError> {
 /// let x = solve_3x3(&a, &b).unwrap();
 /// assert_eq!(x, [4.0, 5.0, 6.0]);
 /// ```
-pub fn solve_3x3(a: &[f64; 9], b: &[f64; 3]) -> Result<[f64; 3], AlgebraError> {
+pub fn solve_3x3(a: &[f64; 9], b: &[f64; 3]) -> Result<[f64; 3], MathError> {
     let d = det_3x3(a);
     if d.abs() < TOL {
-        return Err(AlgebraError::Singular);
+        return Err(MathError::Singular);
     }
     let dx = det_3x3(&[b[0], a[1], a[2], b[1], a[4], a[5], b[2], a[7], a[8]]);
     let dy = det_3x3(&[a[0], b[0], a[2], a[3], b[1], a[5], a[6], b[2], a[8]]);
@@ -83,13 +83,10 @@ pub fn solve_3x3(a: &[f64; 9], b: &[f64; 3]) -> Result<[f64; 3], AlgebraError> {
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] or [`AlgebraError::DimensionMismatch`].
-pub fn solve_system_2x2(a: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> {
+/// Returns [`MathError::Singular`] or [`MathError::DimensionMismatch`].
+pub fn solve_system_2x2(a: &[f64], b: &[f64]) -> Result<[f64; 2], MathError> {
     if a.len() != 4 || b.len() != 2 {
-        return Err(AlgebraError::DimensionMismatch {
-            expected: 6,
-            actual: a.len() + b.len(),
-        });
+        return Err(MathError::DimensionMismatch);
     }
     Ok([
         (b[0] * a[3] - b[1] * a[1]) / det_2x2(a),
@@ -101,17 +98,14 @@ pub fn solve_system_2x2(a: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> 
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] or [`AlgebraError::DimensionMismatch`].
-pub fn solve_system_3x3(a: &[f64], b: &[f64]) -> Result<[f64; 3], AlgebraError> {
+/// Returns [`MathError::Singular`] or [`MathError::DimensionMismatch`].
+pub fn solve_system_3x3(a: &[f64], b: &[f64]) -> Result<[f64; 3], MathError> {
     if a.len() != 9 || b.len() != 3 {
-        return Err(AlgebraError::DimensionMismatch {
-            expected: 12,
-            actual: a.len() + b.len(),
-        });
+        return Err(MathError::DimensionMismatch);
     }
     let d = det_3x3(a);
     if d.abs() < TOL {
-        return Err(AlgebraError::Singular);
+        return Err(MathError::Singular);
     }
     let dx = det_3x3(&[b[0], a[1], a[2], b[1], a[4], a[5], b[2], a[7], a[8]]);
     let dy = det_3x3(&[a[0], b[0], a[2], a[3], b[1], a[5], a[6], b[2], a[8]]);
@@ -163,7 +157,7 @@ mod tests {
     fn test_singular() {
         let a = [1.0, 2.0, 2.0, 4.0];
         let b = [3.0, 6.0];
-        assert_eq!(solve_2x2(&a, &b), Err(AlgebraError::Singular));
+        assert_eq!(solve_2x2(&a, &b), Err(MathError::Singular));
     }
 
     #[test]

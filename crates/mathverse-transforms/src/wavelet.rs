@@ -40,12 +40,13 @@ pub fn haar_idwt(c: &[f64]) -> mathverse_core::error::MathResult<Vec<f64>> {
     Ok(out)
 }
 
-/// Multi-level forward Haar transform applied to the approximation
-/// coefficients only.
+/// Multi-level forward Haar transform in the standard pyramid layout.
 ///
-/// Requires a nonzero power-of-two length and `levels ≤ log₂(N)`. The output
-/// length is `N / 2^levels`. The full multi-level coefficient layout
-/// (approximation + per-level details) is left to the caller to assemble.
+/// Requires a nonzero power-of-two length and `levels ≤ log₂(N)`. Each level
+/// transforms only the current approximation block, leaving earlier detail
+/// blocks untouched, so the returned `N`-length vector is laid out as
+/// `[app_L | det_L | det_{L−1} | … | det_1]` — exactly what [`haar_idwt_multi`]
+/// expects and the same convention `pywt.wavedec` uses for its packed form.
 pub fn haar_dwt_multi(x: &[f64], levels: usize) -> mathverse_core::error::MathResult<Vec<f64>> {
     if x.is_empty() || !x.len().is_power_of_two() {
         return Err(mathverse_core::error::MathError::InvalidArgument("haar_dwt_multi: length must be nonzero power of two"));
@@ -54,38 +55,53 @@ pub fn haar_dwt_multi(x: &[f64], levels: usize) -> mathverse_core::error::MathRe
     if levels > max_levels {
         return Err(mathverse_core::error::MathError::InvalidArgument("haar_dwt_multi: too many levels"));
     }
+    let inv = core::f64::consts::FRAC_1_SQRT_2;
     let mut data = x.to_vec();
-    let mut n = x.len();
+    let mut len = x.len();
     for _ in 0..levels {
-        let mut out = vec![0.0; n];
-        let inv = core::f64::consts::FRAC_1_SQRT_2;
-        for (i, chunk) in data.chunks(2).enumerate() {
-            out[i] = (chunk[0] + chunk[1]) * inv;
-            out[i + n / 2] = (chunk[0] - chunk[1]) * inv;
+        let half = len / 2;
+        // Scratch buffer: writing details in place would clobber pairs that
+        // have not been averaged yet.
+        let mut out = vec![0.0; len];
+        for i in 0..half {
+            let (a, d) = (data[2 * i], data[2 * i + 1]);
+            out[i] = (a + d) * inv;
+            out[half + i] = (a - d) * inv;
         }
-        data = out;
-        n /= 2;
+        data[..len].copy_from_slice(&out);
+        len = half;
     }
     Ok(data)
 }
 
 /// Multi-level inverse Haar transform.
 ///
-/// Inverts [`haar_dwt_multi`]: repeatedly upsamples and reconstructs
-/// `levels` times, returning a signal of length `N · 2^levels`.
+/// Inverts [`haar_dwt_multi`]: treats the first `N / 2^levels` entries as the
+/// coarsest approximation and the following blocks as per-level details,
+/// reconstructing level by level until the full signal is restored.
 pub fn haar_idwt_multi(c: &[f64], levels: usize) -> mathverse_core::error::MathResult<Vec<f64>> {
+    if c.is_empty() || !c.len().is_power_of_two() {
+        return Err(mathverse_core::error::MathError::InvalidArgument("haar_idwt_multi: length must be nonzero power of two"));
+    }
+    let max_levels = c.len().trailing_zeros() as usize;
+    if levels > max_levels {
+        return Err(mathverse_core::error::MathError::InvalidArgument("haar_idwt_multi: too many levels"));
+    }
+    let inv = core::f64::consts::FRAC_1_SQRT_2;
     let mut data = c.to_vec();
-    let mut n = c.len();
+    let mut len = c.len() >> levels;
     for _ in 0..levels {
-        let mut out = vec![0.0; n * 2];
-        let inv = core::f64::consts::FRAC_1_SQRT_2;
-        for i in 0..n {
-            let (a, d) = (data[i], data[i + n]);
+        let half = len;
+        // Scratch buffer: reconstruction writes into the same prefix it
+        // still reads approximation coefficients from.
+        let mut out = vec![0.0; half * 2];
+        for i in 0..half {
+            let (a, d) = (data[i], data[half + i]);
             out[2 * i] = (a + d) * inv;
             out[2 * i + 1] = (a - d) * inv;
         }
-        data = out;
-        n *= 2;
+        data[..half * 2].copy_from_slice(&out);
+        len *= 2;
     }
     Ok(data)
 }

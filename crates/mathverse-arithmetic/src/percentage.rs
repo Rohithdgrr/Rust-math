@@ -7,6 +7,7 @@ pub struct Percentage;
 
 impl Percentage {
     /// Calculate markup: selling price = cost + (cost * markup_rate).
+    #[must_use]
     pub fn markup(cost: f64, markup_rate: f64) -> f64 {
         cost * (1.0 + markup_rate / 100.0)
     }
@@ -36,6 +37,7 @@ impl Percentage {
     }
 
     /// Calculate discount: discounted price = original * (1 - discount_rate).
+    #[must_use]
     pub fn discount(original_price: f64, discount_rate: f64) -> f64 {
         original_price * (1.0 - discount_rate / 100.0)
     }
@@ -57,6 +59,7 @@ impl Percentage {
     }
 
     /// Calculate compound interest: A = P(1 + r/n)^(nt).
+    #[must_use]
     pub fn compound_interest(
         principal: f64,
         rate: f64,
@@ -68,28 +71,33 @@ impl Percentage {
     }
 
     /// Calculate simple interest: A = P(1 + rt).
+    #[must_use]
     pub fn simple_interest(principal: f64, rate: f64, years: f64) -> f64 {
         principal * (1.0 + rate / 100.0 * years)
     }
 
     /// Calculate effective annual rate from nominal rate.
+    #[must_use]
     pub fn effective_annual_rate(nominal_rate: f64, compounding_periods: u32) -> f64 {
         let n = compounding_periods as f64;
         ((1.0 + nominal_rate / 100.0 / n).powf(n) - 1.0) * 100.0
     }
 
     /// Calculate nominal rate from effective annual rate.
+    #[must_use]
     pub fn nominal_rate(effective_rate: f64, compounding_periods: u32) -> f64 {
         let n = compounding_periods as f64;
         ((1.0 + effective_rate / 100.0).powf(1.0 / n) - 1.0) * n * 100.0
     }
 
     /// Calculate percentage increase.
+    #[must_use]
     pub fn increase(original: f64, percent: f64) -> f64 {
         original * (1.0 + percent / 100.0)
     }
 
     /// Calculate percentage decrease.
+    #[must_use]
     pub fn decrease(original: f64, percent: f64) -> f64 {
         original * (1.0 - percent / 100.0)
     }
@@ -103,6 +111,7 @@ impl Percentage {
     }
 
     /// Calculate successive percentage changes.
+    #[must_use]
     pub fn successive_changes(initial: f64, changes: &[f64]) -> f64 {
         let mut result = initial;
         for &change in changes {
@@ -125,6 +134,7 @@ pub struct ProfitLoss;
 
 impl ProfitLoss {
     /// Calculate gross profit: revenue - cost.
+    #[must_use]
     pub fn gross_profit(revenue: f64, cost: f64) -> f64 {
         revenue - cost
     }
@@ -138,6 +148,7 @@ impl ProfitLoss {
     }
 
     /// Calculate net profit: revenue - cost - expenses.
+    #[must_use]
     pub fn net_profit(revenue: f64, cost: f64, expenses: f64) -> f64 {
         revenue - cost - expenses
     }

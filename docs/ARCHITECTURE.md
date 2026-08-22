@@ -3,8 +3,9 @@
 ## Repository Layout
 
 Single Cargo workspace with one crate per domain (see README crate table). Each
-crate is independently usable and versioned; `mathverse-prelude` re-exports the
-full public API.
+crate is independently usable and versioned; `mathverse-prelude` re-exports
+every crate under its own namespace module (e.g. `prelude::ai`, `prelude::matrix`)
+plus a curated, collision-free flat prelude.
 
 ## Dependencies Between Crates
 
@@ -17,8 +18,10 @@ full public API.
 
 - **Traits**: numeric abstractions shared across all crates (field, ring, real,
   complex, etc. — built on std `num` conventions where they exist).
-- **Error handling**: one error taxonomy with rich messages and
-  `std::error::Error` + `no_std` support.
+- **Error handling**: one workspace-wide taxonomy — `mathverse_core::error::MathError`
+  with the `MathResult<T>` alias, `std::error::Error` + `no_std` support. All
+  crates (including `mathverse-algebra`) return this single type, so operations
+  compose across crates with `?`.
 - **Constants**: high-precision mathematical constants.
 - **Precision utilities**: epsilon comparison, tolerance-based equality, rounding
   helpers.

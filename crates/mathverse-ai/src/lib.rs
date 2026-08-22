@@ -60,4 +60,4 @@ pub use attention::{scaled_dot_product_attention, multi_head_attention, sinusoid
 pub use layers::{Linear, LayerNorm, BatchNorm, Dropout};
 pub use models::{Sequential, MLP, TransformerBlock, Activation};
 pub use data::{DataLoader, Batch, train_test_split};
-pub use autograd::{GradTensor, add, sub, mul, div, neg, sigmoid as autograd_sigmoid, tanh as autograd_tanh, matmul as autograd_matmul, relu_op, sum as autograd_sum, mse_loss, backward, try_backward, clear_graph, get_grad, node_id};
+pub use autograd::{ComputationGraph, GradTensor};

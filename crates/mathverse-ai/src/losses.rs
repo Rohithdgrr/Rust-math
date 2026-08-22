@@ -162,9 +162,8 @@ pub fn cosine_embedding_loss(a: &Tensor, b: &Tensor, target: &Tensor, margin: f6
         let a_slice = &a.data[i * dim as usize..(i + 1) * dim as usize];
         let b_slice = &b.data[i * dim as usize..(i + 1) * dim as usize];
         let dot: f64 = a_slice.iter().zip(b_slice).map(|(x, y)| x * y).sum();
-        let norm_a: f64 = a_slice.iter().map(|x| x * x).sum::<f64>().sqrt();
-        let norm_b: f64 = b_slice.iter().map(|x| x * x).sum::<f64>().sqrt();
-        if norm_a < 1e-10 || norm_b < 1e-10 { continue; }
+        let norm_a: f64 = a_slice.iter().map(|x| x * x).sum::<f64>().sqrt().max(1e-10);
+        let norm_b: f64 = b_slice.iter().map(|x| x * x).sum::<f64>().sqrt().max(1e-10);
         let cos_sim = dot / (norm_a * norm_b);
         let t = target.data[i];
         let base = 1.0 - cos_sim;
@@ -183,6 +182,17 @@ mod tests {
         let pred = Tensor::new(&[3], &[1.0, 2.0, 3.0]).unwrap();
         let target = Tensor::new(&[3], &[1.0, 2.0, 5.0]).unwrap();
         assert!((mse(&pred, &target).unwrap() - 4.0 / 3.0).abs() < E);
+    }
+
+    #[test]
+    fn cosine_embedding_loss_zero_vector_finite() {
+        // Zero vectors previously caused silent sample skips that skewed the
+        // mean; every sample must now contribute and the result stay finite.
+        let a = Tensor::new(&[2, 2], &[1.0, 0.0, 0.0, 0.0]).unwrap();
+        let b = Tensor::new(&[2, 2], &[1.0, 0.0, 1.0, 0.0]).unwrap();
+        let t = Tensor::new(&[2], &[1.0, 1.0]).unwrap();
+        let loss = cosine_embedding_loss(&a, &b, &t, 0.5).unwrap();
+        assert!(loss.is_finite(), "loss must be finite with zero-vector inputs");
     }
 
     #[test]

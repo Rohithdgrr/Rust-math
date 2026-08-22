@@ -66,7 +66,7 @@ fn incomplete_gamma_lower(a: f64, x: f64) -> f64 {
         let mut sum = 1.0 / a;
         let mut term = 1.0 / a;
         for n in 1..200 {
-            term *= x / (a + n as f64);
+            term *= x / (a + f64::from(n));
             sum += term;
             if term.abs() < 1e-15 * sum.abs() {
                 break;
@@ -80,8 +80,8 @@ fn incomplete_gamma_lower(a: f64, x: f64) -> f64 {
         let mut c = d;
         let mut f = d;
         for i in 1..200 {
-            let an = -(i as f64) * (i as f64 - a);
-            let bn = b + 2.0 * i as f64;
+            let an = -f64::from(i) * (f64::from(i) - a);
+            let bn = b + 2.0 * f64::from(i);
             let dn = bn + an * d;
             if dn.abs() < 1e-30 {
                 d = 1e-30;
@@ -126,7 +126,7 @@ fn beta_inc(a: f64, b: f64, x: f64) -> f64 {
     d = 1.0 / d;
     let mut f = d;
     for i in 1..200 {
-        let m = i as f64;
+        let m = f64::from(i);
         let numerator = m * (b - m) * x / ((a + 2.0 * m - 1.0) * (a + 2.0 * m));
         d = 1.0 + numerator / d;
         if d.abs() < 1e-30 {
@@ -258,7 +258,7 @@ pub fn f_pdf(x: f64, d1: f64, d2: f64) -> f64 {
     if x <= 0.0 || d1 <= 0.0 || d2 <= 0.0 {
         return 0.0;
     }
-    let ln = d1.ln() * d1 / 2.0 + d2.ln() * d2 / 2.0 + gamma_ln((d1 + d2) / 2.0)
+    let ln = d1.ln() * d1 / 2.0 + d2.ln() * d2 / 2.0 + gamma_ln(f64::midpoint(d1, d2))
         - gamma_ln(d1 / 2.0)
         - gamma_ln(d2 / 2.0)
         + (d1 / 2.0 - 1.0) * x.ln()

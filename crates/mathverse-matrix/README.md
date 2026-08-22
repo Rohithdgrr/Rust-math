@@ -12,6 +12,7 @@ Dense and sparse matrix operations over `f64` with row-major storage — decompo
 ## Features
 
 - Dense `Matrix` type with row-major `Vec<f64>` storage
+- Encapsulated dimensions with validated constructors (`Matrix::new` checks `data.len() == rows * cols`) and bounds-checked `try_get`/`try_set` returning `MathResult`
 - Sparse matrices: COO, CSR, CSC, Diagonal formats
 - Decompositions: LU, QR (Householder), Cholesky, SVD (one-sided Jacobi), Schur, LDL, Polar
 - Eigenvalue solvers: symmetric (Jacobi), general (QR iteration), generalized (Ax = λBx)

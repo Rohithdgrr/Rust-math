@@ -211,6 +211,9 @@ pub fn mann_whitney_u(a: &[f64], b: &[f64]) -> (f64, f64) {
     let mut i = 0;
     while i < all.len() {
         let mut j = i;
+        // Exact equality is intentional: ties are values that are bit-equal
+        // after sorting, not merely close.
+        #[allow(clippy::float_cmp)]
         while j < all.len() && all[j].0 == all[i].0 {
             j += 1;
         }

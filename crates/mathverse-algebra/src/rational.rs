@@ -14,7 +14,7 @@
 //! ```
 
 use crate::polynomial::Polynomial;
-use crate::{AlgebraError, TOL};
+use crate::{MathError, TOL};
 use core::fmt;
 
 /// A rational expression `num / den` where `num` and `den` are [`Polynomial`]s.
@@ -143,7 +143,7 @@ impl RationalExpression {
     ///
     /// # Errors
     ///
-    /// Returns [`AlgebraError::UnsupportedDegree`] if `den` doesn't have exactly
+    /// Returns [`MathError::UnsupportedDegree`] if `den` doesn't have exactly
     /// 2 distinct real roots.
     ///
     /// # Examples
@@ -156,14 +156,14 @@ impl RationalExpression {
     /// let (a, residues) = r.partial_frac().unwrap();
     /// // residues[0] corresponds to factor (x - a[0])
     /// ```
-    pub fn partial_frac(&self) -> Result<(Vec<f64>, Vec<f64>), AlgebraError> {
+    pub fn partial_frac(&self) -> Result<(Vec<f64>, Vec<f64>), MathError> {
         let d = self.den.coeffs();
         if d.len() != 3 {
-            return Err(AlgebraError::UnsupportedDegree(d.len() as u8 - 1));
+            return Err(MathError::InvalidArgument("unsupported polynomial degree for partial fractions"));
         }
         let roots = crate::roots::solve_quadratic(d[2], d[1], d[0]);
         if roots.len() != 2 {
-            return Err(AlgebraError::UnsupportedDegree(1));
+            return Err(MathError::InvalidArgument("unsupported denominator degree: expected 1"));
         }
         let a = roots[0];
         let b = roots[1];
@@ -177,7 +177,7 @@ impl RationalExpression {
     ///
     /// # Errors
     ///
-    /// Returns [`AlgebraError::UnsupportedDegree`] if `den` doesn't have exactly
+    /// Returns [`MathError::UnsupportedDegree`] if `den` doesn't have exactly
     /// 3 distinct real roots.
     ///
     /// # Examples
@@ -190,14 +190,14 @@ impl RationalExpression {
     /// let (roots, residues) = r.partial_frac_three().unwrap();
     /// assert_eq!(roots.len(), 3);
     /// ```
-    pub fn partial_frac_three(&self) -> Result<(Vec<f64>, Vec<f64>), AlgebraError> {
+    pub fn partial_frac_three(&self) -> Result<(Vec<f64>, Vec<f64>), MathError> {
         let d = self.den.coeffs();
         if d.len() != 4 {
-            return Err(AlgebraError::UnsupportedDegree(d.len() as u8 - 1));
+            return Err(MathError::InvalidArgument("unsupported polynomial degree for partial fractions"));
         }
         let roots = crate::roots::solve_cubic(d[3], d[2], d[1], d[0]);
         if roots.len() != 3 {
-            return Err(AlgebraError::UnsupportedDegree(2));
+            return Err(MathError::InvalidArgument("unsupported denominator degree: expected 2"));
         }
         let a = roots[0];
         let b = roots[1];

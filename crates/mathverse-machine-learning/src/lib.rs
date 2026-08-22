@@ -65,9 +65,9 @@ mod validate;
 /// # Example
 ///
 /// ```
-/// use mathverse_ml::learn;
-/// use mathverse_ml::pipeline::{Pipeline, PipelineStep, ModelType};
-/// use mathverse_ml::datasets::make_classification;
+/// use mathverse_machine_learning::learn;
+/// use mathverse_machine_learning::pipeline::{Pipeline, PipelineStep, ModelType};
+/// use mathverse_machine_learning::datasets::make_classification;
 ///
 /// let (x, y) = make_classification(200, 4, 2, 42);
 /// let pipeline = Pipeline::new(vec![
@@ -85,7 +85,11 @@ pub fn learn(
     k: usize,
 ) -> f64 {
     let scores = evaluation::cross_val_score(x, y, k, |train_x, train_y, test_x| {
-        pipeline.predict(test_x)
+        // Fit a fresh pipeline on this fold's training split before predicting;
+        // cloning also discards any state fitted on other folds.
+        let mut fold_pipeline = pipeline.clone();
+        fold_pipeline.fit(train_x, train_y);
+        fold_pipeline.predict(test_x)
     });
     // `cross_val_score` already yields negative MSE per fold, so the mean is
     // directly the "higher is better" aggregate.
@@ -107,6 +111,10 @@ mod tests {
         ]);
         let mean_mse = learn(&x, &y, &pipeline, 5);
         assert!(mean_mse < 0.0, "Mean MSE should be negative");
+        // A fitted logistic pipeline must beat the trivial baseline of
+        // predicting the class prior (~MSE 0.25 for balanced binary labels);
+        // this fails if the pipeline is never fit inside cross-validation.
+        assert!(mean_mse > -0.25, "model must outperform prior baseline, got {mean_mse}");
     }
 
     #[test]

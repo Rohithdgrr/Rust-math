@@ -11,17 +11,17 @@ use crate::context::GpuContext;
 /// Uploads both matrices to GPU, runs the compute shader, and downloads
 /// the result. For small matrices (< 64x64), CPU is likely faster.
 pub fn gpu_mat_mul(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
-    if a.cols != b.rows {
+    if a.cols() != b.rows() {
         return Err(MathError::DimensionMismatch);
     }
 
-    let m = a.rows;
-    let _k = a.cols;
-    let n = b.cols;
+    let m = a.rows();
+    let _k = a.cols();
+    let n = b.cols();
 
     // Create buffers
-    let buf_a = ctx.create_buffer_init(&a.data);
-    let buf_b = ctx.create_buffer_init(&b.data);
+    let buf_a = ctx.create_buffer_init(a.as_slice());
+    let buf_b = ctx.create_buffer_init(b.as_slice());
     let buf_out = ctx.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Output"),
         size: (m * n * 8) as u64,
@@ -134,24 +134,20 @@ pub fn gpu_mat_mul(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matri
     // Read back
     let data = pollster::block_on(ctx.read_buffer(&buf_out, m * n))?;
 
-    Ok(Matrix {
-        rows: m,
-        cols: n,
-        data,
-    })
+    Ok(Matrix::new(m, n, data)?)
 }
 
 /// GPU element-wise addition.
 pub fn gpu_add(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
-    if a.rows != b.rows || a.cols != b.cols {
+    if a.rows() != b.rows() || a.cols() != b.cols() {
         return Err(MathError::DimensionMismatch);
     }
 
-    let buf_a = ctx.create_buffer_init(&a.data);
-    let buf_b = ctx.create_buffer_init(&b.data);
+    let buf_a = ctx.create_buffer_init(a.as_slice());
+    let buf_b = ctx.create_buffer_init(b.as_slice());
     let buf_out = ctx.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Output"),
-        size: (a.data.len() * 8) as u64,
+        size: (a.data().len() * 8) as u64,
         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     });
@@ -212,7 +208,7 @@ pub fn gpu_add(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
         });
 
     // Metadata buffer: [rows, cols, op_type]
-    let metadata: Vec<f64> = vec![a.rows as f64, a.cols as f64, 0.0]; // op 0 = add
+    let metadata: Vec<f64> = vec![a.rows() as f64, a.cols() as f64, 0.0]; // op 0 = add
     let buf_meta = ctx.create_buffer_init(&metadata);
 
     let bind_group = ctx
@@ -265,18 +261,14 @@ pub fn gpu_add(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
         pass.set_pipeline(&pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         let workgroup_size = 256;
-        let n = a.data.len();
+        let n = a.data().len();
         pass.dispatch_workgroups(((n + workgroup_size - 1) / workgroup_size) as u32, 1, 1);
     }
     ctx.queue.submit([encoder.finish()]);
 
-    let data = pollster::block_on(ctx.read_buffer(&buf_out, a.data.len()))?;
+    let data = pollster::block_on(ctx.read_buffer(&buf_out, a.data().len()))?;
 
-    Ok(Matrix {
-        rows: a.rows,
-        cols: a.cols,
-        data,
-    })
+    Ok(Matrix::new(a.rows(), a.cols(), data)?)
 }
 
 /// GPU vector dot product.

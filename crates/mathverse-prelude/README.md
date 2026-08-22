@@ -11,8 +11,8 @@ Convenience prelude that re-exports the entire MathVerse ecosystem through a sin
 
 ## Features
 
-- **Single import** — `use mathverse_prelude::prelude::*;` brings in every crate
-- **27 crates** — core, arithmetic, algebra, trigonometry, calculus, statistics, physics, finance, and more
+- **Namespaced imports** — every crate lives under its own module (`prelude::ai`, `prelude::matrix`, ...), eliminating cross-crate name collisions
+- **Curated flat prelude** — `use mathverse_prelude::prelude::*;` brings in the most common, collision-free types (`Tensor`, `Matrix`, `Vector`, `Complex`, `Polynomial`, `MathError`, ...)
 - **Zero overhead** — re-exports only, no additional logic
 
 ## Installation
@@ -28,57 +28,52 @@ mathverse-prelude = "0.1"
 use mathverse_prelude::prelude::*;
 
 fn main() {
-    // From mathverse-algebra
-    let p = mathverse_algebra::Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
+    // Curated prelude types
+    let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
     println!("Roots: {:?}", p.roots());
 
-    // From mathverse-physics
-    let ke = mathverse_physics::mechanics::kinetic_energy(2.0, 3.0);
-    println!("KE = {ke} J");
+    let m = Matrix::from_rows(&[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
+    println!("det = {}", m.det().unwrap());
 
-    // From mathverse-finance
-    let fv = mathverse_finance::tvm::future_value(1000.0, 0.05, 10);
-    println!("FV = ${fv:.2}");
-
-    // From mathverse-symbolic
-    let x = mathverse_symbolic::Expr::v("x");
-    let expr = x.clone().pow(mathverse_symbolic::Expr::c(2.0));
-    println!("d/dx x² = {}", mathverse_symbolic::derivative::differentiate(&expr, "x"));
+    // Namespaced access to any ecosystem crate
+    let t = mathverse_prelude::ai::Tensor::zeros(&[2, 3]);
+    println!("shape = {:?}", t.shape());
 }
 ```
 
-## Re-exported Crates
+## Namespace Modules
 
-| Crate | Description |
-|---|---|
-| `mathverse_core` | Traits, numeric abstractions, errors, constants |
-| `mathverse_arithmetic` | Basic ops, powers, roots, logs, rounding |
-| `mathverse_algebra` | Polynomials, equation solving, factorization |
-| `mathverse_trigonometry` | Trig, hyperbolic, inverse, angle conversions |
-| `mathverse_geometry` | 2D/3D shapes, area, volume, transforms |
-| `mathverse_linear_algebra` | Matrix, vector, tensor, decompositions |
-| `mathverse_matrix` | Matrix specializations |
-| `mathverse_vector` | Vector specializations |
-| `mathverse_calculus` | Derivatives, integrals, vector calculus |
-| `mathverse_complex` | Complex numbers |
-| `mathverse_probability` | Distributions, Bayes, Monte Carlo |
-| `mathverse_statistics` | Descriptive + inferential statistics |
-| `mathverse_number_theory` | Primes, GCD/LCM, modular arithmetic |
-| `mathverse_combinatorics` | Combinatorial math |
-| `mathverse_graph` | Graph algorithms |
-| `mathverse_optimization` | Gradient descent, SGD, genetic algorithms |
-| `mathverse_numerical` | Root finding, Runge-Kutta, interpolation |
-| `mathverse_equations` | Equation solving |
-| `mathverse_transforms` | FFT, DCT, wavelets |
-| `mathverse_signal` | Filters, convolution, correlation |
-| `mathverse_ai` | Activations, losses, metrics, attention |
-| `mathverse_machine_learning` | Linear, logistic, KNN, trees, clustering |
-| `mathverse_vision` | Camera, homography, features, optical flow |
-| `mathverse_physics` | Mechanics, E&M, optics, thermo, waves |
-| `mathverse_finance` | TVM, investment, risk, options, portfolio |
-| `mathverse_symbolic` | Expression trees, symbolic derivatives, LaTeX |
-| `mathverse_units` | SI/imperial, compile-time dimensional analysis |
-| `mathverse_plot` | SVG, HTML, terminal plotting |
+| Module | Crate | Description |
+|---|---|---|
+| `core` | `mathverse_core` | Traits, numeric abstractions, errors, constants |
+| `algebra` | `mathverse_algebra` | Polynomials, equation solving, factorization |
+| `ai` | `mathverse_ai` | Tensors, activations, losses, optimizers, autograd |
+| `ml` | `mathverse_machine_learning` | Linear/logistic models, KNN, trees, clustering |
+| `matrix` | `mathverse_matrix` | Dense/sparse matrices, decompositions |
+| `linear_algebra` | `mathverse_linear_algebra` | Decompositions, solvers, norms |
+| `vector` | `mathverse_vector` | Vector operations |
+| `complex` | `mathverse_complex` | Complex numbers |
+| `calculus` | `mathverse_calculus` | Derivatives, integrals, vector calculus |
+| `probability` | `mathverse_probability` | Distributions, Bayes, Monte Carlo |
+| `statistics` | `mathverse_statistics` | Descriptive + inferential statistics |
+| `number_theory` | `mathverse_number_theory` | Primes, GCD/LCM, modular arithmetic |
+| `combinatorics` | `mathverse_combinatorics` | Combinatorial math |
+| `graph` | `mathverse_graph` | Graph algorithms |
+| `numerical` | `mathverse_numerical` | Root finding, Runge-Kutta, interpolation |
+| `equations` | `mathverse_equations` | Equation solving |
+| `transforms` | `mathverse_transforms` | FFT, DCT, wavelets |
+| `signal` | `mathverse_signal` | Filters, convolution, correlation |
+| `trigonometry` | `mathverse_trigonometry` | Trig and hyperbolic functions |
+| `special` | `mathverse_special` | Special functions |
+| `graphics` | `mathverse_graphics` | Graphics math |
+| `vision` | `mathverse_vision` | Computer vision primitives |
+| `ndarray_interop` | `mathverse_ndarray_interop` | `ndarray` conversions |
+| `parallel` | `mathverse_parallel` | Parallel matrix ops |
+| `views` | `mathverse_views` | Zero-copy views |
+| `plot` (feature `plot`) | `mathverse_plot` | SVG/HTML/terminal plotting |
+
+> Note: crates without a row above that are part of the workspace may not be
+> re-exported here; depend on them directly for the trimmed dependency graph.
 
 ## License
 

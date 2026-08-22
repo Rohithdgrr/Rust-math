@@ -59,7 +59,7 @@ pub mod prelude {
     pub use mathverse_core::error::{MathError, MathResult};
     pub use crate::derivative::{derivative, second_derivative, partial_derivative, nth_derivative, discrete_gradient};
     pub use crate::integrate::{trapezoid, simpson, integrate, gaussian_quadrature, romberg, integrate_2d};
-    pub use crate::ode::{euler, midpoint, runge_kutta_4, runge_kutta_4_system, OdeProblem, OdeMethod};
+    pub use crate::ode::{euler, midpoint, runge_kutta_4, runge_kutta_4_system, rkf45, OdeProblem, OdeMethod};
     pub use crate::root_finding::{newton_raphson_auto, find_critical_point};
     pub use crate::vector_calculus::{gradient, divergence, curl, laplacian, jacobian, hessian, directional_derivative};
 }
@@ -67,6 +67,6 @@ pub mod prelude {
 // Re-export commonly used items at crate root
 pub use derivative::{derivative, second_derivative, partial_derivative, nth_derivative, discrete_gradient};
 pub use integrate::{trapezoid, simpson, integrate, gaussian_quadrature, romberg, integrate_2d};
-pub use ode::{euler, midpoint, runge_kutta_4, runge_kutta_4_system, OdeProblem, OdeMethod};
+pub use ode::{euler, midpoint, runge_kutta_4, runge_kutta_4_system, rkf45, OdeProblem, OdeMethod};
 pub use root_finding::{newton_raphson_auto, find_critical_point};
 pub use vector_calculus::{gradient, divergence, curl, laplacian, jacobian, hessian, directional_derivative};

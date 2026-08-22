@@ -13,8 +13,8 @@ A production-grade Rust mathematical computing ecosystem — from elementary ari
 
 MathVerse aspires to be for Rust what NumPy, SciPy, SymPy, scikit-learn, OpenCV math, CGAL, Eigen, and parts of MATLAB collectively provide for other ecosystems. It is:
 
-- **Unified** — one workspace, one error type, one trait hierarchy, one prelude
-- **Modular** — 32 independent crates, each usable standalone
+- **Unified** — one workspace, one error type (`MathError`), one trait hierarchy, one prelude
+- **Modular** — 37 independent crates, each usable standalone
 - **Safe** — `#![forbid(unsafe_code)]` workspace-wide, `Result`-based error handling
 - **Tested** — 1,000+ unit tests, property-based tests, numerical accuracy tests
 - **Documented** — every public item has `///` doc comments with runnable examples
@@ -56,7 +56,13 @@ MathVerse aspires to be for Rust what NumPy, SciPy, SymPy, scikit-learn, OpenCV 
 | `mathverse-optimization` | Optimization | Gradient descent, genetic algorithms, constrained optimization |
 | `mathverse-graphics` | Graphics | Quaternions, meshes, transforms |
 | `mathverse-plot` | Plotting | SVG, HTML, terminal visualization |
-| `mathverse-prelude` | Prelude | Single-import re-export of the entire ecosystem |
+| `mathverse-prelude` | Prelude | Namespaced re-exports plus a curated collision-free prelude |
+| `mathverse-ndarray-interop` | Interop | Conversions to/from `ndarray::Array2` |
+| `mathverse-parallel` | Parallelism | Multi-threaded matrix operations |
+| `mathverse-views` | Views | Zero-copy matrix/vector view types |
+| `mathverse-dataframe` | Data Frames | Tabular data helpers |
+| `mathverse-gpu` | GPU Backends | GPU-accelerated operations (experimental) |
+| `mathverse-benches` | Benchmarks | Criterion benchmark suites |
 
 ---
 
@@ -100,18 +106,21 @@ For the full ecosystem:
 mathverse-prelude = "0.1"
 ```
 
+Every crate is re-exported under its own namespace module (avoiding name
+collisions), and a curated flat prelude covers the most common types:
+
 ```rust
 use mathverse_prelude::prelude::*;
 
 fn main() {
-    // Polynomials
-    let p = mathverse_algebra::Polynomial::new(vec![6.0, -5.0, 1.0]);
+    // Curated prelude: Polynomial, Matrix, Vector, Tensor, Complex, ...
+    let p = Polynomial::from_coeffs(&[6.0, -5.0, 1.0]);
     println!("Roots: {:?}", p.roots());
 
-    // Machine learning
+    // Namespaced access to any crate
     let x_train = vec![vec![0.0], vec![1.0], vec![10.0], vec![11.0]];
     let y_train = vec![0.0, 0.0, 1.0, 1.0];
-    let preds = mathverse_machine_learning::knn::classify(
+    let preds = mathverse_prelude::ml::knn::classify(
         &x_train, &y_train, &vec![vec![0.5], vec![10.5]], 1
     ).unwrap();
     println!("KNN predictions: {preds:?}");

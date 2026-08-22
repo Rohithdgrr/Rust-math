@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust: 1.87+](https://img.shields.io/badge/Rust-1.87%2B-EA5727?logo=rust)](https://www.rust-lang.org)
 
-Lightweight linear algebra — decompositions, solvers, norms, eigenvalues, and more. Built on `Vec<Vec<f64>>` matrices with a simple, functional API.
+Lightweight linear algebra — decompositions, solvers, norms, eigenvalues, and more. Built on the shared `mathverse_matrix::Matrix` type (flat row-major `Vec<f64>` storage) so results interoperate with the rest of the MathVerse ecosystem.
 
 ---
 
@@ -87,18 +87,19 @@ mathverse-linear-algebra = "0.1"
 
 ```rust
 use mathverse_linear_algebra::*;
+use mathverse_matrix::Matrix;
 
 fn main() {
-    let a = vec![vec![2.0, 1.0], vec![1.0, 3.0]];
+    let a = Matrix::from_rows(&[&[2.0, 1.0], &[1.0, 3.0]]).unwrap();
     let b = vec![5.0, 7.0];
 
     // Solve via Gaussian elimination
     let x = solve_gauss(&a, &b).unwrap();
     println!("x = {:?}", x);  // [1.6, 1.8]
 
-    // Or via LU decomposition
-    let (l, u) = lu_decompose(&a).unwrap();
-    let x = solve_lu(&l, &u, &b);
+    // Or via LU decomposition (with pivoting)
+    let (l, u, perm) = lu_decompose(&a).unwrap();
+    let x = solve_lu(&l, &u, &perm, &b);
     println!("x = {:?}", x);  // [1.6, 1.8]
 
     // Norms
@@ -116,7 +117,7 @@ fn main() {
 
 | Function | Description |
 |---|---|
-| `lu_decompose(a)` | LU decomposition (no pivoting), returns `(L, U)` |
+| `lu_decompose(a)` | LU decomposition with partial pivoting, returns `(L, U, perm)` |
 | `qr_decompose(a)` | QR decomposition (Gram-Schmidt), returns `(Q, R)` |
 | `cholesky(a)` | Cholesky decomposition, returns `L` where `A = LL^T` |
 | `eigenvalue_2x2(a)` | Analytical eigenvalue computation for 2×2 matrices |
@@ -128,7 +129,7 @@ fn main() {
 
 | Function | Description |
 |---|---|
-| `solve_lu(l, u, b)` | Solve `Ax = b` via LU: forward sub `Ly = b`, back sub `Ux = y` |
+| `solve_lu(l, u, perm, b)` | Solve `Ax = b` via LU: forward sub `Ly = Pb`, back sub `Ux = y` |
 | `solve_qr(q, r, b)` | Solve `Ax = b` via QR: `Q^T b` then `Rx = Q^T b` |
 | `solve_2x2(a, b)` | 2×2 Cramer's rule |
 | `solve_3x3(a, b)` | 3×3 Cramer's rule |
@@ -154,7 +155,6 @@ fn main() {
 
 ## Roadmap
 
-- Full matrix inverse computation
 - QR with column pivoting for rank-revealing
 - Eigenvalue decomposition for general (non-symmetric) matrices
 - Iterative solvers (CG, GMRES)

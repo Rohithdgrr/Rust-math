@@ -57,7 +57,7 @@ pub fn variance_pop(xs: &[f64]) -> f64 {
     xs.iter().map(|x| (x - m).powi(2)).sum::<f64>() / xs.len() as f64
 }
 
-/// Sample standard deviation: sqrt(variance_sample).
+/// Sample standard deviation: `sqrt(variance_sample)`.
 ///
 /// # Examples
 ///
@@ -73,7 +73,7 @@ pub fn std_dev_sample(xs: &[f64]) -> f64 {
     variance_sample(xs).sqrt()
 }
 
-/// Population standard deviation: sqrt(variance_pop).
+/// Population standard deviation: `sqrt(variance_pop)`.
 ///
 /// # Examples
 ///
@@ -104,12 +104,12 @@ pub fn std_dev_pop(xs: &[f64]) -> f64 {
 #[inline]
 pub fn median(xs: &[f64]) -> f64 {
     let mut v = xs.to_vec();
-    v.sort_by(|a, b| a.total_cmp(b));
+    v.sort_by(f64::total_cmp);
     let n = v.len();
     if n % 2 == 1 {
         v[n / 2]
     } else {
-        (v[n / 2 - 1] + v[n / 2]) / 2.0
+        f64::midpoint(v[n / 2 - 1], v[n / 2])
     }
 }
 
@@ -133,11 +133,19 @@ pub fn median(xs: &[f64]) -> f64 {
 #[must_use]
 pub fn percentile(xs: &[f64], p: f64) -> f64 {
     assert!((0.0..=100.0).contains(&p), "percentile must be in [0, 100]");
-    if xs.is_empty() {
+    let mut v = xs.to_vec();
+    v.sort_by(f64::total_cmp);
+    percentile_sorted(&v, p)
+}
+
+/// Percentile of an already-sorted slice by linear interpolation.
+#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)] // exact below 2^53; floor() is in range
+fn percentile_sorted(sorted: &[f64], p: f64) -> f64 {
+    debug_assert!((0.0..=100.0).contains(&p));
+    if sorted.is_empty() {
         return f64::NAN;
     }
-    let mut v = xs.to_vec();
-    v.sort_by(|a, b| a.total_cmp(b));
+    let v = sorted;
     let rank = p / 100.0 * (v.len() - 1) as f64;
     let lo = rank.floor() as usize;
     let hi = rank.ceil() as usize;
@@ -170,11 +178,11 @@ pub fn quantile(xs: &[f64], q: f64) -> f64 {
     percentile(xs, q * 100.0)
 }
 
-/// Weighted mean: sum(w_i * x_i) / sum(w_i).
+/// Weighted mean: `sum(w_i` * `x_i`) / `sum(w_i)`.
 ///
 /// # Errors
 ///
-/// Returns MathError::DimensionMismatch if xs and weights differ in length.
+/// Returns `MathError::DimensionMismatch` if xs and weights differ in length.
 ///
 /// # Examples
 ///
@@ -194,11 +202,11 @@ pub fn weighted_mean(xs: &[f64], weights: &[f64]) -> MathResult<f64> {
     Ok(num / den)
 }
 
-/// Geometric mean: (product(x_i))^(1/n).
+/// Geometric mean: (`product(x_i))^(1/n`).
 ///
 /// # Errors
 ///
-/// Returns MathError::InvalidArgument if xs is empty.
+/// Returns `MathError::InvalidArgument` if xs is empty.
 ///
 /// # Examples
 ///
@@ -217,11 +225,11 @@ pub fn geometric_mean(xs: &[f64]) -> MathResult<f64> {
     Ok((log_sum / xs.len() as f64).exp())
 }
 
-/// Harmonic mean: n / sum(1 / x_i).
+/// Harmonic mean: n / sum(1 / `x_i`).
 ///
 /// # Errors
 ///
-/// Returns MathError::InvalidArgument if xs is empty.
+/// Returns `MathError::InvalidArgument` if xs is empty.
 ///
 /// # Examples
 ///
@@ -244,7 +252,7 @@ pub fn harmonic_mean(xs: &[f64]) -> MathResult<f64> {
 ///
 /// # Errors
 ///
-/// Returns MathError::InvalidArgument if trim is not in [0.0, 0.5).
+/// Returns `MathError::InvalidArgument` if trim is not in [0.0, 0.5).
 ///
 /// # Examples
 ///
@@ -259,7 +267,7 @@ pub fn trimmed_mean(xs: &[f64], trim: f64) -> MathResult<f64> {
         return Err(MathError::InvalidArgument("trim must be in [0, 0.5)"));
     }
     let mut v = xs.to_vec();
-    v.sort_by(|a, b| a.total_cmp(b));
+    v.sort_by(f64::total_cmp);
     let n = v.len();
     let k = (trim * n as f64).floor() as usize;
     let trimmed = &v[k..n - k];
@@ -270,7 +278,7 @@ pub fn trimmed_mean(xs: &[f64], trim: f64) -> MathResult<f64> {
 ///
 /// # Errors
 ///
-/// Returns MathError::InvalidArgument if trim is not in [0.0, 0.5).
+/// Returns `MathError::InvalidArgument` if trim is not in [0.0, 0.5).
 ///
 /// # Examples
 ///
@@ -285,7 +293,7 @@ pub fn winsorized_mean(xs: &[f64], trim: f64) -> MathResult<f64> {
         return Err(MathError::InvalidArgument("trim must be in [0, 0.5)"));
     }
     let mut v = xs.to_vec();
-    v.sort_by(|a, b| a.total_cmp(b));
+    v.sort_by(f64::total_cmp);
     let n = v.len();
     let k = (trim * n as f64).floor() as usize;
     let low = v[k];
@@ -431,12 +439,12 @@ pub fn quartiles(xs: &[f64]) -> (f64, f64, f64) {
     (percentile(xs, 25.0), median(xs), percentile(xs, 75.0))
 }
 
-/// Population covariance: sum((x_i - x_bar)(y_i - y_bar)) / n.
+/// Population covariance: `sum((x_i` - `x_bar)(y_i` - `y_bar`)) / n.
 /// Note: This uses the population formula (n denominator), not the sample formula (n-1).
 ///
 /// # Errors
 ///
-/// Returns MathError::DimensionMismatch if xs and ys differ in length.
+/// Returns `MathError::DimensionMismatch` if xs and ys differ in length.
 ///
 /// # Examples
 ///
@@ -466,7 +474,7 @@ pub fn covariance(xs: &[f64], ys: &[f64]) -> MathResult<f64> {
 ///
 /// # Errors
 ///
-/// Returns MathError::DimensionMismatch if xs and ys differ in length.
+/// Returns `MathError::DimensionMismatch` if xs and ys differ in length.
 ///
 /// # Examples
 ///
@@ -490,11 +498,11 @@ pub fn pearson(xs: &[f64], ys: &[f64]) -> MathResult<f64> {
 }
 
 /// Least-squares fit y = slope * x + intercept.
-/// Returns (slope, intercept, r_squared).
+/// Returns (slope, intercept, `r_squared`).
 ///
 /// # Errors
 ///
-/// Returns MathError::DimensionMismatch if xs and ys differ in length.
+/// Returns `MathError::DimensionMismatch` if xs and ys differ in length.
 ///
 /// # Examples
 ///
@@ -583,7 +591,7 @@ pub fn iqr(xs: &[f64]) -> f64 {
     percentile(xs, 75.0) - percentile(xs, 25.0)
 }
 
-/// Coefficient of variation: std_dev / |mean|.
+/// Coefficient of variation: `std_dev` / |mean|.
 /// Returns NaN if the mean is zero.
 ///
 /// # Examples
@@ -752,18 +760,17 @@ pub fn sqrt_rule(xs: &[f64]) -> Option<usize> {
 /// assert_eq!(s.min, 1.0);
 /// assert_eq!(s.max, 5.0);
 /// ```
-#[must_use]
 pub fn describe(xs: &[f64]) -> Summary {
     let mut v = xs.to_vec();
-    v.sort_by(|a, b| a.total_cmp(b));
+    v.sort_by(f64::total_cmp);
     Summary {
         n: xs.len(),
         mean: mean(xs),
         std_dev: std_dev_sample(xs),
         min: v.first().copied().unwrap_or(f64::NAN),
-        q1: percentile(xs, 25.0),
-        median: median(xs),
-        q3: percentile(xs, 75.0),
+        q1: percentile_sorted(&v, 25.0),
+        median: percentile_sorted(&v, 50.0),
+        q3: percentile_sorted(&v, 75.0),
         max: v.last().copied().unwrap_or(f64::NAN),
         skewness: skewness(xs),
         kurtosis: kurtosis(xs),
@@ -895,16 +902,19 @@ impl RunningStats {
     }
 
     /// Number of observations seen so far.
+    #[must_use]
     pub fn count(&self) -> u64 {
         self.n
     }
 
     /// True if no observations have been added.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.n == 0
     }
 
     /// Running arithmetic mean; NaN when empty.
+    #[must_use]
     pub fn mean(&self) -> f64 {
         if self.n == 0 {
             f64::NAN
@@ -914,6 +924,7 @@ impl RunningStats {
     }
 
     /// Population variance (n denominator); NaN when n == 0.
+    #[must_use]
     pub fn variance(&self) -> f64 {
         if self.n == 0 {
             f64::NAN
@@ -923,6 +934,7 @@ impl RunningStats {
     }
 
     /// Sample variance (n - 1 denominator); NaN when n <= 1.
+    #[must_use]
     pub fn sample_variance(&self) -> f64 {
         if self.n <= 1 {
             f64::NAN
@@ -932,11 +944,13 @@ impl RunningStats {
     }
 
     /// Population standard deviation; NaN when empty.
+    #[must_use]
     pub fn std_dev(&self) -> f64 {
         self.variance().sqrt()
     }
 
     /// Sample standard deviation; NaN when n <= 1.
+    #[must_use]
     pub fn sample_std_dev(&self) -> f64 {
         self.sample_variance().sqrt()
     }
@@ -1117,7 +1131,7 @@ mod tests {
 
     #[test]
     fn running_stats_merge_matches_single_pass() {
-        let all: Vec<f64> = (0..1000).map(|i| (i as f64 * 0.37).sin() * 100.0).collect();
+        let all: Vec<f64> = (0..1000).map(|i| (f64::from(i) * 0.37).sin() * 100.0).collect();
         let mut single = RunningStats::new();
         single.update_batch(&all);
 

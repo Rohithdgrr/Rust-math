@@ -69,7 +69,7 @@ pub fn transform2d(a: f64, tx: f64, ty: f64, s: f64) -> Matrix {
 
 /// Apply an affine matrix to a 3D point (homogeneous divide).
 pub fn apply(m: &Matrix, x: f64, y: f64, z: f64) -> (f64, f64, f64) {
-    assert_eq!((m.rows, m.cols), (4, 4));
+    assert_eq!(m.shape(), (4, 4));
     let p = m.mul_vec(&Vector::new(vec![x, y, z, 1.0])).unwrap();
     (p.get(0) / p.get(3), p.get(1) / p.get(3), p.get(2) / p.get(3))
 }

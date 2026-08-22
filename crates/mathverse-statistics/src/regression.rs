@@ -187,21 +187,23 @@ pub fn logistic_regression(
             z[i] = eta[i] + (ys[i] - mu[i]) / w[i];
         }
 
-        xtx.iter_mut().for_each(|row| row.fill(0.0));
+        for row in &mut xtx {
+            row.fill(0.0);
+        }
         xty.fill(0.0);
         for i in 0..n {
-            for j in 0..d {
+            for (j, row) in xtx.iter_mut().enumerate() {
                 let xj = if j == 0 { 1.0 } else { xs[i][j - 1] };
                 xty[j] = w[i].mul_add(xj * z[i], xty[j]);
-                for k in 0..d {
+                for (k, cell) in row.iter_mut().enumerate() {
                     let xk = if k == 0 { 1.0 } else { xs[i][k - 1] };
-                    xtx[j][k] = w[i].mul_add(xj * xk, xtx[j][k]);
+                    *cell = w[i].mul_add(xj * xk, *cell);
                 }
             }
         }
         // L2 ridge prevents singular matrix in IRLS
-        for j in 0..d {
-            xtx[j][j] += 1e-8;
+        for (j, diag) in xtx.iter_mut().enumerate() {
+            diag[j] += 1e-8;
         }
         let delta = gaussian_elimination(&mut xtx, &mut xty)?;
 
@@ -390,7 +392,7 @@ mod tests {
         let xs = [1.0, 2.0, 3.0, 4.0];
         let ys = [3.0, 5.0, 7.0, 9.0];
         let c = polynomial_regression(&xs, &ys, 1).unwrap();
-        let xs_refs: Vec<&[f64]> = xs.iter().map(|x| core::slice::from_ref(x)).collect();
+        let xs_refs: Vec<&[f64]> = xs.iter().map(core::slice::from_ref).collect();
         let r2 = r_squared(&xs_refs, &ys, &c);
         assert!((r2 - 1.0).abs() < 1e-10);
     }

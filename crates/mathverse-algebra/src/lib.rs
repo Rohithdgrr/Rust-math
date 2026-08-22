@@ -40,13 +40,15 @@
 //!
 //! ## Error Handling
 //!
-//! All fallible operations return [`Result<T>`] with [`AlgebraError`]:
+//! All fallible operations return [`MathResult`] with the ecosystem-wide
+//! [`MathError`] from `mathverse-core`, so algebra operations compose with
+//! every other MathVerse crate via `?`:
 //!
-//! - [`AlgebraError::DivisionByZero`] — division by zero polynomial
-//! - [`AlgebraError::Singular`] — singular matrix or system
-//! - [`AlgebraError::NoRealRoots`] — no real roots exist
-//! - [`AlgebraError::UnsupportedDegree`] — polynomial degree not supported
-//! - [`AlgebraError::DimensionMismatch`] — input length mismatch
+//! - [`MathError::DivisionByZero`] — division by zero polynomial
+//! - [`MathError::Singular`] — singular matrix or system
+//! - [`MathError::NoSolution`] — no real roots exist
+//! - [`MathError::InvalidArgument`] — polynomial degree not supported
+//! - [`MathError::DimensionMismatch`] — input length mismatch
 //!
 //! ## Conventions
 //!
@@ -66,46 +68,14 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_panics_doc)]
 
-use core::fmt;
+use mathverse_core::error::{MathError, MathResult};
 
 /// Tolerance for treating a float as zero.
 pub const TOL: f64 = 1e-12;
 
-/// Error type for algebraic operations.
-///
-/// All fallible operations in this crate return `Result<T, AlgebraError>`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AlgebraError {
-    /// Division by a zero polynomial or zero denominator.
-    DivisionByZero,
-    /// The input matrix or system is singular (determinant ≈ 0).
-    Singular,
-    /// No real roots exist for the given polynomial.
-    NoRealRoots,
-    /// The polynomial degree exceeds what the solver supports.
-    UnsupportedDegree(u8),
-    /// Mismatched input lengths.
-    DimensionMismatch { expected: usize, actual: usize },
-}
-
-impl fmt::Display for AlgebraError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DivisionByZero => write!(f, "division by zero polynomial"),
-            Self::Singular => write!(f, "matrix is singular"),
-            Self::NoRealRoots => write!(f, "no real roots"),
-            Self::UnsupportedDegree(d) => write!(f, "unsupported polynomial degree: {d}"),
-            Self::DimensionMismatch { expected, actual } => {
-                write!(f, "expected {expected} elements, got {actual}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for AlgebraError {}
-
-/// Result alias for algebraic operations.
-pub type Result<T> = core::result::Result<T, AlgebraError>;
+/// Result alias retained for compatibility; algebra operations now use the
+/// ecosystem-wide [`MathResult`].
+pub type Result<T> = MathResult<T>;
 
 pub mod compose;
 pub mod determinant;

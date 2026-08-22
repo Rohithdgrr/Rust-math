@@ -75,59 +75,68 @@ pub fn fsum(xs: &[f64]) -> f64 {
 
 /// Copy the sign of `sign` onto `magnitude`, like Python's `math.copysign`.
 ///
+/// Generic over [`Real`]; works for `f32` and `f64`.
+///
 /// # Examples
 ///
 /// ```
 /// use mathverse_arithmetic::copysign;
 ///
-/// assert_eq!(copysign(3.0, -1.0), -3.0);
-/// assert_eq!(copysign(-3.0, 1.0), 3.0);
-/// assert!(copysign(1.0, -0.0).is_sign_negative());
+/// assert_eq!(copysign(3.0f64, -1.0), -3.0);
+/// assert_eq!(copysign(-3.0f64, 1.0), 3.0);
+/// assert!(copysign(1.0f64, -0.0).is_sign_negative());
 /// ```
 #[inline]
 #[must_use]
-pub fn copysign(magnitude: f64, sign: f64) -> f64 {
+pub fn copysign<T: Real>(magnitude: T, sign: T) -> T {
     magnitude.copysign(sign)
 }
 
 /// `x` scaled by a percentage: `percentage(200, 10)` = 20.
+#[must_use]
 pub fn percentage<T: Real>(x: T, percent: T) -> T {
     x * percent / T::from_f64(100.0)
 }
 
 /// `part` as a percentage of `whole`. `whole == 0` yields +/-inf.
+#[must_use]
 pub fn percent_of<T: Real>(part: T, whole: T) -> T {
     part / whole * T::from_f64(100.0)
 }
 
 /// Relative change from `from` to `to`, in percent.
+#[must_use]
 pub fn percent_change<T: Real>(from: T, to: T) -> T {
     percent_of(to - from, from)
 }
 
 /// `x²`.
+#[must_use]
 pub fn square<T: Num>(x: T) -> T {
     x * x
 }
 
 /// `x³`.
+#[must_use]
 pub fn cube<T: Num>(x: T) -> T {
     x * x * x
 }
 
 /// `x^(1/2)`; negative input -> NaN (documented std behavior).
+#[must_use]
 pub fn square_root<T: Real>(x: T) -> T {
     x.sqrt()
 }
 
-/// `x^(1/3)`, defined for all reals (`powf` is NaN for negative bases,
-/// so compute `sign(x) * |x|^(1/3)`).
+/// `x^(1/3)`, defined for all reals via the trait's dedicated `cbrt`
+/// (which preserves the sign natively).
+#[must_use]
 pub fn cube_root<T: Real>(x: T) -> T {
-    let s = if x.is_negative() { -T::one() } else { T::one() };
-    s * x.abs().powf(T::from_f64(1.0 / 3.0))
+    x.cbrt()
 }
 
 /// `base^exp` for unsigned integer exponents, by squaring (O(log exp)).
+#[must_use]
 pub fn pow<T: Num>(base: T, mut exp: u32) -> T {
     let mut acc = T::one();
     let mut b = base;
@@ -153,6 +162,7 @@ pub fn modulus<T: Num + core::ops::Rem<Output = T>>(
 }
 
 /// Absolute value.
+#[must_use]
 pub fn absolute<T: Signed>(x: T) -> T {
     x.abs()
 }
@@ -174,6 +184,8 @@ mod tests {
         assert_eq!(cube(3), 27);
         assert_eq!(square_root(81.0), 9.0);
         assert!((cube_root(-8.0) + 2.0).abs() < 1e-12);
+        // Generic: f32 path via Real::cbrt
+        assert!((cube_root(-8.0f32) + 2.0).abs() < 1e-6);
         assert_eq!(pow(2u64, 10), 1024);
         assert_eq!(pow(3.0f64, 0), 1.0);
     }
@@ -201,9 +213,9 @@ mod tests {
 
     #[test]
     fn copysign_test() {
-        assert_eq!(copysign(3.0, -1.0), -3.0);
-        assert_eq!(copysign(-3.0, 1.0), 3.0);
-        assert!(copysign(1.0, -0.0).is_sign_negative());
-        assert!(copysign(-1.0, 0.0).is_sign_positive());
+        assert_eq!(copysign(3.0f64, -1.0), -3.0);
+        assert_eq!(copysign(-3.0f64, 1.0), 3.0);
+        assert!(copysign(1.0f64, -0.0).is_sign_negative());
+        assert!(copysign(-1.0f64, 0.0).is_sign_positive());
     }
 }

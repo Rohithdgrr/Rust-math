@@ -23,7 +23,7 @@
 //! assert!((x[1] - 4.5).abs() < 1e-9);
 //! ```
 
-use crate::{AlgebraError, TOL};
+use crate::{MathError, TOL};
 
 /// 2×2 determinant `ad - bc`.
 ///
@@ -60,11 +60,11 @@ pub fn det_3x3(m: &[f64]) -> f64 {
         + m[2] * (m[3] * m[7] - m[4] * m[6])
 }
 
-/// 2×2 inverse via adjugate, returning [`Err(AlgebraError::Singular)`] if `det ≈ 0`.
+/// 2×2 inverse via adjugate, returning [`Err(MathError::Singular)`] if `det ≈ 0`.
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] if the matrix is singular.
+/// Returns [`MathError::Singular`] if the matrix is singular.
 ///
 /// # Examples
 ///
@@ -74,21 +74,21 @@ pub fn det_3x3(m: &[f64]) -> f64 {
 /// let inv = inverse_2x2(&[1.0, 2.0, 3.0, 4.0]).unwrap();
 /// assert!((inv[0] - (-2.0)).abs() < 1e-9);
 /// ```
-pub fn inverse_2x2(m: &[f64]) -> Result<[f64; 4], AlgebraError> {
+pub fn inverse_2x2(m: &[f64]) -> Result<[f64; 4], MathError> {
     let d = det_2x2(m);
     if d.abs() < TOL {
-        return Err(AlgebraError::Singular);
+        return Err(MathError::Singular);
     }
     Ok([m[3] / d, -m[1] / d, -m[2] / d, m[0] / d])
 }
 
 /// 3×3 inverse using the classical adjoint method.
 ///
-/// Returns [`Err(AlgebraError::Singular)`] if `det ≈ 0`.
+/// Returns [`Err(MathError::Singular)`] if `det ≈ 0`.
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] if the matrix is singular.
+/// Returns [`MathError::Singular`] if the matrix is singular.
 ///
 /// # Examples
 ///
@@ -99,10 +99,10 @@ pub fn inverse_2x2(m: &[f64]) -> Result<[f64; 4], AlgebraError> {
 /// let inv = inverse_3x3(&m).unwrap();
 /// assert!((inv[0] - 0.5).abs() < 1e-9);
 /// ```
-pub fn inverse_3x3(m: &[f64]) -> Result<[f64; 9], AlgebraError> {
+pub fn inverse_3x3(m: &[f64]) -> Result<[f64; 9], MathError> {
     let d = det_3x3(m);
     if d.abs() < TOL {
-        return Err(AlgebraError::Singular);
+        return Err(MathError::Singular);
     }
     let inv = [
         m[4] * m[8] - m[5] * m[7],
@@ -122,7 +122,7 @@ pub fn inverse_3x3(m: &[f64]) -> Result<[f64; 9], AlgebraError> {
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] if `det(m) ≈ 0`.
+/// Returns [`MathError::Singular`] if `det(m) ≈ 0`.
 ///
 /// # Examples
 ///
@@ -136,10 +136,10 @@ pub fn inverse_3x3(m: &[f64]) -> Result<[f64; 9], AlgebraError> {
 /// assert!((x[0] - (-4.0)).abs() < 1e-9);
 /// assert!((x[1] - 4.5).abs() < 1e-9);
 /// ```
-pub fn cramer_rule_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> {
+pub fn cramer_rule_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], MathError> {
     let d = det_2x2(m);
     if d.abs() < TOL {
-        return Err(AlgebraError::Singular);
+        return Err(MathError::Singular);
     }
     Ok([
         (b[0] * m[3] - b[1] * m[1]) / d,
@@ -151,7 +151,7 @@ pub fn cramer_rule_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> {
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] if `det(m) ≈ 0`.
+/// Returns [`MathError::Singular`] if `det(m) ≈ 0`.
 ///
 /// # Examples
 ///
@@ -164,10 +164,10 @@ pub fn cramer_rule_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> {
 /// let x = cramer_rule_3x3(&m, &b).unwrap();
 /// assert_eq!(x, [1.0, 2.0, 3.0]);
 /// ```
-pub fn cramer_rule_3x3(m: &[f64], b: &[f64]) -> Result<[f64; 3], AlgebraError> {
+pub fn cramer_rule_3x3(m: &[f64], b: &[f64]) -> Result<[f64; 3], MathError> {
     let d = det_3x3(m);
     if d.abs() < TOL {
-        return Err(AlgebraError::Singular);
+        return Err(MathError::Singular);
     }
     let dx = det_3x3(&[b[0], m[1], m[2], b[1], m[4], m[5], b[2], m[7], m[8]]);
     let dy = det_3x3(&[m[0], b[0], m[2], m[3], b[1], m[5], m[6], b[2], m[8]]);
@@ -253,7 +253,7 @@ pub fn rank_3x3(m: &[f64]) -> u8 {
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] if the system is singular.
+/// Returns [`MathError::Singular`] if the system is singular.
 ///
 /// # Examples
 ///
@@ -266,7 +266,7 @@ pub fn rank_3x3(m: &[f64]) -> u8 {
 /// assert!((x[0] - 5.0).abs() < 1e-9);
 /// assert!((x[1] - (-6.0)).abs() < 1e-9);
 /// ```
-pub fn solve_matrix_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> {
+pub fn solve_matrix_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], MathError> {
     cramer_rule_2x2(m, b)
 }
 
@@ -274,7 +274,7 @@ pub fn solve_matrix_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> 
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::Singular`] if the system is singular.
+/// Returns [`MathError::Singular`] if the system is singular.
 ///
 /// # Examples
 ///
@@ -288,7 +288,7 @@ pub fn solve_matrix_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> 
 /// assert!((x[1] - 4.0).abs() < 1e-9);
 /// assert!((x[2] - 3.0).abs() < 1e-9);
 /// ```
-pub fn solve_matrix_3x3(m: &[f64], b: &[f64]) -> Result<[f64; 3], AlgebraError> {
+pub fn solve_matrix_3x3(m: &[f64], b: &[f64]) -> Result<[f64; 3], MathError> {
     cramer_rule_3x3(m, b)
 }
 
@@ -455,37 +455,37 @@ pub fn det3(m: &[f64]) -> f64 {
 
 /// Deprecated: use [`inverse_2x2`] instead.
 #[deprecated(since = "0.1.1", note = "renamed to inverse_2x2")]
-pub fn inverse2(m: &[f64]) -> Result<[f64; 4], AlgebraError> {
+pub fn inverse2(m: &[f64]) -> Result<[f64; 4], MathError> {
     inverse_2x2(m)
 }
 
 /// Deprecated: use [`inverse_3x3`] instead.
 #[deprecated(since = "0.1.1", note = "renamed to inverse_3x3")]
-pub fn inverse3(m: &[f64]) -> Result<[f64; 9], AlgebraError> {
+pub fn inverse3(m: &[f64]) -> Result<[f64; 9], MathError> {
     inverse_3x3(m)
 }
 
 /// Deprecated: use [`cramer_rule_2x2`] instead.
 #[deprecated(since = "0.1.1", note = "renamed to cramer_rule_2x2")]
-pub fn cramers_rule_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> {
+pub fn cramers_rule_2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], MathError> {
     cramer_rule_2x2(m, b)
 }
 
 /// Deprecated: use [`cramer_rule_3x3`] instead.
 #[deprecated(since = "0.1.1", note = "renamed to cramer_rule_3x3")]
-pub fn cramers_rule_3x3(m: &[f64], b: &[f64]) -> Result<[f64; 3], AlgebraError> {
+pub fn cramers_rule_3x3(m: &[f64], b: &[f64]) -> Result<[f64; 3], MathError> {
     cramer_rule_3x3(m, b)
 }
 
 /// Deprecated: use [`solve_matrix_2x2`] instead.
 #[deprecated(since = "0.1.1", note = "renamed to solve_matrix_2x2")]
-pub fn solve2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], AlgebraError> {
+pub fn solve2x2(m: &[f64], b: &[f64]) -> Result<[f64; 2], MathError> {
     solve_matrix_2x2(m, b)
 }
 
 /// Deprecated: use [`solve_matrix_3x3`] instead.
 #[deprecated(since = "0.1.1", note = "renamed to solve_matrix_3x3")]
-pub fn solve3x3(m: &[f64], b: &[f64]) -> Result<[f64; 3], AlgebraError> {
+pub fn solve3x3(m: &[f64], b: &[f64]) -> Result<[f64; 3], MathError> {
     solve_matrix_3x3(m, b)
 }
 

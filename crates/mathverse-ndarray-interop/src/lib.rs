@@ -53,39 +53,35 @@ pub fn view1_to_vector<'a>(arr: ArrayView1<'a, f64>) -> Vector {
 
 /// Convert a `Matrix` into an `Array2<f64>`.
 pub fn matrix_to_array2(m: Matrix) -> Array2<f64> {
-    Array2::from_shape_vec((m.rows, m.cols), m.data)
+    let (rows, cols) = m.shape();
+    Array2::from_shape_vec((rows, cols), m.into_data())
         .expect("Matrix shape should be valid")
 }
 
 /// Convert an `Array2<f64>` into a `Matrix`.
 pub fn array2_to_matrix(arr: Array2<f64>) -> Result<Matrix, ShapeError> {
     let (rows, cols) = arr.dim();
-    Ok(Matrix {
-        rows,
-        cols,
-        data: arr.into_raw_vec(),
-    })
+    // A valid `Array2` always has `rows * cols` elements, so this cannot fail.
+    Ok(Matrix::new(rows, cols, arr.into_raw_vec())
+        .expect("Array2 shape should be valid"))
 }
 
 /// Convert a `&Matrix` into an `ArrayView2<f64>`.
 pub fn matrix_to_view2<'a>(m: &'a Matrix) -> ArrayView2<'a, f64> {
-    ArrayView2::from_shape((m.rows, m.cols), &m.data).expect("valid shape")
+    ArrayView2::from_shape(m.shape(), m.as_slice()).expect("valid shape")
 }
 
 /// Convert a `&mut Matrix` into an `ArrayViewMut2<f64>`.
 pub fn matrix_to_view2_mut<'a>(m: &'a mut Matrix) -> ArrayViewMut2<'a, f64> {
-    let (rows, cols) = (m.rows, m.cols);
-    ArrayViewMut2::from_shape((rows, cols), &mut m.data).expect("valid shape")
+    let (rows, cols) = m.shape();
+    ArrayViewMut2::from_shape((rows, cols), m.data_mut()).expect("valid shape")
 }
 
 /// Convert an `ArrayView2<f64>` into a `Matrix`.
 pub fn view2_to_matrix<'a>(arr: ArrayView2<'a, f64>) -> Matrix {
     let (rows, cols) = arr.dim();
-    Matrix {
-        rows,
-        cols,
-        data: arr.to_owned().into_raw_vec(),
-    }
+    Matrix::new(rows, cols, arr.to_owned().into_raw_vec())
+        .expect("ArrayView2 shape should be valid")
 }
 
 // ─── Slice ↔ ArrayView ────────────────────────────────────────────

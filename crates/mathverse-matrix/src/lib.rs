@@ -41,12 +41,92 @@ pub use sparse::SparseMatrix;
 /// Dense row-major matrix: `data[row * cols + col]`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Matrix {
-    pub rows: usize,
-    pub cols: usize,
-    pub data: Vec<f64>,
+    rows: usize,
+    cols: usize,
+    data: Vec<f64>,
 }
 
 impl Matrix {
+    /// Create a matrix from raw row-major data.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MathError::InvalidArgument`] if `data.len() != rows * cols`.
+    pub fn new(rows: usize, cols: usize, data: Vec<f64>) -> MathResult<Matrix> {
+        if data.len() != rows * cols {
+            return Err(MathError::InvalidArgument(
+                "data length must equal rows * cols",
+            ));
+        }
+        Ok(Matrix { rows, cols, data })
+    }
+
+    /// Number of rows.
+    #[must_use]
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
+
+    /// Number of columns.
+    #[must_use]
+    pub fn cols(&self) -> usize {
+        self.cols
+    }
+
+    /// Dimensions as `(rows, cols)`.
+    #[must_use]
+    pub fn shape(&self) -> (usize, usize) {
+        (self.rows, self.cols)
+    }
+
+    /// Borrow the flat row-major data buffer.
+    #[must_use]
+    pub fn data(&self) -> &[f64] {
+        &self.data
+    }
+
+    /// Mutably borrow the flat row-major data buffer.
+    pub fn data_mut(&mut self) -> &mut [f64] {
+        &mut self.data
+    }
+
+    /// Borrow the flat row-major data buffer (alias of [`Matrix::data`]).
+    #[must_use]
+    pub fn as_slice(&self) -> &[f64] {
+        &self.data
+    }
+
+    /// Consume the matrix, returning the flat row-major data buffer.
+    #[must_use]
+    pub fn into_data(self) -> Vec<f64> {
+        self.data
+    }
+
+    /// Get the element at `(r, c)`, returning an error instead of panicking.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MathError::OutOfRange`] if the index is out of bounds.
+    pub fn try_get(&self, r: usize, c: usize) -> MathResult<f64> {
+        if r >= self.rows || c >= self.cols {
+            return Err(MathError::OutOfRange);
+        }
+        Ok(self.data[r * self.cols + c])
+    }
+
+    /// Set the element at `(r, c)`, returning an error instead of panicking.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MathError::OutOfRange`] if the index is out of bounds.
+    pub fn try_set(&mut self, r: usize, c: usize, v: f64) -> MathResult<()> {
+        if r >= self.rows || c >= self.cols {
+            return Err(MathError::OutOfRange);
+        }
+        self.data[r * self.cols + c] = v;
+        Ok(())
+    }
+
     /// Convert vector to column matrix.
     pub fn from_vector(v: &mathverse_vector::Vector) -> Matrix {
         Matrix {
@@ -102,10 +182,12 @@ impl Matrix {
     }
 
     pub fn get(&self, r: usize, c: usize) -> f64 {
+        debug_assert!(r < self.rows && c < self.cols, "matrix index ({r}, {c}) out of bounds");
         self.data[r * self.cols + c]
     }
 
     pub fn set(&mut self, r: usize, c: usize, v: f64) {
+        debug_assert!(r < self.rows && c < self.cols, "matrix index ({r}, {c}) out of bounds");
         self.data[r * self.cols + c] = v;
     }
 
@@ -279,6 +361,7 @@ impl Matrix {
 impl Index<(usize, usize)> for Matrix {
     type Output = f64;
     fn index(&self, (r, c): (usize, usize)) -> &f64 {
+        debug_assert!(r < self.rows && c < self.cols, "matrix index ({r}, {c}) out of bounds");
         &self.data[r * self.cols + c]
     }
 }

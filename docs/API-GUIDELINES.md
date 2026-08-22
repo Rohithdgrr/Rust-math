@@ -15,13 +15,17 @@ Standards every public API item must meet before merge.
 
 ## Error Handling
 
-- One error enum per crate, implementing `std::error::Error` and usable under
-  `no_std`.
+- One workspace-wide error type: `mathverse_core::error::MathError` (with the
+  `MathResult<T>` alias). Crates must not define their own error enums;
+  re-export `MathError`/`MathResult` from `mathverse-core` instead.
 - Errors carry context: which inputs were invalid and why.
 - Never panic on user input. Panics reserved for programmer errors
   (`assert`/`unreachable`).
 - Fallible ops return `Result`; pure math with no failure mode returns the value
   directly.
+- Data-structure invariants are enforced at construction: types like
+  `Matrix` and `Tensor` keep their fields private and expose validated
+  constructors plus accessors, so invalid state cannot be injected.
 
 ## Generics
 

@@ -8,7 +8,8 @@
 //! - **Norms**: L1, L∞, Frobenius, L2 (spectral), condition number
 //! - **Matrix properties**: rank, inverse, singular values
 //!
-//! All matrices are represented as `Vec<Vec<f64>>` in row-major order.
+//! All matrices use [`mathverse_matrix::Matrix`] with flat row-major storage
+//! (`data[row * cols + col]`).
 
 pub mod decomposition;
 pub mod solve;

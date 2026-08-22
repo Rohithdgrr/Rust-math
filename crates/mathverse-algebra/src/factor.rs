@@ -17,7 +17,7 @@
 
 use crate::polynomial::Polynomial;
 use crate::roots::rational_root_candidates;
-use crate::{AlgebraError, TOL};
+use crate::{MathError, TOL};
 
 /// Synthetic division: divide the polynomial by `(x - c)`.
 ///
@@ -56,7 +56,7 @@ pub fn synthetic_division(coeffs: &[f64], c: f64) -> (Vec<f64>, f64) {
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::DivisionByZero`] if `q` is the zero polynomial.
+/// Returns [`MathError::DivisionByZero`] if `q` is the zero polynomial.
 ///
 /// # Examples
 ///
@@ -70,9 +70,9 @@ pub fn synthetic_division(coeffs: &[f64], c: f64) -> (Vec<f64>, f64) {
 /// assert_eq!(qo, vec![2.0, 1.0]);
 /// assert_eq!(r.coeffs(), &[0.0]);
 /// ```
-pub fn divide(p: &[f64], q: &[f64]) -> Result<(Vec<f64>, Polynomial), AlgebraError> {
+pub fn divide(p: &[f64], q: &[f64]) -> Result<(Vec<f64>, Polynomial), MathError> {
     if q.iter().all(|&x| x.abs() < TOL) {
-        return Err(AlgebraError::DivisionByZero);
+        return Err(MathError::DivisionByZero);
     }
     if p.len() < q.len() {
         return Ok((vec![0.0], Polynomial::from_coeffs(p)));
@@ -210,11 +210,11 @@ pub fn factor(coeffs: &[f64]) -> (Vec<(f64, usize)>, Polynomial) {
 /// Long division with degree-zero divisor.
 ///
 /// If the divisor is a nonzero constant, divides all coefficients directly.
-/// If the divisor is zero, returns [`AlgebraError::DivisionByZero`].
+/// If the divisor is zero, returns [`MathError::DivisionByZero`].
 ///
 /// # Errors
 ///
-/// Returns [`AlgebraError::DivisionByZero`] if `d` is zero.
+/// Returns [`MathError::DivisionByZero`] if `d` is zero.
 ///
 /// # Examples
 ///
@@ -225,9 +225,9 @@ pub fn factor(coeffs: &[f64]) -> (Vec<(f64, usize)>, Polynomial) {
 /// let q = divide_by_scalar(&p, 2.0).unwrap();
 /// assert_eq!(q, vec![3.0, -2.5, 0.5]);
 /// ```
-pub fn divide_by_scalar(coeffs: &[f64], d: f64) -> Result<Vec<f64>, AlgebraError> {
+pub fn divide_by_scalar(coeffs: &[f64], d: f64) -> Result<Vec<f64>, MathError> {
     if d.abs() < TOL {
-        return Err(AlgebraError::DivisionByZero);
+        return Err(MathError::DivisionByZero);
     }
     Ok(coeffs.iter().map(|&c| c / d).collect())
 }
@@ -318,6 +318,6 @@ mod tests {
 
     #[test]
     fn divide_by_zero() {
-        assert_eq!(divide_by_scalar(&[1.0, 2.0], 0.0), Err(AlgebraError::DivisionByZero));
+        assert_eq!(divide_by_scalar(&[1.0, 2.0], 0.0), Err(MathError::DivisionByZero));
     }
 }

@@ -215,21 +215,17 @@ pub fn fft(signal: &[f64]) -> Vec<Complex<f64>> {
 
 ### Error Handling
 
-Use `thiserror` for error types:
+Use the workspace-wide error type from `mathverse-core`; do not define
+per-crate error enums:
 
 ```rust
-use thiserror::Error;
+use mathverse_core::error::{MathError, MathResult};
 
-#[derive(Debug, Error)]
-pub enum LinearAlgebraError {
-    #[error("matrix is singular (determinant = 0)")]
-    SingularMatrix,
-
-    #[error("dimension mismatch: expected {expected}, got {actual}")]
-    DimensionMismatch { expected: usize, actual: usize },
-
-    #[error("matrix is not positive definite")]
-    NotPositiveDefinite,
+pub fn invert(a: &Matrix) -> MathResult<Matrix> {
+    if !a.is_square() {
+        return Err(MathError::DimensionMismatch);
+    }
+    // ...
 }
 ```
 

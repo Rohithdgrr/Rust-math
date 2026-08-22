@@ -142,15 +142,20 @@ impl BatchNorm {
         let mut out = vec![0.0; x.numel()];
         for f in 0..feature_size {
             let (mu, var) = if training {
+                // Two-pass variance: the one-pass E[x^2] - mu^2 formula can
+                // go negative through catastrophic cancellation on
+                // near-constant inputs, producing NaN in 1/sqrt(var + eps).
                 let mut sum = 0.0;
-                let mut sum2 = 0.0;
                 for b in 0..batch {
-                    let v = x.data[b * per_sample + f];
-                    sum += v;
-                    sum2 += v * v;
+                    sum += x.data[b * per_sample + f];
                 }
                 let mu = sum / batch as f64;
-                let var = sum2 / batch as f64 - mu * mu;
+                let mut sq_sum = 0.0;
+                for b in 0..batch {
+                    let d = x.data[b * per_sample + f] - mu;
+                    sq_sum += d * d;
+                }
+                let var = sq_sum / batch as f64;
                 // Update running statistics with exponential moving average
                 self.running_mean.data[f] = self.momentum * self.running_mean.data[f] + (1.0 - self.momentum) * mu;
                 self.running_var.data[f] = self.momentum * self.running_var.data[f] + (1.0 - self.momentum) * var;
@@ -181,10 +186,21 @@ pub struct Dropout {
 
 impl Dropout {
     /// Create a dropout layer.
-    pub fn new(p: f64) -> Self { Self { p, seed: 0x1234_5678, state: 0x1234_5678 } }
+    pub fn new(p: f64) -> Self {
+        assert!((0.0..1.0).contains(&p), "dropout probability must be in [0, 1), got {p}");
+        Self { p, seed: 0x1234_5678, state: 0x1234_5678 }
+    }
 
     /// Create a dropout layer with a specific seed.
-    pub fn with_seed(p: f64, seed: u64) -> Self { Self { p, seed, state: seed } }
+    ///
+    /// # Panics
+    ///
+    /// Panics if `p` is outside `[0, 1)` (a `p` of 1.0 would divide by zero
+    /// in the inverted-dropout scale factor).
+    pub fn with_seed(p: f64, seed: u64) -> Self {
+        assert!((0.0..1.0).contains(&p), "dropout probability must be in [0, 1), got {p}");
+        Self { p, seed, state: seed }
+    }
 
     /// Reset the dropout mask RNG to its seed.
     pub fn reset(&mut self) { self.state = self.seed; }
@@ -391,6 +407,17 @@ mod tests {
         let out = max_pool1d(&x, 2, 2).unwrap();
         assert_eq!(out.shape, vec![1, 1, 4]);
         assert!((out.data[0] - 2.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn batchnorm_constant_input_no_nan() {
+        // One-pass variance (E[x^2] - mu^2) yields a tiny negative value for
+        // constant inputs; two-pass must keep it at exactly 0 so that
+        // var + eps stays positive and the output stays finite.
+        let x = Tensor::ones(&[4, 3]);
+        let mut bn = BatchNorm::new(3, 1e-5, 0.9);
+        let out = bn.forward(&x, true).unwrap();
+        assert!(out.data.iter().all(|v| v.is_finite()), "NaN/Inf on constant input");
     }
 }
 
