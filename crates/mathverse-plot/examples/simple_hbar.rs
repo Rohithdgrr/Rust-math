@@ -1,8 +1,8 @@
 //! Horizontal bar chart example: City populations.
 
 use mathverse_plot::hbar::{render_hbar_chart, HBar, HBarConfig};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bars = vec![
@@ -14,9 +14,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
         HBar::new("Cairo", 9_540_000.0, Color::rgb(220, 20, 60)),
     ];
 
-    let config = HBarConfig::new()
-        .with_bar_height(35.0)
-        .with_values(true);
+    let config = HBarConfig::new().with_bar_height(35.0).with_values(true);
 
     let mut cfg = config;
     cfg.plot_config.title = "World City Populations".into();
@@ -24,8 +22,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 350;
 
     let svg = render_hbar_chart(&bars, &cfg)?;
-PlotSaver::new(&svg).save_png("hbar.png")?;
-println!("wrote hbar.png");
+    PlotSaver::new(&svg).save_png("hbar.png")?;
+    println!("wrote hbar.png");
 
     Ok(())
 }

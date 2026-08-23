@@ -62,7 +62,6 @@ fn init_centroids(x: &[Vec<f64>], k: usize) -> Vec<Vec<f64>> {
 }
 
 /// K-means clustering.
-#[must_use]
 pub fn kmeans(x: &[Vec<f64>], k: usize, max_iters: usize, tol: f64) -> MathResult<KMeansResult> {
     if x.is_empty() {
         return Err(MathError::InvalidArgument("feature matrix is empty"));
@@ -131,7 +130,7 @@ pub fn kmeans(x: &[Vec<f64>], k: usize, max_iters: usize, tol: f64) -> MathResul
                     new_centroids[c][j] /= counts[c] as f64;
                 }
             } else {
-                new_centroids[c] = centroids[c].clone();
+                new_centroids[c].copy_from_slice(&centroids[c]);
             }
         }
         let shift: f64 = centroids

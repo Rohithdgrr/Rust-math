@@ -1,7 +1,7 @@
 //! Shape transforms: rotation, scaling, translation for 2D shapes.
 
-use super::shapes2d::{Circle, Ellipse, Point2, Polygon, Rectangle, Triangle};
 use super::primitives2d::{Arc, LineSegment2, Sector};
+use super::shapes2d::{Circle, Ellipse, Point2, Polygon, Rectangle, Triangle};
 
 // ---------------------------------------------------------------------------
 // Transform2D trait
@@ -9,9 +9,13 @@ use super::primitives2d::{Arc, LineSegment2, Sector};
 
 /// Generic transform for 2D shapes.
 pub trait Transform2D {
+    /// Translates by `(dx, dy)`.
     fn translate(self, dx: f64, dy: f64) -> Self;
+    /// Scales by `(sx, sy)` about the origin.
     fn scale_xy(self, sx: f64, sy: f64) -> Self;
+    /// Rotates counterclockwise by `angle` radians about the origin.
     fn rotate(self, angle: f64) -> Self;
+    /// Rotates counterclockwise by `angle` radians about `center`.
     fn rotate_around(self, angle: f64, center: Point2) -> Self;
 }
 
@@ -48,7 +52,10 @@ impl Transform2D for LineSegment2 {
         Self::new(self.a.rotate(angle), self.b.rotate(angle))
     }
     fn rotate_around(self, angle: f64, center: Point2) -> Self {
-        Self::new(self.a.rotate_around(angle, center), self.b.rotate_around(angle, center))
+        Self::new(
+            self.a.rotate_around(angle, center),
+            self.b.rotate_around(angle, center),
+        )
     }
 }
 
@@ -58,7 +65,10 @@ impl Transform2D for Circle {
     }
     fn scale_xy(self, sx: f64, sy: f64) -> Self {
         let s = (sx.abs() * sy.abs()).sqrt();
-        Self::new(Point2::new(self.center.x * sx, self.center.y * sy), self.radius * s)
+        Self::new(
+            Point2::new(self.center.x * sx, self.center.y * sy),
+            self.radius * s,
+        )
     }
     fn rotate(self, _angle: f64) -> Self {
         self
@@ -73,7 +83,12 @@ impl Transform2D for Rectangle {
         Self::new(self.x + dx, self.y + dy, self.width, self.height)
     }
     fn scale_xy(self, sx: f64, sy: f64) -> Self {
-        Self::new(self.x * sx, self.y * sy, self.width * sx.abs(), self.height * sy.abs())
+        Self::new(
+            self.x * sx,
+            self.y * sy,
+            self.width * sx.abs(),
+            self.height * sy.abs(),
+        )
     }
     fn rotate(self, angle: f64) -> Self {
         let c = self.centroid();
@@ -93,7 +108,11 @@ impl Transform2D for Rectangle {
 
 impl Transform2D for Triangle {
     fn translate(self, dx: f64, dy: f64) -> Self {
-        Self::new(self.a.translate(dx, dy), self.b.translate(dx, dy), self.c.translate(dx, dy))
+        Self::new(
+            self.a.translate(dx, dy),
+            self.b.translate(dx, dy),
+            self.c.translate(dx, dy),
+        )
     }
     fn scale_xy(self, sx: f64, sy: f64) -> Self {
         Self::new(
@@ -103,25 +122,48 @@ impl Transform2D for Triangle {
         )
     }
     fn rotate(self, angle: f64) -> Self {
-        Self::new(self.a.rotate(angle), self.b.rotate(angle), self.c.rotate(angle))
+        Self::new(
+            self.a.rotate(angle),
+            self.b.rotate(angle),
+            self.c.rotate(angle),
+        )
     }
     fn rotate_around(self, angle: f64, center: Point2) -> Self {
-        Self::new(self.a.rotate_around(angle, center), self.b.rotate_around(angle, center), self.c.rotate_around(angle, center))
+        Self::new(
+            self.a.rotate_around(angle, center),
+            self.b.rotate_around(angle, center),
+            self.c.rotate_around(angle, center),
+        )
     }
 }
 
 impl Transform2D for Polygon {
     fn translate(self, dx: f64, dy: f64) -> Self {
-        Self::new(self.points.into_iter().map(|p| p.translate(dx, dy)).collect())
+        Self::new(
+            self.points
+                .into_iter()
+                .map(|p| p.translate(dx, dy))
+                .collect(),
+        )
     }
     fn scale_xy(self, sx: f64, sy: f64) -> Self {
-        Self::new(self.points.into_iter().map(|p| Point2::new(p.x * sx, p.y * sy)).collect())
+        Self::new(
+            self.points
+                .into_iter()
+                .map(|p| Point2::new(p.x * sx, p.y * sy))
+                .collect(),
+        )
     }
     fn rotate(self, angle: f64) -> Self {
         Self::new(self.points.into_iter().map(|p| p.rotate(angle)).collect())
     }
     fn rotate_around(self, angle: f64, center: Point2) -> Self {
-        Self::new(self.points.into_iter().map(|p| p.rotate_around(angle, center)).collect())
+        Self::new(
+            self.points
+                .into_iter()
+                .map(|p| p.rotate_around(angle, center))
+                .collect(),
+        )
     }
 }
 
@@ -130,7 +172,11 @@ impl Transform2D for Ellipse {
         Self::new(self.center.translate(dx, dy), self.rx, self.ry)
     }
     fn scale_xy(self, sx: f64, sy: f64) -> Self {
-        Self::new(Point2::new(self.center.x * sx, self.center.y * sy), self.rx * sx.abs(), self.ry * sy.abs())
+        Self::new(
+            Point2::new(self.center.x * sx, self.center.y * sy),
+            self.rx * sx.abs(),
+            self.ry * sy.abs(),
+        )
     }
     fn rotate(self, _angle: f64) -> Self {
         self
@@ -142,42 +188,74 @@ impl Transform2D for Ellipse {
 
 impl Transform2D for Arc {
     fn translate(self, dx: f64, dy: f64) -> Self {
-        Self::new(self.center.translate(dx, dy), self.radius, self.start, self.sweep)
+        Self::new(
+            self.center.translate(dx, dy),
+            self.radius,
+            self.start,
+            self.sweep,
+        )
     }
     fn scale_xy(self, sx: f64, sy: f64) -> Self {
         let s = (sx.abs() * sy.abs()).sqrt();
-        Self::new(Point2::new(self.center.x * sx, self.center.y * sy), self.radius * s, self.start, self.sweep)
+        Self::new(
+            Point2::new(self.center.x * sx, self.center.y * sy),
+            self.radius * s,
+            self.start,
+            self.sweep,
+        )
     }
     fn rotate(self, angle: f64) -> Self {
         Self::new(self.center, self.radius, self.start + angle, self.sweep)
     }
     fn rotate_around(self, angle: f64, center: Point2) -> Self {
-        Self::new(self.center.rotate_around(angle, center), self.radius, self.start + angle, self.sweep)
+        Self::new(
+            self.center.rotate_around(angle, center),
+            self.radius,
+            self.start + angle,
+            self.sweep,
+        )
     }
 }
 
 impl Transform2D for Sector {
     fn translate(self, dx: f64, dy: f64) -> Self {
-        Self::new(self.center.translate(dx, dy), self.radius, self.start, self.sweep)
+        Self::new(
+            self.center.translate(dx, dy),
+            self.radius,
+            self.start,
+            self.sweep,
+        )
     }
     fn scale_xy(self, sx: f64, sy: f64) -> Self {
         let s = (sx.abs() * sy.abs()).sqrt();
-        Self::new(Point2::new(self.center.x * sx, self.center.y * sy), self.radius * s, self.start, self.sweep)
+        Self::new(
+            Point2::new(self.center.x * sx, self.center.y * sy),
+            self.radius * s,
+            self.start,
+            self.sweep,
+        )
     }
     fn rotate(self, angle: f64) -> Self {
         Self::new(self.center, self.radius, self.start + angle, self.sweep)
     }
     fn rotate_around(self, angle: f64, center: Point2) -> Self {
-        Self::new(self.center.rotate_around(angle, center), self.radius, self.start + angle, self.sweep)
+        Self::new(
+            self.center.rotate_around(angle, center),
+            self.radius,
+            self.start + angle,
+            self.sweep,
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::shapes2d::Polygon;
+    use super::*;
 
-    fn pt(x: f64, y: f64) -> Point2 { Point2::new(x, y) }
+    fn pt(x: f64, y: f64) -> Point2 {
+        Point2::new(x, y)
+    }
 
     #[test]
     fn translate_triangle() {

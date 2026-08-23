@@ -93,7 +93,7 @@ mod tests {
     fn test_time_dilation() {
         // GPS satellites: v ≈ 3.87 km/s → γ ≈ 1 + 8.4e-11
         let td = time_dilation(1.0, 3870.0).unwrap();
-        assert!(td > 1.0 && td < 1.000000001);
+        assert!(td > 1.0 && td < 1.000_000_001);
     }
 
     #[test]
@@ -124,7 +124,11 @@ mod tests {
     #[test]
     fn test_doppler() {
         // At v = 0, no shift
-        assert_relative_eq!(relativistic_doppler(440.0, 0.0).unwrap(), 440.0, epsilon = 1e-12);
+        assert_relative_eq!(
+            relativistic_doppler(440.0, 0.0).unwrap(),
+            440.0,
+            epsilon = 1e-12
+        );
         // v = C → None
         assert!(relativistic_doppler(440.0, C).is_none());
     }

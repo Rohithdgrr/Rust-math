@@ -26,12 +26,12 @@ impl LowRankApprox {
     pub fn truncated_svd(m: &Matrix, k: usize) -> MathResult<LowRankApproximation> {
         let svd = m.svd()?;
         let k = k.min(svd.s.len());
-        
+
         // Truncate to rank k
         let mut u_trunc = Matrix::zeros(m.rows, k);
         let mut s_trunc = Vec::with_capacity(k);
         let mut vt_trunc = Matrix::zeros(k, m.cols);
-        
+
         for j in 0..k {
             s_trunc.push(svd.s[j]);
             for i in 0..m.rows {
@@ -41,12 +41,12 @@ impl LowRankApprox {
                 vt_trunc.set(j, i, svd.vt.get(j, i));
             }
         }
-        
+
         // Compute approximation error
         let approx = u_trunc.mul(&Matrix::diagonal(&s_trunc))?.mul(&vt_trunc)?;
         let error = m.sub(&approx)?;
         let error_norm = crate::norms::MatrixNorms::frobenius(&error);
-        
+
         Ok(LowRankApproximation {
             u: u_trunc,
             s: s_trunc,
@@ -60,10 +60,10 @@ impl LowRankApprox {
     pub fn energy_based(m: &Matrix, energy_threshold: f64) -> MathResult<LowRankApproximation> {
         let svd = m.svd()?;
         let total_energy: f64 = svd.s.iter().map(|&s| s * s).sum();
-        
+
         let mut cumulative = 0.0;
         let mut k = 0;
-        
+
         for &s in &svd.s {
             cumulative += s * s;
             k += 1;
@@ -71,7 +71,7 @@ impl LowRankApprox {
                 break;
             }
         }
-        
+
         Self::truncated_svd(m, k)
     }
 
@@ -79,19 +79,25 @@ impl LowRankApprox {
     pub fn tolerance_based(m: &Matrix, tolerance: f64) -> MathResult<LowRankApproximation> {
         let svd = m.svd()?;
         let sigma_max = svd.s[0];
-        
-        let k = svd.s.iter()
+
+        let k = svd
+            .s
+            .iter()
             .take_while(|&&s| s > tolerance * sigma_max)
             .count();
-        
+
         Self::truncated_svd(m, k.max(1))
     }
 
     /// Randomized SVD for large matrices.
-    pub fn randomized_svd(m: &Matrix, k: usize, oversampling: usize) -> MathResult<LowRankApproximation> {
+    pub fn randomized_svd(
+        m: &Matrix,
+        k: usize,
+        oversampling: usize,
+    ) -> MathResult<LowRankApproximation> {
         let (m_rows, m_cols) = (m.rows, m.cols);
         let target_rank = k + oversampling;
-        
+
         // Generate random projection matrix
         let mut rng = crate::rng::Rng::new(42);
         let mut omega = Matrix::zeros(m_cols, target_rank);
@@ -100,24 +106,24 @@ impl LowRankApprox {
                 omega.set(i, j, rng.uniform() * 2.0 - 1.0);
             }
         }
-        
+
         // Form Y = A * Omega
         let y = m.mul(&omega)?;
-        
+
         // QR decomposition of Y
         let qr_y = y.qr()?;
         let q = qr_y.q;
-        
+
         // Form B = Q^T * A
         let qt = q.transpose();
         let b = qt.mul(m)?;
-        
+
         // SVD of B (smaller matrix)
         let svd_b = b.svd()?;
-        
+
         // Truncate to rank k
         let k_actual = k.min(svd_b.s.len());
-        
+
         // Transform back: U = Q * U_B
         let mut u_trunc = Matrix::zeros(m_rows, k_actual);
         for j in 0..k_actual {
@@ -129,7 +135,7 @@ impl LowRankApprox {
                 u_trunc.set(i, j, sum);
             }
         }
-        
+
         let s_trunc = svd_b.s[..k_actual].to_vec();
         let mut vt_trunc = Matrix::zeros(k_actual, m_cols);
         for i in 0..k_actual {
@@ -137,12 +143,12 @@ impl LowRankApprox {
                 vt_trunc.set(i, j, svd_b.vt.get(i, j));
             }
         }
-        
+
         // Compute error
         let approx = u_trunc.mul(&Matrix::diagonal(&s_trunc))?.mul(&vt_trunc)?;
         let error = m.sub(&approx)?;
         let error_norm = crate::norms::MatrixNorms::frobenius(&error);
-        
+
         Ok(LowRankApproximation {
             u: u_trunc,
             s: s_trunc,
@@ -177,10 +183,10 @@ impl RankSelection {
         if singular_values.len() < 2 {
             return singular_values.len();
         }
-        
+
         let mut max_gap = 0.0;
         let mut optimal_rank = singular_values.len();
-        
+
         for i in 0..(singular_values.len() - 1) {
             let gap = (singular_values[i] - singular_values[i + 1]).abs();
             if gap > max_gap {
@@ -188,7 +194,7 @@ impl RankSelection {
                 optimal_rank = i + 1;
             }
         }
-        
+
         optimal_rank
     }
 
@@ -196,14 +202,14 @@ impl RankSelection {
     pub fn explained_variance(singular_values: &[f64], threshold: f64) -> usize {
         let total: f64 = singular_values.iter().map(|&s| s * s).sum();
         let mut cumulative = 0.0;
-        
+
         for (i, &s) in singular_values.iter().enumerate() {
             cumulative += s * s;
             if cumulative / total >= threshold {
                 return i + 1;
             }
         }
-        
+
         singular_values.len()
     }
 
@@ -213,32 +219,29 @@ impl RankSelection {
         let beta = singular_values.len() as f64 / n;
         let tau = 0.56 * beta.powf(3.0) - 0.95 * beta.powf(1.5) + 1.43 * beta.powf(0.5);
         let threshold = tau * n.sqrt();
-        
-        singular_values.iter()
+
+        singular_values
+            .iter()
             .take_while(|&&s| s > threshold)
             .count()
             .max(1)
     }
 
     /// Cross-validation for rank selection.
-    pub fn cross_validation(
-        m: &Matrix,
-        max_rank: usize,
-        _folds: usize,
-    ) -> MathResult<usize> {
+    pub fn cross_validation(m: &Matrix, max_rank: usize, _folds: usize) -> MathResult<usize> {
         let mut best_rank = 1;
         let mut best_error = f64::INFINITY;
-        
+
         for rank in 1..=max_rank.min(m.rows.min(m.cols)) {
             let approx = LowRankApprox::truncated_svd(m, rank)?;
             let error = LowRankApprox::relative_error(m, &approx);
-            
+
             if error < best_error {
                 best_error = error;
                 best_rank = rank;
             }
         }
-        
+
         Ok(best_rank)
     }
 }
@@ -250,26 +253,26 @@ impl MatrixCompletion {
     /// Soft-impute algorithm for matrix completion.
     pub fn soft_impute(
         observed: &Matrix,
-        mask: &Matrix,  // 1 where observed, 0 where missing
+        mask: &Matrix, // 1 where observed, 0 where missing
         lambda: f64,
         max_iterations: usize,
     ) -> MathResult<Matrix> {
         let mut x = Matrix::zeros(observed.rows, observed.cols);
-        
+
         for _ in 0..max_iterations {
             // Compute SVD
             let svd = x.svd()?;
-            
+
             // Soft-threshold singular values
             let mut s_thresholded = Vec::new();
             for &s in &svd.s {
                 let thresholded = (s - lambda).max(0.0);
                 s_thresholded.push(thresholded);
             }
-            
+
             // Reconstruct
             let reconstructed = svd.u.mul(&Matrix::diagonal(&s_thresholded))?.mul(&svd.vt)?;
-            
+
             // Update only observed entries
             for i in 0..observed.rows {
                 for j in 0..observed.cols {
@@ -278,7 +281,7 @@ impl MatrixCompletion {
                     }
                 }
             }
-            
+
             // Check convergence
             let diff = reconstructed.sub(&x)?;
             let norm = crate::norms::MatrixNorms::frobenius(&diff);
@@ -286,7 +289,7 @@ impl MatrixCompletion {
                 break;
             }
         }
-        
+
         Ok(x)
     }
 
@@ -310,7 +313,7 @@ mod tests {
     fn test_truncated_svd() {
         let m = Matrix::from_rows(&[&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0]]).unwrap();
         let approx = LowRankApprox::truncated_svd(&m, 1).unwrap();
-        
+
         assert_eq!(approx.rank, 1);
         assert!(approx.error >= 0.0);
     }
@@ -319,7 +322,7 @@ mod tests {
     fn test_energy_based() {
         let m = Matrix::diagonal(&[10.0, 1.0, 0.1]);
         let approx = LowRankApprox::energy_based(&m, 0.95).unwrap();
-        
+
         assert!(approx.rank >= 1);
     }
 
@@ -328,7 +331,7 @@ mod tests {
         let m = Matrix::identity(3);
         let approx = LowRankApprox::truncated_svd(&m, 3).unwrap();
         let reconstructed = LowRankApprox::reconstruct(&approx).unwrap();
-        
+
         for i in 0..3 {
             for j in 0..3 {
                 let want = if i == j { 1.0 } else { 0.0 };

@@ -7,7 +7,9 @@
 /// Returns `None` if the signal is empty or `k >= N`.
 pub fn goertzel(x: &[f64], k: usize) -> Option<(f64, f64)> {
     let n = x.len();
-    if n == 0 || k >= n { return None; }
+    if n == 0 || k >= n {
+        return None;
+    }
     let w = 2.0 * core::f64::consts::PI * k as f64 / n as f64;
     let cosine = w.cos();
     let coeff = 2.0 * cosine;
@@ -33,7 +35,9 @@ pub fn goertzel_magnitude(x: &[f64], k: usize) -> f64 {
 ///
 /// Out-of-range bins are returned as `(0.0, 0.0)`.
 pub fn goertzel_batch(x: &[f64], ks: &[usize]) -> Vec<(f64, f64)> {
-    ks.iter().map(|&k| goertzel(x, k).unwrap_or((0.0, 0.0))).collect()
+    ks.iter()
+        .map(|&k| goertzel(x, k).unwrap_or((0.0, 0.0)))
+        .collect()
 }
 
 #[cfg(test)]

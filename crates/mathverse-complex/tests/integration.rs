@@ -224,11 +224,7 @@ fn serde_roundtrip() {
     let z2: Complex = serde_json::from_str(&json).unwrap();
     assert_eq!(z, z2);
 
-    let m = ComplexMatrix::from_data(
-        vec![Complex::new(1.0, 0.0), Complex::new(0.0, 1.0)],
-        1,
-        2,
-    );
+    let m = ComplexMatrix::from_data(vec![Complex::new(1.0, 0.0), Complex::new(0.0, 1.0)], 1, 2);
     let json = serde_json::to_string(&m).unwrap();
     let m2: ComplexMatrix = serde_json::from_str(&json).unwrap();
     assert_eq!(m.get(0, 0), m2.get(0, 0));
@@ -258,9 +254,7 @@ fn rand_complex_sampling() {
 #[test]
 fn fft_in_place_api() {
     use mathverse_complex::fft_in_place;
-    let x: Vec<Complex> = (0..16)
-        .map(|i| Complex::new(f64::from(i), 0.0))
-        .collect();
+    let x: Vec<Complex> = (0..16).map(|i| Complex::new(f64::from(i), 0.0)).collect();
     let mut buf = x.clone();
     fft_in_place(&mut buf);
     let y = mathverse_complex::fft(&x);
@@ -382,7 +376,10 @@ fn pow_zero_imaginary_exponent() {
     let z: Complex<f64> = Complex::new(0.0, 0.0);
     let p: Complex<f64> = Complex::new(0.0, 1.0);
     let result = z.pow(p);
-    assert!(result.re.is_nan() && result.im.is_nan(), "0^i should be NaN");
+    assert!(
+        result.re.is_nan() && result.im.is_nan(),
+        "0^i should be NaN"
+    );
 }
 
 #[test]
@@ -401,6 +398,8 @@ fn matrix_eigenvectors() {
     let lam = av0 / v0;
     // lambda should be real (2±1)
     assert!(lam.im.abs() < 1e-4, "eigenvalue should be real, got {lam}");
-    assert!((lam.re - 3.0).abs() < 1e-3 || (lam.re - 1.0).abs() < 1e-3,
-        "eigenvalue should be 1 or 3, got {lam}");
+    assert!(
+        (lam.re - 3.0).abs() < 1e-3 || (lam.re - 1.0).abs() < 1e-3,
+        "eigenvalue should be 1 or 3, got {lam}"
+    );
 }

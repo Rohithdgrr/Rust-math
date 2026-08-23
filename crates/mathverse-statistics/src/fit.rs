@@ -117,9 +117,7 @@ pub fn bootstrapped_mean(
         return Err(MathError::InvalidArgument("n_bootstraps must be positive"));
     }
     if !(0.0..=1.0).contains(&confidence) {
-        return Err(MathError::InvalidArgument(
-            "confidence must be in [0, 1]",
-        ));
+        return Err(MathError::InvalidArgument("confidence must be in [0, 1]"));
     }
 
     let n = data.len();
@@ -136,10 +134,8 @@ pub fn bootstrapped_mean(
     // Percentile-based confidence interval.
     means.sort_by(f64::total_cmp);
     let tail = (1.0 - confidence) / 2.0;
-    let lo_idx =
-        ((tail * n_bootstraps as f64).floor() as usize).min(n_bootstraps - 1);
-    let hi_idx =
-        (((1.0 - tail) * n_bootstraps as f64).ceil() as usize).min(n_bootstraps - 1);
+    let lo_idx = ((tail * n_bootstraps as f64).floor() as usize).min(n_bootstraps - 1);
+    let hi_idx = (((1.0 - tail) * n_bootstraps as f64).ceil() as usize).min(n_bootstraps - 1);
     let stat = mean(&means);
     Ok((stat, means[lo_idx], means[hi_idx]))
 }

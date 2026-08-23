@@ -209,18 +209,36 @@ mod tests {
     #[test]
     fn double_angle_test() {
         for x in [-1.0f64, 0.3, 1.0, 2.5] {
-            assert!((sin_double(x) - (2.0 * x.sin() * x.cos())).abs() < EPS, "sin_double x={x}");
-            assert!((cos_double(x) - (2.0 * x.cos().powi(2) - 1.0)).abs() < EPS, "cos_double x={x}");
-            assert!((tan_double(x) - (2.0 * x.tan() / (1.0 - x.tan().powi(2)))).abs() < 1e-10, "tan_double x={x}");
+            assert!(
+                (sin_double(x) - (2.0 * x.sin() * x.cos())).abs() < EPS,
+                "sin_double x={x}"
+            );
+            assert!(
+                (cos_double(x) - (2.0 * x.cos().powi(2) - 1.0)).abs() < EPS,
+                "cos_double x={x}"
+            );
+            assert!(
+                (tan_double(x) - (2.0 * x.tan() / (1.0 - x.tan().powi(2)))).abs() < 1e-10,
+                "tan_double x={x}"
+            );
         }
     }
 
     #[test]
     fn half_angle_test() {
         for x in [0.1f64, 1.0, 2.5] {
-            assert!((sin_half(x) - (x / 2.0).sin()).abs() < 1e-10, "sin_half x={x}");
-            assert!((cos_half(x) - (x / 2.0).cos()).abs() < 1e-10, "cos_half x={x}");
-            assert!((tan_half(x) - (x / 2.0).tan()).abs() < 1e-10, "tan_half x={x}");
+            assert!(
+                (sin_half(x) - (x / 2.0).sin()).abs() < 1e-10,
+                "sin_half x={x}"
+            );
+            assert!(
+                (cos_half(x) - (x / 2.0).cos()).abs() < 1e-10,
+                "cos_half x={x}"
+            );
+            assert!(
+                (tan_half(x) - (x / 2.0).tan()).abs() < 1e-10,
+                "tan_half x={x}"
+            );
         }
     }
 
@@ -228,26 +246,26 @@ mod tests {
     fn half_angle_edge_cases() {
         // Test sign-sensitive edge cases that catch the original bugs
         let pi = core::f64::consts::PI;
-        
+
         // sin_half(3π) should equal sin(3π/2) = -1
         assert!((sin_half(3.0 * pi) - (1.5 * pi).sin()).abs() < 1e-10);
-        
+
         // cos_half(2π) should equal cos(π) = -1 (not +1)
         assert!((cos_half(2.0 * pi) - pi.cos()).abs() < 1e-10);
-        
+
         // cos_half(3π) should equal cos(3π/2) = 0
         assert!((cos_half(3.0 * pi) - (1.5 * pi).cos()).abs() < 1e-10);
-        
+
         // sin_half(-3π) should equal sin(-3π/2) = 1
         assert!((sin_half(-3.0 * pi) - (-1.5 * pi).sin()).abs() < 1e-10);
-        
+
         // cos_half(-2π) should equal cos(-π) = -1
         assert!((cos_half(-2.0 * pi) - (-pi).cos()).abs() < 1e-10);
-        
+
         // tan_half(π) diverges at the tan(π/2) asymptote; f64 cannot reach ±inf
         let tan_pi_half = tan_half(pi);
         assert!(tan_pi_half.abs() > 1e14);
-        
+
         // tan_half(2π) should be 0 (tan(π))
         assert!((tan_half(2.0 * pi) - pi.tan()).abs() < 1e-10);
     }

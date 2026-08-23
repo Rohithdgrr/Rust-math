@@ -412,8 +412,10 @@ impl StatAnnotations {
         test: StatTest,
     ) -> Self {
         self.annotations.push(StatAnnotation::bracket(
-            left_label, left_x,
-            right_label, right_x,
+            left_label,
+            left_x,
+            right_label,
+            right_x,
             bracket_y,
             test,
         ));
@@ -423,7 +425,8 @@ impl StatAnnotations {
     /// Auto-arrange brackets vertically to avoid overlap.
     pub fn auto_arrange(&mut self, min_spacing: f64) {
         // Sort by x-span (wider brackets go lower)
-        let mut indexed: Vec<(usize, f64)> = self.annotations
+        let mut indexed: Vec<(usize, f64)> = self
+            .annotations
             .iter()
             .enumerate()
             .map(|(i, a)| (i, (a.right_x - a.left_x).abs()))
@@ -431,7 +434,11 @@ impl StatAnnotations {
         indexed.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         // Assign y positions from top
-        let mut current_y = self.annotations.iter().map(|a| a.bracket_y).fold(f64::INFINITY, f64::min);
+        let mut current_y = self
+            .annotations
+            .iter()
+            .map(|a| a.bracket_y)
+            .fold(f64::INFINITY, f64::min);
         for (idx, _) in &indexed {
             self.annotations[*idx].bracket_y = current_y;
             current_y -= min_spacing;
@@ -521,18 +528,24 @@ mod tests {
     #[test]
     fn stat_test_name() {
         assert_eq!(StatTest::TTest { p_value: 0.0 }.name(), "t-test");
-        assert_eq!(StatTest::MannWhitney { p_value: 0.0 }.name(), "Mann-Whitney");
-        assert_eq!(StatTest::Anova { f_statistic: 1.0, p_value: 0.0 }.name(), "ANOVA");
+        assert_eq!(
+            StatTest::MannWhitney { p_value: 0.0 }.name(),
+            "Mann-Whitney"
+        );
+        assert_eq!(
+            StatTest::Anova {
+                f_statistic: 1.0,
+                p_value: 0.0
+            }
+            .name(),
+            "ANOVA"
+        );
     }
 
     #[test]
     fn bracket_render_svg() {
-        let bracket = StatAnnotation::bracket(
-            "A", 0.0,
-            "B", 1.0,
-            2.0,
-            StatTest::TTest { p_value: 0.003 },
-        );
+        let bracket =
+            StatAnnotation::bracket("A", 0.0, "B", 1.0, 2.0, StatTest::TTest { p_value: 0.003 });
         let svg = bracket.render_svg(0.0, 1.0);
         assert!(svg.contains("<line"));
         assert!(svg.contains("<text"));
@@ -541,22 +554,18 @@ mod tests {
 
     #[test]
     fn bracket_display_text() {
-        let b = StatAnnotation::bracket(
-            "A", 0.0, "B", 1.0, 2.0,
-            StatTest::TTest { p_value: 0.03 },
-        ).stars_only();
+        let b = StatAnnotation::bracket("A", 0.0, "B", 1.0, 2.0, StatTest::TTest { p_value: 0.03 })
+            .stars_only();
         assert_eq!(b.display_text(), "*");
 
-        let b2 = StatAnnotation::bracket(
-            "A", 0.0, "B", 1.0, 2.0,
-            StatTest::TTest { p_value: 0.03 },
-        ).p_only();
+        let b2 =
+            StatAnnotation::bracket("A", 0.0, "B", 1.0, 2.0, StatTest::TTest { p_value: 0.03 })
+                .p_only();
         assert_eq!(b2.display_text(), "p=0.030");
 
-        let b3 = StatAnnotation::bracket(
-            "A", 0.0, "B", 1.0, 2.0,
-            StatTest::TTest { p_value: 0.03 },
-        ).with_test_name();
+        let b3 =
+            StatAnnotation::bracket("A", 0.0, "B", 1.0, 2.0, StatTest::TTest { p_value: 0.03 })
+                .with_test_name();
         assert!(b3.display_text().contains("t-test"));
     }
 

@@ -1,12 +1,20 @@
 //! Exercise suite for the dataframe crate, run via `cargo run --example test_dataframe`.
 #![allow(clippy::too_many_lines)]
 
-use mathverse_dataframe::{DataFrame, Series, AnyColumn};
+use mathverse_dataframe::{AnyColumn, DataFrame, Series};
 
 fn main() {
     // Test 1: Basic construction and display
     let mut df = DataFrame::new();
-    df.add_column("name", vec![String::from("Alice"), String::from("Bob"), String::from("Charlie")]).unwrap();
+    df.add_column(
+        "name",
+        vec![
+            String::from("Alice"),
+            String::from("Bob"),
+            String::from("Charlie"),
+        ],
+    )
+    .unwrap();
     df.add_column("age", vec![25.0, 30.0, 35.0]).unwrap();
     df.add_column("score", vec![88.5, 92.3, 76.1]).unwrap();
     println!("=== Test 1: Basic DataFrame ===");

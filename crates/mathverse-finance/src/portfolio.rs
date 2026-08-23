@@ -1,11 +1,11 @@
 //! Portfolio management calculations
 
 /// Calculate portfolio return
-/// 
+///
 /// # Arguments
 /// * `weights` - Slice of asset weights (must sum to 1.0)
 /// * `returns` - Slice of asset returns (as decimals)
-/// 
+///
 /// # Returns
 /// Portfolio return (as decimal)
 pub fn portfolio_return(weights: &[f64], returns: &[f64]) -> f64 {
@@ -17,11 +17,11 @@ pub fn portfolio_return(weights: &[f64], returns: &[f64]) -> f64 {
 }
 
 /// Calculate portfolio variance
-/// 
+///
 /// # Arguments
 /// * `weights` - Slice of asset weights
 /// * `covariance_matrix` - Covariance matrix as a 2D slice
-/// 
+///
 /// # Returns
 /// Portfolio variance
 pub fn portfolio_variance(weights: &[f64], covariance_matrix: &[Vec<f64>]) -> f64 {
@@ -38,11 +38,11 @@ pub fn portfolio_variance(weights: &[f64], covariance_matrix: &[Vec<f64>]) -> f6
 }
 
 /// Calculate portfolio standard deviation
-/// 
+///
 /// # Arguments
 /// * `weights` - Slice of asset weights
 /// * `covariance_matrix` - Covariance matrix as a 2D slice
-/// 
+///
 /// # Returns
 /// Portfolio standard deviation
 pub fn portfolio_std_dev(weights: &[f64], covariance_matrix: &[Vec<f64>]) -> f64 {
@@ -50,31 +50,31 @@ pub fn portfolio_std_dev(weights: &[f64], covariance_matrix: &[Vec<f64>]) -> f64
 }
 
 /// Calculate minimum variance portfolio weights
-/// 
+///
 /// # Arguments
 /// * `covariance_matrix` - Covariance matrix as a 2D slice
-/// 
+///
 /// # Returns
 /// Vector of minimum variance portfolio weights
 pub fn minimum_variance_portfolio(covariance_matrix: &[Vec<f64>]) -> Vec<f64> {
     let n = covariance_matrix.len();
     let _ones = vec![1.0; n];
-    
+
     // Simplified approach: inverse covariance matrix times ones, normalized
     // For a proper implementation, would use a linear algebra library
     let weights = vec![1.0 / n as f64; n];
-    
+
     let sum: f64 = weights.iter().sum();
     weights.iter().map(|&w| w / sum).collect()
 }
 
 /// Calculate efficient frontier point (mean-variance optimization)
-/// 
+///
 /// # Arguments
 /// * `expected_returns` - Slice of expected returns
 /// * `covariance_matrix` - Covariance matrix as a 2D slice
 /// * `target_return` - Target portfolio return
-/// 
+///
 /// # Returns
 /// Vector of portfolio weights for target return
 pub fn efficient_portfolio(
@@ -83,11 +83,11 @@ pub fn efficient_portfolio(
     target_return: f64,
 ) -> Vec<f64> {
     let n = expected_returns.len();
-    
+
     // Simplified approach: equal weights adjusted for target
     let weights = vec![1.0 / n as f64; n];
     let current_return = portfolio_return(&weights, expected_returns);
-    
+
     if current_return == 0.0 {
         weights
     } else {
@@ -97,11 +97,11 @@ pub fn efficient_portfolio(
 }
 
 /// Calculate tracking error
-/// 
+///
 /// # Arguments
 /// * `portfolio_returns` - Slice of portfolio returns
 /// * `benchmark_returns` - Slice of benchmark returns
-/// 
+///
 /// # Returns
 /// Tracking error (as decimal)
 pub fn tracking_error(portfolio_returns: &[f64], benchmark_returns: &[f64]) -> f64 {
@@ -119,11 +119,11 @@ pub fn tracking_error(portfolio_returns: &[f64], benchmark_returns: &[f64]) -> f
 }
 
 /// Calculate beta of portfolio
-/// 
+///
 /// # Arguments
 /// * `portfolio_returns` - Slice of portfolio returns
 /// * `market_returns` - Slice of market returns
-/// 
+///
 /// # Returns
 /// Portfolio beta
 pub fn portfolio_beta(portfolio_returns: &[f64], market_returns: &[f64]) -> f64 {
@@ -131,11 +131,11 @@ pub fn portfolio_beta(portfolio_returns: &[f64], market_returns: &[f64]) -> f64 
 }
 
 /// Calculate information ratio
-/// 
+///
 /// # Arguments
 /// * `portfolio_returns` - Slice of portfolio returns
 /// * `benchmark_returns` - Slice of benchmark returns
-/// 
+///
 /// # Returns
 /// Information ratio
 pub fn information_ratio(portfolio_returns: &[f64], benchmark_returns: &[f64]) -> f64 {
@@ -156,11 +156,11 @@ pub fn information_ratio(portfolio_returns: &[f64], benchmark_returns: &[f64]) -
 }
 
 /// Calculate portfolio turnover
-/// 
+///
 /// # Arguments
 /// * `old_weights` - Previous portfolio weights
 /// * `new_weights` - New portfolio weights
-/// 
+///
 /// # Returns
 /// Portfolio turnover (as decimal)
 pub fn portfolio_turnover(old_weights: &[f64], new_weights: &[f64]) -> f64 {
@@ -178,7 +178,7 @@ pub fn portfolio_turnover(old_weights: &[f64], new_weights: &[f64]) -> f64 {
 }
 
 /// Reuse covariance and variance from risk module
-use crate::risk::{covariance, variance, sample_standard_deviation};
+use crate::risk::{covariance, sample_standard_deviation, variance};
 
 #[cfg(test)]
 mod tests {
@@ -196,7 +196,11 @@ mod tests {
     fn test_portfolio_variance() {
         let weights = vec![0.5, 0.5];
         let cov_matrix = vec![vec![0.04, 0.02], vec![0.02, 0.09]];
-        assert_relative_eq!(portfolio_variance(&weights, &cov_matrix), 0.0425, epsilon = 1e-6);
+        assert_relative_eq!(
+            portfolio_variance(&weights, &cov_matrix),
+            0.0425,
+            epsilon = 1e-6
+        );
     }
 
     #[test]

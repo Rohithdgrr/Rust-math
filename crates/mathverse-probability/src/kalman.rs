@@ -113,10 +113,7 @@ pub(crate) fn mat_inv(a: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
             }
         }
     }
-    Ok(aug
-        .iter()
-        .map(|row| row[n..].to_vec())
-        .collect())
+    Ok(aug.iter().map(|row| row[n..].to_vec()).collect())
 }
 
 /// Cholesky decomposition `A = L·Lᵀ` (lower triangular).
@@ -412,7 +409,11 @@ impl UnscentedKalmanFilter {
                     pzz[a][b] += w * odz[a][b];
                 }
             }
-            let dx: Vec<f64> = points[i].iter().zip(&self.x).map(|(&a, &b)| a - b).collect();
+            let dx: Vec<f64> = points[i]
+                .iter()
+                .zip(&self.x)
+                .map(|(&a, &b)| a - b)
+                .collect();
             for a in 0..n {
                 for b in 0..m {
                     pxz[a][b] += w * dx[a] * dz[b];
@@ -455,10 +456,7 @@ pub fn rts_smoother(
         let xs_t1 = vec_sub(&xs[t + 1], &x_pred[t + 1]);
         xs[t] = vec_add(&x_filt[t], &mat_vec_mul(&fp, &xs_t1));
         let inner = mat_sub(&ps[t + 1], &p_pred[t + 1]);
-        ps[t] = mat_add(
-            &p_filt[t],
-            &mat_mul(&mat_mul(&fp, &inner), &mat_t(&fp)),
-        );
+        ps[t] = mat_add(&p_filt[t], &mat_mul(&mat_mul(&fp, &inner), &mat_t(&fp)));
     }
     Ok((xs, ps))
 }
@@ -487,8 +485,21 @@ mod tests {
         let mut zs = Vec::new();
         let mut truth = Vec::new();
         for _ in 0..200 {
-            true_x += q.sqrt() * Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng);
-            zs.push(true_x + r.sqrt() * Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng));
+            true_x += q.sqrt()
+                * Normal {
+                    mu: 0.0,
+                    sigma: 1.0,
+                }
+                .sample(&mut rng);
+            zs.push(
+                true_x
+                    + r.sqrt()
+                        * Normal {
+                            mu: 0.0,
+                            sigma: 1.0,
+                        }
+                        .sample(&mut rng),
+            );
             truth.push(true_x);
         }
         let mut kf = KalmanFilter::new(vec![0.0], vec![vec![100.0]]).unwrap();
@@ -517,21 +528,25 @@ mod tests {
         for _ in 0..150 {
             x += v_true * dt;
             truth.push(x);
-            zs.push(x + 0.5 * Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng));
+            zs.push(
+                x + 0.5
+                    * Normal {
+                        mu: 0.0,
+                        sigma: 1.0,
+                    }
+                    .sample(&mut rng),
+            );
         }
         let f = vec![vec![1.0, dt], vec![0.0, 1.0]];
         let h = vec![vec![1.0, 0.0]];
         let q = vec![vec![0.001, 0.0], vec![0.0, 0.001]];
         let r = vec![vec![0.25]];
-        let mut kf = KalmanFilter::new(vec![0.0, 0.0], vec![vec![10.0, 0.0], vec![0.0, 10.0]]).unwrap();
+        let mut kf =
+            KalmanFilter::new(vec![0.0, 0.0], vec![vec![10.0, 0.0], vec![0.0, 10.0]]).unwrap();
         for z in &zs {
             kf.step(&[*z], &f, &h, &q, &r).unwrap();
         }
-        assert!(
-            (kf.x[1] - v_true).abs() < 0.3,
-            "velocity {}",
-            kf.x[1]
-        );
+        assert!((kf.x[1] - v_true).abs() < 0.3, "velocity {}", kf.x[1]);
         assert!((kf.x[0] - truth[149]).abs() < 1.0);
     }
 
@@ -555,7 +570,15 @@ mod tests {
         for _ in 0..120 {
             true_x = 0.5 * true_x + 0.1 * true_x * true_x / (1.0 + true_x * true_x);
             truth.push(true_x);
-            zs.push(true_x.powi(3) + 0.5 * Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng));
+            zs.push(
+                true_x.powi(3)
+                    + 0.5
+                        * Normal {
+                            mu: 0.0,
+                            sigma: 1.0,
+                        }
+                        .sample(&mut rng),
+            );
         }
 
         let mut ekf = ExtendedKalmanFilter::new(vec![0.0], vec![vec![5.0]]).unwrap();
@@ -563,22 +586,14 @@ mod tests {
             ekf.predict(f, f_jac, &q);
             ekf.update(&[*z], h, h_jac, &r).unwrap();
         }
-        assert!(
-            (ekf.x[0] - truth[119]).abs() < 0.25,
-            "ekf {}",
-            ekf.x[0]
-        );
+        assert!((ekf.x[0] - truth[119]).abs() < 0.25, "ekf {}", ekf.x[0]);
 
         let mut ukf = UnscentedKalmanFilter::new(vec![0.0], vec![vec![5.0]]).unwrap();
         for z in &zs {
             ukf.predict(f, &q);
             ukf.update(&[*z], h, &r).unwrap();
         }
-        assert!(
-            (ukf.x[0] - truth[119]).abs() < 0.25,
-            "ukf {}",
-            ukf.x[0]
-        );
+        assert!((ukf.x[0] - truth[119]).abs() < 0.25, "ukf {}", ukf.x[0]);
     }
 
     #[test]
@@ -590,8 +605,21 @@ mod tests {
         let mut zs = Vec::new();
         let mut truth = Vec::new();
         for _ in 0..150 {
-            true_x += q.sqrt() * Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng);
-            zs.push(true_x + r.sqrt() * Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng));
+            true_x += q.sqrt()
+                * Normal {
+                    mu: 0.0,
+                    sigma: 1.0,
+                }
+                .sample(&mut rng);
+            zs.push(
+                true_x
+                    + r.sqrt()
+                        * Normal {
+                            mu: 0.0,
+                            sigma: 1.0,
+                        }
+                        .sample(&mut rng),
+            );
             truth.push(true_x);
         }
         let f = vec![vec![1.0]];
@@ -614,8 +642,14 @@ mod tests {
         let (xs, _ps) = rts_smoother(&x_filt, &p_filt, &x_pred, &p_pred, &f).unwrap();
         let filt_err = rmse(&x_filt.iter().map(|v| v[0]).collect::<Vec<_>>(), &truth);
         let sm_err = rmse(&xs.iter().map(|v| v[0]).collect::<Vec<_>>(), &truth);
-        assert!(sm_err <= filt_err + 1e-9, "smooth {sm_err} vs filter {filt_err}");
+        assert!(
+            sm_err <= filt_err + 1e-9,
+            "smooth {sm_err} vs filter {filt_err}"
+        );
         // Smoother error should be meaningfully smaller.
-        assert!(sm_err < filt_err * 0.8 + 1e-9, "smooth {sm_err} vs filter {filt_err}");
+        assert!(
+            sm_err < filt_err * 0.8 + 1e-9,
+            "smooth {sm_err} vs filter {filt_err}"
+        );
     }
 }

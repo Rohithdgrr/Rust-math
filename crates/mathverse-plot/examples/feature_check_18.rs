@@ -8,15 +8,12 @@
 use mathverse_plot::backend::PlotData;
 use mathverse_plot::plt::{Axes, Figure};
 use mathverse_plot::save::{FormatSet, OutputFormat, PlotSaver};
+#[cfg(feature = "png")]
+use mathverse_plot::{encode_frames_to_video, ffmpeg_available, AnimationConfig, VideoCodec as VC};
 use mathverse_plot::{render_interactive_html, InteractiveConfig};
 use mathverse_plot::{
-    BoxPlotConfig, Color, DateFormatter, DateLocator, FontConfig, PlotConfig,
-    StreamConfig, TextAlign, VideoCodec, render_styled_boxplot, render_streamplot,
-    typography, DateTime,
-};
-#[cfg(feature = "png")]
-use mathverse_plot::{
-    AnimationConfig, VideoCodec as VC, encode_frames_to_video, ffmpeg_available,
+    render_streamplot, render_styled_boxplot, typography, BoxPlotConfig, Color, DateFormatter,
+    DateLocator, DateTime, FontConfig, PlotConfig, StreamConfig, TextAlign, VideoCodec,
 };
 
 #[allow(clippy::too_many_lines)]
@@ -50,8 +47,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         assert!(uri.len() > 300, "base64 payload present");
         let tag = PlotSaver::new(svg).inline_png_tag()?;
         assert!(tag.starts_with("<img src=\"data:image/png"));
-        std::fs::write(out.join("notebook_inline.html"), format!("{tag}<br/>dpi=144, scale=2.0"))?;
-        println!("[4] DPI+notebook inline: data-URI {} chars, <img> tag OK", uri.len());
+        std::fs::write(
+            out.join("notebook_inline.html"),
+            format!("{tag}<br/>dpi=144, scale=2.0"),
+        )?;
+        println!(
+            "[4] DPI+notebook inline: data-URI {} chars, <img> tag OK",
+            uri.len()
+        );
     }
 
     // ---- #5 GridSpec: ratios + spans ----
@@ -61,7 +64,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let grid_svg = fig.render();
     assert!(grid_svg.contains("<svg"));
     std::fs::write(out.join("gridspec.svg"), &grid_svg)?;
-    println!("[5] GridSpec ratios+spans: rendered {} bytes OK", grid_svg.len());
+    println!(
+        "[5] GridSpec ratios+spans: rendered {} bytes OK",
+        grid_svg.len()
+    );
 
     // ---- #6 add_axes fractional placement ----
     let mut fig2 = Figure::subplots(1, 1);
@@ -105,7 +111,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     assert!(multiline.contains("<tspan"));
     std::fs::write(out.join("text_layout.svg"), &multiline)?;
-    println!("[9-10] font+layout: wrapped {} lines, <tspan> emitted OK", wrapped.len());
+    println!(
+        "[9-10] font+layout: wrapped {} lines, <tspan> emitted OK",
+        wrapped.len()
+    );
 
     // ---- #11 contourf (filled) with colorbar ----
     let n = 24;
@@ -135,15 +144,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ---- #12 streamplot ----
     let m = 20;
     let u: Vec<Vec<f64>> = (0..m)
-        .map(|_j| (0..m).map(|i| -(f64::from(i) / f64::from(m - 1) - 0.5)).collect())
+        .map(|_j| {
+            (0..m)
+                .map(|i| -(f64::from(i) / f64::from(m - 1) - 0.5))
+                .collect()
+        })
         .collect();
     let v: Vec<Vec<f64>> = (0..m)
-        .map(|_j| (0..m).map(|i| f64::from(i) / f64::from(m - 1) - 0.5).collect())
+        .map(|_j| {
+            (0..m)
+                .map(|i| f64::from(i) / f64::from(m - 1) - 0.5)
+                .collect()
+        })
         .collect();
-    let sp = render_streamplot(&u, &v, (0.0, 1.0), (0.0, 1.0), &StreamConfig::new().with_seeds(5))?;
+    let sp = render_streamplot(
+        &u,
+        &v,
+        (0.0, 1.0),
+        (0.0, 1.0),
+        &StreamConfig::new().with_seeds(5),
+    )?;
     assert!(sp.contains("<polyline"), "streamlines as polylines");
     std::fs::write(out.join("streamplot.svg"), &sp)?;
-    println!("[12] streamplot: {} polylines OK", sp.matches("<polyline").count());
+    println!(
+        "[12] streamplot: {} polylines OK",
+        sp.matches("<polyline").count()
+    );
 
     // ---- #13 polar ----
     let mut pdata = mathverse_plot::polar::PolarData::new();
@@ -167,13 +193,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let loc = DateLocator::new("%m-%d", 6);
     let dts = loc.locate(t0, t1, 6);
     assert!(!dts.is_empty() && dts.len() <= 12, "date ticks in range");
-    println!("[14] date ticks: {} positions, formatted 2024-01-01 OK", dts.len());
+    println!(
+        "[14] date ticks: {} positions, formatted 2024-01-01 OK",
+        dts.len()
+    );
 
     // ---- #15-16 events + picking ----
     let mut edata = PlotData::new(PlotConfig::new());
     edata.series.push(mathverse_plot::DataSeries::new(
         "wave".to_string(),
-        vec![mathverse_plot::DataPoint::new(0.0, 0.0), mathverse_plot::DataPoint::new(1.0, 1.0)],
+        vec![
+            mathverse_plot::DataPoint::new(0.0, 0.0),
+            mathverse_plot::DataPoint::new(1.0, 1.0),
+        ],
     ));
     let ehtml = render_interactive_html(
         &edata,
@@ -215,7 +247,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // ---- #18 styled boxplot (notch/vert/capsize/flier/patch/positions) ----
-    let labels = vec!["Group A".to_string(), "Group B".to_string(), "Group C".to_string()];
+    let labels = vec![
+        "Group A".to_string(),
+        "Group B".to_string(),
+        "Group C".to_string(),
+    ];
     let data = vec![
         vec![1.0, 2.0, 3.0, 4.0, 5.0, 50.0],
         vec![3.0, 4.0, 5.0, 6.0, 7.0],
@@ -248,21 +284,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ---- PNG default format check: actually rasterize a real plot to PNG ----
     let fs = FormatSet::new();
-    assert_eq!(fs.formats(), &[OutputFormat::Png], "PNG is the default format");
+    assert_eq!(
+        fs.formats(),
+        &[OutputFormat::Png],
+        "PNG is the default format"
+    );
     assert_eq!(OutputFormat::default(), OutputFormat::Png);
     #[cfg(feature = "png")]
     {
-        let png = PlotSaver::new(&twin_svg)
-            .with_quality(92)
-            .raster_bytes(OutputFormat::Png, 144, 1.0)?;
-        assert_eq!(&png[..8], &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A], "PNG magic bytes");
+        let png =
+            PlotSaver::new(&twin_svg)
+                .with_quality(92)
+                .raster_bytes(OutputFormat::Png, 144, 1.0)?;
+        assert_eq!(
+            &png[..8],
+            &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A],
+            "PNG magic bytes"
+        );
         std::fs::write(out.join("default.png"), &png)?;
         println!("[default] PNG: {} bytes (144 dpi, real plot) OK", png.len());
         // Same through PlotSaver::save_as with the default (PNG) format set.
         let path = out.join("default_via_save.png");
-        let result = PlotSaver::new(&twin_svg)
-            .with_quality(92)
-            .save_as(path.to_str().unwrap(), OutputFormat::Png, &FormatSet::png());
+        let result = PlotSaver::new(&twin_svg).with_quality(92).save_as(
+            path.to_str().unwrap(),
+            OutputFormat::Png,
+            &FormatSet::png(),
+        );
         assert!(result.success, "save_as PNG via default format set");
         println!("[default] PNG via PlotSaver::save_as: {} OK", result.size);
     }

@@ -1,4 +1,4 @@
-﻿use alloc::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt;
@@ -48,7 +48,10 @@ impl Schema {
     /// Creates an empty schema.
     #[must_use]
     pub fn empty() -> Self {
-        Self { fields: Vec::new(), name_idx: BTreeMap::new() }
+        Self {
+            fields: Vec::new(),
+            name_idx: BTreeMap::new(),
+        }
     }
 
     /// Creates a schema from a list of (name, dtype) pairs.

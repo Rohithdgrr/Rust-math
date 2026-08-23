@@ -1,8 +1,8 @@
 //! Radar chart example: Skill comparison of two candidates.
 
 use mathverse_plot::radar::{render_radar_chart, RadarConfig, RadarPoint, RadarSeries};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let axes = vec![

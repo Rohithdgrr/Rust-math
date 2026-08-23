@@ -171,7 +171,10 @@ pub fn harris(img: &GrayImage, k: f64, threshold: f64) -> Vec<(f64, f64, f64)> {
     // instead of aborting with a `partial_cmp().unwrap()` panic).
     corners.sort_by(|a, b| b.2.total_cmp(&a.2));
 
-    corners.into_iter().map(|(x, y, r)| (x as f64, y as f64, r)).collect()
+    corners
+        .into_iter()
+        .map(|(x, y, r)| (x as f64, y as f64, r))
+        .collect()
 }
 
 #[cfg(test)]

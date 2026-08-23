@@ -80,7 +80,7 @@ pub fn divide(p: &[f64], q: &[f64]) -> Result<(Vec<f64>, Polynomial), MathError>
     let mut rem: Vec<f64> = p.to_vec();
     let mut quot = vec![0.0; p.len() - q.len() + 1];
     let lc = q.last().unwrap();
-    for i in (0..p.len() - q.len() + 1).rev() {
+    for i in (0..=p.len() - q.len()).rev() {
         let r_idx = i + q.len() - 1;
         if r_idx < rem.len() {
             quot[i] = rem[r_idx] / *lc;
@@ -117,11 +117,7 @@ pub fn polynomial_gcd(p: &[f64], q: &[f64]) -> Polynomial {
         a = b;
         b = r;
     }
-    if a.is_zero() {
-        a
-    } else {
-        a
-    }
+    a
 }
 
 /// Remainder theorem: evaluate `p(c)` by synthetic division.
@@ -318,6 +314,9 @@ mod tests {
 
     #[test]
     fn divide_by_zero() {
-        assert_eq!(divide_by_scalar(&[1.0, 2.0], 0.0), Err(MathError::DivisionByZero));
+        assert_eq!(
+            divide_by_scalar(&[1.0, 2.0], 0.0),
+            Err(MathError::DivisionByZero)
+        );
     }
 }

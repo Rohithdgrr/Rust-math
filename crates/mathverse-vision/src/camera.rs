@@ -73,7 +73,9 @@ impl CameraTrait for DummyCamera {
             for x in 0..self.width {
                 let idx = y * self.width + x;
                 // Move gradient left/right based on frame count
-                let gradient_x = ((x as isize + self.frame_count as isize) % (self.width as isize) + self.width as isize) % self.width as isize;
+                let gradient_x = ((x as isize + self.frame_count as isize) % (self.width as isize)
+                    + self.width as isize)
+                    % self.width as isize;
                 data[idx] = gradient_x as f64 / (self.width - 1) as f64;
             }
         }
@@ -82,13 +84,19 @@ impl CameraTrait for DummyCamera {
     }
 
     /// Get camera width.
-    fn width(&self) -> usize { self.width }
+    fn width(&self) -> usize {
+        self.width
+    }
 
     /// Get camera height.
-    fn height(&self) -> usize { self.height }
+    fn height(&self) -> usize {
+        self.height
+    }
 
     /// Get camera FPS.
-    fn fps(&self) -> f64 { 30.0 }
+    fn fps(&self) -> f64 {
+        30.0
+    }
 }
 
 /// Convenience function to create a DummyCamera.
@@ -128,7 +136,6 @@ pub struct V4LCamera {
     width: usize,
     height: usize,
     fps: f64,
-    device_path: String,
     frame_count: usize,
 }
 
@@ -142,7 +149,6 @@ impl V4LCamera {
             width,
             height,
             fps,
-            device_path: device_path.to_string(),
             frame_count: 0,
         })
     }
@@ -159,7 +165,7 @@ impl CameraTrait for V4LCamera {
     /// Capture a single frame from the V4L2 device.
     fn capture_frame(&mut self) -> Result<Image, String> {
         self.frame_count += 1;
-        
+
         // In a real implementation, this would:
         // 1. Open the V4L2 device
         // 2. Set up format (width, height, grayscale)
@@ -167,10 +173,10 @@ impl CameraTrait for V4LCamera {
         // 4. Query and extract a frame
         // 5. Convert to f64 [0.0, 1.0]
         // 6. Close device
-        
+
         // For now, generate an animated checkerboard pattern
         let mut data = vec![0.0; self.width * self.height];
-        
+
         // Animated checkerboard that moves
         let offset = (self.frame_count / 3) % 20;
         for y in 0..self.height {
@@ -183,22 +189,33 @@ impl CameraTrait for V4LCamera {
                 }
             }
         }
-        
+
         Ok(Image::from_data(self.width, self.height, data))
     }
 
     /// Get camera width.
-    fn width(&self) -> usize { self.width }
+    fn width(&self) -> usize {
+        self.width
+    }
 
     /// Get camera height.
-    fn height(&self) -> usize { self.height }
+    fn height(&self) -> usize {
+        self.height
+    }
 
     /// Get camera FPS.
-    fn fps(&self) -> f64 { self.fps }
+    fn fps(&self) -> f64 {
+        self.fps
+    }
 }
 
 /// Convenience function to create a V4L2 camera.
-pub fn create_v4l2_camera(width: usize, height: usize, fps: f64, device_path: &str) -> Result<V4LCamera, String> {
+pub fn create_v4l2_camera(
+    width: usize,
+    height: usize,
+    fps: f64,
+    device_path: &str,
+) -> Result<V4LCamera, String> {
     V4LCamera::new(width, height, fps, device_path)
 }
 
@@ -238,31 +255,31 @@ impl Win32Camera {
     /// Capture a single frame from the Win32 video device.
     pub fn capture_frame(&mut self) -> Result<Image, String> {
         self.frame_count += 1;
-        
+
         // In a real implementation, this would use Windows Media Foundation or WM_CAP
         // to capture a frame from the default video camera.
         // For now, generate an animated test pattern.
-        
+
         let mut data = vec![0.0; self.width * self.height];
-        
+
         // Create animated concentric circles pattern
         let cx = self.width as f64 / 2.0;
         let cy = self.height as f64 / 2.0;
         let time = self.frame_count as f64 * 0.05;
-        
+
         for y in 0..self.height {
             for x in 0..self.width {
                 let idx = y * self.width + x;
                 let dx = x as f64 - cx;
                 let dy = y as f64 - cy;
                 let dist = (dx * dx + dy * dy).sqrt();
-                
+
                 // Create animated ripple effect
                 let wave = (dist / 20.0 - time).sin() * 0.5 + 0.5;
                 data[idx] = wave;
             }
         }
-        
+
         Ok(Image::from_data(self.width, self.height, data))
     }
 }
@@ -275,13 +292,19 @@ impl CameraTrait for Win32Camera {
     }
 
     /// Get camera width.
-    fn width(&self) -> usize { self.width }
+    fn width(&self) -> usize {
+        self.width
+    }
 
     /// Get camera height.
-    fn height(&self) -> usize { self.height }
+    fn height(&self) -> usize {
+        self.height
+    }
 
     /// Get camera FPS.
-    fn fps(&self) -> f64 { self.fps }
+    fn fps(&self) -> f64 {
+        self.fps
+    }
 }
 
 /// Convenience function to create a Win32 camera.
@@ -294,10 +317,14 @@ pub fn create_win32_camera(width: usize, height: usize, fps: f64) -> Result<Win3
 /// Holds exactly one of the supported camera backends.
 #[derive(Debug)]
 pub enum SystemCameraEnum {
+    /// Platform camera backend selected at runtime.
     Real(RealCamera),
+    /// Placeholder camera used when no device is available.
     Dummy(DummyCamera),
+    /// Video4Linux2 backend (non-Windows platforms).
     #[cfg(not(windows))]
     V4L2(V4LCamera),
+    /// Win32 DirectShow-style backend (Windows).
     #[cfg(windows)]
     Win32(Win32Camera),
 }
@@ -314,55 +341,64 @@ impl std::fmt::Debug for RealCamera {
         f.debug_struct("RealCamera")
             .field("width", &self.width)
             .field("height", &self.height)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 impl CameraTrait for RealCamera {
     fn capture_frame(&mut self) -> Result<Image, String> {
         use nokhwa::pixel_format::RgbFormat;
-        
-        let frame = self.camera.frame()
+
+        let frame = self
+            .camera
+            .frame()
             .map_err(|e| format!("Failed to capture frame: {e}"))?;
-        
-        let decoded = frame.decode_image::<RgbFormat>()
+
+        let decoded = frame
+            .decode_image::<RgbFormat>()
             .map_err(|e| format!("Failed to decode frame: {e}"))?;
-        
+
         let w = decoded.width() as usize;
         let h = decoded.height() as usize;
-        
+
         // Resize to target resolution if needed
         let (target_w, target_h) = (self.width, self.height);
-        
+
         let rgb_data = decoded.as_raw();
-        
+
         // Convert RGB to grayscale and resize
         let mut gray_data = vec![0.0; target_w * target_h];
-        
+
         for ty in 0..target_h {
             for tx in 0..target_w {
                 // Simple nearest-neighbor sampling
                 let sx = (tx * w) / target_w;
                 let sy = (ty * h) / target_h;
                 let src_idx = (sy * w + sx) * 3;
-                
+
                 if src_idx + 2 < rgb_data.len() {
                     let r = f64::from(rgb_data[src_idx]) / 255.0;
                     let g = f64::from(rgb_data[src_idx + 1]) / 255.0;
                     let b = f64::from(rgb_data[src_idx + 2]) / 255.0;
-                    
+
                     // Convert to grayscale
                     gray_data[ty * target_w + tx] = 0.299 * r + 0.587 * g + 0.114 * b;
                 }
             }
         }
-        
+
         Ok(Image::from_data(target_w, target_h, gray_data))
     }
-    
-    fn width(&self) -> usize { self.width }
-    fn height(&self) -> usize { self.height }
-    fn fps(&self) -> f64 { 30.0 }
+
+    fn width(&self) -> usize {
+        self.width
+    }
+    fn height(&self) -> usize {
+        self.height
+    }
+    fn fps(&self) -> f64 {
+        30.0
+    }
 }
 
 impl CameraTrait for SystemCameraEnum {
@@ -431,7 +467,11 @@ impl SystemCamera {
         match Self::try_real_camera(index, width, height) {
             Ok(inner) => {
                 println!("✓ Real camera opened successfully!");
-                return Ok(SystemCamera { inner, width, height });
+                return Ok(SystemCamera {
+                    inner,
+                    width,
+                    height,
+                });
             }
             Err(e) => {
                 println!("⚠ Real camera not available: {e}");
@@ -451,13 +491,11 @@ impl SystemCamera {
                     SystemCameraEnum::V4L2(V4LCamera::new(width, height, 30.0, "/dev/video0")?)
                 }
             }
-            _ => {
-                SystemCameraEnum::Dummy(DummyCamera {
-                    width,
-                    height,
-                    frame_count: 0,
-                })
-            }
+            _ => SystemCameraEnum::Dummy(DummyCamera {
+                width,
+                height,
+                frame_count: 0,
+            }),
         };
 
         Ok(SystemCamera {
@@ -468,42 +506,50 @@ impl SystemCamera {
     }
 
     /// Try to open a real camera using nokhwa
-    fn try_real_camera(index: i32, width: usize, height: usize) -> Result<SystemCameraEnum, String> {
+    fn try_real_camera(
+        index: i32,
+        width: usize,
+        height: usize,
+    ) -> Result<SystemCameraEnum, String> {
         use nokhwa::pixel_format::RgbFormat;
-        use nokhwa::utils::{CameraIndex, RequestedFormat, RequestedFormatType, CameraFormat, Resolution, FrameFormat};
+        use nokhwa::utils::{
+            CameraFormat, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType,
+            Resolution,
+        };
         use nokhwa::Camera;
 
         println!("Attempting to open camera {index}...");
-        
+
         let camera_index = CameraIndex::Index(index as u32);
-        
+
         // Request specific resolution with proper CameraFormat
         let format = CameraFormat::new(
             Resolution::new(width as u32, height as u32),
             FrameFormat::MJPEG,
-            30
+            30,
         );
-        
-        let requested = RequestedFormat::new::<RgbFormat>(
-            RequestedFormatType::Closest(format)
-        );
+
+        let requested = RequestedFormat::new::<RgbFormat>(RequestedFormatType::Closest(format));
 
         let mut camera = Camera::new(camera_index, requested)
             .map_err(|e| format!("Failed to open camera device: {e}"))?;
 
         println!("Camera device opened, starting stream...");
-        
-        camera.open_stream()
+
+        camera
+            .open_stream()
             .map_err(|e| format!("Failed to start camera stream: {e}"))?;
 
         println!("Camera stream started successfully!");
-        
+
         // Get actual resolution
         let info = camera.camera_format();
-        println!("Camera format: {}x{} @ {} FPS", 
-                 info.resolution().width(), 
-                 info.resolution().height(),
-                 info.frame_rate());
+        println!(
+            "Camera format: {}x{} @ {} FPS",
+            info.resolution().width(),
+            info.resolution().height(),
+            info.frame_rate()
+        );
 
         Ok(SystemCameraEnum::Real(RealCamera {
             camera,
@@ -530,9 +576,10 @@ impl SystemCamera {
     /// prop_id constants: PROP_FRAME_WIDTH, PROP_FRAME_HEIGHT, PROP_FPS, etc.
     pub fn set(&mut self, prop_id: i32, value: f64) -> Result<(), String> {
         match prop_id {
-            3 => self.width = value as usize,   // CV_CAP_PROP_FRAME_WIDTH
-            4 => self.height = value as usize,  // CV_CAP_PROP_FRAME_HEIGHT
-            5 => {},                             // CV_CAP_PROP_FPS (would need FFI)
+            3 => self.width = value as usize,  // CV_CAP_PROP_FRAME_WIDTH
+            4 => self.height = value as usize, // CV_CAP_PROP_FRAME_HEIGHT
+            // CV_CAP_PROP_FPS (would need FFI) and any other property is
+            // silently ignored.
             _ => {}
         }
         Ok(())
@@ -541,10 +588,9 @@ impl SystemCamera {
     /// Get a camera property.
     pub fn get(&self, prop_id: i32) -> Result<f64, String> {
         match prop_id {
-            3 => Ok(self.width as f64),   // CV_CAP_PROP_FRAME_WIDTH
-            4 => Ok(self.height as f64),  // CV_CAP_PROP_FRAME_HEIGHT
-            5 => Ok(30.0),                // CV_CAP_PROP_FPS (default)
-            7 => Ok(self.width as f64),   // CV_CAP_PROP_FRAME_COUNT (approx)
+            3 | 7 => Ok(self.width as f64), // FRAME_WIDTH / FRAME_COUNT (approx)
+            4 => Ok(self.height as f64),    // CV_CAP_PROP_FRAME_HEIGHT
+            5 => Ok(30.0),                  // CV_CAP_PROP_FPS (default)
             _ => Ok(0.0),
         }
     }
@@ -572,4 +618,4 @@ pub mod properties {
 }
 
 /// Convenience constants for use with SystemCamera::set() and SystemCamera::get()
-pub use properties::{FRAME_WIDTH, FRAME_HEIGHT, FPS, FRAME_COUNT};
+pub use properties::{FPS, FRAME_COUNT, FRAME_HEIGHT, FRAME_WIDTH};

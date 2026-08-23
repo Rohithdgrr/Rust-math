@@ -1,4 +1,4 @@
-﻿//! Complex special functions: gamma, zeta, polylog, and related functions.
+//! Complex special functions: gamma, zeta, polylog, and related functions.
 
 use crate::Complex;
 
@@ -447,8 +447,7 @@ impl ComplexSpecialFunctions {
                 - Complex::real(core::f64::consts::FRAC_PI_4);
             // First correction: (4vÂ² âˆ’ 1) / (8z)
             let v2 = v * v;
-            let correction = (v2 * Complex::real(4.0) - Complex::one())
-                / (Complex::real(8.0) * z);
+            let correction = (v2 * Complex::real(4.0) - Complex::one()) / (Complex::real(8.0) * z);
             sqrt_term * (phase.cos() - correction * phase.sin())
         } else {
             Self::bessel_j_series(v, z, iterations.saturating_mul(2))
@@ -547,7 +546,11 @@ impl ComplexSpecialFunctions {
     /// Uses the series: `I_v(z)` = (z/2)^v Î£_{k=0}^âˆž (zÂ²/4)^k / (k! Î“(v+k+1)).
     pub fn bessel_i(v: Complex, z: Complex, iterations: usize) -> Complex {
         if z.norm() < 1e-15 {
-            return if v.re > 0.0 { Complex::zero() } else { Complex::one() };
+            return if v.re > 0.0 {
+                Complex::zero()
+            } else {
+                Complex::one()
+            };
         }
         let z_over_2 = z / Complex::real(2.0);
         let v_complex = v;
@@ -587,7 +590,11 @@ impl ComplexSpecialFunctions {
             let n = v.re.round() as i64;
             let n_abs = n.unsigned_abs() as usize;
             let k = Self::bessel_k_integer(n_abs, z, iterations);
-            if n < 0 && n % 2 != 0 { -k } else { k }
+            if n < 0 && n % 2 != 0 {
+                -k
+            } else {
+                k
+            }
         } else {
             let pi = std::f64::consts::PI;
             let i_v = Self::bessel_i(v, z, iterations);
@@ -632,7 +639,7 @@ impl ComplexSpecialFunctions {
             // Simpler: use K_n(z) = K_{n-2}(z) + 2(n-1)/z Â· K_{n-1}(z) backward recurrence
             let mut k_vec = Vec::new();
             let n_max = n + 5; // compute from higher order and recurse down
-            // Start with a large-order approximation
+                               // Start with a large-order approximation
             let v = Complex::real(n_max as f64);
             let k_high = Self::bessel_k_asymptotic(v, z, iterations);
             k_vec.push(k_high);
@@ -811,7 +818,10 @@ impl ComplexSpecialFunctions {
         if z.norm() < 1e-15 {
             return z;
         }
-        if z.re > 0.0 && z.im.abs() < 1e-15 && (z.re - (-1.0_f64 / std::f64::consts::E).exp()).abs() < 1e-12 {
+        if z.re > 0.0
+            && z.im.abs() < 1e-15
+            && (z.re - (-1.0_f64 / std::f64::consts::E).exp()).abs() < 1e-12
+        {
             return Complex::real(-1.0);
         }
 
@@ -825,7 +835,11 @@ impl ComplexSpecialFunctions {
             lz - lz.ln()
         } else {
             // General: start at 0.5 or -0.5
-            if z.re > 0.0 { Complex::real(0.5) } else { Complex::real(-0.5) }
+            if z.re > 0.0 {
+                Complex::real(0.5)
+            } else {
+                Complex::real(-0.5)
+            }
         };
 
         for _ in 0..50 {
@@ -952,7 +966,8 @@ impl ComplexSpecialFunctions {
             } else {
                 -Complex::one()
             };
-            let term = sign * q.pow(Complex::real(expo)) * (Complex::real((2 * n + 1) as f64) * z).sin();
+            let term =
+                sign * q.pow(Complex::real(expo)) * (Complex::real((2 * n + 1) as f64) * z).sin();
             if n > 0 && term.norm() < 1e-16 * sum.norm().max(1e-300) {
                 break;
             }
@@ -1008,7 +1023,8 @@ impl ComplexSpecialFunctions {
             } else {
                 -Complex::one()
             };
-            let term = sign * q.pow(Complex::real(expo)) * (Complex::real((2 * n) as f64) * z).cos();
+            let term =
+                sign * q.pow(Complex::real(expo)) * (Complex::real((2 * n) as f64) * z).cos();
             if term.norm() < 1e-16 * sum.norm().max(1e-300) {
                 break;
             }
@@ -1078,12 +1094,7 @@ impl ComplexSpecialFunctions {
     ///
     /// See [`hypergeometric_pfq`](Self::hypergeometric_pfq) for convergence
     /// notes (the series converges for all finite `z`).
-    pub fn hypergeometric_1f1(
-        a: Complex,
-        b: Complex,
-        z: Complex,
-        iterations: usize,
-    ) -> Complex {
+    pub fn hypergeometric_1f1(a: Complex, b: Complex, z: Complex, iterations: usize) -> Complex {
         Self::hypergeometric_pfq(&[a], &[b], z, iterations)
     }
 }
@@ -1398,12 +1409,8 @@ mod tests {
         assert!((f2 - expected2).norm() < 1e-10);
 
         // â‚Fâ‚(1;2;z) = (e^z âˆ’ 1)/z
-        let f1 = ComplexSpecialFunctions::hypergeometric_1f1(
-            Complex::one(),
-            Complex::real(2.0),
-            z,
-            100,
-        );
+        let f1 =
+            ComplexSpecialFunctions::hypergeometric_1f1(Complex::one(), Complex::real(2.0), z, 100);
         let expected1 = (z.exp() - Complex::one()) / z;
         assert!((f1 - expected1).norm() < 1e-12);
 
@@ -1413,12 +1420,8 @@ mod tests {
         assert!((f0 - expected0).norm() < 1e-12);
 
         // Pole in b (b = 0) yields NaN instead of division by zero
-        let pole = ComplexSpecialFunctions::hypergeometric_1f1(
-            Complex::one(),
-            Complex::zero(),
-            z,
-            100,
-        );
+        let pole =
+            ComplexSpecialFunctions::hypergeometric_1f1(Complex::one(), Complex::zero(), z, 100);
         assert!(pole.is_nan());
     }
 
@@ -1427,7 +1430,10 @@ mod tests {
         // P(1, x) = 1 - e^(-x), Q(1, x) = e^(-x)
         // x = 0.5: series branch (x < a + 1 = 2)
         let p = ComplexSpecialFunctions::gamma_p(Complex::one(), Complex::real(0.5), 100);
-        assert!((p.re - (1.0 - (-0.5_f64).exp())).abs() < 1e-10, "P(1,0.5) = {p}");
+        assert!(
+            (p.re - (1.0 - (-0.5_f64).exp())).abs() < 1e-10,
+            "P(1,0.5) = {p}"
+        );
         let q = ComplexSpecialFunctions::gamma_q(Complex::one(), Complex::real(0.5), 100);
         assert!((q.re - (-0.5_f64).exp()).abs() < 1e-10, "Q(1,0.5) = {q}");
 
@@ -1445,11 +1451,7 @@ mod tests {
         assert!((q0.re - 1.0).abs() < 1e-15);
 
         // P(0.5, 1) = erf(1) (P(1/2, x^2) = erf(x))
-        let p_half = ComplexSpecialFunctions::gamma_p(
-            Complex::real(0.5),
-            Complex::one(),
-            100,
-        );
+        let p_half = ComplexSpecialFunctions::gamma_p(Complex::real(0.5), Complex::one(), 100);
         assert!(
             (p_half.re - 0.8427007929497149).abs() < 1e-8,
             "P(0.5,1) = {p_half}, erf(1) = 0.8427007929"
@@ -1480,23 +1482,12 @@ mod tests {
         assert!((gu - gamma2 * q10).norm() < 1e-10);
 
         // Domain errors: negative x or Re(a) <= 0 give NaN
-        assert!(ComplexSpecialFunctions::gamma_p(
-            Complex::one(),
-            Complex::real(-1.0),
-            100,
-        )
-        .is_nan());
-        assert!(ComplexSpecialFunctions::gamma_q(
-            Complex::one(),
-            Complex::real(-1.0),
-            100,
-        )
-        .is_nan());
-        assert!(ComplexSpecialFunctions::gamma_p(
-            Complex::zero(),
-            Complex::one(),
-            100,
-        )
-        .is_nan());
+        assert!(
+            ComplexSpecialFunctions::gamma_p(Complex::one(), Complex::real(-1.0), 100,).is_nan()
+        );
+        assert!(
+            ComplexSpecialFunctions::gamma_q(Complex::one(), Complex::real(-1.0), 100,).is_nan()
+        );
+        assert!(ComplexSpecialFunctions::gamma_p(Complex::zero(), Complex::one(), 100,).is_nan());
     }
 }

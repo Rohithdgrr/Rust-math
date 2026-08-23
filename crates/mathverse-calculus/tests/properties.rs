@@ -2,8 +2,8 @@
 //!
 //! Verifies mathematical properties that should hold for all valid inputs.
 
-use proptest::prelude::*;
 use mathverse_calculus::prelude::*;
+use proptest::prelude::*;
 
 proptest! {
     /// Derivative of a constant function is zero.

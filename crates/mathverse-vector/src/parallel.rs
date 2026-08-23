@@ -16,22 +16,34 @@ pub fn dot(a: &[f64], b: &[f64]) -> f64 {
 }
 
 /// Sum of all elements.
-pub fn sum(v: &[f64]) -> f64 { v.par_iter().sum() }
+pub fn sum(v: &[f64]) -> f64 {
+    v.par_iter().sum()
+}
 
 /// Sum of squares.
-pub fn sum_sq(v: &[f64]) -> f64 { v.par_iter().map(|x| x * x).sum() }
+pub fn sum_sq(v: &[f64]) -> f64 {
+    v.par_iter().map(|x| x * x).sum()
+}
 
 /// Sum of absolute values.
-pub fn sum_abs(v: &[f64]) -> f64 { v.par_iter().map(|x| x.abs()).sum() }
+pub fn sum_abs(v: &[f64]) -> f64 {
+    v.par_iter().map(|x| x.abs()).sum()
+}
 
 /// Sum of squared differences, truncating to the shorter length.
 pub fn dist_sq(a: &[f64], b: &[f64]) -> f64 {
-    a.par_iter().zip(b.par_iter()).map(|(x, y)| (x - y) * (x - y)).sum()
+    a.par_iter()
+        .zip(b.par_iter())
+        .map(|(x, y)| (x - y) * (x - y))
+        .sum()
 }
 
 /// Sum of absolute differences, truncating to the shorter length.
 pub fn dist_abs(a: &[f64], b: &[f64]) -> f64 {
-    a.par_iter().zip(b.par_iter()).map(|(x, y)| (x - y).abs()).sum()
+    a.par_iter()
+        .zip(b.par_iter())
+        .map(|(x, y)| (x - y).abs())
+        .sum()
 }
 
 #[cfg(test)]

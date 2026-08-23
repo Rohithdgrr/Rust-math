@@ -28,7 +28,10 @@ impl MatrixNorms {
 
     /// Max norm (maximum absolute entry): ||A||_max = max_ij |a_ij|.
     pub fn max(m: &Matrix) -> f64 {
-        m.data.iter().map(|&x| x.abs()).fold(f64::NEG_INFINITY, f64::max)
+        m.data
+            .iter()
+            .map(|&x| x.abs())
+            .fold(f64::NEG_INFINITY, f64::max)
     }
 
     /// Spectral norm (largest singular value): ||A||_2 = σ_max.
@@ -48,7 +51,10 @@ impl MatrixNorms {
         if p == f64::INFINITY {
             v.iter().map(|&x| x.abs()).fold(f64::NEG_INFINITY, f64::max)
         } else {
-            v.iter().map(|&x| x.abs().powf(p)).sum::<f64>().powf(1.0 / p)
+            v.iter()
+                .map(|&x| x.abs().powf(p))
+                .sum::<f64>()
+                .powf(1.0 / p)
         }
     }
 
@@ -71,7 +77,7 @@ impl MatrixNorms {
     fn approximate_induced_norm(m: &Matrix, p: f64) -> MathResult<f64> {
         let n = m.cols;
         let mut x = vec![1.0 / (n as f64).sqrt(); n];
-        
+
         for _ in 0..100 {
             let ax = m.mul_vec(&mathverse_vector::Vector::new(x.clone()))?;
             let norm = Self::vector_p_norm(&ax.data, p);
@@ -79,7 +85,7 @@ impl MatrixNorms {
                 x = ax.data.iter().map(|&v| v / norm).collect();
             }
         }
-        
+
         let ax = m.mul_vec(&mathverse_vector::Vector::new(x.clone()))?;
         Ok(Self::vector_p_norm(&ax.data, p))
     }
@@ -133,12 +139,7 @@ impl NormProperties {
     }
 
     /// Check homogeneity: ||αA|| = |α| ||A||.
-    pub fn homogeneity(
-        m: &Matrix,
-        alpha: f64,
-        norm: fn(&Matrix) -> f64,
-        tolerance: f64,
-    ) -> bool {
+    pub fn homogeneity(m: &Matrix, alpha: f64, norm: fn(&Matrix) -> f64, tolerance: f64) -> bool {
         let scaled = m.scale(alpha);
         let lhs = norm(&scaled);
         let rhs = alpha.abs() * norm(m);
@@ -166,7 +167,9 @@ impl NormProperties {
         vector_norm: fn(&[f64]) -> f64,
         tolerance: f64,
     ) -> bool {
-        let mv = m.mul_vec(&mathverse_vector::Vector::new(v.to_vec())).unwrap_or_else(|_| mathverse_vector::Vector::new(vec![0.0]));
+        let mv = m
+            .mul_vec(&mathverse_vector::Vector::new(v.to_vec()))
+            .unwrap_or_else(|_| mathverse_vector::Vector::new(vec![0.0]));
         let lhs = vector_norm(&mv.data);
         let rhs = matrix_norm(m) * vector_norm(v);
         lhs <= rhs + tolerance
@@ -223,12 +226,22 @@ mod tests {
     fn test_triangle_inequality() {
         let a = test_matrix();
         let b = Matrix::identity(2);
-        assert!(NormProperties::triangle_inequality(&a, &b, MatrixNorms::frobenius, 1e-10));
+        assert!(NormProperties::triangle_inequality(
+            &a,
+            &b,
+            MatrixNorms::frobenius,
+            1e-10
+        ));
     }
 
     #[test]
     fn test_homogeneity() {
         let m = test_matrix();
-        assert!(NormProperties::homogeneity(&m, 2.0, MatrixNorms::frobenius, 1e-10));
+        assert!(NormProperties::homogeneity(
+            &m,
+            2.0,
+            MatrixNorms::frobenius,
+            1e-10
+        ));
     }
 }

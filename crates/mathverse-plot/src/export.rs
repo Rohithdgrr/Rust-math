@@ -62,7 +62,12 @@ impl Margin {
 
     /// Create asymmetric margin.
     pub fn new(top: f64, right: f64, bottom: f64, left: f64) -> Self {
-        Self { top, right, bottom, left }
+        Self {
+            top,
+            right,
+            bottom,
+            left,
+        }
     }
 
     /// Total width consumed.
@@ -83,8 +88,7 @@ impl Default for Margin {
 }
 
 /// SVG metadata.
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Metadata {
     /// Document title.
     pub title: String,
@@ -97,7 +101,6 @@ pub struct Metadata {
     /// Custom properties.
     pub properties: std::collections::HashMap<String, String>,
 }
-
 
 /// Watermark configuration.
 #[derive(Debug, Clone)]
@@ -296,7 +299,9 @@ impl ExportConfig {
         if let Some(ref wm) = self.watermark {
             match wm.position {
                 WatermarkPosition::Tiled => {
-                    svg.push_str("  <rect width=\"100%\" height=\"100%\" fill=\"url(#watermark)\"/>\n");
+                    svg.push_str(
+                        "  <rect width=\"100%\" height=\"100%\" fill=\"url(#watermark)\"/>\n",
+                    );
                 }
                 WatermarkPosition::Center => {
                     let cx = f64::from(self.width) / 2.0;
@@ -305,7 +310,9 @@ impl ExportConfig {
                     svg.push_str(&cx.to_string());
                     svg.push_str("\" y=\"");
                     svg.push_str(&cy.to_string());
-                    svg.push_str("\" text-anchor=\"middle\" dominant-baseline=\"middle\" font-size=\"");
+                    svg.push_str(
+                        "\" text-anchor=\"middle\" dominant-baseline=\"middle\" font-size=\"",
+                    );
                     svg.push_str(&wm.font_size.to_string());
                     svg.push_str("\" fill=\"");
                     svg.push_str(&wm.color.to_hex());
@@ -380,7 +387,9 @@ impl ExportConfig {
         if self.show_title && !self.title.is_empty() {
             svg.push_str("  <text x=\"");
             svg.push_str(&(f64::from(self.width) / 2.0).to_string());
-            svg.push_str("\" y=\"25\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"bold\">");
+            svg.push_str(
+                "\" y=\"25\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"bold\">",
+            );
             svg.push_str(&self.title);
             svg.push_str("</text>\n");
         }

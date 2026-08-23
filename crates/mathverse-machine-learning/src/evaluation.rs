@@ -60,7 +60,10 @@ pub fn stratified_k_fold(y: &[f64], k: usize, seed: u64) -> Vec<(Vec<usize>, Vec
     for &idx in &indices {
         // Normalize -0.0 to 0.0 to avoid hash key collision
         let normalized = if y[idx] == 0.0 { 0.0 } else { y[idx] };
-        class_groups.entry(normalized.to_bits()).or_default().push(idx);
+        class_groups
+            .entry(normalized.to_bits())
+            .or_default()
+            .push(idx);
     }
 
     // Distribute into folds
@@ -162,7 +165,7 @@ where
         for &idx in &train_indices {
             in_bag.insert(idx);
         }
-        
+
         let test_indices: Vec<usize> = (0..n).filter(|i| !in_bag.contains(i)).collect();
 
         if test_indices.is_empty() {
@@ -242,7 +245,7 @@ mod tests {
     #[test]
     fn test_learning_curve() {
         let x: Vec<Vec<f64>> = (0..20).map(|i| vec![f64::from(i)]).collect();
-        let y: Vec<f64> = (0..20).map(|i| f64::from(i)).collect();
+        let y: Vec<f64> = (0..20).map(f64::from).collect();
         let curve = learning_curve(&x, &y, &[2, 5, 10], simple_predict);
         assert_eq!(curve.len(), 3);
         for (size, train_s, val_s) in &curve {
@@ -255,7 +258,7 @@ mod tests {
     #[test]
     fn test_bootstrap_score() {
         let x: Vec<Vec<f64>> = (0..20).map(|i| vec![f64::from(i)]).collect();
-        let y: Vec<f64> = (0..20).map(|i| f64::from(i)).collect();
+        let y: Vec<f64> = (0..20).map(f64::from).collect();
         let (mean, std) = bootstrap_score(&x, &y, 10, 42, simple_predict);
         assert!(mean < 0.0);
         assert!(std >= 0.0);
@@ -265,8 +268,8 @@ mod tests {
     fn test_bootstrap_uses_out_of_bag() {
         // Test that bootstrap uses out-of-bag samples correctly
         let x: Vec<Vec<f64>> = (0..10).map(|i| vec![f64::from(i)]).collect();
-        let y: Vec<f64> = (0..10).map(|i| f64::from(i)).collect();
-        
+        let y: Vec<f64> = (0..10).map(f64::from).collect();
+
         // Count how many times we get non-empty test sets
         let mut non_empty_count = 0;
         for _ in 0..20 {
@@ -275,8 +278,11 @@ mod tests {
                 non_empty_count += 1;
             }
         }
-        
+
         // Most iterations should have non-empty out-of-bag samples
-        assert!(non_empty_count > 5, "Bootstrap should frequently have out-of-bag samples");
+        assert!(
+            non_empty_count > 5,
+            "Bootstrap should frequently have out-of-bag samples"
+        );
     }
 }

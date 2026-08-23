@@ -68,10 +68,7 @@ pub fn smooth_path(points: &[DataPoint], config: &SmoothConfig) -> String {
         return String::new();
     }
     if points.len() == 1 {
-        return format!(
-            "M{},{}",
-            points[0].x, points[0].y
-        );
+        return format!("M{},{}", points[0].x, points[0].y);
     }
 
     match config.interpolation {
@@ -121,7 +118,11 @@ fn catmull_rom_path(points: &[DataPoint], tension: f64, subdivisions: usize) -> 
         let p0 = if i > 0 { points[i - 1] } else { points[i] };
         let p1 = points[i];
         let p2 = points[i + 1];
-        let p3 = if i + 2 < n { points[i + 2] } else { points[i + 1] };
+        let p3 = if i + 2 < n {
+            points[i + 2]
+        } else {
+            points[i + 1]
+        };
 
         for j in 1..=subdivisions {
             let t = j as f64 / subdivisions as f64;
@@ -174,11 +175,7 @@ fn catmull_rom_interpolate(
 }
 
 /// Generate points along a Catmull-Rom spline.
-fn catmull_rom_points(
-    points: &[DataPoint],
-    tension: f64,
-    subdivisions: usize,
-) -> Vec<DataPoint> {
+fn catmull_rom_points(points: &[DataPoint], tension: f64, subdivisions: usize) -> Vec<DataPoint> {
     let n = points.len();
     if n < 2 {
         return points.to_vec();
@@ -191,11 +188,17 @@ fn catmull_rom_points(
         let p0 = if i > 0 { points[i - 1] } else { points[i] };
         let p1 = points[i];
         let p2 = points[i + 1];
-        let p3 = if i + 2 < n { points[i + 2] } else { points[i + 1] };
+        let p3 = if i + 2 < n {
+            points[i + 2]
+        } else {
+            points[i + 1]
+        };
 
         for j in 0..subdivisions {
             let t = j as f64 / subdivisions as f64;
-            result.push(catmull_rom_interpolate(&p0, &p1, &p2, &p3, t, tension, alpha));
+            result.push(catmull_rom_interpolate(
+                &p0, &p1, &p2, &p3, t, tension, alpha,
+            ));
         }
     }
     result.push(*points.last().expect("points is non-empty"));
@@ -209,7 +212,10 @@ fn cubic_bezier_path(points: &[DataPoint], subdivisions: usize) -> String {
         return linear_path(points);
     }
     if n == 2 {
-        return format!("M{},{} L{},{}", points[0].x, points[0].y, points[1].x, points[1].y);
+        return format!(
+            "M{},{} L{},{}",
+            points[0].x, points[0].y, points[1].x, points[1].y
+        );
     }
 
     let mut path = format!("M{},{}", points[0].x, points[0].y);

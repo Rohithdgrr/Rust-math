@@ -3,8 +3,8 @@
 //! Tests the public API across modules, verifying cross-module workflows
 //! and real-world usage patterns.
 
-use mathverse_calculus::prelude::*;
 use core::f64::consts::PI;
+use mathverse_calculus::prelude::*;
 
 mod derivative_integration {
     use super::*;
@@ -62,8 +62,15 @@ mod integration_integration {
         // 5-point Gauss is exact for degree ≤ 9
         for deg in 0..=9 {
             let result = gaussian_quadrature(&|x| x.powi(deg), -1.0, 1.0, 5).unwrap();
-            let expected = if deg % 2 == 0 { 2.0 / (f64::from(deg) + 1.0) } else { 0.0 };
-            assert!((result - expected).abs() < 1e-12, "degree {deg}: {result} vs {expected}");
+            let expected = if deg % 2 == 0 {
+                2.0 / (f64::from(deg) + 1.0)
+            } else {
+                0.0
+            };
+            assert!(
+                (result - expected).abs() < 1e-12,
+                "degree {deg}: {result} vs {expected}"
+            );
         }
     }
 
@@ -151,7 +158,10 @@ mod vector_calculus_integration {
         let div_grad = divergence(&grad_f, x).unwrap();
         let lap = laplacian(&f, x);
 
-        assert!((div_grad - lap).abs() < 1e-2, "div(grad)={div_grad} vs lap={lap}");
+        assert!(
+            (div_grad - lap).abs() < 1e-2,
+            "div(grad)={div_grad} vs lap={lap}"
+        );
     }
 
     #[test]
@@ -170,7 +180,12 @@ mod vector_calculus_integration {
         let f = |x: &[f64]| x[0] * x[0] * x[1] + x[1] * x[1] * x[0];
         let h = hessian(&f, &[1.0, 2.0]);
         // H[0][1] should equal H[1][0]
-        assert!((h[1] - h[2]).abs() < 1e-10, "H[0][1]={} vs H[1][0]={}", h[1], h[2]);
+        assert!(
+            (h[1] - h[2]).abs() < 1e-10,
+            "H[0][1]={} vs H[1][0]={}",
+            h[1],
+            h[2]
+        );
     }
 }
 

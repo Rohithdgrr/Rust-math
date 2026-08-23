@@ -1,17 +1,15 @@
 //! Rug plot example: Data point markers along an axis.
 
 use mathverse_plot::rug::{render_rug_plot, RugConfig};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let values = vec![
         0.1, 0.3, 0.5, 0.7, 0.9, 0.2, 0.8, 0.4, 0.6, 0.35, 0.65, 0.15, 0.85, 0.45, 0.55,
     ];
 
-    let config = RugConfig::new()
-        .with_side("bottom")
-        .with_height(20.0);
+    let config = RugConfig::new().with_side("bottom").with_height(20.0);
 
     let mut cfg = config;
     cfg.plot_config.title = "Rug Plot".into();

@@ -5,11 +5,14 @@ use mathverse_core::constants::{PI, TAU};
 /// 2D point.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Point2 {
+    /// X coordinate.
     pub x: f64,
+    /// Y coordinate.
     pub y: f64,
 }
 
 impl Point2 {
+    /// Creates a point from its coordinates.
     #[must_use]
     pub const fn new(x: f64, y: f64) -> Self {
         Self { x, y }
@@ -35,19 +38,26 @@ impl Point2 {
     #[must_use]
     pub fn rotate(self, angle: f64) -> Self {
         let (s, c) = angle.sin_cos();
-        Self::new(s.mul_add(-self.y, c * self.x), c.mul_add(self.y, s * self.x))
+        Self::new(
+            s.mul_add(-self.y, c * self.x),
+            c.mul_add(self.y, s * self.x),
+        )
     }
     /// Rotate by `angle` radians about `center`.
     #[must_use]
     pub fn rotate_around(self, angle: f64, center: Self) -> Self {
-        self.translate(-center.x, -center.y).rotate(angle).translate(center.x, center.y)
+        self.translate(-center.x, -center.y)
+            .rotate(angle)
+            .translate(center.x, center.y)
     }
 }
 
 /// Circle.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Circle {
+    /// Center point.
     pub center: Point2,
+    /// Non-negative radius.
     pub radius: f64,
 }
 
@@ -58,18 +68,22 @@ impl Circle {
         assert!(radius >= 0.0, "circle radius must be non-negative");
         Self { center, radius }
     }
+    /// Area enclosed by the circle.
     #[must_use]
     pub fn area(&self) -> f64 {
         PI * self.radius * self.radius
     }
+    /// Circumference length.
     #[must_use]
     pub fn perimeter(&self) -> f64 {
         TAU * self.radius
     }
+    /// Returns the center point.
     #[must_use]
     pub const fn centroid(&self) -> Point2 {
         self.center
     }
+    /// Whether `p` lies inside or on the circle.
     #[must_use]
     pub fn contains(&self, p: Point2) -> bool {
         self.center.distance_to(p) <= self.radius
@@ -90,26 +104,36 @@ impl Circle {
         }
         let a = d.mul_add(d, r2.mul_add(-r2, r1 * r1)) / (2.0 * d);
         let h2 = r1.mul_add(r1, -(a * a));
-        let p = self.center.translate(a * (other.center.x - self.center.x) / d, a * (other.center.y - self.center.y) / d);
+        let p = self.center.translate(
+            a * (other.center.x - self.center.x) / d,
+            a * (other.center.y - self.center.y) / d,
+        );
         if h2 <= 1e-14 {
             return vec![p];
         }
         let h = h2.sqrt();
         let dx = h * (other.center.y - self.center.y) / d;
         let dy = h * (other.center.x - self.center.x) / d;
-        vec![Point2::new(p.x + dx, p.y - dy), Point2::new(p.x - dx, p.y + dy)]
+        vec![
+            Point2::new(p.x + dx, p.y - dy),
+            Point2::new(p.x - dx, p.y + dy),
+        ]
     }
 }
 
 /// Triangle given by three vertices.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Triangle {
+    /// First vertex.
     pub a: Point2,
+    /// Second vertex.
     pub b: Point2,
+    /// Third vertex.
     pub c: Point2,
 }
 
 impl Triangle {
+    /// Creates a triangle from three vertices.
     #[must_use]
     pub const fn new(a: Point2, b: Point2, c: Point2) -> Self {
         Self { a, b, c }
@@ -117,24 +141,39 @@ impl Triangle {
     /// Shoelace formula; area is always positive.
     #[must_use]
     pub fn area(&self) -> f64 {
-        (self.c.x - self.a.x).mul_add(-(self.b.y - self.a.y), (self.b.x - self.a.x) * (self.c.y - self.a.y)).abs() / 2.0
+        (self.c.x - self.a.x)
+            .mul_add(
+                -(self.b.y - self.a.y),
+                (self.b.x - self.a.x) * (self.c.y - self.a.y),
+            )
+            .abs()
+            / 2.0
     }
+    /// Sum of the three side lengths.
     #[must_use]
     pub fn perimeter(&self) -> f64 {
         self.a.distance_to(self.b) + self.b.distance_to(self.c) + self.c.distance_to(self.a)
     }
+    /// Average of the three vertices.
     #[must_use]
     pub fn centroid(&self) -> Point2 {
-        Point2::new((self.a.x + self.b.x + self.c.x) / 3.0, (self.a.y + self.b.y + self.c.y) / 3.0)
+        Point2::new(
+            (self.a.x + self.b.x + self.c.x) / 3.0,
+            (self.a.y + self.b.y + self.c.y) / 3.0,
+        )
     }
 }
 
 /// Axis-aligned rectangle, `(x, y)` is the top-left corner.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rectangle {
+    /// X coordinate of the top-left corner.
     pub x: f64,
+    /// Y coordinate of the top-left corner.
     pub y: f64,
+    /// Non-negative width.
     pub width: f64,
+    /// Non-negative height.
     pub height: f64,
 }
 
@@ -142,21 +181,33 @@ impl Rectangle {
     /// Panics if `width < 0` or `height < 0`.
     #[must_use]
     pub fn new(x: f64, y: f64, width: f64, height: f64) -> Self {
-        assert!(width >= 0.0 && height >= 0.0, "rectangle dimensions must be non-negative");
-        Self { x, y, width, height }
+        assert!(
+            width >= 0.0 && height >= 0.0,
+            "rectangle dimensions must be non-negative"
+        );
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
+    /// Area of the rectangle.
     #[must_use]
     pub fn area(&self) -> f64 {
         self.width * self.height
     }
+    /// Perimeter length.
     #[must_use]
     pub fn perimeter(&self) -> f64 {
         2.0 * (self.width + self.height)
     }
+    /// Center point.
     #[must_use]
     pub fn centroid(&self) -> Point2 {
         Point2::new(self.x + self.width / 2.0, self.y + self.height / 2.0)
     }
+    /// Whether `p` lies inside or on the rectangle.
     #[must_use]
     pub fn contains(&self, p: Point2) -> bool {
         p.x >= self.x && p.x <= self.x + self.width && p.y >= self.y && p.y <= self.y + self.height
@@ -186,6 +237,7 @@ impl Rectangle {
 /// Polygon from an ordered vertex list (not closed; the last vertex joins the first).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Polygon {
+    /// Ordered vertices (not closed; the last vertex joins the first).
     pub points: Vec<Point2>,
 }
 
@@ -207,10 +259,13 @@ impl Polygon {
         }
         s.abs() / 2.0
     }
+    /// Sum of edge lengths.
     #[must_use]
     pub fn perimeter(&self) -> f64 {
         let n = self.points.len();
-        (0..n).map(|i| self.points[i].distance_to(self.points[(i + 1) % n])).sum()
+        (0..n)
+            .map(|i| self.points[i].distance_to(self.points[(i + 1) % n]))
+            .sum()
     }
     /// Area-weighted centroid.
     #[must_use]
@@ -285,8 +340,11 @@ impl Polygon {
 /// Ellipse with semi-axes `rx`, `ry`, axis-aligned about `center`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ellipse {
+    /// Center point.
     pub center: Point2,
+    /// Semi-axis along x (non-negative).
     pub rx: f64,
+    /// Semi-axis along y (non-negative).
     pub ry: f64,
 }
 
@@ -294,9 +352,13 @@ impl Ellipse {
     /// Panics if `rx < 0` or `ry < 0`.
     #[must_use]
     pub fn new(center: Point2, rx: f64, ry: f64) -> Self {
-        assert!(rx >= 0.0 && ry >= 0.0, "ellipse semi-axes must be non-negative");
+        assert!(
+            rx >= 0.0 && ry >= 0.0,
+            "ellipse semi-axes must be non-negative"
+        );
         Self { center, rx, ry }
     }
+    /// Area of the ellipse.
     #[must_use]
     pub fn area(&self) -> f64 {
         PI * self.rx * self.ry
@@ -305,12 +367,17 @@ impl Ellipse {
     #[must_use]
     pub fn perimeter(&self) -> f64 {
         let s = self.rx + self.ry;
-        PI * 3.0f64.mul_add(s, -(3.0f64.mul_add(self.rx, self.ry) * 3.0f64.mul_add(self.ry, self.rx)).sqrt())
+        PI * 3.0f64.mul_add(
+            s,
+            -(3.0f64.mul_add(self.rx, self.ry) * 3.0f64.mul_add(self.ry, self.rx)).sqrt(),
+        )
     }
+    /// Returns the center point.
     #[must_use]
     pub const fn centroid(&self) -> Point2 {
         self.center
     }
+    /// Whether `p` lies inside or on the ellipse.
     #[must_use]
     pub fn contains(&self, p: Point2) -> bool {
         let dx = (p.x - self.center.x) / self.rx;
@@ -331,7 +398,10 @@ mod tests {
         assert_eq!(p.scale(2.0), Point2::new(2.0, 4.0));
         let r = Point2::new(1.0, 0.0).rotate(PI / 2.0);
         assert!((r.x - 0.0).abs() < 1e-12 && (r.y - 1.0).abs() < 1e-12);
-        assert_eq!(p.rotate_around(PI, Point2::new(1.0, 2.0)), Point2::new(1.0, 2.0));
+        assert_eq!(
+            p.rotate_around(PI, Point2::new(1.0, 2.0)),
+            Point2::new(1.0, 2.0)
+        );
     }
 
     #[test]
@@ -362,7 +432,11 @@ mod tests {
 
     #[test]
     fn triangle() {
-        let t = Triangle::new(Point2::new(0.0, 0.0), Point2::new(4.0, 0.0), Point2::new(0.0, 3.0));
+        let t = Triangle::new(
+            Point2::new(0.0, 0.0),
+            Point2::new(4.0, 0.0),
+            Point2::new(0.0, 3.0),
+        );
         assert_eq!(t.area(), 6.0);
         assert_eq!(t.perimeter(), 12.0);
         let c = t.centroid();

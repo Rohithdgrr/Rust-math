@@ -5,8 +5,8 @@
 //!
 //! Run with: cargo run -p mathverse-calculus --example advanced
 
-use mathverse_calculus::prelude::*;
 use core::f64::consts::PI;
+use mathverse_calculus::prelude::*;
 
 fn main() {
     println!("=== mathverse-calculus: Advanced Examples ===\n");
@@ -30,7 +30,10 @@ fn gradient_descent_optimization() {
         let g = gradient(&f, &x);
         let grad_norm = (g[0] * g[0] + g[1] * g[1]).sqrt();
         if grad_norm < 1e-8 {
-            println!("   Converged at step {step}: x = ({:.8}, {:.8})", x[0], x[1]);
+            println!(
+                "   Converged at step {step}: x = ({:.8}, {:.8})",
+                x[0], x[1]
+            );
             break;
         }
         x[0] -= lr * g[0];
@@ -38,7 +41,10 @@ fn gradient_descent_optimization() {
 
         if step % 20 == 0 {
             let fx = f(&x);
-            println!("   Step {step:3}: x=({:.6}, {:.6}), f={:.8}", x[0], x[1], fx);
+            println!(
+                "   Step {step:3}: x=({:.6}, {:.6}), f={:.8}",
+                x[0], x[1], fx
+            );
         }
     }
     println!();
@@ -56,7 +62,10 @@ fn pendulum_simulation() {
     // Print every 100th step
     for (t, state) in result.iter().step_by(100) {
         let energy = 0.5 * state[1] * state[1] + (1.0 - state[0].cos());
-        println!("   t={:5.2}: θ={:8.5}, ω={:8.5}, E={:.6}", t, state[0], state[1], energy);
+        println!(
+            "   t={:5.2}: θ={:8.5}, ω={:8.5}, E={:.6}",
+            t, state[0], state[1], energy
+        );
     }
     println!();
 }

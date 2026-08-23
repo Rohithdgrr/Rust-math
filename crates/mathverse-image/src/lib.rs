@@ -63,12 +63,12 @@ pub mod error;
 pub mod gaussian_pyramid;
 pub mod harris;
 pub mod hough;
-pub mod template_matching;
-pub mod optical_flow;
 pub mod integral_image;
 pub mod io;
 pub mod morphology;
 pub mod operations;
+pub mod optical_flow;
+pub mod template_matching;
 
 pub use crate::error::{ImageError, Result};
 
@@ -119,7 +119,7 @@ impl GrayImage {
     /// Creates a new blank image with the given dimensions.
     ///
     /// All pixels are initialised to 0.0 (black). Returns an error if the
-    /// total number of pixels exceeds [`MAX_PIXELS`] (100 megapixels).
+    /// total number of pixels exceeds ``MAX_PIXELS`` (100 megapixels).
     ///
     /// # Arguments
     ///
@@ -140,11 +140,23 @@ impl GrayImage {
     /// assert_eq!(img.h, 64);
     /// ```
     pub fn new(w: usize, h: usize) -> Result<Self> {
-        let pixels = w.checked_mul(h).ok_or_else(|| ImageError::InvalidDimensions { width: w, height: h })?;
+        let pixels = w
+            .checked_mul(h)
+            .ok_or_else(|| ImageError::InvalidDimensions {
+                width: w,
+                height: h,
+            })?;
         if pixels > MAX_PIXELS {
-            return Err(ImageError::InvalidDimensions { width: w, height: h });
+            return Err(ImageError::InvalidDimensions {
+                width: w,
+                height: h,
+            });
         }
-        Ok(GrayImage { w, h, data: vec![0.0; pixels] })
+        Ok(GrayImage {
+            w,
+            h,
+            data: vec![0.0; pixels],
+        })
     }
 
     /// Creates an image from flat row-major data.
@@ -170,9 +182,17 @@ impl GrayImage {
     /// ```
     pub fn from_data(w: usize, h: usize, data: Vec<f64>) -> Result<Self> {
         if w == 0 || h == 0 {
-            return Err(ImageError::InvalidDimensions { width: w, height: h });
+            return Err(ImageError::InvalidDimensions {
+                width: w,
+                height: h,
+            });
         }
-        let expected = w.checked_mul(h).ok_or_else(|| ImageError::InvalidDimensions { width: w, height: h })?;
+        let expected = w
+            .checked_mul(h)
+            .ok_or_else(|| ImageError::InvalidDimensions {
+                width: w,
+                height: h,
+            })?;
         if data.len() != expected {
             return Err(ImageError::DataLengthMismatch {
                 data_len: data.len(),
@@ -262,8 +282,10 @@ impl GrayImage {
                 let mut s = 0.0;
                 for ky in 0..kh {
                     for kx in 0..kw {
-                        let px = (x as i64 + kx as i64 - ox as i64).clamp(0, self.w as i64 - 1) as usize;
-                        let py = (y as i64 + ky as i64 - oy as i64).clamp(0, self.h as i64 - 1) as usize;
+                        let px =
+                            (x as i64 + kx as i64 - ox as i64).clamp(0, self.w as i64 - 1) as usize;
+                        let py =
+                            (y as i64 + ky as i64 - oy as i64).clamp(0, self.h as i64 - 1) as usize;
                         s += kernel[ky * kw + kx] * self.get(px, py);
                     }
                 }
@@ -319,7 +341,8 @@ impl GrayImage {
             for x in 0..self.w {
                 let s: f64 = (0..n)
                     .map(|i| {
-                        let px = (x as i64 + i as i64 - r as i64).clamp(0, self.w as i64 - 1) as usize;
+                        let px =
+                            (x as i64 + i as i64 - r as i64).clamp(0, self.w as i64 - 1) as usize;
                         kernel[i] * self.get(px, y)
                     })
                     .sum();
@@ -332,7 +355,8 @@ impl GrayImage {
             for x in 0..self.w {
                 let s: f64 = (0..n)
                     .map(|i| {
-                        let py = (y as i64 + i as i64 - r as i64).clamp(0, self.h as i64 - 1) as usize;
+                        let py =
+                            (y as i64 + i as i64 - r as i64).clamp(0, self.h as i64 - 1) as usize;
                         kernel[i] * tmp.get(x, py)
                     })
                     .sum();
@@ -650,7 +674,11 @@ mod tests {
         assert!(mag.get(15, 8) > 0.5);
         assert!(mag.get(0, 8) < 0.1);
         let flat = GrayImage::from_data(8, 8, vec![0.5; 64]).unwrap();
-        assert!(flat.gaussian_blur(3, 1.5).data.iter().all(|v| (v - 0.5).abs() < 1e-12));
+        assert!(flat
+            .gaussian_blur(3, 1.5)
+            .data
+            .iter()
+            .all(|v| (v - 0.5).abs() < 1e-12));
         let (mag, _) = flat.sobel();
         assert!(mag.data.iter().all(|v| *v < 1e-12));
     }
@@ -665,7 +693,8 @@ mod tests {
         for (a, b) in img.data.iter().zip(&twice.data) {
             assert!((a - b).abs() < 1e-12);
         }
-        let sq = GrayImage::from_data(6, 6, (0..36).map(|i| f64::from(i % 7) / 10.0).collect()).unwrap();
+        let sq =
+            GrayImage::from_data(6, 6, (0..36).map(|i| f64::from(i % 7) / 10.0).collect()).unwrap();
         let four = sq.rotate90().rotate90().rotate90().rotate90();
         for (a, b) in sq.data.iter().zip(&four.data) {
             assert!((a - b).abs() < 1e-12);

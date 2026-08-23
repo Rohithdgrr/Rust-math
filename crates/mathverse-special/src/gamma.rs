@@ -286,7 +286,13 @@ mod tests {
         assert!((gamma_p(0.5, 0.5) - 0.682_689_492_137).abs() < 1e-10);
         assert!((gamma_p(5.0, 3.0) - 0.184_736_755).abs() < 1e-8);
         // P + Q = 1 for a wide range of arguments
-        for (a, x) in [(0.5, 0.1), (2.0, 5.0), (5.0, 2.0), (10.0, 8.0), (3.0, 100.0)] {
+        for (a, x) in [
+            (0.5, 0.1),
+            (2.0, 5.0),
+            (5.0, 2.0),
+            (10.0, 8.0),
+            (3.0, 100.0),
+        ] {
             let p = gamma_p(a, x);
             let q = gamma_q(a, x);
             assert!((p + q - 1.0).abs() < 1e-9, "P+Q off at a={a}, x={x}");

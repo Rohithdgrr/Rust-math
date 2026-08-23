@@ -158,7 +158,7 @@ pub struct KernelPCA {
     /// Eigenvalues of the centered kernel matrix.
     pub eigenvalues: Vec<f64>,
     /// Column means of the centered kernel matrix (for transform).
-    _col_means: Vec<f64>,
+    col_means: Vec<f64>,
 }
 
 impl KernelPCA {
@@ -172,7 +172,7 @@ impl KernelPCA {
             support: Vec::new(),
             alphas: Vec::new(),
             eigenvalues: Vec::new(),
-            _col_means: Vec::new(),
+            col_means: Vec::new(),
         }
     }
 
@@ -209,7 +209,10 @@ impl KernelPCA {
         }
 
         // Store column means for transform on new data
-        self._col_means = k.iter().map(|row| row.iter().sum::<f64>() / n as f64).collect();
+        self.col_means = k
+            .iter()
+            .map(|row| row.iter().sum::<f64>() / n as f64)
+            .collect();
 
         // Power iteration for top eigenvectors
         self.alphas = Vec::new();
@@ -281,7 +284,7 @@ impl KernelPCA {
         // where mean_j is the mean of column j of K_train
         for i in 0..n_test {
             for j in 0..n_train {
-                k_test[i][j] -= self._col_means[j];
+                k_test[i][j] -= self.col_means[j];
             }
         }
 
@@ -357,15 +360,12 @@ mod tests {
             vec![-1.0, 0.0],
             vec![0.0, -1.0],
         ];
-        let x_test: Vec<Vec<f64>> = vec![
-            vec![0.5, 0.5],
-            vec![-0.5, -0.5],
-        ];
-        
+        let x_test: Vec<Vec<f64>> = vec![vec![0.5, 0.5], vec![-0.5, -0.5]];
+
         let mut kpca = KernelPCA::new(1, 0.5);
         let train_reduced = kpca.fit_transform(&x_train);
         let test_reduced = kpca.transform(&x_test);
-        
+
         assert_eq!(train_reduced.len(), 4);
         assert_eq!(test_reduced.len(), 2);
         assert_eq!(train_reduced[0].len(), 1);

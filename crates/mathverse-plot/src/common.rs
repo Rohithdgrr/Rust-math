@@ -125,21 +125,21 @@ pub struct PlotConfig {
 
 impl Default for PlotConfig {
     fn default() -> Self {
-PlotConfig {
-        title: String::new(),
-        x_label: String::new(),
-        y_label: String::new(),
-        width: 800,
-        height: 600,
-        show_grid: true,
-        show_legend: true,
-        padding: 55.0,
-        x_scale: Scale::Linear,
-        y_scale: Scale::Linear,
-        tick_count: 8,
-        font_family: "Arial, sans-serif".to_string(),
-        font_size: 14.0,
-    }
+        PlotConfig {
+            title: String::new(),
+            x_label: String::new(),
+            y_label: String::new(),
+            width: 800,
+            height: 600,
+            show_grid: true,
+            show_legend: true,
+            padding: 55.0,
+            x_scale: Scale::Linear,
+            y_scale: Scale::Linear,
+            tick_count: 8,
+            font_family: "Arial, sans-serif".to_string(),
+            font_size: 14.0,
+        }
     }
 }
 
@@ -250,14 +250,25 @@ pub fn compute_x_range(data: &PlotData) -> Range {
         .chain(data.bars.iter().flat_map(|b| [b.x_lo, b.x_hi]))
         .chain(data.boxes.iter().enumerate().map(|(i, _)| i as f64))
         .chain(data.error_bars.iter().map(|e| e.x))
-        .chain(data.images.iter().flat_map(|im| [im.x_extent.0, im.x_extent.1]))
-        .chain(data.paths.iter().flat_map(|p| p.points.iter().map(|(x, _)| *x)))
+        .chain(
+            data.images
+                .iter()
+                .flat_map(|im| [im.x_extent.0, im.x_extent.1]),
+        )
+        .chain(
+            data.paths
+                .iter()
+                .flat_map(|p| p.points.iter().map(|(x, _)| *x)),
+        )
         .chain(data.lines.iter().flat_map(|l| [l.x1, l.x2]))
         .fold(None::<(f64, f64)>, |acc, x| match acc {
             None => Some((x, x)),
             Some((lo, hi)) => Some((lo.min(x), hi.max(x))),
         })
-        .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range { min: lo, max: hi })
+        .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range {
+            min: lo,
+            max: hi,
+        })
 }
 
 /// Compute the y-axis range from all data sources in a `PlotData` snapshot.
@@ -275,22 +286,31 @@ pub fn compute_y_range(data: &PlotData) -> Range {
         .iter()
         .flat_map(|s| s.points.iter().map(|p| p.y))
         .chain(data.bars.iter().map(|b| b.y))
-        .chain(
-            data.boxes
-                .iter()
-                .flat_map(|bx| [bx.stats.q1, bx.stats.q3, bx.stats.min, bx.stats.max]
-                    .into_iter()
-                    .chain(bx.stats.outliers.iter().copied())),
-        )
+        .chain(data.boxes.iter().flat_map(|bx| {
+            [bx.stats.q1, bx.stats.q3, bx.stats.min, bx.stats.max]
+                .into_iter()
+                .chain(bx.stats.outliers.iter().copied())
+        }))
         .chain(data.error_bars.iter().flat_map(|e| [e.bar.lo, e.bar.hi]))
-        .chain(data.images.iter().flat_map(|im| [im.y_extent.0, im.y_extent.1]))
-        .chain(data.paths.iter().flat_map(|p| p.points.iter().map(|(_, y)| *y)))
+        .chain(
+            data.images
+                .iter()
+                .flat_map(|im| [im.y_extent.0, im.y_extent.1]),
+        )
+        .chain(
+            data.paths
+                .iter()
+                .flat_map(|p| p.points.iter().map(|(_, y)| *y)),
+        )
         .chain(data.lines.iter().flat_map(|l| [l.y1, l.y2]))
         .fold(None::<(f64, f64)>, |acc, y| match acc {
             None => Some((y, y)),
             Some((lo, hi)) => Some((lo.min(y), hi.max(y))),
         })
-        .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range { min: lo, max: hi })
+        .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range {
+            min: lo,
+            max: hi,
+        })
 }
 
 /// Largest-Triangle-Three-Buckets downsampling.
@@ -357,8 +377,16 @@ pub fn base64_encode(data: &[u8]) -> String {
     let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
     for chunk in data.chunks(3) {
         let b0 = u32::from(chunk[0]);
-        let b1 = if chunk.len() > 1 { u32::from(chunk[1]) } else { 0 };
-        let b2 = if chunk.len() > 2 { u32::from(chunk[2]) } else { 0 };
+        let b1 = if chunk.len() > 1 {
+            u32::from(chunk[1])
+        } else {
+            0
+        };
+        let b2 = if chunk.len() > 2 {
+            u32::from(chunk[2])
+        } else {
+            0
+        };
         let triple = (b0 << 16) | (b1 << 8) | b2;
         let significant = (chunk.len() * 8).div_ceil(6);
         for i in 0..4 {

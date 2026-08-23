@@ -2,7 +2,7 @@
 //!
 //! Demonstrates how to simulate color blindness on plot colors.
 
-use mathverse_plot::cvd::{simulate_cvd, simulate_palette, CvdType, cvd_comparison_svg};
+use mathverse_plot::cvd::{cvd_comparison_svg, simulate_cvd, simulate_palette, CvdType};
 use mathverse_plot::style::Color;
 
 fn main() {
@@ -12,8 +12,8 @@ fn main() {
         Color::GREEN,
         Color::BLUE,
         Color::YELLOW,
-        Color::rgb(255, 128, 0),  // Orange
-        Color::rgb(128, 0, 255),  // Purple
+        Color::rgb(255, 128, 0), // Orange
+        Color::rgb(128, 0, 255), // Purple
     ];
 
     println!("Original palette:");

@@ -1,7 +1,7 @@
 //! Regression plot example.
 
-use mathverse_plot::{render_regplot, RegPlotConfig, common::DataPoint};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{common::DataPoint, render_regplot, RegPlotConfig};
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate points with a linear trend plus noise
@@ -13,10 +13,10 @@ fn main() -> mathverse_plot::PlotResult<()> {
         })
         .collect();
 
-    let mut config = RegPlotConfig::new()
-        .with_ci(0.95);
+    let mut config = RegPlotConfig::new().with_ci(0.95);
 
-    config.plot_config = config.plot_config
+    config.plot_config = config
+        .plot_config
         .with_title("Regression Plot: y = 1.5x + 2 + noise");
     config.show_equation = true;
 

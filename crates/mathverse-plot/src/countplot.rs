@@ -48,10 +48,7 @@ impl CountConfig {
 }
 
 /// Render a count plot as SVG.
-pub fn render_countplot(
-    categories: &[String],
-    config: &CountConfig,
-) -> PlotResult<String> {
+pub fn render_countplot(categories: &[String], config: &CountConfig) -> PlotResult<String> {
     if categories.is_empty() {
         return Err(PlotError::InvalidData("no categories provided".into()));
     }
@@ -210,8 +207,14 @@ mod tests {
     #[test]
     fn countplot_renders() {
         let cats = vec![
-            "A".into(), "B".into(), "A".into(), "C".into(),
-            "B".into(), "A".into(), "C".into(), "C".into(),
+            "A".into(),
+            "B".into(),
+            "A".into(),
+            "C".into(),
+            "B".into(),
+            "A".into(),
+            "C".into(),
+            "C".into(),
         ];
         let config = CountConfig::new();
         let svg = render_countplot(&cats, &config).unwrap();

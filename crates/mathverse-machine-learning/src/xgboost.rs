@@ -85,6 +85,10 @@ impl BoostTree {
 }
 
 /// Recursively grow a tree over the rows listed in `idx`.
+// Private split-search helper; grouping (depth, lambda, gamma) into a params
+// struct would obscure the recursion without benefit, so allow the arity here
+// even though pedantic flags it.
+#[allow(clippy::too_many_arguments)]
 fn build_tree_weighted(
     x: &[Vec<f64>],
     gradients: &[f64],
@@ -132,24 +136,23 @@ fn build_tree_weighted(
 
             let v_lo = x[order[pos]][feature];
             let v_hi = x[order[pos + 1]][feature];
-            // Skip ties: a threshold between equal values separates nothing.
-            if !(v_lo < v_hi) {
-                continue;
-            }
+            // Only strict ties and NaN values are skipped: a threshold between
+            // equal values separates nothing, and NaN rows sort last.
+            if v_lo < v_hi {
+                let right_g = sum_g - left_g;
+                let right_h = sum_h - left_h;
+                let gain = 0.5
+                    * (left_g * left_g / (left_h + lambda)
+                        + right_g * right_g / (right_h + lambda)
+                        - sum_g * sum_g / (sum_h + lambda))
+                    - gamma;
 
-            let right_g = sum_g - left_g;
-            let right_h = sum_h - left_h;
-            let gain = 0.5
-                * (left_g * left_g / (left_h + lambda)
-                    + right_g * right_g / (right_h + lambda)
-                    - sum_g * sum_g / (sum_h + lambda))
-                - gamma;
-
-            if gain > best_gain {
-                best_gain = gain;
-                best_feature = feature;
-                best_threshold = 0.5 * (v_lo + v_hi);
-                best_split_pos = pos + 1;
+                if gain > best_gain {
+                    best_gain = gain;
+                    best_feature = feature;
+                    best_threshold = 0.5 * (v_lo + v_hi);
+                    best_split_pos = pos + 1;
+                }
             }
         }
     }
@@ -460,7 +463,9 @@ mod tests {
         let x: Vec<Vec<f64>> = (0..20)
             .map(|i| vec![f64::from(i), f64::from(19 - i)])
             .collect();
-        let y: Vec<f64> = (0..20).map(|i| 2.0 * f64::from(i) - f64::from(19 - i)).collect();
+        let y: Vec<f64> = (0..20)
+            .map(|i| 2.0 * f64::from(i) - f64::from(19 - i))
+            .collect();
         let mut model = XGBoostRegressor::new(80, 0.2, 4, 1.0, 0.0);
         model.fit(&x, &y).unwrap();
         for (xi, yi) in x.iter().zip(y.iter()) {
@@ -495,14 +500,20 @@ mod tests {
     fn fit_validates_inputs() {
         let x = vec![vec![1.0], vec![2.0]];
         let y = vec![1.0];
-        assert!(XGBoostRegressor::new(5, 0.1, 2, 1.0, 0.0).fit(&x, &y).is_err());
+        assert!(XGBoostRegressor::new(5, 0.1, 2, 1.0, 0.0)
+            .fit(&x, &y)
+            .is_err());
 
         let y_bad = vec![f64::NAN, 1.0];
-        assert!(XGBoostRegressor::new(5, 0.1, 2, 1.0, 0.0).fit(&x, &y_bad).is_err());
+        assert!(XGBoostRegressor::new(5, 0.1, 2, 1.0, 0.0)
+            .fit(&x, &y_bad)
+            .is_err());
 
         let ragged = vec![vec![1.0, 2.0], vec![3.0]];
         let yy = vec![1.0, 2.0];
-        assert!(XGBoostRegressor::new(5, 0.1, 2, 1.0, 0.0).fit(&ragged, &yy).is_err());
+        assert!(XGBoostRegressor::new(5, 0.1, 2, 1.0, 0.0)
+            .fit(&ragged, &yy)
+            .is_err());
     }
 
     #[test]

@@ -68,8 +68,10 @@ impl RationalExpression {
         if g.is_zero() || g.degree() == 0 {
             return;
         }
-        let (q_num, _) = crate::factor::divide(self.num.coeffs(), g.coeffs()).unwrap_or_else(|_| (self.num.coeffs().to_vec(), Polynomial::constant(0.0)));
-        let (q_den, _) = crate::factor::divide(self.den.coeffs(), g.coeffs()).unwrap_or_else(|_| (self.den.coeffs().to_vec(), Polynomial::constant(0.0)));
+        let (q_num, _) = crate::factor::divide(self.num.coeffs(), g.coeffs())
+            .unwrap_or_else(|_| (self.num.coeffs().to_vec(), Polynomial::constant(0.0)));
+        let (q_den, _) = crate::factor::divide(self.den.coeffs(), g.coeffs())
+            .unwrap_or_else(|_| (self.den.coeffs().to_vec(), Polynomial::constant(0.0)));
         self.num = Polynomial::from_coeffs(&q_num);
         self.den = Polynomial::from_coeffs(&q_den);
     }
@@ -143,7 +145,7 @@ impl RationalExpression {
     ///
     /// # Errors
     ///
-    /// Returns [`MathError::UnsupportedDegree`] if `den` doesn't have exactly
+    /// Returns ``MathError::UnsupportedDegree`` if `den` doesn't have exactly
     /// 2 distinct real roots.
     ///
     /// # Examples
@@ -159,11 +161,15 @@ impl RationalExpression {
     pub fn partial_frac(&self) -> Result<(Vec<f64>, Vec<f64>), MathError> {
         let d = self.den.coeffs();
         if d.len() != 3 {
-            return Err(MathError::InvalidArgument("unsupported polynomial degree for partial fractions"));
+            return Err(MathError::InvalidArgument(
+                "unsupported polynomial degree for partial fractions",
+            ));
         }
         let roots = crate::roots::solve_quadratic(d[2], d[1], d[0]);
         if roots.len() != 2 {
-            return Err(MathError::InvalidArgument("unsupported denominator degree: expected 1"));
+            return Err(MathError::InvalidArgument(
+                "unsupported denominator degree: expected 1",
+            ));
         }
         let a = roots[0];
         let b = roots[1];
@@ -177,7 +183,7 @@ impl RationalExpression {
     ///
     /// # Errors
     ///
-    /// Returns [`MathError::UnsupportedDegree`] if `den` doesn't have exactly
+    /// Returns ``MathError::UnsupportedDegree`` if `den` doesn't have exactly
     /// 3 distinct real roots.
     ///
     /// # Examples
@@ -193,11 +199,15 @@ impl RationalExpression {
     pub fn partial_frac_three(&self) -> Result<(Vec<f64>, Vec<f64>), MathError> {
         let d = self.den.coeffs();
         if d.len() != 4 {
-            return Err(MathError::InvalidArgument("unsupported polynomial degree for partial fractions"));
+            return Err(MathError::InvalidArgument(
+                "unsupported polynomial degree for partial fractions",
+            ));
         }
         let roots = crate::roots::solve_cubic(d[3], d[2], d[1], d[0]);
         if roots.len() != 3 {
-            return Err(MathError::InvalidArgument("unsupported denominator degree: expected 2"));
+            return Err(MathError::InvalidArgument(
+                "unsupported denominator degree: expected 2",
+            ));
         }
         let a = roots[0];
         let b = roots[1];
@@ -240,7 +250,9 @@ impl PartialEq for RationalExpression {
                 right[i + j] += a * b;
             }
         }
-        left.iter().zip(right.iter()).all(|(x, y)| (x - y).abs() < TOL)
+        left.iter()
+            .zip(right.iter())
+            .all(|(x, y)| (x - y).abs() < TOL)
     }
 }
 
@@ -262,7 +274,7 @@ impl core::ops::Add for RationalExpression {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
         let new_num = Polynomial::from_coeffs(
-            &(self.num * rhs.den.clone() + self.den.clone() * rhs.num).coeffs().to_vec(),
+            (self.num * rhs.den.clone() + self.den.clone() * rhs.num).coeffs(),
         );
         let new_den = self.den * rhs.den;
         Self::new(new_num.coeffs(), new_den.coeffs())
@@ -273,7 +285,7 @@ impl core::ops::Sub for RationalExpression {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
         let new_num = Polynomial::from_coeffs(
-            &(self.num * rhs.den.clone() - self.den.clone() * rhs.num).coeffs().to_vec(),
+            (self.num * rhs.den.clone() - self.den.clone() * rhs.num).coeffs(),
         );
         let new_den = self.den * rhs.den;
         Self::new(new_num.coeffs(), new_den.coeffs())
@@ -283,30 +295,21 @@ impl core::ops::Sub for RationalExpression {
 impl core::ops::Mul for RationalExpression {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        Self::new(
-            &(self.num * rhs.num).coeffs(),
-            &(self.den * rhs.den).coeffs(),
-        )
+        Self::new((self.num * rhs.num).coeffs(), (self.den * rhs.den).coeffs())
     }
 }
 
 impl core::ops::Div for RationalExpression {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
-        Self::new(
-            &(self.num * rhs.den).coeffs(),
-            &(self.den * rhs.num).coeffs(),
-        )
+        Self::new((self.num * rhs.den).coeffs(), (self.den * rhs.num).coeffs())
     }
 }
 
 impl core::ops::Neg for RationalExpression {
     type Output = Self;
     fn neg(self) -> Self {
-        Self::new(
-            &(-self.num).coeffs(),
-            self.den.coeffs(),
-        )
+        Self::new((-self.num).coeffs(), self.den.coeffs())
     }
 }
 

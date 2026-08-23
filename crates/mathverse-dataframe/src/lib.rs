@@ -20,7 +20,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::approx_constant)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::missing_errors_doc)]
@@ -68,9 +67,9 @@ pub use series::Series;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::null::NullBitmap;
     #[cfg(not(feature = "std"))]
     use alloc::vec;
-    use crate::null::NullBitmap;
 
     #[test]
     fn smoke_test() {
@@ -490,8 +489,11 @@ mod tests {
     #[test]
     fn df_set_index_and_reset() {
         let mut df = DataFrame::new();
-        df.add_column("group", vec![String::from("A"), String::from("A"), String::from("B")])
-            .unwrap();
+        df.add_column(
+            "group",
+            vec![String::from("A"), String::from("A"), String::from("B")],
+        )
+        .unwrap();
         df.add_column("val", vec![1.0, 2.0, 3.0]).unwrap();
         let indexed = df.set_index(&["group"]).unwrap();
         assert_eq!(indexed.ncols(), 1);
@@ -502,8 +504,10 @@ mod tests {
     #[test]
     fn df_swaplevel() {
         let mut df = DataFrame::new();
-        df.add_column("l1", vec![String::from("A"), String::from("B")]).unwrap();
-        df.add_column("l2", vec![String::from("x"), String::from("y")]).unwrap();
+        df.add_column("l1", vec![String::from("A"), String::from("B")])
+            .unwrap();
+        df.add_column("l2", vec![String::from("x"), String::from("y")])
+            .unwrap();
         df.add_column("v", vec![1.0, 2.0]).unwrap();
         let mut indexed = df.set_index(&["l1", "l2"]).unwrap();
         indexed.swaplevel(0, 1).unwrap();
@@ -514,7 +518,8 @@ mod tests {
     #[test]
     fn df_set_labels_index() {
         let mut df = sample_df();
-        df.set_labels_index(vec!["r0".into(), "r1".into(), "r2".into()]).unwrap();
+        df.set_labels_index(vec!["r0".into(), "r1".into(), "r2".into()])
+            .unwrap();
         assert_eq!(df.index().get_str(0).unwrap(), "r0");
     }
 
@@ -523,7 +528,8 @@ mod tests {
         let mut df = DataFrame::new();
         // Dates as days: 0, 1, 5, 6, 10
         df.add_column("date", vec![0i64, 1, 5, 6, 10]).unwrap();
-        df.add_column("val", vec![10.0, 20.0, 30.0, 40.0, 50.0]).unwrap();
+        df.add_column("val", vec![10.0, 20.0, 30.0, 40.0, 50.0])
+            .unwrap();
         let r = df.resample("date", 5).unwrap();
         // Buckets: 0->{0,1}, 1->{5,6}, 2->{10}
         assert_eq!(r.nrows(), 3);
@@ -553,7 +559,9 @@ mod tests {
 
     #[test]
     fn join_inner() {
-        let r = left_df().merge(&right_df(), "key", JoinType::Inner).unwrap();
+        let r = left_df()
+            .merge(&right_df(), "key", JoinType::Inner)
+            .unwrap();
         assert_eq!(r.nrows(), 2);
     }
 
@@ -565,13 +573,17 @@ mod tests {
 
     #[test]
     fn join_right() {
-        let r = left_df().merge(&right_df(), "key", JoinType::Right).unwrap();
+        let r = left_df()
+            .merge(&right_df(), "key", JoinType::Right)
+            .unwrap();
         assert_eq!(r.nrows(), 3);
     }
 
     #[test]
     fn join_outer() {
-        let r = left_df().merge(&right_df(), "key", JoinType::Outer).unwrap();
+        let r = left_df()
+            .merge(&right_df(), "key", JoinType::Outer)
+            .unwrap();
         assert_eq!(r.nrows(), 4);
     }
 
@@ -599,8 +611,7 @@ mod tests {
         let r = left
             .merge_with(
                 &right,
-                &MergeConfig::on("key", JoinType::Inner)
-                    .with_suffixes("_L", "_R"),
+                &MergeConfig::on("key", JoinType::Inner).with_suffixes("_L", "_R"),
             )
             .unwrap();
         let names = r.column_names();
@@ -612,7 +623,10 @@ mod tests {
     #[test]
     fn merge_with_indicator() {
         let r = left_df()
-            .merge_with(&right_df(), &MergeConfig::on("key", JoinType::Inner).with_indicator())
+            .merge_with(
+                &right_df(),
+                &MergeConfig::on("key", JoinType::Inner).with_indicator(),
+            )
             .unwrap();
         assert!(r.column_names().contains(&"_merge"));
     }
@@ -621,8 +635,11 @@ mod tests {
 
     fn group_df() -> DataFrame {
         let mut df = DataFrame::new();
-        df.add_column("g", vec![String::from("A"), String::from("A"), String::from("B")])
-            .unwrap();
+        df.add_column(
+            "g",
+            vec![String::from("A"), String::from("A"), String::from("B")],
+        )
+        .unwrap();
         df.add_column("v", vec![10.0, 20.0, 30.0]).unwrap();
         df
     }
@@ -660,8 +677,16 @@ mod tests {
     #[test]
     fn groupby_std() {
         let mut df = DataFrame::new();
-        df.add_column("g", vec![String::from("A"), String::from("A"), String::from("B"), String::from("B")])
-            .unwrap();
+        df.add_column(
+            "g",
+            vec![
+                String::from("A"),
+                String::from("A"),
+                String::from("B"),
+                String::from("B"),
+            ],
+        )
+        .unwrap();
         df.add_column("v", vec![10.0, 20.0, 30.0, 40.0]).unwrap();
         let r = df.group_by(&["g"]).unwrap().std().unwrap();
         assert_eq!(r.nrows(), 2);
@@ -675,19 +700,31 @@ mod tests {
 
     #[test]
     fn groupby_transform_mean() {
-        let r = group_df().group_by(&["g"]).unwrap().transform(crate::ops::groupby::AggOp::Mean).unwrap();
+        let r = group_df()
+            .group_by(&["g"])
+            .unwrap()
+            .transform(crate::ops::groupby::AggOp::Mean)
+            .unwrap();
         assert_eq!(r.nrows(), 3);
     }
 
     #[test]
     fn groupby_pivot_table() {
         let mut df = DataFrame::new();
-        df.add_column("row", vec![String::from("A"), String::from("A"), String::from("B")])
-            .unwrap();
-        df.add_column("col", vec![String::from("X"), String::from("Y"), String::from("X")])
-            .unwrap();
+        df.add_column(
+            "row",
+            vec![String::from("A"), String::from("A"), String::from("B")],
+        )
+        .unwrap();
+        df.add_column(
+            "col",
+            vec![String::from("X"), String::from("Y"), String::from("X")],
+        )
+        .unwrap();
         df.add_column("val", vec![1.0, 2.0, 3.0]).unwrap();
-        let r = df.pivot_table("val", "row", "col", crate::ops::groupby::AggOp::Sum).unwrap();
+        let r = df
+            .pivot_table("val", "row", "col", crate::ops::groupby::AggOp::Sum)
+            .unwrap();
         assert!(r.nrows() >= 1);
     }
 
@@ -710,7 +747,8 @@ mod tests {
         fn csv_roundtrip() {
             let mut df = DataFrame::new();
             df.add_column("x", vec![1.0, 2.0]).unwrap();
-            df.add_column("y", vec![String::from("a"), String::from("b")]).unwrap();
+            df.add_column("y", vec![String::from("a"), String::from("b")])
+                .unwrap();
             let csv = io::to_csv_string(&df);
             let df2 = io::read_csv_from_str(&csv).unwrap();
             assert_eq!(df2.nrows(), 2);
@@ -724,7 +762,8 @@ mod tests {
     fn json_roundtrip() {
         let mut df = DataFrame::new();
         df.add_column("x", vec![1.0, 2.0]).unwrap();
-        df.add_column("y", vec![String::from("a"), String::from("b")]).unwrap();
+        df.add_column("y", vec![String::from("a"), String::from("b")])
+            .unwrap();
         let json = json::to_json_string(&df);
         let df2 = json::from_json_str(&json).unwrap();
         assert_eq!(df2.nrows(), 2);

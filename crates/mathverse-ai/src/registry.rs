@@ -1,8 +1,8 @@
 //! Model registry: save/load tensors to text files, parameter counting.
 
-use std::fs;
-use std::io::{self, Write, BufWriter, BufRead, BufReader};
 use crate::tensor::Tensor;
+use std::fs;
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 
 /// Save named tensors to a text file.
 /// Format per tensor: name shape dim0 dim1 ... \n val0 val1 ...
@@ -10,14 +10,16 @@ pub fn save_model(path: &str, params: &[(String, Tensor)]) -> io::Result<()> {
     let file = fs::File::create(path)?;
     let mut writer = BufWriter::new(file);
     for (name, t) in params {
-        write!(writer, "{}", name)?;
+        write!(writer, "{name}")?;
         for &d in &t.shape {
-            write!(writer, " {}", d)?;
+            write!(writer, " {d}")?;
         }
         writeln!(writer)?;
         for (i, v) in t.data.iter().enumerate() {
-            if i > 0 { write!(writer, " ")?; }
-            write!(writer, "{}", v)?;
+            if i > 0 {
+                write!(writer, " ")?;
+            }
+            write!(writer, "{v}")?;
         }
         writeln!(writer)?;
     }
@@ -34,19 +36,21 @@ pub fn load_model(path: &str) -> io::Result<Vec<(String, Tensor)>> {
     while let Some(header_res) = lines.next() {
         let header = header_res?;
         let header = header.trim().to_string();
-        if header.is_empty() { continue; }
+        if header.is_empty() {
+            continue;
+        }
         let parts: Vec<&str> = header.split_whitespace().collect();
-        if parts.len() < 2 { continue; }
+        if parts.len() < 2 {
+            continue;
+        }
         let name = parts[0].to_string();
-        let shape: Vec<usize> = parts[1..].iter()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+        let shape: Vec<usize> = parts[1..].iter().filter_map(|s| s.parse().ok()).collect();
 
-        let data_line = match lines.next() {
-            Some(Ok(line)) => line,
-            _ => break,
+        let Some(Ok(data_line)) = lines.next() else {
+            break;
         };
-        let data: Vec<f64> = data_line.split_whitespace()
+        let data: Vec<f64> = data_line
+            .split_whitespace()
             .filter_map(|s| s.parse().ok())
             .collect();
 
@@ -58,6 +62,7 @@ pub fn load_model(path: &str) -> io::Result<Vec<(String, Tensor)>> {
 }
 
 /// Count total parameters across all tensors.
+#[must_use]
 pub fn count_parameters(params: &[(String, Tensor)]) -> usize {
     params.iter().map(|(_, t)| t.numel()).sum()
 }
@@ -73,8 +78,14 @@ mod tests {
         let path_str = tmp.to_str().unwrap();
 
         let params = vec![
-            ("layer1.weight".to_string(), Tensor::new(&[2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap()),
-            ("layer1.bias".to_string(), Tensor::new(&[3], &[0.1, 0.2, 0.3]).unwrap()),
+            (
+                "layer1.weight".to_string(),
+                Tensor::new(&[2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap(),
+            ),
+            (
+                "layer1.bias".to_string(),
+                Tensor::new(&[3], &[0.1, 0.2, 0.3]).unwrap(),
+            ),
         ];
 
         save_model(path_str, &params).unwrap();
@@ -104,9 +115,7 @@ mod tests {
         let tmp = std::env::temp_dir().join("mathverse_test_scalar.txt");
         let path_str = tmp.to_str().unwrap();
 
-        let params = vec![
-            ("scalar".to_string(), Tensor::new(&[1], &[42.0]).unwrap()),
-        ];
+        let params = vec![("scalar".to_string(), Tensor::new(&[1], &[42.0]).unwrap())];
         save_model(path_str, &params).unwrap();
         let loaded = load_model(path_str).unwrap();
         assert_eq!(loaded.len(), 1);

@@ -97,11 +97,12 @@ mod tests {
 
     #[test]
     fn dimensions_are_distinct_types() {
-        // Distinct phantom parameters: these must never unify.
-        let length = 1.0.m();
-        let time = 1.0.s();
+        // Type-checking helpers; distinct phantom parameters must never unify.
         fn takes_length(_q: Quantity<LengthDim, Meter>) {}
         fn takes_time(_q: Quantity<TimeDim, Second>) {}
+
+        let length = 1.0.m();
+        let time = 1.0.s();
         takes_length(length);
         takes_time(time);
     }

@@ -8,14 +8,13 @@ pub struct ElasticNetResult {
     pub coefficients: Vec<f64>,
     /// Intercept term.
     pub intercept: f64,
-    /// Coefficient of determination (R²).
+    /// Coefficient of determination (RÂ²).
     pub r_squared: f64,
     /// Number of iterations performed.
     pub n_iters: usize,
 }
 
 /// Fit Elastic Net via coordinate descent.
-#[must_use]
 pub fn fit_elastic_net(
     x: &[Vec<f64>],
     y: &[f64],

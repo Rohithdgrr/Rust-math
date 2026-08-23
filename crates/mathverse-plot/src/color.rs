@@ -313,7 +313,11 @@ pub fn normalize_two_slope(values: &[f64], vmin: f64, vcenter: f64, vmax: f64) -
 /// an equal share of the colormap.
 #[must_use]
 pub fn normalize_boundary(values: &[f64], boundaries: &[f64]) -> Vec<f64> {
-    let mut bounds: Vec<f64> = boundaries.iter().copied().filter(|b| b.is_finite()).collect();
+    let mut bounds: Vec<f64> = boundaries
+        .iter()
+        .copied()
+        .filter(|b| b.is_finite())
+        .collect();
     bounds.sort_by(f64::total_cmp);
     bounds.dedup();
     if bounds.len() < 2 {
@@ -578,7 +582,10 @@ mod tests {
         assert_eq!(asym[2], 1.0);
         // Invalid ranges fall back to linear.
         let fallback = normalize_two_slope(&[0.0, 5.0, 10.0], 0.0, 10.0, 5.0);
-        assert_eq!(fallback, normalize(&[0.0, 5.0, 10.0], Normalization::Linear));
+        assert_eq!(
+            fallback,
+            normalize(&[0.0, 5.0, 10.0], Normalization::Linear)
+        );
     }
 
     #[test]

@@ -1,6 +1,6 @@
 //! Dimension types for compile-time dimensional analysis
 
-use typenum::{Integer, Z0, P1, N1, P2, N2, P3, N3};
+use typenum::{Integer, N1, N2, N3, P1, P2, P3, Z0};
 
 /// Length exponent marker (positive).
 pub type Length = P1;

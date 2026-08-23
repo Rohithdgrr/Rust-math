@@ -1,7 +1,7 @@
 //! High-DPI export example for publication-quality output.
 
-use mathverse_plot::{DataPoint, DataSeries, DpiConfig, PlotConfig, SvgPlot};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{DataPoint, DataSeries, DpiConfig, PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create some data
@@ -41,10 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut svg_high = plot.generate();
 
     // Add viewBox attribute for resolution independence
-    svg_high = svg_high.replace(
-        "<svg",
-        "<svg viewBox=\"0 0 800 600\"",
-    );
+    svg_high = svg_high.replace("<svg", "<svg viewBox=\"0 0 800 600\"");
 
     PlotSaver::new(&svg_high).save_png("highdpi_300.png")?;
     println!("Wrote highdpi_300.svg ({} bytes)", svg_high.len());

@@ -1,4 +1,4 @@
-﻿use alloc::format;
+use alloc::format;
 use alloc::string::{String, ToString};
 #[cfg(not(feature = "std"))]
 use alloc::vec;
@@ -16,9 +16,7 @@ impl AnyColumn {
     /// placeholder values.
     pub fn valid_f64(&self) -> DataFrameResult<Vec<f64>> {
         let s = self.to_f64()?;
-        Ok(s.iter()
-            .filter_map(|(_, v)| v.copied())
-            .collect())
+        Ok(s.iter().filter_map(|(_, v)| v.copied()).collect())
     }
 
     /// Returns the sum of all non-null values (empty sum = 0).
@@ -127,7 +125,13 @@ impl AnyColumn {
 
     /// Returns (min, max, mean, std, count) as a summary tuple.
     pub fn describe_numeric(&self) -> DataFrameResult<(f64, f64, f64, f64, f64)> {
-        Ok((self.min()?, self.max()?, self.mean()?, self.std()?, self.count() as f64))
+        Ok((
+            self.min()?,
+            self.max()?,
+            self.mean()?,
+            self.std()?,
+            self.count() as f64,
+        ))
     }
 
     /// Returns the number of distinct non-null values (pandas `nunique`).
@@ -145,7 +149,8 @@ impl AnyColumn {
         if vals.is_empty() {
             return Err(DataFrameError::EmptyDataFrame);
         }
-        let mut counts: alloc::collections::BTreeMap<u64, usize> = alloc::collections::BTreeMap::new();
+        let mut counts: alloc::collections::BTreeMap<u64, usize> =
+            alloc::collections::BTreeMap::new();
         for v in &vals {
             *counts.entry(v.to_bits()).or_default() += 1;
         }
@@ -160,7 +165,8 @@ impl AnyColumn {
     /// (descending by count, ties by ascending value).
     pub fn value_counts(&self) -> DataFrameResult<Vec<(f64, usize)>> {
         let vals = self.valid_f64()?;
-        let mut counts: alloc::collections::BTreeMap<u64, usize> = alloc::collections::BTreeMap::new();
+        let mut counts: alloc::collections::BTreeMap<u64, usize> =
+            alloc::collections::BTreeMap::new();
         for v in &vals {
             *counts.entry(v.to_bits()).or_default() += 1;
         }
@@ -168,7 +174,10 @@ impl AnyColumn {
             .into_iter()
             .map(|(bits, c)| (f64::from_bits(bits), c))
             .collect();
-        out.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.partial_cmp(&b.0).unwrap_or(core::cmp::Ordering::Equal)));
+        out.sort_by(|a, b| {
+            b.1.cmp(&a.1)
+                .then_with(|| a.0.partial_cmp(&b.0).unwrap_or(core::cmp::Ordering::Equal))
+        });
         Ok(out)
     }
 

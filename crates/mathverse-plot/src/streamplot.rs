@@ -140,9 +140,7 @@ pub fn render_streamplot(
     let chart_height = height - 2.0 * padding;
 
     let to_x = |x: f64| padding + (x - x_range.0) / (x_range.1 - x_range.0) * chart_width;
-    let to_y = |y: f64| {
-        padding + chart_height * (1.0 - (y - y_range.0) / (y_range.1 - y_range.0))
-    };
+    let to_y = |y: f64| padding + chart_height * (1.0 - (y - y_range.0) / (y_range.1 - y_range.0));
 
     let mut svg = String::new();
     svg.push_str(&format!(
@@ -161,8 +159,16 @@ pub fn render_streamplot(
             let fy = (si as f64 + 0.5) / n as f64;
             let x0 = x_range.0 + fx * (x_range.1 - x_range.0);
             let y0 = y_range.0 + fy * (y_range.1 - y_range.0);
-            let mut line: Vec<(f64, f64)> =
-                trace_stream(x0, y0, u, v, x_range, y_range, config.step, config.max_steps);
+            let mut line: Vec<(f64, f64)> = trace_stream(
+                x0,
+                y0,
+                u,
+                v,
+                x_range,
+                y_range,
+                config.step,
+                config.max_steps,
+            );
 
             // Arrowheads: a short segment near the end pointing along flow.
             if line.len() >= 4 {
@@ -173,7 +179,10 @@ pub fn render_streamplot(
                 let len = (dx * dx + dy * dy).sqrt();
                 if len > 1e-9 {
                     let (ux, uy) = (dx / len, dy / len);
-                    let (px, py) = (tip.0 - ux * config.step * 2.0, tip.1 - uy * config.step * 2.0);
+                    let (px, py) = (
+                        tip.0 - ux * config.step * 2.0,
+                        tip.1 - uy * config.step * 2.0,
+                    );
                     let perp = (-uy, ux);
                     let size = config.step * 1.6;
                     let a1 = (px + perp.0 * size, py + perp.1 * size);

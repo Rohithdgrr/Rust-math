@@ -1,14 +1,14 @@
 //! Options pricing models
 
 /// Calculate Black-Scholes call option price
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
 /// * `time_to_expiry` - Time to expiry in years
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
-/// 
+///
 /// # Returns
 /// Call option price
 pub fn black_scholes_call(
@@ -23,18 +23,19 @@ pub fn black_scholes_call(
         / (volatility * time_to_expiry.sqrt());
     let d2 = d1 - volatility * time_to_expiry.sqrt();
 
-    spot_price * normal_cdf(d1) - strike_price * (-risk_free_rate * time_to_expiry).exp() * normal_cdf(d2)
+    spot_price * normal_cdf(d1)
+        - strike_price * (-risk_free_rate * time_to_expiry).exp() * normal_cdf(d2)
 }
 
 /// Calculate Black-Scholes put option price
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
 /// * `time_to_expiry` - Time to expiry in years
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
-/// 
+///
 /// # Returns
 /// Put option price
 pub fn black_scholes_put(
@@ -56,29 +57,28 @@ pub fn black_scholes_put(
 /// Standard normal cumulative distribution function
 fn normal_cdf(x: f64) -> f64 {
     let sign = if x < 0.0 { -1.0 } else { 1.0 };
-    let a1 = 0.254829592;
-    let a2 = -0.284496736;
-    let a3 = 1.421413741;
-    let a4 = -1.453152027;
-    let a5 = 1.061405429;
-    let p = 0.2316419;
+    let a1 = 0.254_829_592;
+    let a2 = -0.284_496_736;
+    let a3 = 1.421_413_741;
+    let a4 = -1.453_152_027;
+    let a5 = 1.061_405_429;
+    let p = 0.231_641_9;
 
     let t = 1.0 / (1.0 + p * x.abs());
-    let y = 1.0
-        - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * (-x * x / 2.0).exp();
+    let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * (-x * x / 2.0).exp();
 
     0.5 * (1.0 + sign * y)
 }
 
 /// Calculate call option delta
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
 /// * `time_to_expiry` - Time to expiry in years
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
-/// 
+///
 /// # Returns
 /// Call option delta
 pub fn call_delta(
@@ -95,14 +95,14 @@ pub fn call_delta(
 }
 
 /// Calculate put option delta
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
 /// * `time_to_expiry` - Time to expiry in years
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
-/// 
+///
 /// # Returns
 /// Put option delta
 pub fn put_delta(
@@ -112,18 +112,24 @@ pub fn put_delta(
     risk_free_rate: f64,
     volatility: f64,
 ) -> f64 {
-    call_delta(spot_price, strike_price, time_to_expiry, risk_free_rate, volatility) - 1.0
+    call_delta(
+        spot_price,
+        strike_price,
+        time_to_expiry,
+        risk_free_rate,
+        volatility,
+    ) - 1.0
 }
 
 /// Calculate option gamma
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
 /// * `time_to_expiry` - Time to expiry in years
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
-/// 
+///
 /// # Returns
 /// Option gamma
 pub fn option_gamma(
@@ -145,14 +151,14 @@ fn normal_pdf(x: f64) -> f64 {
 }
 
 /// Calculate call option theta
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
 /// * `time_to_expiry` - Time to expiry in years
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
-/// 
+///
 /// # Returns
 /// Call option theta (per year)
 pub fn call_theta(
@@ -172,14 +178,14 @@ pub fn call_theta(
 }
 
 /// Calculate put option theta
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
 /// * `time_to_expiry` - Time to expiry in years
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
-/// 
+///
 /// # Returns
 /// Put option theta (per year)
 pub fn put_theta(
@@ -199,14 +205,14 @@ pub fn put_theta(
 }
 
 /// Calculate option vega
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
 /// * `time_to_expiry` - Time to expiry in years
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
-/// 
+///
 /// # Returns
 /// Option vega
 pub fn option_vega(
@@ -223,7 +229,7 @@ pub fn option_vega(
 }
 
 /// Calculate option rho
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
@@ -231,7 +237,7 @@ pub fn option_vega(
 /// * `risk_free_rate` - Risk-free interest rate (as decimal)
 /// * `volatility` - Volatility of underlying (as decimal)
 /// * `is_call` - true for call option, false for put
-/// 
+///
 /// # Returns
 /// Option rho
 pub fn option_rho(
@@ -255,7 +261,7 @@ pub fn option_rho(
 }
 
 /// Calculate binomial option price (Cox-Ross-Rubinstein model)
-/// 
+///
 /// # Arguments
 /// * `spot_price` - Current spot price of underlying
 /// * `strike_price` - Strike price
@@ -264,7 +270,7 @@ pub fn option_rho(
 /// * `volatility` - Volatility of underlying (as decimal)
 /// * `steps` - Number of time steps
 /// * `is_call` - true for call option, false for put
-/// 
+///
 /// # Returns
 /// Option price
 pub fn binomial_option_price(
@@ -383,13 +389,13 @@ mod tests {
     #[test]
     fn test_black_scholes_call() {
         let price = black_scholes_call(100.0, 100.0, 1.0, 0.05, 0.2);
-        assert_relative_eq!(price, 10.450583572185565, epsilon = 1e-4);
+        assert_relative_eq!(price, 10.450_583_572_185_565, epsilon = 1e-4);
     }
 
     #[test]
     fn test_black_scholes_put() {
         let price = black_scholes_put(100.0, 100.0, 1.0, 0.05, 0.2);
-        assert_relative_eq!(price, 5.573526022256971, epsilon = 1e-4);
+        assert_relative_eq!(price, 5.573_526_022_256_971, epsilon = 1e-4);
     }
 
     #[test]

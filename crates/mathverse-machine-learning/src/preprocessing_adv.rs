@@ -40,7 +40,11 @@ impl StandardScaler {
             .map(|j| {
                 let var = (sumsq[j] / n - self.means[j] * self.means[j]).max(0.0);
                 let sd = var.sqrt();
-                if sd < 1e-12 { 1.0 } else { sd }
+                if sd < 1e-12 {
+                    1.0
+                } else {
+                    sd
+                }
             })
             .collect();
         self.fitted = true;
@@ -247,7 +251,11 @@ pub fn impute_mean(x: &mut [Vec<f64>]) {
                 count += 1;
             }
         }
-        let mean = if count > 0 { sum / f64::from(count) } else { 0.0 };
+        let mean = if count > 0 {
+            sum / f64::from(count)
+        } else {
+            0.0
+        };
         for row in x.iter_mut() {
             let c = col.min(row.len() - 1);
             if row[c].is_nan() {

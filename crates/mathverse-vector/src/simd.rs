@@ -120,16 +120,24 @@ mod wide_impl {
 #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
 mod wide_impl {
     /// Dot product of two slices, truncating to the shorter length.
-    pub fn dot(a: &[f64], b: &[f64]) -> f64 { a.iter().zip(b).map(|(x, y)| x * y).sum() }
+    pub fn dot(a: &[f64], b: &[f64]) -> f64 {
+        a.iter().zip(b).map(|(x, y)| x * y).sum()
+    }
 
     /// Sum of all elements.
-    pub fn sum(v: &[f64]) -> f64 { v.iter().sum() }
+    pub fn sum(v: &[f64]) -> f64 {
+        v.iter().sum()
+    }
 
     /// Sum of squares.
-    pub fn sum_sq(v: &[f64]) -> f64 { v.iter().map(|x| x * x).sum() }
+    pub fn sum_sq(v: &[f64]) -> f64 {
+        v.iter().map(|x| x * x).sum()
+    }
 
     /// Sum of absolute values.
-    pub fn sum_abs(v: &[f64]) -> f64 { v.iter().map(|x| x.abs()).sum() }
+    pub fn sum_abs(v: &[f64]) -> f64 {
+        v.iter().map(|x| x.abs()).sum()
+    }
 
     /// Sum of squared differences, truncating to the shorter length.
     pub fn dist_sq(a: &[f64], b: &[f64]) -> f64 {

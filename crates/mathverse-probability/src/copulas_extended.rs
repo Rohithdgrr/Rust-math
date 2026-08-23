@@ -68,8 +68,7 @@ impl ClaytonCopula {
             return 0.0;
         }
         let t = self.theta;
-        (1.0 + t) * (u * v).powf(-1.0 - t)
-            * (u.powf(-t) + v.powf(-t) - 1.0).powf(-2.0 - 1.0 / t)
+        (1.0 + t) * (u * v).powf(-1.0 - t) * (u.powf(-t) + v.powf(-t) - 1.0).powf(-2.0 - 1.0 / t)
     }
 
     /// Draw one pair by the Marshall-Olkin method (`V ~ Gamma(1/θ, 1)`).
@@ -131,8 +130,7 @@ impl GumbelCopula {
         let s = la.powf(t) + lb.powf(t);
         let inner = s.powf(1.0 / t);
         let c = (-inner).exp();
-        c * (u * v).powf(-1.0) * (la * lb).powf(t - 1.0) * s.powf(1.0 / t - 2.0)
-            * (inner + t - 1.0)
+        c * (u * v).powf(-1.0) * (la * lb).powf(t - 1.0) * s.powf(1.0 / t - 2.0) * (inner + t - 1.0)
     }
 
     /// Draw one pair by the Marshall-Olkin method with a positive stable
@@ -295,12 +293,18 @@ impl StudentTCopula {
     /// `T_i = Z_i / √(χ²_ν/ν)`, then probability integral transform.
     #[must_use]
     pub fn sample(&self, rng: &mut Rng) -> (f64, f64) {
-        let z1 = Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
-        let z2 = self.rho * z1 + (1.0 - self.rho * self.rho).sqrt() * Normal {
+        let z1 = Normal {
             mu: 0.0,
             sigma: 1.0,
         }
         .sample(rng);
+        let z2 = self.rho * z1
+            + (1.0 - self.rho * self.rho).sqrt()
+                * Normal {
+                    mu: 0.0,
+                    sigma: 1.0,
+                }
+                .sample(rng);
         let chi = ChiSquared { k: self.nu }.sample(rng);
         let scale = (self.nu / chi).sqrt();
         let t1 = z1 * scale;
@@ -354,7 +358,10 @@ mod tests {
         assert!((cdf - expected_cdf).abs() < 1e-12, "cdf {cdf}");
         let dens = c.density(0.5, 0.5);
         let expected_dens = 3.0 * 0.25f64.powi(-3) * 7.0f64.powf(-2.5);
-        assert!((dens - expected_dens).abs() < 1e-9, "dens {dens} vs {expected_dens}");
+        assert!(
+            (dens - expected_dens).abs() < 1e-9,
+            "dens {dens} vs {expected_dens}"
+        );
         assert!((c.kendall_tau() - 0.5).abs() < 1e-12);
         assert!((ClaytonCopula::theta_from_tau(0.5) - 2.0).abs() < 1e-12);
         assert!((c.cdf(0.0, 0.5) - 0.0).abs() < 1e-15);
@@ -451,6 +458,8 @@ mod tests {
         let tau = empirical_tau(&pairs);
         let expected = c.kendall_tau();
         assert!((tau - expected).abs() < 0.03, "tau {tau} vs {expected}");
-        assert!(pairs.iter().all(|&(u, v)| u > 0.0 && u < 1.0 && v > 0.0 && v < 1.0));
+        assert!(pairs
+            .iter()
+            .all(|&(u, v)| u > 0.0 && u < 1.0 && v > 0.0 && v < 1.0));
     }
 }

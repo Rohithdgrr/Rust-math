@@ -86,8 +86,14 @@ pub fn render_strip_plot(categories: &[StripCategory], config: &StripConfig) -> 
     let height = f64::from(config.plot_config.height);
 
     // Find global y range
-    let all_min = categories.iter().flat_map(|c| &c.values).fold(f64::INFINITY, |a, &b| a.min(b));
-    let all_max = categories.iter().flat_map(|c| &c.values).fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+    let all_min = categories
+        .iter()
+        .flat_map(|c| &c.values)
+        .fold(f64::INFINITY, |a, &b| a.min(b));
+    let all_max = categories
+        .iter()
+        .flat_map(|c| &c.values)
+        .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;
@@ -157,7 +163,15 @@ pub fn render_strip_plot(categories: &[StripCategory], config: &StripConfig) -> 
             let y = to_y(mean);
             svg.push_str("  <polygon points=\"");
             let size = 6.0;
-            svg.push_str(&format!("{},{} {},{} {},{}", cx, y - size, cx - size, y + size, cx + size, y + size));
+            svg.push_str(&format!(
+                "{},{} {},{} {},{}",
+                cx,
+                y - size,
+                cx - size,
+                y + size,
+                cx + size,
+                y + size
+            ));
             svg.push_str("\" fill=\"red\"/>\n");
         }
 

@@ -1,4 +1,4 @@
-﻿//! Survival analysis: Kaplan-Meier and Nelson-Aalen estimators, Cox
+//! Survival analysis: Kaplan-Meier and Nelson-Aalen estimators, Cox
 //! proportional-hazards regression, Weibull accelerated failure time models,
 //! and the two-sample log-rank test. Censoring is right-censoring: `event =
 //! false` marks a censored observation.
@@ -10,11 +10,7 @@ use crate::distributions::{ChiSquared, ContinuousDist};
 /// time).
 fn sort_samples(times: &[f64], events: &[bool]) -> Vec<(f64, bool)> {
     let mut pairs: Vec<(f64, bool)> = times.iter().zip(events).map(|(&t, &e)| (t, e)).collect();
-    pairs.sort_by(|a, b| {
-        a.0.partial_cmp(&b.0)
-            .unwrap()
-            .then_with(|| b.1.cmp(&a.1))
-    });
+    pairs.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap().then_with(|| b.1.cmp(&a.1)));
     pairs
 }
 
@@ -25,7 +21,11 @@ fn sort_samples(times: &[f64], events: &[bool]) -> Vec<(f64, bool)> {
 /// Panics if the slices differ in length.
 #[must_use]
 pub fn kaplan_meier(times: &[f64], events: &[bool]) -> Vec<(f64, f64)> {
-    assert_eq!(times.len(), events.len(), "times and events must be equal length");
+    assert_eq!(
+        times.len(),
+        events.len(),
+        "times and events must be equal length"
+    );
     let pairs = sort_samples(times, events);
     let n = pairs.len();
     let mut out = Vec::new();
@@ -75,7 +75,11 @@ pub fn kaplan_meier_survival(times: &[f64], events: &[bool], t: f64) -> f64 {
 /// Panics if `times.len() != events.len()`.
 #[must_use]
 pub fn nelson_aalen(times: &[f64], events: &[bool]) -> Vec<(f64, f64)> {
-    assert_eq!(times.len(), events.len(), "times and events must be equal length");
+    assert_eq!(
+        times.len(),
+        events.len(),
+        "times and events must be equal length"
+    );
     let pairs = sort_samples(times, events);
     let n = pairs.len();
     let mut out = Vec::new();
@@ -115,10 +119,26 @@ pub fn log_rank_test(
     times_b: &[f64],
     events_b: &[bool],
 ) -> (f64, f64) {
-    assert_eq!(times_a.len(), events_a.len(), "times_a and events_a must be equal length");
-    assert_eq!(times_b.len(), events_b.len(), "times_b and events_b must be equal length");
-    let mut a: Vec<(f64, bool)> = times_a.iter().zip(events_a).map(|(&t, &e)| (t, e)).collect();
-    let mut b: Vec<(f64, bool)> = times_b.iter().zip(events_b).map(|(&t, &e)| (t, e)).collect();
+    assert_eq!(
+        times_a.len(),
+        events_a.len(),
+        "times_a and events_a must be equal length"
+    );
+    assert_eq!(
+        times_b.len(),
+        events_b.len(),
+        "times_b and events_b must be equal length"
+    );
+    let mut a: Vec<(f64, bool)> = times_a
+        .iter()
+        .zip(events_a)
+        .map(|(&t, &e)| (t, e))
+        .collect();
+    let mut b: Vec<(f64, bool)> = times_b
+        .iter()
+        .zip(events_b)
+        .map(|(&t, &e)| (t, e))
+        .collect();
     a.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap());
     b.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap());
 
@@ -377,10 +397,7 @@ fn solve_negative(h: &[Vec<f64>], g: &[f64], p: usize) -> Option<Vec<f64>> {
         for r in col + 1..p {
             let factor = a[r][col] / a[col][col];
             let (lo, hi) = a.split_at_mut(r);
-            for (ac, &ar) in hi[0][col..=p]
-                .iter_mut()
-                .zip(&lo[col][col..=p])
-            {
+            for (ac, &ar) in hi[0][col..=p].iter_mut().zip(&lo[col][col..=p]) {
                 *ac -= factor * ar;
             }
         }
@@ -491,7 +508,12 @@ fn weibull_ll(params: &[f64], times: &[f64], events: &[bool], covariates: &[Vec<
     ll
 }
 
-fn weibull_grad(params: &[f64], times: &[f64], events: &[bool], covariates: &[Vec<f64>]) -> Vec<f64> {
+fn weibull_grad(
+    params: &[f64],
+    times: &[f64],
+    events: &[bool],
+    covariates: &[Vec<f64>],
+) -> Vec<f64> {
     let k = params[0].exp();
     let p = params.len();
     let mut grad = vec![0.0; p];
@@ -623,11 +645,7 @@ mod tests {
         let events: Vec<bool> = vec![true; n];
         let covs: Vec<Vec<f64>> = (0..n).map(|_| vec![1.0]).collect();
         let fit = weibull_aft(&times, &events, &covs).unwrap();
-        assert!(
-            (fit.shape - 1.0).abs() < 0.15,
-            "shape {}",
-            fit.shape
-        );
+        assert!((fit.shape - 1.0).abs() < 0.15, "shape {}", fit.shape);
         assert!(
             (fit.coefficients[0] - 4.0f64.ln()).abs() < 0.08,
             "beta0 {}",
@@ -656,8 +674,16 @@ mod tests {
         }
         let fit = weibull_aft(&times, &events, &covs).unwrap();
         assert!((fit.shape - k_true).abs() < 0.25, "shape {}", fit.shape);
-        assert!((fit.coefficients[0] - beta_true[0]).abs() < 0.2, "b1 {}", fit.coefficients[0]);
-        assert!((fit.coefficients[1] - beta_true[1]).abs() < 0.2, "b2 {}", fit.coefficients[1]);
+        assert!(
+            (fit.coefficients[0] - beta_true[0]).abs() < 0.2,
+            "b1 {}",
+            fit.coefficients[0]
+        );
+        assert!(
+            (fit.coefficients[1] - beta_true[1]).abs() < 0.2,
+            "b2 {}",
+            fit.coefficients[1]
+        );
     }
 
     #[test]

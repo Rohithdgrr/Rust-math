@@ -88,8 +88,10 @@ fn compute_kde_grid(
 
     for j in 0..grid_size {
         for i in 0..grid_size {
-            let gx = (x_min - x_margin) + (x_max - x_min + 2.0 * x_margin) * i as f64 / (grid_size - 1) as f64;
-            let gy = (y_min - y_margin) + (y_max - y_min + 2.0 * y_margin) * j as f64 / (grid_size - 1) as f64;
+            let gx = (x_min - x_margin)
+                + (x_max - x_min + 2.0 * x_margin) * i as f64 / (grid_size - 1) as f64;
+            let gy = (y_min - y_margin)
+                + (y_max - y_min + 2.0 * y_margin) * j as f64 / (grid_size - 1) as f64;
 
             let mut density = 0.0;
             for (&dx, &dy) in x_data.iter().zip(y_data.iter()) {
@@ -119,13 +121,11 @@ fn kde_color(t: f64) -> String {
 }
 
 /// Render a 2D KDE plot as SVG.
-pub fn render_kde_plot(
-    x_data: &[f64],
-    y_data: &[f64],
-    config: &KdeConfig,
-) -> PlotResult<String> {
+pub fn render_kde_plot(x_data: &[f64], y_data: &[f64], config: &KdeConfig) -> PlotResult<String> {
     if x_data.len() != y_data.len() {
-        return Err(PlotError::InvalidData("x and y must have same length".into()));
+        return Err(PlotError::InvalidData(
+            "x and y must have same length".into(),
+        ));
     }
     if x_data.is_empty() {
         return Err(PlotError::InvalidData("no data provided".into()));
@@ -147,7 +147,10 @@ pub fn render_kde_plot(
     let grid = compute_kde_grid(x_data, y_data, config.bw_x, config.bw_y, config.grid_size);
 
     // Find max density
-    let max_density = grid.iter().flat_map(|r| r.iter()).fold(0.0_f64, |a, &b| a.max(b));
+    let max_density = grid
+        .iter()
+        .flat_map(|r| r.iter())
+        .fold(0.0_f64, |a, &b| a.max(b));
     if max_density == 0.0 {
         return Err(PlotError::InvalidData("zero density".into()));
     }
@@ -208,7 +211,9 @@ pub fn render_kde_plot(
         let cb_y = padding + 30.0;
         let cb_height = chart_height;
 
-        svg.push_str("  <defs><linearGradient id=\"kde_cb\" x1=\"0\" y1=\"1\" x2=\"0\" y2=\"0\">\n");
+        svg.push_str(
+            "  <defs><linearGradient id=\"kde_cb\" x1=\"0\" y1=\"1\" x2=\"0\" y2=\"0\">\n",
+        );
         svg.push_str("    <stop offset=\"0%\" stop-color=\"");
         svg.push_str(&kde_color(0.0));
         svg.push_str("\"/>\n");
@@ -245,8 +250,12 @@ mod tests {
 
     #[test]
     fn kde_plot_renders() {
-        let x: Vec<f64> = (0..50).map(|i| f64::from(i) * 0.1 + f64::from(i % 3) * 0.5).collect();
-        let y: Vec<f64> = (0..50).map(|i| (f64::from(i) * 0.1).sin() + f64::from(i % 5) * 0.3).collect();
+        let x: Vec<f64> = (0..50)
+            .map(|i| f64::from(i) * 0.1 + f64::from(i % 3) * 0.5)
+            .collect();
+        let y: Vec<f64> = (0..50)
+            .map(|i| (f64::from(i) * 0.1).sin() + f64::from(i % 5) * 0.3)
+            .collect();
         let config = KdeConfig::new();
         let svg = render_kde_plot(&x, &y, &config).unwrap();
         assert!(svg.contains("<svg"));

@@ -120,11 +120,17 @@ mod tests {
 
     #[test]
     fn blended_positions() {
-        let p = Position::BlendAxesXDataY { x_frac: 1.0, y_data: 3.0 }
-            .to_pixel(&px, &px, plot_rect(), (800.0, 600.0));
+        let p = Position::BlendAxesXDataY {
+            x_frac: 1.0,
+            y_data: 3.0,
+        }
+        .to_pixel(&px, &px, plot_rect(), (800.0, 600.0));
         assert_eq!(p, (110.0, 3.0));
-        let p = Position::BlendDataXAxesY { x_data: 2.0, y_frac: 0.0 }
-            .to_pixel(&px, &px, plot_rect(), (800.0, 600.0));
+        let p = Position::BlendDataXAxesY {
+            x_data: 2.0,
+            y_frac: 0.0,
+        }
+        .to_pixel(&px, &px, plot_rect(), (800.0, 600.0));
         assert_eq!(p, (2.0, 120.0));
     }
 

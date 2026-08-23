@@ -484,10 +484,7 @@ mod tests {
 
     #[test]
     fn gpu_renderer_bounds() {
-        let points = vec![
-            DataPoint::new(-1.0, -2.0),
-            DataPoint::new(3.0, 4.0),
-        ];
+        let points = vec![DataPoint::new(-1.0, -2.0), DataPoint::new(3.0, 4.0)];
         let renderer = GpuRenderer::new(points);
         let (min_x, max_x, min_y, max_y) = renderer.bounds();
         assert_eq!(min_x, -1.0);

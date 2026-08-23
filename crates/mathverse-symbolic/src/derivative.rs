@@ -3,11 +3,11 @@
 use crate::expr::Expr;
 
 /// Compute the symbolic derivative of an expression with respect to a variable
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to differentiate
 /// * `var` - The variable to differentiate with respect to
-/// 
+///
 /// # Returns
 /// The derivative expression
 pub fn differentiate(expr: &Expr, var: &str) -> Expr {
@@ -20,21 +20,25 @@ pub fn differentiate(expr: &Expr, var: &str) -> Expr {
                 Expr::c(0.0)
             }
         }
-        Expr::Add(a, b) => crate::simplify::simplify(&differentiate(a, var).add(differentiate(b, var))),
-        Expr::Sub(a, b) => crate::simplify::simplify(&differentiate(a, var).sub(differentiate(b, var))),
+        Expr::Add(a, b) => {
+            crate::simplify::simplify(&(differentiate(a, var) + differentiate(b, var)))
+        }
+        Expr::Sub(a, b) => {
+            crate::simplify::simplify(&(differentiate(a, var) - differentiate(b, var)))
+        }
         Expr::Mul(a, b) => {
             // Product rule: (uv)' = u'v + uv'
             let da = differentiate(a, var);
             let db = differentiate(b, var);
-            da.mul((**b).clone()).add((**a).clone().mul(db))
+            (da * (**b).clone()) + ((**a).clone() * db)
         }
         Expr::Div(a, b) => {
             // Quotient rule: (u/v)' = (u'v - uv') / v^2
             let da = differentiate(a, var);
             let db = differentiate(b, var);
-            let numerator = da.mul((**b).clone()).sub((**a).clone().mul(db));
+            let numerator = (da * (**b).clone()) - ((**a).clone() * db);
             let denominator = (**b).clone().pow(Expr::c(2.0));
-            numerator.div(denominator)
+            numerator / denominator
         }
         Expr::Pow(a, b) => {
             // Chain rule for power: (u^v)' = u^v * (v' * ln(u) + v * u'/u)
@@ -44,56 +48,56 @@ pub fn differentiate(expr: &Expr, var: &str) -> Expr {
             let db = differentiate(b, var);
 
             let ln_base = base.clone().ln();
-            let term1 = db.mul(ln_base);
-            let term2 = exp.clone().mul(da.div(base.clone()));
-            let inner = term1.add(term2);
-            base.pow(exp).mul(inner)
+            let term1 = db * ln_base;
+            let term2 = exp.clone() * (da / base.clone());
+            let inner = term1 + term2;
+            base.pow(exp) * inner
         }
-        Expr::Neg(a) => differentiate(a, var).neg(),
+        Expr::Neg(a) => -differentiate(a, var),
         Expr::Ln(a) => {
             // Chain rule: ln(u)' = u' / u
             let da = differentiate(a, var);
-            da.div((**a).clone())
+            da / (**a).clone()
         }
         Expr::Exp(a) => {
             // Chain rule: e^u' = e^u * u'
             let da = differentiate(a, var);
-            (**a).clone().exp().mul(da)
+            (**a).clone().exp() * da
         }
         Expr::Sin(a) => {
             // Chain rule: sin(u)' = cos(u) * u'
             let da = differentiate(a, var);
-            (**a).clone().cos().mul(da)
+            (**a).clone().cos() * da
         }
         Expr::Cos(a) => {
             // Chain rule: cos(u)' = -sin(u) * u'
             let da = differentiate(a, var);
-            (**a).clone().sin().mul(da).neg()
+            -((**a).clone().sin() * da)
         }
         Expr::Tan(a) => {
             // Chain rule: tan(u)' = sec^2(u) * u' = (1/cos(u)^2) * u'
             let da = differentiate(a, var);
             let cos_a = (**a).clone().cos();
-            let sec_squared = Expr::c(1.0).div(cos_a.pow(Expr::c(2.0)));
-            sec_squared.mul(da)
+            let sec_squared = Expr::c(1.0) / cos_a.pow(Expr::c(2.0));
+            sec_squared * da
         }
         Expr::Sqrt(a) => {
             // Chain rule: sqrt(u)' = (1/(2*sqrt(u))) * u'
             let da = differentiate(a, var);
             let sqrt_a = (**a).clone().sqrt();
-            let derivative = Expr::c(1.0).div(Expr::c(2.0).mul(sqrt_a));
-            derivative.mul(da)
+            let derivative = Expr::c(1.0) / (Expr::c(2.0) * sqrt_a);
+            derivative * da
         }
     }
 }
 
 /// Compute the nth derivative of an expression
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to differentiate
 /// * `var` - The variable to differentiate with respect to
 /// * `n` - The order of derivative
-/// 
+///
 /// # Returns
 /// The nth derivative expression
 pub fn nth_derivative(expr: &Expr, var: &str, n: usize) -> Expr {
@@ -106,11 +110,11 @@ pub fn nth_derivative(expr: &Expr, var: &str, n: usize) -> Expr {
 }
 
 /// Compute the partial derivative of a multivariate expression
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to differentiate
 /// * `var` - The variable to differentiate with respect to
-/// 
+///
 /// # Returns
 /// The partial derivative expression
 pub fn partial_derivative(expr: &Expr, var: &str) -> Expr {
@@ -118,11 +122,11 @@ pub fn partial_derivative(expr: &Expr, var: &str) -> Expr {
 }
 
 /// Compute the gradient of a multivariate expression
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to differentiate
 /// * `vars` - Slice of variable names
-/// 
+///
 /// # Returns
 /// Vector of partial derivatives
 pub fn gradient(expr: &Expr, vars: &[&str]) -> Vec<Expr> {
@@ -149,17 +153,17 @@ mod tests {
 
     #[test]
     fn test_addition_derivative() {
-        let expr = Expr::v("x").add(Expr::c(3.0));
+        let expr = Expr::v("x") + Expr::c(3.0);
         let deriv = differentiate(&expr, "x");
         assert_eq!(deriv, Expr::c(1.0));
     }
 
     #[test]
     fn test_multiplication_derivative() {
-        let expr = Expr::v("x").mul(Expr::v("x"));
+        let expr = Expr::v("x") * Expr::v("x");
         let _deriv = differentiate(&expr, "x");
         // d/dx(x*x) = 1*x + x*1 = 2x
-        let _expected = Expr::c(2.0).mul(Expr::v("x"));
+        let _expected = Expr::c(2.0) * Expr::v("x");
         // Note: This won't match exactly due to expression structure, but should evaluate the same
     }
 

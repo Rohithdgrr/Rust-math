@@ -49,7 +49,12 @@ pub fn mean(img: &Image) -> f64 {
 /// ```
 pub fn std_dev(img: &Image) -> f64 {
     let mean_val = mean(img);
-    let variance: f64 = img.data.iter().map(|&x| (x - mean_val).powi(2)).sum::<f64>() / (img.w * img.h) as f64;
+    let variance: f64 = img
+        .data
+        .iter()
+        .map(|&x| (x - mean_val).powi(2))
+        .sum::<f64>()
+        / (img.w * img.h) as f64;
     variance.sqrt()
 }
 
@@ -81,7 +86,7 @@ pub fn min_max(img: &Image) -> (f64, f64, (usize, usize), (usize, usize)) {
     let mut max_val = f64::NEG_INFINITY;
     let mut min_loc = (0usize, 0usize);
     let mut max_loc = (0usize, 0usize);
-    
+
     for y in 0..img.h {
         for x in 0..img.w {
             let idx = y * img.w + x;
@@ -96,7 +101,7 @@ pub fn min_max(img: &Image) -> (f64, f64, (usize, usize), (usize, usize)) {
             }
         }
     }
-    
+
     (min_val, max_val, min_loc, max_loc)
 }
 
@@ -119,7 +124,7 @@ pub fn min_max(img: &Image) -> (f64, f64, (usize, usize), (usize, usize)) {
 /// ```
 pub fn cross(img: &mut Image, center: (usize, usize), size: usize, color: f64) {
     let (cx, cy) = center;
-    
+
     // Horizontal line
     let s = size as i32;
     for dx in -s..=s {
@@ -129,7 +134,7 @@ pub fn cross(img: &mut Image, center: (usize, usize), size: usize, color: f64) {
             img.data[y * img.w + x] = color;
         }
     }
-    
+
     // Vertical line
     for dy in -s..=s {
         let x = cx;

@@ -187,10 +187,7 @@ pub trait FloatClass: Real {
 /// Backward-compat supertrait combining all sub-traits.
 ///
 /// Prefer using specific sub-traits (`Trig`, `Hyperbolic`, etc.) in new code.
-pub trait RealFull:
-    Real + Transcendental + Trig + Hyperbolic + FloatClass
-{
-}
+pub trait RealFull: Real + Transcendental + Trig + Hyperbolic + FloatClass {}
 impl<T: Real + Transcendental + Trig + Hyperbolic + FloatClass> RealFull for T {}
 
 /// Normed type: has an absolute value satisfying the triangle inequality.
@@ -344,7 +341,7 @@ macro_rules! impl_float_class {
 // std impl: uses hardware-accelerated float methods
 #[cfg(feature = "std")]
 mod real_impls {
-    use super::{Num, Real, Transcendental, Trig, Hyperbolic, FloatClass};
+    use super::{FloatClass, Hyperbolic, Num, Real, Transcendental, Trig};
     impl_real_core!(f32, f64);
     impl_transcendental!(f32, f64);
     impl_trig!(f32, f64);
@@ -355,7 +352,7 @@ mod real_impls {
 // no_std + libm impl: uses libm software implementations
 #[cfg(all(not(feature = "std"), feature = "libm"))]
 mod real_impls {
-    use super::{Num, Real, Transcendental, Trig, Hyperbolic, FloatClass};
+    use super::{FloatClass, Hyperbolic, Num, Real, Transcendental, Trig};
 
     macro_rules! impl_real_core_libm {
         ($($t:ty),* $(,)?) => {$(

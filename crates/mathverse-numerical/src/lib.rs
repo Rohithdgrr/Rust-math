@@ -5,19 +5,34 @@ use mathverse_core::error::{MathError, MathResult};
 use mathverse_matrix::Matrix;
 use mathverse_vector::Vector;
 
-pub mod root;
-pub mod ode;
-pub mod interpolation;
-pub mod integration;
-pub mod linear_solvers;
 pub mod eigenvalue;
+pub mod integration;
+pub mod interpolation;
+pub mod linear_solvers;
+pub mod ode;
+pub mod root;
 
-pub use root::{secant, false_position, muller, brent, illinois, steffensen, halley, householder, fixed_point, aitken_delta_squared};
-pub use ode::{ODEState, RKF45, DormandPrince, AdamsBashforth, BackwardEuler, CrankNicolson};
-pub use interpolation::{CubicSpline, HermiteInterpolation, BarycentricInterpolation, RBFInterpolation, MultilinearInterpolation, ChebyshevInterpolation, NearestNeighbor};
-pub use integration::{GaussianQuadrature, RombergIntegration, AdaptiveSimpson, MonteCarloIntegration, SimpsonRule, MidpointRule, BooleRule, ClenshawCurtis, DoubleExponential};
-pub use linear_solvers::{Jacobi, GaussSeidel, SOR, ConjugateGradient, PreconditionedCG, GMRES, BiCGSTAB, ILUPreconditioner};
-pub use eigenvalue::{PowerMethod, InversePowerMethod, RayleighQuotientIteration, QRAlgorithm, Lanczos, SubspaceIteration, JacobiEigenvalue};
+pub use eigenvalue::{
+    InversePowerMethod, JacobiEigenvalue, Lanczos, PowerMethod, QRAlgorithm,
+    RayleighQuotientIteration, SubspaceIteration,
+};
+pub use integration::{
+    AdaptiveSimpson, BooleRule, ClenshawCurtis, DoubleExponential, GaussianQuadrature,
+    MidpointRule, MonteCarloIntegration, RombergIntegration, SimpsonRule,
+};
+pub use interpolation::{
+    BarycentricInterpolation, ChebyshevInterpolation, CubicSpline, HermiteInterpolation,
+    MultilinearInterpolation, NearestNeighbor, RBFInterpolation,
+};
+pub use linear_solvers::{
+    BiCGSTAB, ConjugateGradient, GaussSeidel, ILUPreconditioner, Jacobi, PreconditionedCG, GMRES,
+    SOR,
+};
+pub use ode::{AdamsBashforth, BackwardEuler, CrankNicolson, DormandPrince, ODEState, RKF45};
+pub use root::{
+    aitken_delta_squared, brent, false_position, fixed_point, halley, householder, illinois,
+    muller, secant, steffensen,
+};
 
 /// Bisection on a bracket with a sign change; error otherwise.
 ///
@@ -265,9 +280,15 @@ mod tests {
         let xs = [0.0, 1.0, 2.0, 3.0, 4.0];
         let ys: Vec<f64> = xs.iter().map(|x| 1.0 + 2.0 * x + 3.0 * x * x).collect();
         let c = least_squares_poly(&xs, &ys, 2).unwrap();
-        assert!(c.iter().zip([1.0, 2.0, 3.0]).all(|(a, b)| (a - b).abs() < 1e-8));
+        assert!(c
+            .iter()
+            .zip([1.0, 2.0, 3.0])
+            .all(|(a, b)| (a - b).abs() < 1e-8));
         // Noisy linear data: slope ≈ 2
-        let noisy: Vec<f64> = xs.iter().map(|x| 2.0 * x + 1.0 + 1e-3 * (x * 100.0).sin()).collect();
+        let noisy: Vec<f64> = xs
+            .iter()
+            .map(|x| 2.0 * x + 1.0 + 1e-3 * (x * 100.0).sin())
+            .collect();
         let c1 = least_squares_poly(&xs, &noisy, 1).unwrap();
         assert!((c1[1] - 2.0).abs() < 1e-3);
     }
@@ -292,8 +313,14 @@ mod tests {
         let xs = [0.0, 1.0, 2.0];
         let ys = [0.0, 2.0, 4.0];
         assert!((linear_interp_checked(&xs, &ys, 1.5).unwrap() - 3.0).abs() < 1e-12);
-        assert_eq!(linear_interp_checked(&xs, &ys, -0.5), Err(MathError::OutOfRange));
-        assert_eq!(linear_interp_checked(&xs, &ys, 2.5), Err(MathError::OutOfRange));
+        assert_eq!(
+            linear_interp_checked(&xs, &ys, -0.5),
+            Err(MathError::OutOfRange)
+        );
+        assert_eq!(
+            linear_interp_checked(&xs, &ys, 2.5),
+            Err(MathError::OutOfRange)
+        );
         assert!(linear_interp_checked(&[0.0], &[1.0], 0.0).is_err());
         assert!(linear_interp_checked(&[0.0, 1.0], &[1.0], 0.5).is_err());
     }
@@ -303,7 +330,9 @@ mod tests {
         // Degree 12 over [-1, 1]: normal equations (cond²) lose accuracy here;
         // QR must recover the exact coefficients.
         let xs: Vec<f64> = (-20..=20).map(|i| f64::from(i) / 20.0).collect();
-        let coef_ref = [0.5, -1.0, 2.0, 0.25, -0.75, 0.1, 0.05, -0.02, 0.01, 0.004, -0.002, 0.001, 0.0005];
+        let coef_ref = [
+            0.5, -1.0, 2.0, 0.25, -0.75, 0.1, 0.05, -0.02, 0.01, 0.004, -0.002, 0.001, 0.0005,
+        ];
         let ys: Vec<f64> = xs
             .iter()
             .map(|&x| {

@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_sign_loss)]
@@ -18,16 +17,16 @@
 //! # Errors
 //! Use [`error::GeometryError`] for recoverable failures.
 
+pub mod distance;
 pub mod error;
+pub mod intersection;
+pub mod mesh3d;
+pub mod metrics;
+pub mod primitives2d;
 pub mod shapes2d;
 pub mod shapes3d;
-pub mod primitives2d;
 pub mod spatial;
-pub mod intersection;
-pub mod distance;
 pub mod transforms;
-pub mod metrics;
-pub mod mesh3d;
 
 // Re-export core types
 pub use shapes2d::{Circle, Ellipse, Point2, Polygon, Rectangle, Triangle};
@@ -37,7 +36,7 @@ pub use shapes3d::{Cone, Cube, Cylinder, Line3, Plane, Point3, Sphere};
 pub use primitives2d::{Arc, BezierCurve, CircularSegment, LineSegment2, Polyline, Ray2, Sector};
 
 // Re-export spatial structures
-pub use spatial::{AABB, AABB3, Frustum, OBB, Octree, Quadtree};
+pub use spatial::{Frustum, Octree, Quadtree, AABB, AABB3, OBB};
 
 // Re-export triangle mesh and tree
 pub use mesh3d::{AABBTreeNode, Triangle3, TriangleMesh};

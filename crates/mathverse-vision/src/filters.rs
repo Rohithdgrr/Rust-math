@@ -16,7 +16,10 @@ use crate::Image;
 ///
 /// Panics if `kw` or `kh` is zero or even.
 pub fn filter2d(img: &Image, kernel: &[f64], kw: usize, kh: usize) -> Image {
-    assert!(kw > 0 && kh > 0 && kw % 2 == 1 && kh % 2 == 1, "filter2d: kernel must be odd-sized");
+    assert!(
+        kw > 0 && kh > 0 && kw % 2 == 1 && kh % 2 == 1,
+        "filter2d: kernel must be odd-sized"
+    );
     assert_eq!(kernel.len(), kw * kh, "filter2d: kernel length mismatch");
     let (ox, oy) = (kw / 2, kh / 2);
     let (w, h) = (img.w, img.h);
@@ -59,7 +62,10 @@ pub fn box_filter(img: &Image, ksize: usize) -> Image {
 ///
 /// Panics if `ksize` is zero or even.
 pub fn median_blur(img: &Image, ksize: usize) -> Image {
-    assert!(ksize > 0 && ksize % 2 == 1, "median_blur: ksize must be odd");
+    assert!(
+        ksize > 0 && ksize % 2 == 1,
+        "median_blur: ksize must be odd"
+    );
     let (w, h) = (img.w, img.h);
     let (ox, oy) = (ksize / 2, ksize / 2);
     let mut out = Image::new(w, h);
@@ -90,7 +96,10 @@ pub fn bilateral_filter(img: &Image, d: usize, sigma_color: f64, sigma_space: f6
     let (w, h) = (img.w, img.h);
     let r = d / 2;
     let mut out = Image::new(w, h);
-    let (sc2, ss2) = (2.0 * sigma_color * sigma_color, 2.0 * sigma_space * sigma_space);
+    let (sc2, ss2) = (
+        2.0 * sigma_color * sigma_color,
+        2.0 * sigma_space * sigma_space,
+    );
     for y in 0..h {
         for x in 0..w {
             let center = img.data[y * w + x];
@@ -98,7 +107,10 @@ pub fn bilateral_filter(img: &Image, d: usize, sigma_color: f64, sigma_space: f6
             let mut weight_sum = 0.0;
             for dy in -(r as i64)..=(r as i64) {
                 for dx in -(r as i64)..=(r as i64) {
-                    let (px, py) = ((x as i64 + dx).clamp(0, w as i64 - 1) as usize, (y as i64 + dy).clamp(0, h as i64 - 1) as usize);
+                    let (px, py) = (
+                        (x as i64 + dx).clamp(0, w as i64 - 1) as usize,
+                        (y as i64 + dy).clamp(0, h as i64 - 1) as usize,
+                    );
                     let val = img.data[py * w + px];
                     let d_int = (val - center).powi(2);
                     let d_sp = (dx * dx + dy * dy) as f64;
@@ -108,7 +120,11 @@ pub fn bilateral_filter(img: &Image, d: usize, sigma_color: f64, sigma_space: f6
                     weight_sum += wgt;
                 }
             }
-            out.data[y * w + x] = if weight_sum > 0.0 { acc / weight_sum } else { center };
+            out.data[y * w + x] = if weight_sum > 0.0 {
+                acc / weight_sum
+            } else {
+                center
+            };
         }
     }
     out

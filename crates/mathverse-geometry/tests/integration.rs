@@ -1,9 +1,11 @@
-use mathverse_geometry::{Point2, Circle, Triangle, Polygon};
+//! Integration tests across public geometry types.
+
+use mathverse_geometry::{Circle, Point2, Polygon, Triangle};
 
 #[test]
 fn circle_area_5() {
     let c = Circle::new(Point2::new(0.0, 0.0), 5.0);
-    assert!((c.area() - 78.53981633974483).abs() < 1e-6);
+    assert!((c.area() - 78.539_816_339_744_83).abs() < 1e-6);
 }
 
 #[test]

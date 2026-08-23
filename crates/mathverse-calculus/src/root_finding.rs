@@ -6,17 +6,16 @@
 //!
 //! For advanced methods (Brent, Muller, Halley, etc.), use [`mathverse_numerical::root`] directly.
 
-use mathverse_core::error::{MathError, MathResult};
 use crate::derivative::{derivative, second_derivative};
+use mathverse_core::error::{MathError, MathResult};
 
 // Re-export core root-finding methods from mathverse-numerical
 pub use mathverse_numerical::{bisection, newton_raphson};
 
 // Re-export advanced methods from mathverse-numerical::root
 pub use mathverse_numerical::root::{
-    secant, false_position, brent, muller, illinois, steffensen, halley, householder, fixed_point
+    brent, false_position, fixed_point, halley, householder, illinois, muller, secant, steffensen,
 };
-
 
 /// Newton-Raphson method with automatic numerical derivative.
 ///
@@ -40,24 +39,24 @@ pub fn newton_raphson_auto(
     max_iter: usize,
 ) -> MathResult<f64> {
     let mut x = x0;
-    
+
     for _ in 0..max_iter {
         let fx = f(x);
         let dfx = derivative(f, x);
-        
+
         if dfx.abs() < 1e-15 {
             return Err(MathError::InvalidArgument("derivative is zero"));
         }
-        
+
         let x_new = x - fx / dfx;
-        
+
         if (x_new - x).abs() < tol || fx.abs() < tol {
             return Ok(x_new);
         }
-        
+
         x = x_new;
     }
-    
+
     Err(MathError::NotConverged("newton max iterations exceeded"))
 }
 
@@ -69,7 +68,7 @@ pub fn newton_raphson_auto(
 /// # Examples
 /// ```
 /// use mathverse_calculus::root_finding::find_critical_point;
-/// 
+///
 /// let f = |x: f64| x * x * x - 3.0 * x;  // Has critical points at x = ±1
 /// let critical = find_critical_point(&f, 0.5, 1e-10, 100).unwrap();
 /// assert!((critical - 1.0).abs() < 1e-8);
@@ -106,7 +105,6 @@ pub fn find_critical_point(
     ))
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,7 +113,7 @@ mod tests {
     fn newton_raphson_auto_test() {
         let root = newton_raphson_auto(&|x| x * x - 4.0, 3.0, 1e-10, 100).unwrap();
         assert!((root - 2.0).abs() < 1e-8);
-        
+
         // Test with cubic
         let root2 = newton_raphson_auto(&|x| x * x * x - 8.0, 3.0, 1e-10, 100).unwrap();
         assert!((root2 - 2.0).abs() < 1e-8);
@@ -125,11 +123,11 @@ mod tests {
     fn find_critical_point_test() {
         // f(x) = x³ - 3x has critical points at ±1
         let f = |x: f64| x * x * x - 3.0 * x;
-        
+
         // Find positive critical point
         let cp = find_critical_point(&f, 0.5, 1e-10, 100).unwrap();
         assert!((cp - 1.0).abs() < 1e-8);
-        
+
         // Find negative critical point
         let cp2 = find_critical_point(&f, -0.5, 1e-10, 100).unwrap();
         assert!((cp2 + 1.0).abs() < 1e-8);
@@ -140,10 +138,10 @@ mod tests {
         // Test that re-exported methods work correctly
         let root = bisection(&|x| x * x - 4.0, 1.0, 3.0, 1e-10).unwrap();
         assert!((root - 2.0).abs() < 1e-8);
-        
+
         let root2 = newton_raphson(&|x| x * x - 4.0, &|x| 2.0 * x, 3.0, 1e-10, 100).unwrap();
         assert!((root2 - 2.0).abs() < 1e-8);
-        
+
         let root3 = secant(&|x| x * x - 4.0, 1.0, 3.0, 1e-10, 100).unwrap();
         assert!((root3 - 2.0).abs() < 1e-8);
     }

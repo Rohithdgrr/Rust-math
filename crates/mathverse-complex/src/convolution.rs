@@ -37,7 +37,11 @@ pub fn convolve_fft(x: &[Complex], h: &[Complex]) -> Vec<Complex> {
     let x_freq = fft(&x_padded);
     let h_freq = fft(&h_padded);
 
-    let y_freq: Vec<Complex> = x_freq.iter().zip(h_freq.iter()).map(|(a, b)| *a * *b).collect();
+    let y_freq: Vec<Complex> = x_freq
+        .iter()
+        .zip(h_freq.iter())
+        .map(|(a, b)| *a * *b)
+        .collect();
     let y_full = ifft(&y_freq);
 
     y_full[..n].to_vec()
@@ -104,7 +108,11 @@ pub fn overlap_save(x: &[Complex], h: &[Complex], block_size: Option<usize>) -> 
     while pos + n <= x_padded.len() {
         let block = &x_padded[pos..pos + n];
         let x_freq = fft(block);
-        let y_freq: Vec<Complex> = x_freq.iter().zip(h_freq.iter()).map(|(a, b)| *a * *b).collect();
+        let y_freq: Vec<Complex> = x_freq
+            .iter()
+            .zip(h_freq.iter())
+            .map(|(a, b)| *a * *b)
+            .collect();
         let y_block = ifft(&y_freq);
         // Keep only the last `step` elements (valid convolution)
         let start = m - 1;
@@ -151,7 +159,11 @@ pub fn overlap_add(x: &[Complex], h: &[Complex], block_size: Option<usize>) -> V
         block[..cur_block_len].copy_from_slice(&x[pos..pos + cur_block_len]);
 
         let x_freq = fft(&block);
-        let y_freq: Vec<Complex> = x_freq.iter().zip(h_freq.iter()).map(|(a, b)| *a * *b).collect();
+        let y_freq: Vec<Complex> = x_freq
+            .iter()
+            .zip(h_freq.iter())
+            .map(|(a, b)| *a * *b)
+            .collect();
         let y_block = ifft(&y_freq);
 
         // Add to output (overlap-add): only the first cur_block_len + m - 1 elements are valid
@@ -269,7 +281,9 @@ mod tests {
 
     #[test]
     fn convolve_fft_matches_direct() {
-        let x: Vec<Complex> = (0..5).map(|i| Complex::new(f64::from(i), f64::from(i) * 0.5)).collect();
+        let x: Vec<Complex> = (0..5)
+            .map(|i| Complex::new(f64::from(i), f64::from(i) * 0.5))
+            .collect();
         let h: Vec<Complex> = vec![Complex::new(1.0, 0.0), Complex::new(-1.0, 0.5)];
         let y_fft = convolve_fft(&x, &h);
         let y_direct = convolve_direct(&x, &h);

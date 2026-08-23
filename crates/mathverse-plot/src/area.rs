@@ -103,7 +103,8 @@ pub fn render_area_chart(series: &[AreaSeries], config: &AreaConfig) -> PlotResu
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0; // Space for title
-    let base_y = padding + 30.0 + chart_height * (1.0 - (config.baseline - min_y) / (max_y - min_y));
+    let base_y =
+        padding + 30.0 + chart_height * (1.0 - (config.baseline - min_y) / (max_y - min_y));
 
     let mut svg = String::new();
     svg.push_str(&format!(
@@ -158,7 +159,14 @@ pub fn render_area_chart(series: &[AreaSeries], config: &AreaConfig) -> PlotResu
         }
 
         // Close path back to baseline
-        let last_x = padding + (s.points.last().ok_or_else(|| PlotError::InvalidData("empty series".into()))?.x - min_x) / (max_x - min_x) * chart_width;
+        let last_x = padding
+            + (s.points
+                .last()
+                .ok_or_else(|| PlotError::InvalidData("empty series".into()))?
+                .x
+                - min_x)
+                / (max_x - min_x)
+                * chart_width;
         fill_path.push_str(&format!(" L {last_x},{base_y} Z"));
 
         svg.push_str(&format!(

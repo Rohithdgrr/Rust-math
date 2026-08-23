@@ -50,7 +50,9 @@ pub fn render_pairplot(
 
     let n_vars = data.len();
     if labels.len() != n_vars {
-        return Err(PlotError::InvalidData("labels length must match data".into()));
+        return Err(PlotError::InvalidData(
+            "labels length must match data".into(),
+        ));
     }
 
     let total_width = f64::from(config.plot_config.width);
@@ -99,7 +101,11 @@ pub fn render_pairplot(
                             let bin = bin.min(bins - 1);
                             hist[bin] += 1;
                         }
-                        let max_count = *hist.iter().max().ok_or_else(|| PlotError::InvalidData("empty histogram".into()))? as f64;
+                        let max_count = *hist
+                            .iter()
+                            .max()
+                            .ok_or_else(|| PlotError::InvalidData("empty histogram".into()))?
+                            as f64;
 
                         for (b, &count) in hist.iter().enumerate() {
                             let bar_h = (count as f64 / max_count) * (cell_size - 4.0);
@@ -126,7 +132,9 @@ pub fn render_pairplot(
                 svg.push_str(&(cx + cell_size / 2.0).to_string());
                 svg.push_str("\" y=\"");
                 svg.push_str(&(cy + cell_size / 2.0).to_string());
-                svg.push_str("\" text-anchor=\"middle\" dominant-baseline=\"middle\" font-size=\"10\">");
+                svg.push_str(
+                    "\" text-anchor=\"middle\" dominant-baseline=\"middle\" font-size=\"10\">",
+                );
                 svg.push_str(&labels[i]);
                 svg.push_str("</text>\n");
             } else {

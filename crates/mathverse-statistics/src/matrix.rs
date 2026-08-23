@@ -148,7 +148,12 @@ pub fn pca(data: &[&[f64]]) -> MathResult<PCA> {
         .map(|row| row.iter().zip(&means).map(|(x, m)| x - m).collect())
         .collect();
 
-    let cov = covariance_matrix(&centered.iter().map(std::vec::Vec::as_slice).collect::<Vec<_>>())?;
+    let cov = covariance_matrix(
+        &centered
+            .iter()
+            .map(std::vec::Vec::as_slice)
+            .collect::<Vec<_>>(),
+    )?;
 
     let k = p.min(n);
     let mut components = Vec::new();
@@ -368,14 +373,16 @@ mod tests {
     fn cholesky_inverse_test() {
         let a = vec![vec![4.0, 2.0], vec![2.0, 3.0]];
         let inv = cholesky_inverse(&a).unwrap();
-        let prod = [vec![
+        let prod = [
+            vec![
                 a[0][0] * inv[0][0] + a[0][1] * inv[1][0],
                 a[0][0] * inv[0][1] + a[0][1] * inv[1][1],
             ],
             vec![
                 a[1][0] * inv[0][0] + a[1][1] * inv[1][0],
                 a[1][0] * inv[0][1] + a[1][1] * inv[1][1],
-            ]];
+            ],
+        ];
         assert!((prod[0][0] - 1.0).abs() < 1e-10);
         assert!(prod[0][1].abs() < 1e-10);
         assert!(prod[1][0].abs() < 1e-10);

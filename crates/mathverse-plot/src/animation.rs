@@ -63,9 +63,8 @@ pub fn encode_frames_to_gif(
         }
         rgba_frames.push(crate::gif::GifFrame::new(rgba, delay_cs));
     }
-    crate::gif::encode_gif(w as u16, h as u16, &rgba_frames).ok_or_else(|| {
-        crate::error::PlotError::InvalidData("GIF encoding failed".into())
-    })
+    crate::gif::encode_gif(w as u16, h as u16, &rgba_frames)
+        .ok_or_else(|| crate::error::PlotError::InvalidData("GIF encoding failed".into()))
 }
 
 /// Encode SVG frames into MP4 or WebM by piping raw RGBA frames through
@@ -126,14 +125,22 @@ pub fn encode_frames_to_video(
     let (codec_name, _ext) = codec.ffmpeg_args();
     let mut child = Command::new("ffmpeg")
         .args([
-            "-f", "rawvideo",
-            "-pix_fmt", "rgb24",
-            "-s", &format!("{w}x{h}"),
-            "-r", &fps.to_string(),
-            "-i", "-",
-            "-c:v", codec_name,
-            "-pix_fmt", "yuv420p",
-            "-f", codec.extension(),
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-s",
+            &format!("{w}x{h}"),
+            "-r",
+            &fps.to_string(),
+            "-i",
+            "-",
+            "-c:v",
+            codec_name,
+            "-pix_fmt",
+            "yuv420p",
+            "-f",
+            codec.extension(),
             "-",
         ])
         .stdin(Stdio::piped())
@@ -150,15 +157,13 @@ pub fn encode_frames_to_video(
     child
         .stdin
         .as_mut()
-        .ok_or_else(|| {
-            crate::error::PlotError::InvalidData("ffmpeg stdin unavailable".into())
-        })?
+        .ok_or_else(|| crate::error::PlotError::InvalidData("ffmpeg stdin unavailable".into()))?
         .write_all(&raw)
         .map_err(|e| crate::error::PlotError::InvalidData(format!("ffmpeg write: {e}")))?;
 
-    let output = child.wait_with_output().map_err(|e| {
-        crate::error::PlotError::InvalidData(format!("ffmpeg wait: {e}"))
-    })?;
+    let output = child
+        .wait_with_output()
+        .map_err(|e| crate::error::PlotError::InvalidData(format!("ffmpeg wait: {e}")))?;
     if !output.status.success() {
         return Err(crate::error::PlotError::InvalidData(format!(
             "ffmpeg encode failed (exit {:?})",
@@ -276,10 +281,7 @@ impl AnimationConfig {
 ///
 /// `frame_fn` receives the frame index (0-based) and the total
 /// number of frames, and returns an SVG string for that frame.
-pub fn generate_frames<F>(
-    frame_fn: F,
-    config: &AnimationConfig,
-) -> PlotResult<Vec<String>>
+pub fn generate_frames<F>(frame_fn: F, config: &AnimationConfig) -> PlotResult<Vec<String>>
 where
     F: Fn(usize, usize) -> PlotResult<String>,
 {
@@ -287,17 +289,15 @@ where
     for i in 0..config.num_frames {
         let svg = frame_fn(i, config.num_frames)?;
         frames.push(svg);
-    }    Ok(frames)
+    }
+    Ok(frames)
 }
 
 /// Generate an animated SVG from a sequence of frames.
 ///
 /// Each frame is embedded as a `<g>` element with a `begin`
 /// attribute for timed display.
-pub fn assemble_animated_svg(
-    frames: &[String],
-    config: &AnimationConfig,
-) -> String {
+pub fn assemble_animated_svg(frames: &[String], config: &AnimationConfig) -> String {
     if frames.is_empty() {
         return String::from("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>");
     }
@@ -331,10 +331,7 @@ pub fn assemble_animated_svg(
 ///
 /// This is a convenience wrapper that creates a plot with the
 /// given config and adds a single series.
-pub fn render_frame(
-    config: PlotConfig,
-    series: crate::DataSeries,
-) -> PlotResult<String> {
+pub fn render_frame(config: PlotConfig, series: crate::DataSeries) -> PlotResult<String> {
     let mut plot = SvgPlot::new(config);
     plot.add_series(series);
     Ok(plot.generate())
@@ -353,7 +350,11 @@ where
     let plot_config = config.plot_config.clone();
     generate_frames(
         move |i, total| {
-            let t = if total > 1 { i as f64 / (total - 1) as f64 } else { 0.0 };
+            let t = if total > 1 {
+                i as f64 / (total - 1) as f64
+            } else {
+                0.0
+            };
             let series = parametric_fn(t)?;
             render_frame(plot_config.clone(), series)
         },

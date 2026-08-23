@@ -312,7 +312,11 @@ mod tests {
         let n = 200;
         let mut rng = Rng::new(3);
         let g = erdos_renyi(n, 0.003, &mut rng);
-        assert!(g.largest_component_size() < 30, "largest {}", g.largest_component_size());
+        assert!(
+            g.largest_component_size() < 30,
+            "largest {}",
+            g.largest_component_size()
+        );
         assert!(g.connected_components() > 20);
     }
 
@@ -328,7 +332,10 @@ mod tests {
         let dist = g.degree_distribution();
         let max_deg = dist.len() - 1;
         let mean = g.average_degree();
-        assert!(max_deg as f64 > 4.0 * mean, "max degree {max_deg} vs mean {mean}");
+        assert!(
+            max_deg as f64 > 4.0 * mean,
+            "max degree {max_deg} vs mean {mean}"
+        );
         // With m=2 no vertex can end at degree 1 except a seed node, so the
         // degree-1 mass is negligible; scale-free shape shows in the tail.
         assert!(dist[1] < 0.05, "P(deg=1) {}", dist[1]);

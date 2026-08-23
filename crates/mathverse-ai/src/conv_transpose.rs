@@ -4,9 +4,9 @@ use crate::tensor::Tensor;
 use mathverse_core::error::{MathError, MathResult};
 
 /// 1-D transposed convolution.
-/// `x`: [batch, in_channels, length]
-/// `weight`: [in_channels, out_channels, kernel_size]
-/// `bias`: [out_channels] optional
+/// `x`: ``[batch, in_channels, length]``
+/// `weight`: ``[in_channels, out_channels, kernel_size]``
+/// `bias`: ``[out_channels]`` optional
 pub fn conv_transpose1d(
     x: &Tensor,
     weight: &Tensor,
@@ -15,10 +15,14 @@ pub fn conv_transpose1d(
     padding: usize,
 ) -> MathResult<Tensor> {
     if x.shape.len() != 3 {
-        return Err(MathError::InvalidArgument("x must be 3-D [batch, in_ch, length]"));
+        return Err(MathError::InvalidArgument(
+            "x must be 3-D [batch, in_ch, length]",
+        ));
     }
     if weight.shape.len() != 3 {
-        return Err(MathError::InvalidArgument("weight must be 3-D [in_ch, out_ch, kernel]"));
+        return Err(MathError::InvalidArgument(
+            "weight must be 3-D [in_ch, out_ch, kernel]",
+        ));
     }
     let batch = x.shape[0];
     let in_ch = x.shape[1];
@@ -46,7 +50,8 @@ pub fn conv_transpose1d(
                         if out_pos >= padding && out_pos - padding < out_len {
                             let idx = out_pos - padding;
                             let w_val = weight.data[ic * out_ch * kernel + oc * kernel + k];
-                            out[b * out_ch * out_len + oc * out_len + idx] += input_val * w_val;
+                            out[b * out_ch * out_len + oc * out_len + idx] = input_val
+                                .mul_add(w_val, out[b * out_ch * out_len + oc * out_len + idx]);
                         }
                     }
                 }
@@ -68,9 +73,9 @@ pub fn conv_transpose1d(
 }
 
 /// 2-D transposed convolution.
-/// `x`: [batch, in_channels, height, width]
-/// `weight`: [in_channels, out_channels, kH, kW]
-/// `bias`: [out_channels] optional
+/// `x`: ``[batch, in_channels, height, width]``
+/// `weight`: ``[in_channels, out_channels, kH, kW]``
+/// `bias`: ``[out_channels]`` optional
 pub fn conv_transpose2d(
     x: &Tensor,
     weight: &Tensor,
@@ -79,10 +84,14 @@ pub fn conv_transpose2d(
     padding: usize,
 ) -> MathResult<Tensor> {
     if x.shape.len() != 4 {
-        return Err(MathError::InvalidArgument("x must be 4-D [batch, in_ch, H, W]"));
+        return Err(MathError::InvalidArgument(
+            "x must be 4-D [batch, in_ch, H, W]",
+        ));
     }
     if weight.shape.len() != 4 {
-        return Err(MathError::InvalidArgument("weight must be 4-D [in_ch, out_ch, kH, kW]"));
+        return Err(MathError::InvalidArgument(
+            "weight must be 4-D [in_ch, out_ch, kH, kW]",
+        ));
     }
     let batch = x.shape[0];
     let in_ch = x.shape[1];
@@ -98,7 +107,9 @@ pub fn conv_transpose2d(
     let h_out_i = (h_in as i64 - 1) * stride as i64 - 2 * padding as i64 + kh as i64;
     let w_out_i = (w_in as i64 - 1) * stride as i64 - 2 * padding as i64 + kw as i64;
     if h_out_i <= 0 || w_out_i <= 0 {
-        return Err(MathError::InvalidArgument("output dimensions must be positive"));
+        return Err(MathError::InvalidArgument(
+            "output dimensions must be positive",
+        ));
     }
     let h_out = h_out_i as usize;
     let w_out = w_out_i as usize;
@@ -109,16 +120,31 @@ pub fn conv_transpose2d(
             for oc in 0..out_ch {
                 for hi in 0..h_in {
                     for wi in 0..w_in {
-                        let input_val = x.data[b * in_ch * h_in * w_in + ic * h_in * w_in + hi * w_in + wi];
+                        let input_val =
+                            x.data[b * in_ch * h_in * w_in + ic * h_in * w_in + hi * w_in + wi];
                         for kh_i in 0..kh {
                             for kw_i in 0..kw {
                                 let oh = hi * stride + kh_i;
                                 let ow = wi * stride + kw_i;
-                                if oh >= padding && oh - padding < h_out && ow >= padding && ow - padding < w_out {
+                                if oh >= padding
+                                    && oh - padding < h_out
+                                    && ow >= padding
+                                    && ow - padding < w_out
+                                {
                                     let oh_idx = oh - padding;
                                     let ow_idx = ow - padding;
-                                    let w_val = weight.data[ic * out_ch * kh * kw + oc * kh * kw + kh_i * kw + kw_i];
-                                    out[b * out_ch * h_out * w_out + oc * h_out * w_out + oh_idx * w_out + ow_idx] += input_val * w_val;
+                                    let w_val = weight.data
+                                        [ic * out_ch * kh * kw + oc * kh * kw + kh_i * kw + kw_i];
+                                    out[b * out_ch * h_out * w_out
+                                        + oc * h_out * w_out
+                                        + oh_idx * w_out
+                                        + ow_idx] = input_val.mul_add(
+                                        w_val,
+                                        out[b * out_ch * h_out * w_out
+                                            + oc * h_out * w_out
+                                            + oh_idx * w_out
+                                            + ow_idx],
+                                    );
                                 }
                             }
                         }
@@ -133,7 +159,8 @@ pub fn conv_transpose2d(
             for oc in 0..out_ch {
                 for oh in 0..h_out {
                     for ow in 0..w_out {
-                        out[b * out_ch * h_out * w_out + oc * h_out * w_out + oh * w_out + ow] += bias.data[oc];
+                        out[b * out_ch * h_out * w_out + oc * h_out * w_out + oh * w_out + ow] +=
+                            bias.data[oc];
                     }
                 }
             }

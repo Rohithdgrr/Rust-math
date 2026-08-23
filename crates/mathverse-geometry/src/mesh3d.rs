@@ -10,26 +10,41 @@ use super::spatial::AABB3;
 /// 3D triangle defined by three vertices.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Triangle3 {
+    /// First vertex.
     pub a: Point3,
+    /// Second vertex.
     pub b: Point3,
+    /// Third vertex.
     pub c: Point3,
 }
 
 impl Triangle3 {
+    /// Creates a triangle from three vertices.
     #[must_use]
     pub const fn new(a: Point3, b: Point3, c: Point3) -> Self {
         Self { a, b, c }
     }
+    /// Non-normalized normal vector (cross product of two edges).
     #[must_use]
     pub fn normal(self) -> Point3 {
-        let ab = Point3::new(self.b.x - self.a.x, self.b.y - self.a.y, self.b.z - self.a.z);
-        let ac = Point3::new(self.c.x - self.a.x, self.c.y - self.a.y, self.c.z - self.a.z);
+        let ab = Point3::new(
+            self.b.x - self.a.x,
+            self.b.y - self.a.y,
+            self.b.z - self.a.z,
+        );
+        let ac = Point3::new(
+            self.c.x - self.a.x,
+            self.c.y - self.a.y,
+            self.c.z - self.a.z,
+        );
         cross(ab, ac)
     }
+    /// Area of the triangle.
     #[must_use]
     pub fn area(self) -> f64 {
         norm(self.normal()) / 2.0
     }
+    /// Average of the three vertices.
     #[must_use]
     pub fn centroid(self) -> Point3 {
         Point3::new(
@@ -47,24 +62,30 @@ impl Triangle3 {
 /// Simple triangle mesh (indexed).
 #[derive(Debug, Clone)]
 pub struct TriangleMesh {
+    /// Vertex positions.
     pub vertices: Vec<Point3>,
+    /// Triangle vertex-index triples.
     pub indices: Vec<(usize, usize, usize)>,
 }
 
 impl TriangleMesh {
+    /// Creates a mesh from vertices and triangle index triples.
     #[must_use]
     pub const fn new(vertices: Vec<Point3>, indices: Vec<(usize, usize, usize)>) -> Self {
         Self { vertices, indices }
     }
+    /// The `i`-th triangle. Panics if `i` is out of bounds.
     #[must_use]
     pub fn triangle(&self, i: usize) -> Triangle3 {
         let (a, b, c) = self.indices[i];
         Triangle3::new(self.vertices[a], self.vertices[b], self.vertices[c])
     }
+    /// Number of triangles in the mesh.
     #[must_use]
     pub const fn num_triangles(&self) -> usize {
         self.indices.len()
     }
+    /// Smallest box containing all vertices, or `None` if the mesh has none.
     #[must_use]
     pub fn aabb(&self) -> Option<AABB3> {
         AABB3::from_points(&self.vertices)
@@ -84,13 +105,18 @@ impl TriangleMesh {
 
 /// AABB tree node for fast ray intersection.
 pub struct AABBTreeNode {
+    /// Bounds of this subtree.
     pub bounds: AABB3,
+    /// Triangle index for leaves, `None` for internal nodes.
     pub triangle_index: Option<usize>,
+    /// Left child (internal nodes only).
     pub left: Option<Box<Self>>,
+    /// Right child (internal nodes only).
     pub right: Option<Box<Self>>,
 }
 
 impl AABBTreeNode {
+    /// Creates a leaf node holding one triangle index.
     #[must_use]
     pub const fn leaf(bounds: AABB3, triangle_index: usize) -> Self {
         Self {
@@ -100,6 +126,7 @@ impl AABBTreeNode {
             right: None,
         }
     }
+    /// Creates an internal node with the given children.
     #[must_use]
     pub fn internal(bounds: AABB3, left: Self, right: Self) -> Self {
         Self {
@@ -111,7 +138,12 @@ impl AABBTreeNode {
     }
     /// Find the closest triangle hit by a ray. Returns (`triangle_index`, t).
     #[must_use]
-    pub fn ray_intersect(&self, mesh: &TriangleMesh, origin: Point3, dir: Point3) -> Option<(usize, f64)> {
+    pub fn ray_intersect(
+        &self,
+        mesh: &TriangleMesh,
+        origin: Point3,
+        dir: Point3,
+    ) -> Option<(usize, f64)> {
         if !aabb_ray_intersect(self.bounds, origin, dir) {
             return None;
         }
@@ -164,15 +196,24 @@ fn build_tree_recursive(tris: &mut [(usize, AABB3)]) -> Option<AABBTreeNode> {
         return Some(AABBTreeNode::leaf(bounds, idx));
     }
     // Merge all bounds
-    let bounds = tris.iter().map(|(_, b)| *b).reduce(super::spatial::AABB3::merge).unwrap();
+    let bounds = tris
+        .iter()
+        .map(|(_, b)| *b)
+        .reduce(super::spatial::AABB3::merge)
+        .unwrap();
     // Split on longest axis
     let ext = [
         bounds.max.x - bounds.min.x,
         bounds.max.y - bounds.min.y,
         bounds.max.z - bounds.min.z,
     ];
-    let axis = if ext[0] >= ext[1] && ext[0] >= ext[2] { 0 }
-        else if ext[1] >= ext[2] { 1 } else { 2 };
+    let axis = if ext[0] >= ext[1] && ext[0] >= ext[2] {
+        0
+    } else if ext[1] >= ext[2] {
+        1
+    } else {
+        2
+    };
     tris.sort_by(|a, b| {
         let ca = match axis {
             0 => f64::midpoint(a.1.min.x, a.1.max.x),
@@ -252,8 +293,12 @@ pub fn aabb_ray_intersect(bb: AABB3, origin: Point3, dir: Point3) -> bool {
             if t1 > t2 {
                 std::mem::swap(&mut t1, &mut t2);
             }
-            if t1 > tmin { tmin = t1; }
-            if t2 < tmax { tmax = t2; }
+            if t1 > tmin {
+                tmin = t1;
+            }
+            if t2 < tmax {
+                tmax = t2;
+            }
             if tmin > tmax {
                 return false;
             }
@@ -277,10 +322,7 @@ pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
     }
     // Find a point on the intersection line
     // Solve: n1·p + d1 = 0, n2·p + d2 = 0, set one coord to 0
-    let a = [
-        [n1.y, n1.z, -p1.d],
-        [n2.y, n2.z, -p2.d],
-    ];
+    let a = [[n1.y, n1.z, -p1.d], [n2.y, n2.z, -p2.d]];
     let det = a[0][1].mul_add(-a[1][0], a[0][0] * a[1][1]);
     if det.abs() > 1e-10 {
         let y = a[0][1].mul_add(-a[1][2], a[0][2] * a[1][1]) / det;
@@ -288,10 +330,7 @@ pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
         return Some(Line3::new(Point3::new(0.0, y, z), dir));
     }
     // Try setting y = 0
-    let a = [
-        [n1.x, n1.z, -p1.d],
-        [n2.x, n2.z, -p2.d],
-    ];
+    let a = [[n1.x, n1.z, -p1.d], [n2.x, n2.z, -p2.d]];
     let det = a[0][1].mul_add(-a[1][0], a[0][0] * a[1][1]);
     if det.abs() > 1e-10 {
         let x = a[0][1].mul_add(-a[1][2], a[0][2] * a[1][1]) / det;
@@ -299,10 +338,7 @@ pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
         return Some(Line3::new(Point3::new(x, 0.0, z), dir));
     }
     // Try setting z = 0
-    let a = [
-        [n1.x, n1.y, -p1.d],
-        [n2.x, n2.y, -p2.d],
-    ];
+    let a = [[n1.x, n1.y, -p1.d], [n2.x, n2.y, -p2.d]];
     let det = a[0][1].mul_add(-a[1][0], a[0][0] * a[1][1]);
     if det.abs() > 1e-10 {
         let x = a[0][1].mul_add(-a[1][2], a[0][2] * a[1][1]) / det;
@@ -318,8 +354,17 @@ pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
 
 /// Ray-sphere intersection. Returns closest `t > 0` or None.
 #[must_use]
-pub fn ray_sphere_intersect(origin: Point3, dir: Point3, center: Point3, radius: f64) -> Option<f64> {
-    let oc = Point3::new(origin.x - center.x, origin.y - center.y, origin.z - center.z);
+pub fn ray_sphere_intersect(
+    origin: Point3,
+    dir: Point3,
+    center: Point3,
+    radius: f64,
+) -> Option<f64> {
+    let oc = Point3::new(
+        origin.x - center.x,
+        origin.y - center.y,
+        origin.z - center.z,
+    );
     let a = dot(dir, dir);
     let b = 2.0 * dot(oc, dir);
     let c = radius.mul_add(-radius, dot(oc, oc));
@@ -360,8 +405,12 @@ pub fn ray_aabb_intersect(origin: Point3, dir: Point3, bb: AABB3) -> Option<f64>
             if t1 > t2 {
                 std::mem::swap(&mut t1, &mut t2);
             }
-            if t1 > tmin { tmin = t1; }
-            if t2 < tmax { tmax = t2; }
+            if t1 > tmin {
+                tmin = t1;
+            }
+            if t2 < tmax {
+                tmax = t2;
+            }
             if tmin > tmax {
                 return None;
             }
@@ -375,12 +424,30 @@ pub fn ray_aabb_intersect(origin: Point3, dir: Point3, bb: AABB3) -> Option<f64>
 
 /// Ray-cylinder intersection (infinite cylinder along `axis` through `center`).
 #[must_use]
-pub fn ray_cylinder_intersect(origin: Point3, dir: Point3, center: Point3, axis: Point3, radius: f64) -> Option<f64> {
-    let oc = Point3::new(origin.x - center.x, origin.y - center.y, origin.z - center.z);
+pub fn ray_cylinder_intersect(
+    origin: Point3,
+    dir: Point3,
+    center: Point3,
+    axis: Point3,
+    radius: f64,
+) -> Option<f64> {
+    let oc = Point3::new(
+        origin.x - center.x,
+        origin.y - center.y,
+        origin.z - center.z,
+    );
     let d_dot_ax = dot(dir, axis);
     let oc_dot_ax = dot(oc, axis);
-    let proj_d = Point3::new(d_dot_ax.mul_add(-axis.x, dir.x), d_dot_ax.mul_add(-axis.y, dir.y), d_dot_ax.mul_add(-axis.z, dir.z));
-    let proj_oc = Point3::new(oc_dot_ax.mul_add(-axis.x, oc.x), oc_dot_ax.mul_add(-axis.y, oc.y), oc_dot_ax.mul_add(-axis.z, oc.z));
+    let proj_d = Point3::new(
+        d_dot_ax.mul_add(-axis.x, dir.x),
+        d_dot_ax.mul_add(-axis.y, dir.y),
+        d_dot_ax.mul_add(-axis.z, dir.z),
+    );
+    let proj_oc = Point3::new(
+        oc_dot_ax.mul_add(-axis.x, oc.x),
+        oc_dot_ax.mul_add(-axis.y, oc.y),
+        oc_dot_ax.mul_add(-axis.z, oc.z),
+    );
     let a = dot(proj_d, proj_d);
     let b = 2.0 * dot(proj_oc, proj_d);
     let c = radius.mul_add(-radius, dot(proj_oc, proj_oc));
@@ -422,10 +489,12 @@ fn norm(v: Point3) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    use super::super::shapes3d::{Plane, Point3};
     use super::*;
-    use super::super::shapes3d::{Point3, Plane};
 
-    fn pt3(x: f64, y: f64, z: f64) -> Point3 { Point3::new(x, y, z) }
+    fn pt3(x: f64, y: f64, z: f64) -> Point3 {
+        Point3::new(x, y, z)
+    }
 
     #[test]
     fn triangle_normal() {
@@ -437,7 +506,11 @@ mod tests {
     #[test]
     fn ray_triangle_hit() {
         // Triangle in the xy-plane at z=0
-        let tri = Triangle3::new(pt3(-1.0, -1.0, 0.0), pt3(1.0, -1.0, 0.0), pt3(0.0, 1.0, 0.0));
+        let tri = Triangle3::new(
+            pt3(-1.0, -1.0, 0.0),
+            pt3(1.0, -1.0, 0.0),
+            pt3(0.0, 1.0, 0.0),
+        );
         let t = ray_triangle_intersect(pt3(0.0, 0.0, -5.0), pt3(0.0, 0.0, 1.0), tri);
         assert!(t.is_some());
         assert!((t.unwrap() - 5.0).abs() < 1e-6);
@@ -445,7 +518,11 @@ mod tests {
 
     #[test]
     fn ray_triangle_miss() {
-        let tri = Triangle3::new(pt3(-1.0, -1.0, 0.0), pt3(1.0, -1.0, 0.0), pt3(0.0, 1.0, 0.0));
+        let tri = Triangle3::new(
+            pt3(-1.0, -1.0, 0.0),
+            pt3(1.0, -1.0, 0.0),
+            pt3(0.0, 1.0, 0.0),
+        );
         let t = ray_triangle_intersect(pt3(5.0, 5.0, -5.0), pt3(0.0, 0.0, 1.0), tri);
         assert!(t.is_none());
     }
@@ -453,7 +530,11 @@ mod tests {
     #[test]
     fn ray_triangle_two_sided() {
         // Hit from behind (opposite face) still registers — two-sided test.
-        let tri = Triangle3::new(pt3(-1.0, -1.0, 0.0), pt3(1.0, -1.0, 0.0), pt3(0.0, 1.0, 0.0));
+        let tri = Triangle3::new(
+            pt3(-1.0, -1.0, 0.0),
+            pt3(1.0, -1.0, 0.0),
+            pt3(0.0, 1.0, 0.0),
+        );
         let t = ray_triangle_intersect(pt3(0.0, 0.0, 5.0), pt3(0.0, 0.0, -1.0), tri);
         assert!(t.is_some());
         assert!((t.unwrap() - 5.0).abs() < 1e-6);
@@ -462,21 +543,35 @@ mod tests {
     #[test]
     fn ray_triangle_edge_on_parallel() {
         // Ray parallel to the triangle plane → no hit.
-        let tri = Triangle3::new(pt3(-1.0, -1.0, 0.0), pt3(1.0, -1.0, 0.0), pt3(0.0, 1.0, 0.0));
+        let tri = Triangle3::new(
+            pt3(-1.0, -1.0, 0.0),
+            pt3(1.0, -1.0, 0.0),
+            pt3(0.0, 1.0, 0.0),
+        );
         let t = ray_triangle_intersect(pt3(0.0, 0.0, 5.0), pt3(1.0, 0.0, 0.0), tri);
         assert!(t.is_none());
     }
 
     #[test]
     fn ray_sphere_hit() {
-        let t = ray_sphere_intersect(pt3(0.0, 0.0, -5.0), pt3(0.0, 0.0, 1.0), pt3(0.0, 0.0, 0.0), 1.0);
+        let t = ray_sphere_intersect(
+            pt3(0.0, 0.0, -5.0),
+            pt3(0.0, 0.0, 1.0),
+            pt3(0.0, 0.0, 0.0),
+            1.0,
+        );
         assert!(t.is_some());
         assert!((t.unwrap() - 4.0).abs() < 1e-6);
     }
 
     #[test]
     fn ray_sphere_miss() {
-        let t = ray_sphere_intersect(pt3(5.0, 5.0, -5.0), pt3(0.0, 0.0, 1.0), pt3(0.0, 0.0, 0.0), 1.0);
+        let t = ray_sphere_intersect(
+            pt3(5.0, 5.0, -5.0),
+            pt3(0.0, 0.0, 1.0),
+            pt3(0.0, 0.0, 0.0),
+            1.0,
+        );
         assert!(t.is_none());
     }
 
@@ -492,7 +587,12 @@ mod tests {
     #[test]
     fn aabb_tree_build() {
         let mesh = TriangleMesh::new(
-            vec![pt3(0.0, 0.0, 0.0), pt3(1.0, 0.0, 0.0), pt3(0.0, 1.0, 0.0), pt3(0.0, 0.0, 1.0)],
+            vec![
+                pt3(0.0, 0.0, 0.0),
+                pt3(1.0, 0.0, 0.0),
+                pt3(0.0, 1.0, 0.0),
+                pt3(0.0, 0.0, 1.0),
+            ],
             vec![(0, 1, 2), (0, 1, 3)],
         );
         let tree = build_aabb_tree(&mesh);

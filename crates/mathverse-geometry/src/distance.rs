@@ -1,7 +1,7 @@
 //! Distance and proximity: point-segment, point-line, point-polygon, closest points, GJK distance.
 
-use super::shapes2d::{Point2, Polygon};
 use super::primitives2d::LineSegment2;
+use super::shapes2d::{Point2, Polygon};
 
 // ---------------------------------------------------------------------------
 // Point-segment distance
@@ -32,7 +32,9 @@ pub fn point_line_distance(p: Point2, a: Point2, b: Point2) -> f64 {
     if len_sq < 1e-30 {
         return p.distance_to(a);
     }
-    (b.y.mul_add(-a.x, b.x.mul_add(a.y, dx.mul_add(-p.y, dy * p.x))).abs()) / len_sq.sqrt()
+    (b.y.mul_add(-a.x, b.x.mul_add(a.y, dx.mul_add(-p.y, dy * p.x)))
+        .abs())
+        / len_sq.sqrt()
 }
 
 // ---------------------------------------------------------------------------
@@ -51,7 +53,8 @@ pub fn point_polygon_distance(p: Point2, poly: &Polygon) -> f64 {
         let yi_gt = pts[i].y > p.y;
         let yj_gt = pts[j].y > p.y;
         if yi_gt != yj_gt {
-            let x_intersect = (pts[j].x - pts[i].x) * (p.y - pts[i].y) / (pts[j].y - pts[i].y) + pts[i].x;
+            let x_intersect =
+                (pts[j].x - pts[i].x) * (p.y - pts[i].y) / (pts[j].y - pts[i].y) + pts[i].x;
             if p.x < x_intersect {
                 inside = !inside;
             }
@@ -103,12 +106,22 @@ pub fn closest_pair(points: &[Point2]) -> Option<(Point2, Point2, f64)> {
 
 /// Minkowski support point for two convex point sets.
 fn minkowski_support(a: &[Point2], b: &[Point2], dir: Point2) -> Point2 {
-    let pa = a.iter().max_by(|x, y| {
-        x.y.mul_add(dir.y, x.x * dir.x).partial_cmp(&y.y.mul_add(dir.y, y.x * dir.x)).unwrap()
-    }).unwrap();
-    let pb = b.iter().max_by(|x, y| {
-        x.y.mul_add(-dir.y, x.x * -dir.x).partial_cmp(&y.y.mul_add(-dir.y, y.x * -dir.x)).unwrap()
-    }).unwrap();
+    let pa = a
+        .iter()
+        .max_by(|x, y| {
+            x.y.mul_add(dir.y, x.x * dir.x)
+                .partial_cmp(&y.y.mul_add(dir.y, y.x * dir.x))
+                .unwrap()
+        })
+        .unwrap();
+    let pb = b
+        .iter()
+        .max_by(|x, y| {
+            x.y.mul_add(-dir.y, x.x * -dir.x)
+                .partial_cmp(&y.y.mul_add(-dir.y, y.x * -dir.x))
+                .unwrap()
+        })
+        .unwrap();
     Point2::new(pa.x - pb.x, pa.y - pb.y)
 }
 
@@ -272,7 +285,9 @@ pub fn gjk_distance(a: &[Point2], b: &[Point2]) -> f64 {
 mod tests {
     use super::*;
 
-    fn pt(x: f64, y: f64) -> Point2 { Point2::new(x, y) }
+    fn pt(x: f64, y: f64) -> Point2 {
+        Point2::new(x, y)
+    }
 
     #[test]
     fn point_segment_dist() {

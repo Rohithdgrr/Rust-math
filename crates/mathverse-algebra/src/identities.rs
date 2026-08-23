@@ -17,7 +17,13 @@ use mathverse_core::algorithms::binomial;
 /// ```
 #[must_use]
 pub fn pascal_triangle(n: usize) -> Vec<Vec<u64>> {
-    (0..=n).map(|k| (0..=k).map(|j| binomial(k as u64, j as u64) as u64).collect()).collect()
+    (0..=n)
+        .map(|k| {
+            (0..=k)
+                .map(|j| binomial(k as u64, j as u64) as u64)
+                .collect()
+        })
+        .collect()
 }
 
 /// Binomial coefficient `C(n, k)` as `f64`.
@@ -91,7 +97,7 @@ pub fn difference_of_cubes(a: f64, b: f64) -> f64 {
 /// For even `n`, returns `None` since `aⁿ + bⁿ` is not factorable over the reals.
 #[must_use]
 pub fn sum_of_nth_powers(a: f64, b: f64, n: usize) -> Option<(f64, f64)> {
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         return None;
     }
     let sum = a + b;

@@ -22,18 +22,18 @@
 //! - The Haar wavelet is orthonormal (factors of `1/√2`), preserving energy
 //!   across the transform.
 
-pub mod fft;
 pub mod dct;
 pub mod dst;
-pub mod wavelet;
+pub mod fft;
 pub mod goertzel;
 pub mod hough;
 pub mod radon;
+pub mod wavelet;
 
-pub use fft::*;
 pub use dct::*;
 pub use dst::*;
-pub use wavelet::*;
+pub use fft::*;
 pub use goertzel::*;
 pub use hough::*;
 pub use radon::*;
+pub use wavelet::*;

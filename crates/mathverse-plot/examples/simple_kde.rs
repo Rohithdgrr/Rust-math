@@ -2,8 +2,8 @@
 //! `mathverse-statistics`. The KDE is scaled by `n * bin_width` so its area
 //! matches the histogram.
 
-use mathverse_plot::{BinningMethod, Color, Histogram, PlotConfig, SvgPlot};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{BinningMethod, Color, Histogram, PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Deterministic pseudo-random sample (sum of 4 uniforms ~ normal-ish)

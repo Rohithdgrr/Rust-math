@@ -10,10 +10,17 @@ use mathverse_complex::Complex;
 pub fn fft(x: &[Complex]) -> mathverse_core::error::MathResult<Vec<Complex>> {
     let n = x.len();
     if n == 0 || !n.is_power_of_two() {
-        return Err(mathverse_core::error::MathError::InvalidArgument("fft: length must be nonzero power of two"));
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "fft: length must be nonzero power of two",
+        ));
     }
     let mut a = x.to_vec();
-    for i in 0..n { let j = i.reverse_bits() >> (usize::BITS - n.trailing_zeros()); if j > i { a.swap(i, j); } }
+    for i in 0..n {
+        let j = i.reverse_bits() >> (usize::BITS - n.trailing_zeros());
+        if j > i {
+            a.swap(i, j);
+        }
+    }
     let mut len = 2;
     while len <= n {
         let wlen = Complex::polar(1.0, -2.0 * core::f64::consts::PI / len as f64);
@@ -42,7 +49,9 @@ pub fn ifft(x: &[Complex]) -> mathverse_core::error::MathResult<Vec<Complex>> {
     let n = x.len();
     let conj: Vec<Complex> = x.iter().map(Complex::conjugate).collect();
     let y = fft(&conj)?;
-    Ok(y.iter().map(|c| c.conjugate() / Complex::real(n as f64)).collect())
+    Ok(y.iter()
+        .map(|c| c.conjugate() / Complex::real(n as f64))
+        .collect())
 }
 
 /// Direct O(N²) discrete Fourier transform, un-normalized.
@@ -52,12 +61,16 @@ pub fn ifft(x: &[Complex]) -> mathverse_core::error::MathResult<Vec<Complex>> {
 /// (not just powers of two). Use [`idft`] to invert.
 pub fn dft(x: &[Complex]) -> Vec<Complex> {
     let n = x.len();
-    (0..n).map(|k| {
-        (0..n).map(|i| {
-            let angle = -2.0 * core::f64::consts::PI * k as f64 * i as f64 / n as f64;
-            x[i] * Complex::polar(1.0, angle)
-        }).fold(Complex::zero(), |a, b| a + b)
-    }).collect()
+    (0..n)
+        .map(|k| {
+            (0..n)
+                .map(|i| {
+                    let angle = -2.0 * core::f64::consts::PI * k as f64 * i as f64 / n as f64;
+                    x[i] * Complex::polar(1.0, angle)
+                })
+                .fold(Complex::zero(), |a, b| a + b)
+        })
+        .collect()
 }
 
 /// Direct inverse DFT, normalized by `1/N`.
@@ -65,12 +78,17 @@ pub fn dft(x: &[Complex]) -> Vec<Complex> {
 /// Inverts [`dft`]; accepts any input length.
 pub fn idft(x: &[Complex]) -> Vec<Complex> {
     let n = x.len();
-    (0..n).map(|k| {
-        (0..n).map(|i| {
-            let angle = 2.0 * core::f64::consts::PI * k as f64 * i as f64 / n as f64;
-            x[i] * Complex::polar(1.0, angle)
-        }).fold(Complex::zero(), |a, b| a + b) / Complex::real(n as f64)
-    }).collect()
+    (0..n)
+        .map(|k| {
+            (0..n)
+                .map(|i| {
+                    let angle = 2.0 * core::f64::consts::PI * k as f64 * i as f64 / n as f64;
+                    x[i] * Complex::polar(1.0, angle)
+                })
+                .fold(Complex::zero(), |a, b| a + b)
+                / Complex::real(n as f64)
+        })
+        .collect()
 }
 
 /// Forward FFT of a real-valued signal, returned as complex coefficients.
@@ -97,11 +115,19 @@ pub fn cross_correlation(a: &[f64], b: &[f64]) -> Vec<f64> {
     let n = a.len().max(b.len()).next_power_of_two();
     let mut fa = vec![Complex::zero(); n];
     let mut fb = vec![Complex::zero(); n];
-    for i in 0..a.len() { fa[i] = Complex::real(a[i]); }
-    for i in 0..b.len() { fb[i] = Complex::real(b[i]); }
+    for i in 0..a.len() {
+        fa[i] = Complex::real(a[i]);
+    }
+    for i in 0..b.len() {
+        fb[i] = Complex::real(b[i]);
+    }
     let pa = fft(&fa).unwrap();
     let pb = fft(&fb).unwrap();
-    let product: Vec<Complex> = pa.iter().zip(pb.iter()).map(|(a, b)| *a * b.conjugate()).collect();
+    let product: Vec<Complex> = pa
+        .iter()
+        .zip(pb.iter())
+        .map(|(a, b)| *a * b.conjugate())
+        .collect();
     let result = ifft(&product).unwrap();
     result.iter().map(|c| c.re).collect()
 }
@@ -115,13 +141,21 @@ pub fn convolution(a: &[f64], b: &[f64]) -> Vec<f64> {
     let n = (a.len() + b.len() - 1).next_power_of_two();
     let mut fa = vec![Complex::zero(); n];
     let mut fb = vec![Complex::zero(); n];
-    for i in 0..a.len() { fa[i] = Complex::real(a[i]); }
-    for i in 0..b.len() { fb[i] = Complex::real(b[i]); }
+    for i in 0..a.len() {
+        fa[i] = Complex::real(a[i]);
+    }
+    for i in 0..b.len() {
+        fb[i] = Complex::real(b[i]);
+    }
     let pa = fft(&fa).unwrap();
     let pb = fft(&fb).unwrap();
     let product: Vec<Complex> = pa.iter().zip(&pb).map(|(a, b)| a * b).collect();
     let result = ifft(&product).unwrap();
-    result.iter().map(|c| c.re).take(a.len() + b.len() - 1).collect()
+    result
+        .iter()
+        .map(|c| c.re)
+        .take(a.len() + b.len() - 1)
+        .collect()
 }
 
 /// Two-dimensional forward FFT, applied separably (rows, then columns).
@@ -204,19 +238,28 @@ mod tests {
         let x: Vec<Complex> = (0..8).map(|i| Complex::new(f64::from(i), 0.0)).collect();
         let y = fft(&x).unwrap();
         let back = ifft(&y).unwrap();
-        for (a, b) in x.iter().zip(&back) { assert!((*a - *b).norm() < 1e-12); }
+        for (a, b) in x.iter().zip(&back) {
+            assert!((*a - *b).norm() < 1e-12);
+        }
     }
 
     #[test]
     fn fft2_roundtrip() {
         let x: Vec<Vec<Complex>> = (0..4)
-            .map(|r| (0..4).map(|c| Complex::new(f64::from(r) + 10.0 * f64::from(c), f64::from(r + c))).collect())
+            .map(|r| {
+                (0..4)
+                    .map(|c| Complex::new(f64::from(r) + 10.0 * f64::from(c), f64::from(r + c)))
+                    .collect()
+            })
             .collect();
         let y = fft2(&x).unwrap();
         let back = ifft2(&y).unwrap();
         for r in 0..4 {
             for c in 0..4 {
-                assert!((x[r][c] - back[r][c]).norm() < 1e-10, "mismatch at ({r}, {c})");
+                assert!(
+                    (x[r][c] - back[r][c]).norm() < 1e-10,
+                    "mismatch at ({r}, {c})"
+                );
             }
         }
     }
@@ -233,7 +276,9 @@ mod tests {
         // FFT of a separable signal x[r][c] = a[r] * b[c] equals
         // FFT(a) ⊗ FFT(b) (outer product of the 1-D spectra).
         let a: Vec<Complex> = (0..4).map(|i| Complex::real(f64::from(i) + 1.0)).collect();
-        let b: Vec<Complex> = (0..4).map(|i| Complex::real(2.0 * f64::from(i) + 1.0)).collect();
+        let b: Vec<Complex> = (0..4)
+            .map(|i| Complex::real(2.0 * f64::from(i) + 1.0))
+            .collect();
         let fa = fft(&a).unwrap();
         let fb = fft(&b).unwrap();
         let x: Vec<Vec<Complex>> = (0..4)
@@ -242,7 +287,10 @@ mod tests {
         let y = fft2(&x).unwrap();
         for r in 0..4 {
             for c in 0..4 {
-                assert!((y[r][c] - fa[r] * fb[c]).norm() < 1e-10, "mismatch at ({r}, {c})");
+                assert!(
+                    (y[r][c] - fa[r] * fb[c]).norm() < 1e-10,
+                    "mismatch at ({r}, {c})"
+                );
             }
         }
     }

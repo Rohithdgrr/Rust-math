@@ -135,13 +135,12 @@ pub fn bbvi(
         let mut grad_ls = vec![0.0; dim];
         for _ in 0..n_samples {
             let eps: Vec<f64> = (0..dim).map(|_| normal.sample(rng)).collect();
-            let z: Vec<f64> = q
-                .mu
-                .iter()
-                .zip(&q.log_sigma)
-                .zip(&eps)
-                .map(|((&m, &ls), &e)| m + ls.exp() * e)
-                .collect();
+            let z: Vec<f64> =
+                q.mu.iter()
+                    .zip(&q.log_sigma)
+                    .zip(&eps)
+                    .map(|((&m, &ls), &e)| m + ls.exp() * e)
+                    .collect();
             let dz = numeric_grad(log_joint, &z);
             for i in 0..dim {
                 grad_mu[i] += dz[i];
@@ -205,13 +204,15 @@ mod tests {
     #[test]
     fn bbvi_two_dimensional_diagonal() {
         // Independent targets: z1 ~ N(0, 1), z2 ~ N(2, 4).
-        let log_joint = |z: &[f64]| {
-            -0.5 * z[0] * z[0] - 0.5 * ((z[1] - 2.0) / 2.0).powi(2)
-        };
+        let log_joint = |z: &[f64]| -0.5 * z[0] * z[0] - 0.5 * ((z[1] - 2.0) / 2.0).powi(2);
         let mut rng = Rng::new(5);
         let result = bbvi(&log_joint, 2, 10_000, 40, 0.1, &mut rng);
         assert!((result.q.mu[0]).abs() < 0.15, "mu0 {}", result.q.mu[0]);
-        assert!((result.q.mu[1] - 2.0).abs() < 0.15, "mu1 {}", result.q.mu[1]);
+        assert!(
+            (result.q.mu[1] - 2.0).abs() < 0.15,
+            "mu1 {}",
+            result.q.mu[1]
+        );
         assert!((result.q.log_sigma[0].exp() - 1.0).abs() < 0.15, "s0");
         assert!((result.q.log_sigma[1].exp() - 2.0).abs() < 0.3, "s1");
     }
@@ -226,11 +227,10 @@ mod tests {
         // E[log p] = -0.5·E[z0²] - 0.5·E[z1²] = -1 and H = ln(2πe):
         // ELBO = ln(2πe) - 1.
         let expected = (2.0 * core::f64::consts::PI * core::f64::consts::E).ln() - 1.0;
+        assert!((elbo - expected).abs() < 0.05, "elbo {elbo} vs {expected}");
         assert!(
-            (elbo - expected).abs() < 0.05,
-            "elbo {elbo} vs {expected}",
+            (q.entropy() - (2.0 * core::f64::consts::PI * core::f64::consts::E).ln()).abs() < 1e-9
         );
-        assert!((q.entropy() - (2.0 * core::f64::consts::PI * core::f64::consts::E).ln()).abs() < 1e-9);
     }
 
     #[test]

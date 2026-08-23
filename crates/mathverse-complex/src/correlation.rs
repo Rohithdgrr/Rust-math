@@ -118,10 +118,7 @@ pub fn cross_correlation(x: &[Complex], y: &[Complex]) -> MathResult<Vec<Complex
 ///
 /// Returns `(lags, corr)` where `lags[k] = k − (ny − 1)` so that
 /// `lags[0] = -(ny−1)` and `lags[nx+ny-2] = nx−1`.
-pub fn xcorr_lags(
-    x: &[Complex],
-    y: &[Complex],
-) -> MathResult<(Vec<i64>, Vec<Complex>)> {
+pub fn xcorr_lags(x: &[Complex], y: &[Complex]) -> MathResult<(Vec<i64>, Vec<Complex>)> {
     let corr = cross_correlation(x, y)?;
     let nx = x.len();
     let ny = y.len();

@@ -43,11 +43,7 @@ pub fn render_confusion_matrix(
 ///
 /// `scores` are the predicted scores (higher = more positive).
 /// `labels` are the true binary labels (0.0 or 1.0).
-pub fn render_roc_curve(
-    scores: &[f64],
-    labels: &[f64],
-    config: PlotConfig,
-) -> PlotResult<String> {
+pub fn render_roc_curve(scores: &[f64], labels: &[f64], config: PlotConfig) -> PlotResult<String> {
     if scores.len() != labels.len() {
         return Err(PlotError::InvalidData(
             "scores and labels must have the same length".into(),

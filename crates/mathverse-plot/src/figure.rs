@@ -41,7 +41,10 @@ impl Axes {
                 None => Some((x, x)),
                 Some((lo, hi)) => Some((lo.min(x), hi.max(x))),
             })
-            .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range { min: lo, max: hi })
+            .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range {
+                min: lo,
+                max: hi,
+            })
     }
 
     /// Y range over all series (empty → `0..1`).
@@ -53,7 +56,10 @@ impl Axes {
                 None => Some((y, y)),
                 Some((lo, hi)) => Some((lo.min(y), hi.max(y))),
             })
-            .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range { min: lo, max: hi })
+            .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range {
+                min: lo,
+                max: hi,
+            })
     }
 }
 

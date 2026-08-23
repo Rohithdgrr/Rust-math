@@ -275,14 +275,21 @@ pub fn tan_exact_radians<T: Real>(radians: T) -> Option<ExactValue> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::f64::consts::{FRAC_PI_6, FRAC_PI_4, PI};
+    use core::f64::consts::{FRAC_PI_4, FRAC_PI_6, PI};
 
     #[test]
     fn sine_table() {
         assert_eq!(sin_exact_deg(0), Some(ExactValue::Integer(0)));
         assert_eq!(sin_exact_deg(30), Some(ExactValue::Half(1)));
         assert_eq!(sin_exact_deg(90), Some(ExactValue::Integer(1)));
-        assert_eq!(sin_exact_deg(120), Some(ExactValue::Root { coeff: 1, radicand: 3, denom: 2 }));
+        assert_eq!(
+            sin_exact_deg(120),
+            Some(ExactValue::Root {
+                coeff: 1,
+                radicand: 3,
+                denom: 2
+            })
+        );
         assert_eq!(sin_exact_deg(150), Some(ExactValue::Half(1)));
         assert_eq!(sin_exact_deg(180), Some(ExactValue::Integer(0)));
         assert_eq!(sin_exact_deg(210), Some(ExactValue::Half(-1)));
@@ -315,14 +322,25 @@ mod tests {
 
     #[test]
     fn to_float_roundtrip() {
-        let cases = [0.0, 0.5, 2.0_f64.sqrt() / 2.0, 3.0_f64.sqrt() / 2.0, 1.0, -1.0];
-        for deg in [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360] {
+        let cases = [
+            0.0,
+            0.5,
+            2.0_f64.sqrt() / 2.0,
+            3.0_f64.sqrt() / 2.0,
+            1.0,
+            -1.0,
+        ];
+        for deg in [
+            0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360,
+        ] {
             if let Some(v) = sin_exact_deg(deg) {
                 let expected = f64::from(deg).to_radians().sin();
                 assert!((v.to_f64() - expected).abs() < 1e-12, "sin({deg})");
             }
         }
-        for deg in [0, 30, 45, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360] {
+        for deg in [
+            0, 30, 45, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360,
+        ] {
             if let Some(v) = tan_exact_deg(deg) {
                 let expected = f64::from(deg).to_radians().tan();
                 assert!((v.to_f64() - expected).abs() < 1e-12, "tan({deg})");
@@ -334,7 +352,14 @@ mod tests {
     #[test]
     fn radians_variants() {
         assert_eq!(sin_exact_radians(FRAC_PI_6), Some(ExactValue::Half(1)));
-        assert_eq!(cos_exact_radians(FRAC_PI_4), Some(ExactValue::Root { coeff: 1, radicand: 2, denom: 2 }));
+        assert_eq!(
+            cos_exact_radians(FRAC_PI_4),
+            Some(ExactValue::Root {
+                coeff: 1,
+                radicand: 2,
+                denom: 2
+            })
+        );
         assert_eq!(sin_exact_radians(PI), Some(ExactValue::Integer(0)));
         assert_eq!(sin_exact_radians(0.3f64), None);
     }

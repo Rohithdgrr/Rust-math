@@ -1,7 +1,8 @@
 //! Scikit-learn-style estimator and transformer traits with uniform wrappers.
 //!
 //! Every model in the crate exposes its own bespoke API. This module layers a
-//! single [`Estimator`] / [`Transformer`] interface on top of the existing
+//! single [`Estimator`](crate::estimator::Estimator) /
+//! [`Transformer`](crate::estimator::Transformer) interface on top of the existing
 //! implementations so pipelines, grid search, and cross-validation can treat
 //! models uniformly.
 
@@ -323,9 +324,7 @@ impl<M: Estimator + Clone> RandomizedSearchCV<M> {
             ));
         }
         if self.n_iter == 0 {
-            return Err(MathError::InvalidArgument(
-                "n_iter must be at least 1",
-            ));
+            return Err(MathError::InvalidArgument("n_iter must be at least 1"));
         }
         self.scores.clear();
         self.best_model = None;
@@ -386,7 +385,11 @@ impl LinearRegression {
     /// Create a new (un-fitted) linear regression.
     #[must_use]
     pub fn new() -> Self {
-        Self { n_features: 0, coefficients: None, intercept: None }
+        Self {
+            n_features: 0,
+            coefficients: None,
+            intercept: None,
+        }
     }
 }
 
@@ -406,9 +409,8 @@ impl Estimator for LinearRegression {
     }
 
     fn predict(&self, x: &[Vec<f64>]) -> MathResult<Vec<f64>> {
-        let (coeffs, intercept) = match (&self.coefficients, self.intercept) {
-            (Some(c), Some(i)) => (c, i),
-            _ => return Err(MathError::InvalidArgument("model has not been fitted")),
+        let (Some(coeffs), Some(intercept)) = (&self.coefficients, self.intercept) else {
+            return Err(MathError::InvalidArgument("model has not been fitted"));
         };
         validate::validate_x(x, self.n_features)?;
         crate::linear::predict(x, coeffs, intercept)
@@ -427,7 +429,11 @@ impl RidgeRegression {
     /// Create a ridge regression with the given L2 penalty.
     #[must_use]
     pub fn new(alpha: f64) -> Self {
-        Self { alpha, coefficients: None, intercept: None }
+        Self {
+            alpha,
+            coefficients: None,
+            intercept: None,
+        }
     }
 }
 
@@ -441,9 +447,8 @@ impl Estimator for RidgeRegression {
     }
 
     fn predict(&self, x: &[Vec<f64>]) -> MathResult<Vec<f64>> {
-        let (coeffs, intercept) = match (&self.coefficients, self.intercept) {
-            (Some(c), Some(i)) => (c, i),
-            _ => return Err(MathError::InvalidArgument("model has not been fitted")),
+        let (Some(coeffs), Some(intercept)) = (&self.coefficients, self.intercept) else {
+            return Err(MathError::InvalidArgument("model has not been fitted"));
         };
         validate::validate_x(x, coeffs.len())?;
         crate::linear::predict(x, coeffs, intercept)
@@ -467,7 +472,14 @@ impl LogisticRegression {
     /// `c` is inverse regularization strength; use `f64::INFINITY` for none.
     #[must_use]
     pub fn new(lr: f64, max_iters: usize, tol: f64, c: f64) -> Self {
-        Self { lr, max_iters, tol, c, coefficients: None, intercept: None }
+        Self {
+            lr,
+            max_iters,
+            tol,
+            c,
+            coefficients: None,
+            intercept: None,
+        }
     }
 }
 
@@ -480,9 +492,8 @@ impl Estimator for LogisticRegression {
     }
 
     fn predict(&self, x: &[Vec<f64>]) -> MathResult<Vec<f64>> {
-        let (coeffs, intercept) = match (&self.coefficients, self.intercept) {
-            (Some(c), Some(i)) => (c, i),
-            _ => return Err(MathError::InvalidArgument("model has not been fitted")),
+        let (Some(coeffs), Some(intercept)) = (&self.coefficients, self.intercept) else {
+            return Err(MathError::InvalidArgument("model has not been fitted"));
         };
         validate::validate_x(x, coeffs.len())?;
         Ok(crate::logistic::predict(x, coeffs, intercept))
@@ -491,9 +502,8 @@ impl Estimator for LogisticRegression {
 
 impl Classifier for LogisticRegression {
     fn predict_proba(&self, x: &[Vec<f64>]) -> MathResult<Vec<Vec<f64>>> {
-        let (coeffs, intercept) = match (&self.coefficients, self.intercept) {
-            (Some(c), Some(i)) => (c, i),
-            _ => return Err(MathError::InvalidArgument("model has not been fitted")),
+        let (Some(coeffs), Some(intercept)) = (&self.coefficients, self.intercept) else {
+            return Err(MathError::InvalidArgument("model has not been fitted"));
         };
         validate::validate_x(x, coeffs.len())?;
         let p1 = crate::logistic::predict_proba(x, coeffs, intercept);
@@ -514,7 +524,12 @@ impl KNNClassifier {
     /// Create a KNN classifier with `k` neighbors.
     #[must_use]
     pub fn new(k: usize) -> Self {
-        Self { k, train_x: Vec::new(), train_y: Vec::new(), classes: Vec::new() }
+        Self {
+            k,
+            train_x: Vec::new(),
+            train_y: Vec::new(),
+            classes: Vec::new(),
+        }
     }
 }
 
@@ -590,7 +605,11 @@ impl KNNRegressor {
     /// Create a KNN regressor with `k` neighbors.
     #[must_use]
     pub fn new(k: usize) -> Self {
-        Self { k, train_x: Vec::new(), train_y: Vec::new() }
+        Self {
+            k,
+            train_x: Vec::new(),
+            train_y: Vec::new(),
+        }
     }
 }
 
@@ -635,7 +654,13 @@ impl DecisionTreeClassifier {
     /// Create a decision tree classifier.
     #[must_use]
     pub fn new(max_depth: usize, min_samples_split: usize) -> Self {
-        Self { max_depth, min_samples_split, tree: None, classes: Vec::new(), n_features: 0 }
+        Self {
+            max_depth,
+            min_samples_split,
+            tree: None,
+            classes: Vec::new(),
+            n_features: 0,
+        }
     }
 }
 
@@ -673,7 +698,13 @@ impl Classifier for DecisionTreeClassifier {
                 }
                 let proba = tree.predict_proba(x, &self.classes);
                 if proba.len() != x.len() {
-                    return Ok(vec![vec![1.0 / self.classes.len() as f64; self.classes.len()]; x.len()]);
+                    return Ok(vec![
+                        vec![
+                            1.0 / self.classes.len() as f64;
+                            self.classes.len()
+                        ];
+                        x.len()
+                    ]);
                 }
                 Ok(proba)
             }
@@ -711,7 +742,8 @@ impl RandomForestClassifier {
 impl Estimator for RandomForestClassifier {
     fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) -> MathResult<()> {
         self.n_features = validate::validate_xy(x, y)?;
-        let mut forest = crate::forest::RandomForest::new(self.n_trees, self.max_depth, self.max_features);
+        let mut forest =
+            crate::forest::RandomForest::new(self.n_trees, self.max_depth, self.max_features);
         forest.fit(x, y);
         let mut classes: Vec<f64> = y.to_vec();
         classes.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
@@ -757,7 +789,9 @@ impl StandardScaler {
     /// Create a standard scaler.
     #[must_use]
     pub fn new() -> Self {
-        Self { scaler: crate::preprocessing_adv::StandardScaler::new() }
+        Self {
+            scaler: crate::preprocessing_adv::StandardScaler::new(),
+        }
     }
 }
 
@@ -805,7 +839,11 @@ impl OneHotEncoder {
     /// Create a one-hot encoder.
     #[must_use]
     pub fn new() -> Self {
-        Self { categories: Vec::new(), lookup: Vec::new(), fitted: false }
+        Self {
+            categories: Vec::new(),
+            lookup: Vec::new(),
+            fitted: false,
+        }
     }
 }
 
@@ -880,7 +918,9 @@ impl MinMaxScaler {
     /// Create a min-max scaler.
     #[must_use]
     pub fn new() -> Self {
-        Self { scaler: crate::preprocessing_adv::MinMaxScaler::new() }
+        Self {
+            scaler: crate::preprocessing_adv::MinMaxScaler::new(),
+        }
     }
 }
 
@@ -991,7 +1031,12 @@ mod tests {
 
     #[test]
     fn one_hot_encoder_expands_columns() {
-        let x = vec![vec![0.0, 10.0], vec![1.0, 20.0], vec![0.0, 30.0], vec![2.0, 40.0]];
+        let x = vec![
+            vec![0.0, 10.0],
+            vec![1.0, 20.0],
+            vec![0.0, 30.0],
+            vec![2.0, 40.0],
+        ];
         let mut enc = OneHotEncoder::new();
         let out = enc.fit_transform(&x).unwrap();
         // Col 0 has cats {0,1,2} -> 3 cols; col 1 has 4 cats -> 4 cols; total 7.
@@ -1019,6 +1064,9 @@ mod tests {
         m.fit(&x, &y).unwrap();
         let (means, _stds) = permutation_importance(&m, &x, &y, false, 5, 1).unwrap();
         assert_eq!(means.len(), 2);
-        assert!(means[0] > means[1] * 1.5, "relevant feature should dominate: {means:?}");
+        assert!(
+            means[0] > means[1] * 1.5,
+            "relevant feature should dominate: {means:?}"
+        );
     }
 }

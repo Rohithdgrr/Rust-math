@@ -8,7 +8,10 @@ pub fn fibonacci_search(f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64
     }
     let fibs: Vec<f64> = {
         let mut f = vec![1.0f64, 1.0];
-        for _ in 2..n { let l = f.len(); f.push(f[l-1] + f[l-2]); }
+        for _ in 2..n {
+            let l = f.len();
+            f.push(f[l - 1] + f[l - 2]);
+        }
         f
     };
     let k = n.min(fibs.len() - 1);
@@ -44,7 +47,11 @@ pub fn golden_section(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
     while (r - l).abs() > tol {
         let x1 = r - (r - l) / phi;
         let x2 = l + (r - l) / phi;
-        if f(x1) < f(x2) { r = x2; } else { l = x1; }
+        if f(x1) < f(x2) {
+            r = x2;
+        } else {
+            l = x1;
+        }
     }
     f64::midpoint(l, r)
 }
@@ -55,7 +62,11 @@ pub fn ternary_search(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
     while (r - l).abs() > tol {
         let m1 = l + (r - l) / 3.0;
         let m2 = r - (r - l) / 3.0;
-        if f(m1) < f(m2) { r = m2; } else { l = m1; }
+        if f(m1) < f(m2) {
+            r = m2;
+        } else {
+            l = m1;
+        }
     }
     f64::midpoint(l, r)
 }
@@ -76,25 +87,43 @@ pub fn brent_min(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
     for _ in 0..1000 {
         let xm = f64::midpoint(a0, b0);
         let tol1 = (b0 - a0).abs() * 1e-15 + tol / 3.0;
-        if (x - xm).abs() <= 2.0 * tol1 - (b0 - a0) / 2.0 { break; }
+        if (x - xm).abs() <= 2.0 * tol1 - (b0 - a0) / 2.0 {
+            break;
+        }
         if (fx - fw).abs() > 1e-30 && (fx - fv).abs() > 1e-30 {
-            let u = x - ((x - w).powi(2) * (fx - fv) - (x - v).powi(2) * (fx - fw))
-                / (2.0 * ((x - w) * (fx - fv) - (x - v) * (fx - fw)));
+            let u = x
+                - ((x - w).powi(2) * (fx - fv) - (x - v).powi(2) * (fx - fw))
+                    / (2.0 * ((x - w) * (fx - fv) - (x - v) * (fx - fw)));
             if u > a0 + tol1 && u < b0 - tol1 && (u - xm).abs() < tol1 - (b0 - a0) / 2.0 {
                 let fu = f(u);
                 if fu < fx {
-                    if u < xm { b0 = u; } else { a0 = u; }
-                    if fu <= fw || (w - x).abs() < 1e-30 { (w, fw) = (u, fu); }
-                    else if fu <= fv || (v - x).abs() < 1e-30 || (v - w).abs() < 1e-30 { (v, fv) = (u, fu); }
+                    if u < xm {
+                        b0 = u;
+                    } else {
+                        a0 = u;
+                    }
+                    if fu <= fw || (w - x).abs() < 1e-30 {
+                        (w, fw) = (u, fu);
+                    } else if fu <= fv || (v - x).abs() < 1e-30 || (v - w).abs() < 1e-30 {
+                        (v, fv) = (u, fu);
+                    }
                     (x, fx) = (u, fu);
                     continue;
                 }
             }
         }
-        let u = if x < xm { x + 0.381_966_011_250_105_1 * (b0 - x) } else { x - 0.381_966_011_250_105_1 * (x - a0) };
+        let u = if x < xm {
+            x + 0.381_966_011_250_105_1 * (b0 - x)
+        } else {
+            x - 0.381_966_011_250_105_1 * (x - a0)
+        };
         let fu = f(u);
         if fu <= fx {
-            if u < xm { b0 = u; } else { a0 = u; }
+            if u < xm {
+                b0 = u;
+            } else {
+                a0 = u;
+            }
             (v, fv) = (w, fw);
             (w, fw) = (x, fx);
             (x, fx) = (u, fu);

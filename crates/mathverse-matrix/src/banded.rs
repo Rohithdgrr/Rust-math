@@ -24,7 +24,7 @@ impl BandedMatrix {
         let (rows, cols) = (m.rows, m.cols);
         let bandwidth = lower + upper + 1;
         let mut data = vec![0.0; rows * bandwidth];
-        
+
         for i in 0..rows {
             for j in 0..cols {
                 let band = j as i32 - i as i32 + lower as i32;
@@ -33,7 +33,7 @@ impl BandedMatrix {
                 }
             }
         }
-        
+
         BandedMatrix {
             rows,
             cols,
@@ -57,20 +57,21 @@ impl BandedMatrix {
     pub fn set(&mut self, i: usize, j: usize, value: f64) {
         let band = j as i32 - i as i32 + self.lower_bandwidth as i32;
         if band >= 0 && band < (self.lower_bandwidth + self.upper_bandwidth + 1) as i32 {
-            self.data[i * (self.lower_bandwidth + self.upper_bandwidth + 1) + band as usize] = value;
+            self.data[i * (self.lower_bandwidth + self.upper_bandwidth + 1) + band as usize] =
+                value;
         }
     }
 
     /// Convert to full matrix.
     pub fn to_full(&self) -> Matrix {
         let mut m = Matrix::zeros(self.rows, self.cols);
-        
+
         for i in 0..self.rows {
             for j in 0..self.cols {
                 m.set(i, j, self.get(i, j));
             }
         }
-        
+
         m
     }
 
@@ -79,15 +80,15 @@ impl BandedMatrix {
         if self.cols != v.len() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = vec![0.0; self.rows];
-        
+
         for i in 0..self.rows {
             for j in 0..self.cols {
                 result[i] += self.get(i, j) * v.get(j);
             }
         }
-        
+
         Ok(mathverse_vector::Vector::new(result))
     }
 
@@ -100,13 +101,13 @@ impl BandedMatrix {
             upper_bandwidth: self.lower_bandwidth,
             data: vec![0.0; self.cols * (self.upper_bandwidth + self.lower_bandwidth + 1)],
         };
-        
+
         for i in 0..self.rows {
             for j in 0..self.cols {
                 result.set(j, i, self.get(i, j));
             }
         }
-        
+
         result
     }
 }
@@ -154,9 +155,9 @@ impl TridiagonalMatrix {
         if self.n != v.len() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = vec![0.0; self.n];
-        
+
         for i in 0..self.n {
             result[i] = self.main_diag[i] * v.get(i);
             if i > 0 {
@@ -166,7 +167,7 @@ impl TridiagonalMatrix {
                 result[i] += self.upper_diag[i] * v.get(i + 1);
             }
         }
-        
+
         Ok(mathverse_vector::Vector::new(result))
     }
 
@@ -175,41 +176,41 @@ impl TridiagonalMatrix {
         if self.n != b.len() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = self.n;
         let c = self.upper_diag.clone();
         let mut d = self.main_diag.clone();
         let e = self.lower_diag.clone();
         let mut b_vec = b.data.clone();
-        
+
         // Forward elimination
         for i in 1..n {
             let factor = e[i - 1] / d[i - 1];
             d[i] -= factor * c[i - 1];
             b_vec[i] -= factor * b_vec[i - 1];
         }
-        
+
         // Back substitution
         let mut x = vec![0.0; n];
         x[n - 1] = b_vec[n - 1] / d[n - 1];
-        
+
         for i in (0..n - 1).rev() {
             x[i] = (b_vec[i] - c[i] * x[i + 1]) / d[i];
         }
-        
+
         Ok(mathverse_vector::Vector::new(x))
     }
 
     /// Convert to full matrix.
     pub fn to_full(&self) -> Matrix {
         let mut m = Matrix::zeros(self.n, self.n);
-        
+
         for i in 0..self.n {
             for j in 0..self.n {
                 m.set(i, j, self.get(i, j));
             }
         }
-        
+
         m
     }
 
@@ -222,16 +223,16 @@ impl TridiagonalMatrix {
         if n == 1 {
             return self.main_diag[0];
         }
-        
+
         let mut det = vec![0.0; n];
         det[0] = self.main_diag[0];
         det[1] = self.main_diag[0] * self.main_diag[1] - self.upper_diag[0] * self.lower_diag[0];
-        
+
         for i in 2..n {
-            det[i] = self.main_diag[i] * det[i - 1] 
+            det[i] = self.main_diag[i] * det[i - 1]
                 - self.upper_diag[i - 1] * self.lower_diag[i - 1] * det[i - 2];
         }
-        
+
         det[n - 1]
     }
 }
@@ -268,18 +269,22 @@ impl DiagonalMatrix {
         if self.n != v.len() {
             return Err(MathError::DimensionMismatch);
         }
-        
-        let result: Vec<f64> = self.diag.iter()
+
+        let result: Vec<f64> = self
+            .diag
+            .iter()
             .zip(v.data.iter())
             .map(|(&d, &v)| d * v)
             .collect();
-        
+
         Ok(mathverse_vector::Vector::new(result))
     }
 
     /// Inverse of diagonal matrix.
     pub fn inverse(&self) -> MathResult<Self> {
-        let inv_diag: Vec<f64> = self.diag.iter()
+        let inv_diag: Vec<f64> = self
+            .diag
+            .iter()
             .map(|&d| {
                 if d.abs() < 1e-15 {
                     return f64::INFINITY;
@@ -287,11 +292,11 @@ impl DiagonalMatrix {
                 1.0 / d
             })
             .collect();
-        
+
         if inv_diag.iter().any(|&d| d.is_infinite()) {
             return Err(MathError::InvalidArgument("zero diagonal element"));
         }
-        
+
         Ok(DiagonalMatrix {
             n: self.n,
             diag: inv_diag,
@@ -318,12 +323,12 @@ impl BandedOperations {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let lower = a.lower_bandwidth.max(b.lower_bandwidth);
         let upper = a.upper_bandwidth.max(b.upper_bandwidth);
         let bandwidth = lower + upper + 1;
         let mut data = vec![0.0; a.rows * bandwidth];
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 let band = j as i32 - i as i32 + lower as i32;
@@ -332,7 +337,7 @@ impl BandedOperations {
                 }
             }
         }
-        
+
         Ok(BandedMatrix {
             rows: a.rows,
             cols: a.cols,
@@ -347,11 +352,15 @@ impl BandedOperations {
         let a_full = a.to_full();
         let b_full = b.to_full();
         let result = a_full.mul(&b_full)?;
-        
+
         let lower = a.lower_bandwidth + b.lower_bandwidth;
         let upper = a.upper_bandwidth + b.upper_bandwidth;
-        
-        Ok(BandedMatrix::from_full(&result, lower.min(a.rows - 1), upper.min(a.cols - 1)))
+
+        Ok(BandedMatrix::from_full(
+            &result,
+            lower.min(a.rows - 1),
+            upper.min(a.cols - 1),
+        ))
     }
 
     /// LU decomposition for tridiagonal matrix.
@@ -360,7 +369,7 @@ impl BandedOperations {
         let mut l = vec![0.0; n - 1];
         let mut u_main = t.main_diag.clone();
         let u_upper = t.upper_diag.clone();
-        
+
         for i in 0..(n - 1) {
             if u_main[i].abs() < 1e-15 {
                 return Err(MathError::InvalidArgument("zero pivot in tridiagonal LU"));
@@ -368,7 +377,7 @@ impl BandedOperations {
             l[i] = t.lower_diag[i] / u_main[i];
             u_main[i + 1] -= l[i] * u_upper[i];
         }
-        
+
         Ok((l, u_main, u_upper))
     }
 }
@@ -407,13 +416,13 @@ impl ToeplitzMatrix {
     /// Convert to full matrix.
     pub fn to_full(&self) -> Matrix {
         let mut m = Matrix::zeros(self.n, self.n);
-        
+
         for i in 0..self.n {
             for j in 0..self.n {
                 m.set(i, j, self.get(i, j));
             }
         }
-        
+
         m
     }
 
@@ -444,24 +453,20 @@ impl CirculantMatrix {
 
     /// Get value at (i, j).
     pub fn get(&self, i: usize, j: usize) -> f64 {
-        let idx = if j >= i {
-            j - i
-        } else {
-            self.n - i + j
-        };
+        let idx = if j >= i { j - i } else { self.n - i + j };
         self.first_row[idx]
     }
 
     /// Convert to full matrix.
     pub fn to_full(&self) -> Matrix {
         let mut m = Matrix::zeros(self.n, self.n);
-        
+
         for i in 0..self.n {
             for j in 0..self.n {
                 m.set(i, j, self.get(i, j));
             }
         }
-        
+
         m
     }
 
@@ -488,7 +493,7 @@ mod tests {
         let main = vec![2.0, 3.0, 4.0];
         let upper = vec![1.0, 1.0];
         let lower = vec![1.0, 1.0];
-        
+
         let t = TridiagonalMatrix::new(&main, &upper, &lower);
         assert_eq!(t.get(0, 0), 2.0);
         assert_eq!(t.get(0, 1), 1.0);
@@ -501,24 +506,24 @@ mod tests {
         let main = vec![2.0, 2.0, 2.0];
         let upper = vec![-1.0, -1.0];
         let lower = vec![-1.0, -1.0];
-        
+
         let t = TridiagonalMatrix::new(&main, &upper, &lower);
         let b = mathverse_vector::Vector::new(vec![1.0, 0.0, 0.0]);
-        
+
         let x = t.solve(&b).unwrap();
         let back = t.mul_vec(&x).unwrap();
-        
+
         assert!((back.get(0) - 1.0).abs() < 1e-10);
     }
 
     #[test]
     fn test_diagonal_matrix() {
         let d = DiagonalMatrix::new(&[2.0, 3.0, 4.0]);
-        
+
         assert_eq!(d.get(0, 0), 2.0);
         assert_eq!(d.get(1, 1), 3.0);
         assert_eq!(d.get(0, 1), 0.0);
-        
+
         let det = d.determinant();
         assert!((det - 24.0).abs() < 1e-10);
     }
@@ -527,9 +532,9 @@ mod tests {
     fn test_toeplitz_matrix() {
         let first_row = vec![1.0, 2.0, 3.0];
         let first_col = vec![1.0, 4.0, 5.0];
-        
+
         let t = ToeplitzMatrix::new(&first_row, &first_col);
-        
+
         assert_eq!(t.get(0, 0), 1.0);
         assert_eq!(t.get(0, 1), 2.0);
         assert_eq!(t.get(1, 0), 4.0);
@@ -539,9 +544,9 @@ mod tests {
     #[test]
     fn test_circulant_matrix() {
         let first_row = vec![1.0, 2.0, 3.0];
-        
+
         let c = CirculantMatrix::new(&first_row);
-        
+
         assert_eq!(c.get(0, 0), 1.0);
         assert_eq!(c.get(0, 1), 2.0);
         assert_eq!(c.get(0, 2), 3.0);

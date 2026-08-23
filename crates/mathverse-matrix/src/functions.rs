@@ -12,22 +12,22 @@ impl MatrixExponential {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = m.rows;
-        
+
         let norm = crate::norms::MatrixNorms::linf(m);
         let s = if norm > 1.0 {
             (norm.log2().ceil() as usize).max(1)
         } else {
             0
         };
-        
+
         let a_scaled = if s > 0 {
             m.scale(1.0 / f64::from(1 << s))
         } else {
             m.clone()
         };
-        
+
         // Taylor series: exp(A) ≈ I + A + A^2/2! + ... + A^k/k!
         let mut result = Matrix::identity(n);
         let mut term = Matrix::identity(n);
@@ -37,12 +37,12 @@ impl MatrixExponential {
             coeff /= f64::from(k);
             result = result.add(&term.scale(coeff))?;
         }
-        
+
         // Squaring
         for _ in 0..s {
             result = result.mul(&result)?;
         }
-        
+
         Ok(result)
     }
 
@@ -50,17 +50,22 @@ impl MatrixExponential {
     #[allow(dead_code)]
     fn pade_approx(m: &Matrix) -> MathResult<Matrix> {
         let n = m.rows;
-        
+
         // [6/6] Padé coefficients: (12-k)! / (6! * k!) for k=0..6
         let b = [
-            77.0/60.0, 11.0/12.0, 55.0/144.0, 11.0/36.0,
-            11.0/120.0, 1.0/60.0, 1.0
+            77.0 / 60.0,
+            11.0 / 12.0,
+            55.0 / 144.0,
+            11.0 / 36.0,
+            11.0 / 120.0,
+            1.0 / 60.0,
+            1.0,
         ];
-        
+
         let mut u = Matrix::identity(n);
         let mut v = Matrix::identity(n);
         let mut a = m.clone();
-        
+
         for i in 1..=6 {
             let coeff = b[6 - i];
             if i % 2 == 0 {
@@ -70,7 +75,7 @@ impl MatrixExponential {
             }
             a = a.mul(m)?;
         }
-        
+
         v.inverse()?.mul(&u)
     }
 
@@ -79,16 +84,16 @@ impl MatrixExponential {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let (vals, vecs) = m.eigen_symmetric()?;
         let n = m.rows;
-        
+
         // exp(D) where D is diagonal
         let mut exp_d = Matrix::zeros(n, n);
         for i in 0..n {
             exp_d.set(i, i, vals[i].exp());
         }
-        
+
         // exp(A) = V exp(D) V^T
         let v_exp_d = vecs.mul(&exp_d)?;
         v_exp_d.mul(&vecs.transpose())
@@ -104,12 +109,12 @@ impl MatrixLogarithm {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         // Check if matrix is close to identity
         let identity = Matrix::identity(m.rows);
         let diff = m.sub(&identity)?;
         let norm = crate::norms::MatrixNorms::linf(&diff);
-        
+
         if norm < 0.5 {
             // Use Taylor series for matrices close to I
             Self::taylor_series(m)
@@ -123,23 +128,23 @@ impl MatrixLogarithm {
     fn taylor_series(m: &Matrix) -> MathResult<Matrix> {
         let identity = Matrix::identity(m.rows);
         let x = m.sub(&identity)?;
-        
+
         let mut result = Matrix::zeros(m.rows, m.cols);
         let mut term = x.clone();
         let mut sign = 1.0;
-        
+
         for k in 1..=20 {
             let coeff = sign / f64::from(k);
             result = result.add(&term.scale(coeff))?;
             term = term.mul(&x)?;
             sign = -sign;
-            
+
             let term_norm = crate::norms::MatrixNorms::linf(&term);
             if term_norm < 1e-15 {
                 break;
             }
         }
-        
+
         Ok(result)
     }
 
@@ -148,23 +153,25 @@ impl MatrixLogarithm {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let (vals, vecs) = m.eigen_symmetric()?;
         let n = m.rows;
-        
+
         // Check for positive eigenvalues
         for &v in &vals {
             if v <= 0.0 {
-                return Err(MathError::InvalidArgument("matrix has non-positive eigenvalues"));
+                return Err(MathError::InvalidArgument(
+                    "matrix has non-positive eigenvalues",
+                ));
             }
         }
-        
+
         // sqrt(D) where D is diagonal
         let mut log_d = Matrix::zeros(n, n);
         for i in 0..n {
             log_d.set(i, i, vals[i].ln());
         }
-        
+
         // log(A) = V log(D) V^T
         let v_log_d = vecs.mul(&log_d)?;
         v_log_d.mul(&vecs.transpose())
@@ -180,30 +187,30 @@ impl MatrixSquareRoot {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = m.rows;
         let mut y = m.clone();
         let mut z = Matrix::identity(n);
-        
+
         for _ in 0..100 {
             let y_inv = y.inverse()?;
             let z_inv = z.inverse()?;
-            
+
             // Correct Denman-Beavers: Y_{k+1} = (Y_k + Z_k^{-1})/2, Z_{k+1} = (Z_k + Y_k^{-1})/2
             let y_next = y.add(&z_inv)?.scale(0.5);
             let z_next = z.add(&y_inv)?.scale(0.5);
-            
+
             let diff = y_next.sub(&y)?;
             let norm = crate::norms::MatrixNorms::linf(&diff);
-            
+
             y = y_next;
             z = z_next;
-            
+
             if norm < tolerance {
                 break;
             }
         }
-        
+
         Ok(y)
     }
 
@@ -212,23 +219,25 @@ impl MatrixSquareRoot {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let (vals, vecs) = m.eigen_symmetric()?;
         let n = m.rows;
-        
+
         // Check for positive eigenvalues
         for &v in &vals {
             if v < 0.0 {
-                return Err(MathError::InvalidArgument("matrix has negative eigenvalues"));
+                return Err(MathError::InvalidArgument(
+                    "matrix has negative eigenvalues",
+                ));
             }
         }
-        
+
         // sqrt(D) where D is diagonal
         let mut sqrt_d = Matrix::zeros(n, n);
         for i in 0..n {
             sqrt_d.set(i, i, vals[i].sqrt());
         }
-        
+
         // sqrt(A) = V sqrt(D) V^T
         let v_sqrt_d = vecs.mul(&sqrt_d)?;
         v_sqrt_d.mul(&vecs.transpose())
@@ -267,20 +276,20 @@ impl MatrixFunctions {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         if n == 0 {
             return Ok(Matrix::identity(m.rows));
         }
-        
+
         if n < 0 {
             let inv = m.inverse()?;
             return Self::power(&inv, -n);
         }
-        
+
         let mut result = Matrix::identity(m.rows);
         let mut base = m.clone();
         let mut exp = n;
-        
+
         while exp > 0 {
             if exp % 2 == 1 {
                 result = result.mul(&base)?;
@@ -288,7 +297,7 @@ impl MatrixFunctions {
             base = base.mul(&base)?;
             exp /= 2;
         }
-        
+
         Ok(result)
     }
 
@@ -297,25 +306,25 @@ impl MatrixFunctions {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let m_sq = m.mul(m)?;
         let mut result = m.clone(); // Start with A (first term)
-        let mut term = m.clone();   // Current term: A^{2k+1}
+        let mut term = m.clone(); // Current term: A^{2k+1}
         let mut sign = 1.0;
-        
+
         for k in 1..=20 {
             // Each iteration: multiply by A² to go from A^{2k-1} to A^{2k+1}
             term = term.mul(&m_sq)?;
             let coeff = -sign / Self::factorial((2 * k + 1) as u64);
             result = result.add(&term.scale(coeff))?;
             sign = -sign;
-            
+
             let term_norm = crate::norms::MatrixNorms::linf(&term);
             if term_norm < 1e-15 {
                 break;
             }
         }
-        
+
         Ok(result)
     }
 
@@ -324,26 +333,26 @@ impl MatrixFunctions {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let identity = Matrix::identity(m.rows);
         let m_sq = m.mul(m)?;
         let mut result = identity.clone(); // Start with I (first term)
-        let mut term = identity.clone();   // Current term: A^{2k}
+        let mut term = identity.clone(); // Current term: A^{2k}
         let mut sign = -1.0;
-        
+
         for k in 1..=20 {
             // Each iteration: multiply by A² to go from A^{2k-2} to A^{2k}
             term = term.mul(&m_sq)?;
             let coeff = sign / Self::factorial((2 * k) as u64);
             result = result.add(&term.scale(coeff))?;
             sign = -sign;
-            
+
             let term_norm = crate::norms::MatrixNorms::linf(&term);
             if term_norm < 1e-15 {
                 break;
             }
         }
-        
+
         Ok(result)
     }
 
@@ -396,7 +405,7 @@ mod tests {
         let m = Matrix::identity(2);
         let exp_m = MatrixExponential::compute(&m).unwrap();
         let e = core::f64::consts::E;
-        
+
         for i in 0..2 {
             for j in 0..2 {
                 let want = if i == j { e } else { 0.0 };
@@ -409,7 +418,7 @@ mod tests {
     fn test_matrix_sqrt_identity() {
         let m = Matrix::identity(3);
         let sqrt_m = MatrixSquareRoot::compute(&m, 1e-10).unwrap();
-        
+
         for i in 0..3 {
             for j in 0..3 {
                 let want = if i == j { 1.0 } else { 0.0 };
@@ -422,7 +431,7 @@ mod tests {
     fn test_matrix_power() {
         let m = Matrix::from_rows(&[&[2.0, 0.0], &[0.0, 3.0]]).unwrap();
         let m_squared = MatrixFunctions::power(&m, 2).unwrap();
-        
+
         assert!((m_squared.get(0, 0) - 4.0).abs() < 1e-10);
         assert!((m_squared.get(1, 1) - 9.0).abs() < 1e-10);
     }
@@ -431,7 +440,7 @@ mod tests {
     fn test_elementwise_abs() {
         let m = Matrix::from_rows(&[&[-1.0, 2.0], &[3.0, -4.0]]).unwrap();
         let abs_m = MatrixFunctions::abs(&m);
-        
+
         assert!((abs_m.get(0, 0) - 1.0).abs() < 1e-10);
         assert!((abs_m.get(1, 1) - 4.0).abs() < 1e-10);
     }

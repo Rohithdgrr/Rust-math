@@ -145,7 +145,7 @@ impl BaggingClassifier {
         Self {
             n_estimators,
             max_samples,
-            base_estimator: base_estimator.clone(),
+            base_estimator,
             trees: Vec::new(),
             knn_data: Vec::new(),
         }
@@ -188,7 +188,7 @@ impl BaggingClassifier {
         for (train_x, train_y) in &self.knn_data {
             let k = match &self.base_estimator {
                 BaggingBase::Knn { k } => *k,
-                _ => 3,
+                BaggingBase::DecisionTree => 3,
             };
             all_preds.push(knn_predict(train_x, train_y, x, k));
         }
@@ -573,7 +573,6 @@ impl StackingClassifier {
     }
 
     /// Predicts class labels using the stacked ensemble.
-    #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> MathResult<Vec<f64>> {
         let meta_features = self.get_meta_features(x);
         match self.meta_trained.as_ref() {

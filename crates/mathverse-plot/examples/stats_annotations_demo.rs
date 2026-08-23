@@ -7,8 +7,10 @@ use mathverse_plot::stats_annotate::{StatAnnotation, StatAnnotations, StatTest};
 fn main() {
     // Create a simple bracket annotation
     let bracket = StatAnnotation::bracket(
-        "Control", 0.0,
-        "Treatment", 1.0,
+        "Control",
+        0.0,
+        "Treatment",
+        1.0,
         1.5,
         StatTest::TTest { p_value: 0.003 },
     );
@@ -30,12 +32,22 @@ fn main() {
     let annotations = StatAnnotations::new()
         .with_alpha(0.05)
         .bracket("A", 0.0, "B", 1.0, 2.0, StatTest::TTest { p_value: 0.01 })
-        .bracket("B", 1.0, "C", 2.0, 2.5, StatTest::MannWhitney { p_value: 0.04 })
+        .bracket(
+            "B",
+            1.0,
+            "C",
+            2.0,
+            2.5,
+            StatTest::MannWhitney { p_value: 0.04 },
+        )
         .bracket("A", 0.0, "C", 2.0, 3.0, StatTest::TTest { p_value: 0.1 });
 
     println!("\nAnnotation collection:");
     println!("  Total annotations: {}", annotations.len());
-    println!("  Significant (p < 0.05): {}", annotations.significant_only().len());
+    println!(
+        "  Significant (p < 0.05): {}",
+        annotations.significant_only().len()
+    );
 
     // Render all annotations
     let all_svg = annotations.render_svg(0.0, 1.0);
@@ -46,13 +58,21 @@ fn main() {
         StatTest::TTest { p_value: 0.001 },
         StatTest::PairedTTest { p_value: 0.03 },
         StatTest::MannWhitney { p_value: 0.08 },
-        StatTest::Anova { f_statistic: 5.2, p_value: 0.005 },
+        StatTest::Anova {
+            f_statistic: 5.2,
+            p_value: 0.005,
+        },
         StatTest::ChiSquared { p_value: 0.0001 },
     ];
 
     println!("\nStatistical tests:");
     for test in &tests {
-        println!("  {}: p={}, stars={}", test.name(), test.format_p(), test.stars());
+        println!(
+            "  {}: p={}, stars={}",
+            test.name(),
+            test.format_p(),
+            test.stars()
+        );
     }
 
     println!("\nStatistical annotations example complete!");

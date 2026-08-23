@@ -413,11 +413,11 @@ mod tests {
         // Threshold = 0 should return 1.0
         let bound = MarkovInequality::bound(1.0, 0.0);
         assert_eq!(bound, 1.0);
-        
+
         // Negative threshold should return 1.0
         let bound = MarkovInequality::bound(1.0, -1.0);
         assert_eq!(bound, 1.0);
-        
+
         // Expected value = 0 should return 1.0 (or handle gracefully)
         let bound = MarkovInequality::bound(0.0, 1.0);
         assert!(bound <= 1.0);
@@ -428,7 +428,7 @@ mod tests {
         // k = 0 should return 1.0
         let bound = ChebyshevInequality::bound(1.0, 0.0);
         assert_eq!(bound, 1.0);
-        
+
         // Negative k should return 1.0
         let bound = ChebyshevInequality::bound(1.0, -1.0);
         assert_eq!(bound, 1.0);
@@ -439,7 +439,7 @@ mod tests {
         // epsilon = 0 should return 1.0
         let bound = HoeffdingInequality::bound(100, 1.0, 0.0);
         assert_eq!(bound, 1.0);
-        
+
         // Negative epsilon should return 1.0
         let bound = HoeffdingInequality::bound(100, 1.0, -0.1);
         assert_eq!(bound, 1.0);
@@ -458,7 +458,10 @@ mod tests {
 
         let bound = ChernoffBound::bernoulli_bound(0.5, 100, 2.0);
         assert!(bound > 0.0 && bound < 1.0);
-        assert!(ChernoffBound::bernoulli_bound(0.5, 100, 1.0) < 1e-3, "large delta gives tight bound");
+        assert!(
+            ChernoffBound::bernoulli_bound(0.5, 100, 1.0) < 1e-3,
+            "large delta gives tight bound"
+        );
     }
 
     #[test]
@@ -466,7 +469,7 @@ mod tests {
         // Empty probabilities
         let bound = UnionBound::bound(&[]);
         assert_eq!(bound, 0.0);
-        
+
         // Single probability
         let bound = UnionBound::bound(&[0.5]);
         assert!((bound - 0.5).abs() < 1e-10);

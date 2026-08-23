@@ -355,7 +355,11 @@ impl ComplexMatrix {
         // tolerance is purely *relative* to this scale, so matrices whose
         // entries are all tiny (e.g. 1e-20-scaled physics data) are not
         // falsely declared singular.
-        let global_scale = self.data.iter().map(super::Complex::norm).fold(0.0, f64::max);
+        let global_scale = self
+            .data
+            .iter()
+            .map(super::Complex::norm)
+            .fold(0.0, f64::max);
         let pivot_tol = 1e-15 * global_scale;
 
         for k in 0..n {
@@ -537,7 +541,11 @@ impl ComplexMatrix {
 
     /// Frobenius norm.
     pub fn frobenius_norm(&self) -> f64 {
-        self.data.iter().map(super::Complex::norm_sq).sum::<f64>().sqrt()
+        self.data
+            .iter()
+            .map(super::Complex::norm_sq)
+            .sum::<f64>()
+            .sqrt()
     }
 
     /// Frobenius norm (alias for [`frobenius_norm`](Self::frobenius_norm)).
@@ -865,8 +873,7 @@ impl ComplexMatrix {
                     .fold(Complex::zero(), |acc, x| acc + x);
                 let scaled_dot = scale * dot;
                 for i in 0..v.len() {
-                    a.data[(k + 1 + i) * n + j] =
-                        a.data[(k + 1 + i) * n + j] - v[i] * scaled_dot;
+                    a.data[(k + 1 + i) * n + j] = a.data[(k + 1 + i) * n + j] - v[i] * scaled_dot;
                 }
             }
 
@@ -938,7 +945,8 @@ impl ComplexMatrix {
 
         for (k, &lambda) in eigenvals.iter().enumerate() {
             // Shift away from exact eigenvalue so the matrix is non-singular
-            let shifted = self.sub(&ComplexMatrix::identity(n).scale(lambda + Complex::real(1e-8)))?;
+            let shifted =
+                self.sub(&ComplexMatrix::identity(n).scale(lambda + Complex::real(1e-8)))?;
             let mut x = ComplexMatrix::new(n, 1);
             x.set(0, 0, Complex::one());
             for _ in 0..30 {
@@ -959,7 +967,9 @@ impl ComplexMatrix {
                             max_row = row;
                         }
                     }
-                    if max_val < 1e-15 { break; }
+                    if max_val < 1e-15 {
+                        break;
+                    }
                     if max_row != col {
                         for c in col..=n {
                             let tmp = aug.get(col, c);
@@ -998,15 +1008,27 @@ impl ComplexMatrix {
     }
 
     /// Singular Value Decomposition. Returns (U, S, Vh) where A = U diag(S) Vh.
-    pub fn svd(&self, max_iterations: usize, tolerance: f64) -> MathResult<(ComplexMatrix, Vec<f64>, ComplexMatrix)> {
+    pub fn svd(
+        &self,
+        max_iterations: usize,
+        tolerance: f64,
+    ) -> MathResult<(ComplexMatrix, Vec<f64>, ComplexMatrix)> {
         let m = self.rows;
         let n = self.cols;
         if m == 0 || n == 0 {
-            return Ok((ComplexMatrix::new(m, m), Vec::new(), ComplexMatrix::new(n, n)));
+            return Ok((
+                ComplexMatrix::new(m, m),
+                Vec::new(),
+                ComplexMatrix::new(n, n),
+            ));
         }
         let (u, b, vh) = self.householder_bidiagonalize();
         let mut d: Vec<f64> = (0..n).map(|i| b.get(i, i).re.abs()).collect();
-        let mut e: Vec<f64> = if n > 1 { (0..n - 1).map(|i| b.get(i, i + 1).re.abs()).collect() } else { vec![] };
+        let mut e: Vec<f64> = if n > 1 {
+            (0..n - 1).map(|i| b.get(i, i + 1).re.abs()).collect()
+        } else {
+            vec![]
+        };
 
         for _ in 0..max_iterations {
             let mut converged = true;
@@ -1015,11 +1037,14 @@ impl ComplexMatrix {
                     converged = false;
                 }
             }
-            if converged { break; }
+            if converged {
+                break;
+            }
             let mut shift = 0.0;
             for i in (0..n - 1).rev() {
                 if e[i].abs() > tolerance {
-                    shift = (d[i + 1] * d[i + 1] - d[i] * d[i] + e[i] * e[i]) / (2.0 * e[i] * d[i + 1]);
+                    shift =
+                        (d[i + 1] * d[i + 1] - d[i] * d[i] + e[i] * e[i]) / (2.0 * e[i] * d[i + 1]);
                     break;
                 }
             }
@@ -1028,8 +1053,14 @@ impl ComplexMatrix {
                 let h = d[i + 1];
                 let y = ((d[i] + shift) * (d[i] + shift) + f * f).sqrt();
                 let z = (h * h + f * f).sqrt();
-                if y > 1e-15 { d[i] = y; }
-                if z > 1e-15 { e[i] = z; } else { e[i] = 0.0; }
+                if y > 1e-15 {
+                    d[i] = y;
+                }
+                if z > 1e-15 {
+                    e[i] = z;
+                } else {
+                    e[i] = 0.0;
+                }
             }
         }
 
@@ -1057,9 +1088,8 @@ impl ComplexMatrix {
             // Left Householder
             if i < m {
                 let x: Vec<Complex> = (i..m).map(|row| b.get(row, i)).collect();
-                let alpha = Complex::real(-(if x[0].re >= 0.0 { 1.0 } else { -1.0 })) * Complex::real(
-                    x.iter().map(super::Complex::norm_sq).sum::<f64>().sqrt()
-                );
+                let alpha = Complex::real(-(if x[0].re >= 0.0 { 1.0 } else { -1.0 }))
+                    * Complex::real(x.iter().map(super::Complex::norm_sq).sum::<f64>().sqrt());
                 let v0 = x[0] - alpha;
                 if v0.norm() > 1e-15 {
                     let w = x.iter().map(super::Complex::norm_sq).sum::<f64>().sqrt();
@@ -1068,7 +1098,8 @@ impl ComplexMatrix {
                         for col in 0..n {
                             let old = b.get(j, col);
                             let vj = if j == i { v0 } else { x[j - i] };
-                            let factor = Complex::real(2.0) * vj * v0.conjugate() / Complex::real(w * w);
+                            let factor =
+                                Complex::real(2.0) * vj * v0.conjugate() / Complex::real(w * w);
                             b.set(j, col, old - factor * b.get(i, col));
                         }
                     }
@@ -1076,7 +1107,8 @@ impl ComplexMatrix {
                         let mut sum = Complex::zero();
                         for row in i..m {
                             let vj = if row == i { v0 } else { x[row - i] };
-                            let factor = Complex::real(2.0) * vj * v0.conjugate() / Complex::real(w * w);
+                            let factor =
+                                Complex::real(2.0) * vj * v0.conjugate() / Complex::real(w * w);
                             sum = sum + factor.conjugate() * u.get(col, row);
                         }
                         u.set(col, i, u.get(col, i) - sum);
@@ -1086,9 +1118,8 @@ impl ComplexMatrix {
             // Right Householder
             if i < n - 1 {
                 let x: Vec<Complex> = (i..n).map(|col| b.get(i, col)).collect();
-                let alpha = Complex::real(-(if x[0].re >= 0.0 { 1.0 } else { -1.0 })) * Complex::real(
-                    x.iter().map(super::Complex::norm_sq).sum::<f64>().sqrt()
-                );
+                let alpha = Complex::real(-(if x[0].re >= 0.0 { 1.0 } else { -1.0 }))
+                    * Complex::real(x.iter().map(super::Complex::norm_sq).sum::<f64>().sqrt());
                 let v0 = x[0] - alpha;
                 if v0.norm() > 1e-15 {
                     let w = x.iter().map(super::Complex::norm_sq).sum::<f64>().sqrt();
@@ -1097,7 +1128,8 @@ impl ComplexMatrix {
                         for row in 0..m {
                             let old = b.get(row, col);
                             let vj = if col == i { v0 } else { x[col - i] };
-                            let factor = Complex::real(2.0) * v0.conjugate() * vj / Complex::real(w * w);
+                            let factor =
+                                Complex::real(2.0) * v0.conjugate() * vj / Complex::real(w * w);
                             b.set(row, col, old - factor * b.get(row, i));
                         }
                     }
@@ -1105,7 +1137,8 @@ impl ComplexMatrix {
                         let mut sum = Complex::zero();
                         for col in i..n {
                             let vj = if col == i { v0 } else { x[col - i] };
-                            let factor = Complex::real(2.0) * v0.conjugate() * vj / Complex::real(w * w);
+                            let factor =
+                                Complex::real(2.0) * v0.conjugate() * vj / Complex::real(w * w);
                             sum = sum + v.get(row, col) * factor;
                         }
                         v.set(row, i, v.get(row, i) - sum);
@@ -1163,7 +1196,7 @@ impl From<ndarray::Array2<Complex>> for ComplexMatrix {
 
 /// `scipy.linalg`-style convenience wrappers around [`ComplexMatrix`].
 pub mod linalg {
-    use super::{ComplexMatrix, MathResult, MathError, Complex};
+    use super::{Complex, ComplexMatrix, MathError, MathResult};
 
     /// `scipy.linalg.expm` equivalent: matrix exponential.
     pub fn expm(a: &ComplexMatrix) -> ComplexMatrix {

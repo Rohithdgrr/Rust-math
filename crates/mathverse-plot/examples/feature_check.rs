@@ -5,18 +5,20 @@
 //! Run with: `cargo run --all-features --example feature_check`
 
 use mathverse_plot::backend::PlotData;
-use mathverse_plot::patches::{LineCollection, Patch, Path};
-use mathverse_plot::style::Color;
-use mathverse_plot::transforms::Position;
 use mathverse_plot::imshow::Interpolation;
+use mathverse_plot::patches::{LineCollection, Patch, Path};
 use mathverse_plot::plt::Axes;
-use mathverse_plot::{
-    PlotConfig, render_interactive_html, InteractiveConfig, ImageData, mathtext, ticks, color,
-};
-use mathverse_plot::webgl_3d::{Point3D, SurfaceMesh, WebGL3D, WebGL3DConfig, render_surface_html};
-#[cfg(feature = "png")]
-use mathverse_plot::{AnimationConfig, assemble_animated_svg, encode_frames_to_gif, generate_frames};
+use mathverse_plot::style::Color;
 use mathverse_plot::ticks::{TickFormatter, TickLocator};
+use mathverse_plot::transforms::Position;
+use mathverse_plot::webgl_3d::{render_surface_html, Point3D, SurfaceMesh, WebGL3D, WebGL3DConfig};
+#[cfg(feature = "png")]
+use mathverse_plot::{
+    assemble_animated_svg, encode_frames_to_gif, generate_frames, AnimationConfig,
+};
+use mathverse_plot::{
+    color, mathtext, render_interactive_html, ticks, ImageData, InteractiveConfig, PlotConfig,
+};
 
 #[allow(clippy::too_many_lines)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -32,8 +34,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let p_data = Position::data(5.0, 5.0).to_pixel(&x_px, &y_px, rect, fig);
     let p_ax = Position::AxesFraction(0.5, 0.5).to_pixel(&x_px, &y_px, rect, fig);
     let p_fig = Position::FigureFraction(0.5, 0.5).to_pixel(&x_px, &y_px, rect, fig);
-    let p_blend = Position::BlendAxesXDataY { x_frac: 0.5, y_data: 5.0 }
-        .to_pixel(&x_px, &y_px, rect, fig);
+    let p_blend = Position::BlendAxesXDataY {
+        x_frac: 0.5,
+        y_data: 5.0,
+    }
+    .to_pixel(&x_px, &y_px, rect, fig);
     assert!((p_data.0 - 260.0).abs() < 1e-9, "data x: {}", p_data.0);
     assert!((p_data.1 - 170.0).abs() < 1e-9, "data y: {}", p_data.1);
     assert!((p_ax.0 - 260.0).abs() < 1e-9 && (p_ax.1 - 170.0).abs() < 1e-9);
@@ -48,7 +53,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mx = ticks::MaxNLocator::new();
     let ticks_mx = mx.locate(0.0, 1000.0, 10);
     // Soft target: ~10 intervals means up to 11 positions (0..1000 step 100).
-    assert!(ticks_mx.len() <= 11 && !ticks_mx.is_empty(), "max-n locator count");
+    assert!(
+        ticks_mx.len() <= 11 && !ticks_mx.is_empty(),
+        "max-n locator count"
+    );
     let fixed = ticks::FixedLocator::new(vec![0.0, 1.0, 3.0]).locate(-1.0, 4.0, 10);
     assert_eq!(fixed.len(), 3);
     let f = ticks::FuncFormatter::new(|v| format!("{v:.1} V"));
@@ -59,7 +67,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("[3] ticks: multi={ticks_050:?} maxn={ticks_mx:?} fixed={fixed:?} func={fmt} nice={nice:?} OK");
 
     // ---- #4 Colormap construction + norms ----
-    let cmap = color::LinearSegmentedColormap::from_list_rgb(&[(0.0, (0, 0, 0)), (1.0, (255, 255, 255))]);
+    let cmap =
+        color::LinearSegmentedColormap::from_list_rgb(&[(0.0, (0, 0, 0)), (1.0, (255, 255, 255))]);
     let c0 = cmap.map(0.0);
     let c1 = cmap.map(1.0);
     assert_eq!(c0, Color::rgb(0, 0, 0));
@@ -67,11 +76,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mid = color::normalize(&[-5.0, 0.0, 5.0], color::Normalization::Linear);
     assert_eq!(mid, vec![0.0, 0.5, 1.0]);
     let two = color::normalize_two_slope(&[-10.0, 0.0, 10.0], -10.0, 0.0, 10.0);
-    assert!((two[0] - 0.0).abs() < 1e-12 && (two[1] - 0.5).abs() < 1e-12 && (two[2] - 1.0).abs() < 1e-12);
+    assert!(
+        (two[0] - 0.0).abs() < 1e-12
+            && (two[1] - 0.5).abs() < 1e-12
+            && (two[2] - 1.0).abs() < 1e-12
+    );
     // BoundaryNorm: each bin maps to the center of its color segment -> [1/6, 0.5, 5/6].
     let bnd = color::normalize_boundary(&[0.5, 1.5, 2.5], &[0.0, 1.0, 2.0, 3.0]);
-    assert!((bnd[0] - 1.0 / 6.0).abs() < 1e-9 && (bnd[1] - 0.5).abs() < 1e-9 && (bnd[2] - 5.0 / 6.0).abs() < 1e-9);
-    let vals = color::color_by_value(&[-1.0, 0.0, 1.0], color::Normalization::Linear, color::viridis);
+    assert!(
+        (bnd[0] - 1.0 / 6.0).abs() < 1e-9
+            && (bnd[1] - 0.5).abs() < 1e-9
+            && (bnd[2] - 5.0 / 6.0).abs() < 1e-9
+    );
+    let vals = color::color_by_value(
+        &[-1.0, 0.0, 1.0],
+        color::Normalization::Linear,
+        color::viridis,
+    );
     assert_eq!(vals.len(), 3);
     println!("[4] colormaps+norms: stops {c0:?}..{c1:?} mid={mid:?} two-slope={two:?} boundary={bnd:?} OK");
 
@@ -99,20 +120,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rs = img.resample(8, 8);
     assert_eq!(rs.len(), 8);
     assert_eq!(rs[0].len(), 8);
-    println!("[5] imshow: {}x{} grid -> {} cells, resample 8x8 OK", n, n, cells.len());
+    println!(
+        "[5] imshow: {}x{} grid -> {} cells, resample 8x8 OK",
+        n,
+        n,
+        cells.len()
+    );
 
     // ---- #6 Paths / patches / collections ----
-    let tri = Patch::filled(Path::polygon(&[(0.0, 0.0), (1.0, 0.0), (0.5, 1.0)]), Color::rgb(200, 80, 80));
+    let tri = Patch::filled(
+        Path::polygon(&[(0.0, 0.0), (1.0, 0.0), (0.5, 1.0)]),
+        Color::rgb(200, 80, 80),
+    );
     let rect_p = Patch::rectangle(2.0, 2.0, 1.0, 0.5).with_opacity(0.5);
     let circ = Patch::circle(5.0, 5.0, 0.4).with_stroke(Color::BLUE);
     let segs = LineCollection::from_xy(
-        &[0.0, 1.0, 2.0], &[0.0, 1.0, 4.0],
-        &[1.0, 2.0, 3.0], &[1.0, 4.0, 9.0],
-        Color::GREEN, 1.0,
+        &[0.0, 1.0, 2.0],
+        &[0.0, 1.0, 4.0],
+        &[1.0, 2.0, 3.0],
+        &[1.0, 4.0, 9.0],
+        Color::GREEN,
+        1.0,
     );
     assert_eq!(segs.segments.len(), 3);
-    println!("[6] patches: triangle={} rect={} circle={} line-collection={} OK",
-        tri.path.points().len(), rect_p.path.points().len(), circ.path.points().len(), segs.segments.len());
+    println!(
+        "[6] patches: triangle={} rect={} circle={} line-collection={} OK",
+        tri.path.points().len(),
+        rect_p.path.points().len(),
+        circ.path.points().len(),
+        segs.segments.len()
+    );
 
     // ---- #1 mathtext ----
     let math = mathtext::render(r"E = $mc^2$ and $\alpha \leq \infty$");
@@ -143,9 +180,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let svg = ax.render();
     assert!(svg.contains("<svg"), "svg root");
     assert!(svg.contains("E = mc"), "mathtext in title");
-    assert!(svg.contains('\u{03B1}') || svg.contains("alpha"), "greek in title");
-    assert!(svg.contains("polygon") || svg.contains("<path"), "patch rendered");
-    assert!(svg.contains("polyline") || svg.contains("<path"), "line collection rendered");
+    assert!(
+        svg.contains('\u{03B1}') || svg.contains("alpha"),
+        "greek in title"
+    );
+    assert!(
+        svg.contains("polygon") || svg.contains("<path"),
+        "patch rendered"
+    );
+    assert!(
+        svg.contains("polyline") || svg.contains("<path"),
+        "line collection rendered"
+    );
     println!("[plt] combined SVG: {} bytes", svg.len());
     std::fs::write(out_dir.join("all_features.svg"), &svg)?;
 
@@ -155,7 +201,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let png = mathverse_plot::save::PlotSaver::new(&svg)
             .with_quality(92)
             .raster_bytes(mathverse_plot::save::OutputFormat::Png, 144, 1.0)?;
-        assert_eq!(&png[..8], &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A], "PNG magic");
+        assert_eq!(
+            &png[..8],
+            &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A],
+            "PNG magic"
+        );
         std::fs::write(out_dir.join("all_features.png"), &png)?;
         println!("[plt] PNG: {} bytes (144 dpi) OK", png.len());
     }
@@ -173,13 +223,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let html = render_interactive_html(
         &idata,
         &InteractiveConfig::new().with_on_point_click(
-            "console.log('clicked', pt.series, pt.x, pt.y); alert('point: ' + pt.x + ', ' + pt.y);"
+            "console.log('clicked', pt.series, pt.x, pt.y); alert('point: ' + pt.x + ', ' + pt.y);",
         ),
     )?;
-    assert!(html.contains("addEventListener('click'"), "click handler wired");
+    assert!(
+        html.contains("addEventListener('click'"),
+        "click handler wired"
+    );
     assert!(html.contains("pt.series"), "click handler payload");
     std::fs::write(out_dir.join("interactive.html"), &html)?;
-    println!("[2] interactive html: {} bytes, click handler OK", html.len());
+    println!(
+        "[2] interactive html: {} bytes, click handler OK",
+        html.len()
+    );
 
     // ---- #7 GIF animation (real frames, rasterized through resvg) ----
     #[cfg(feature = "png")]
@@ -214,8 +270,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         assert!(gif_bytes.len() > 100, "gif non-trivial");
         assert_eq!(&gif_bytes[..6], b"GIF89a", "gif magic");
         std::fs::write(out_dir.join("animation.gif"), &gif_bytes)?;
-        println!("[7] gif: {} frames -> {} bytes, animated svg {} bytes OK",
-            frames.len(), gif_bytes.len(), animated_svg.len());
+        println!(
+            "[7] gif: {} frames -> {} bytes, animated svg {} bytes OK",
+            frames.len(),
+            gif_bytes.len(),
+            animated_svg.len()
+        );
     }
 
     // ---- #9 3D surface mesh ----
@@ -249,14 +309,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     let scatter3d = WebGL3D::new(pts).render_html();
     assert!(scatter3d.contains("canvas"));
-    println!("[9] 3d: {} triangles, {} wire segments, surface.html {} bytes, scatter OK",
-        tris.len(), wires.len(), html3d.len());
+    println!(
+        "[9] 3d: {} triangles, {} wire segments, surface.html {} bytes, scatter OK",
+        tris.len(),
+        wires.len(),
+        html3d.len()
+    );
 
     // ---- Output file manifest ----
     let mut entries: Vec<String> = Vec::new();
     for e in std::fs::read_dir(out_dir)? {
         let e = e?;
-        entries.push(format!("  {} ({} bytes)", e.file_name().to_string_lossy(), e.metadata()?.len()));
+        entries.push(format!(
+            "  {} ({} bytes)",
+            e.file_name().to_string_lossy(),
+            e.metadata()?.len()
+        ));
     }
     entries.sort();
     println!("== files written ==");

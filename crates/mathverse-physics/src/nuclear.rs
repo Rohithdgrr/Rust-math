@@ -1,7 +1,5 @@
 //! Nuclear physics: radioactive decay and the semi-empirical mass formula.
 
-
-
 /// Radioactive decay: N(t) = N₀ · exp(−λ · t).
 ///
 /// `half_life` in seconds. Returns the fraction of nuclei remaining after
@@ -98,7 +96,11 @@ mod tests {
     #[test]
     fn test_decay_constant() {
         assert_relative_eq!(decay_constant(std::f64::consts::LN_2), 1.0, epsilon = 1e-15);
-        assert_relative_eq!(half_life(1.0).unwrap(), std::f64::consts::LN_2, epsilon = 1e-15);
+        assert_relative_eq!(
+            half_life(1.0).unwrap(),
+            std::f64::consts::LN_2,
+            epsilon = 1e-15
+        );
         assert!(half_life(0.0).is_none());
     }
 

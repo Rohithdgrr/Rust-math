@@ -18,17 +18,19 @@
 //!
 //! Output images are written to `output/`.
 
-use mathverse_vision::contours::{approx_poly_dp, bounding_rect, contour_area, convex_hull, find_contours};
+use mathverse_vision::contours::{
+    approx_poly_dp, bounding_rect, contour_area, convex_hull, find_contours,
+};
 use mathverse_vision::drawing::{fill_rect, put_text, rectangle};
 use mathverse_vision::filters::{bilateral_filter, box_filter, median_blur};
 use mathverse_vision::io::{imread, imwrite, imwrite_color};
 use mathverse_vision::morphology::{closing, dilate, erode, kernel_rect, opening};
-use mathverse_vision::ops::{canny, histogram_equalize, histogram, normalize_minmax, sobel};
+use mathverse_vision::ops::{canny, histogram, histogram_equalize, normalize_minmax, sobel};
 use mathverse_vision::template::{match_template, MatchMethod};
 use mathverse_vision::threshold::{binary, otsu};
 use mathverse_vision::transform::{flip, pyr_down, rotate, warp_perspective};
 use mathverse_vision::utils::min_max;
-use mathverse_vision::{Image, arithmetic::add_weighted, color::rgb_to_hsv};
+use mathverse_vision::{arithmetic::add_weighted, color::rgb_to_hsv, Image};
 
 fn main() -> Result<(), String> {
     std::fs::create_dir_all("output").map_err(|e| format!("create output dir: {e}"))?;
@@ -45,7 +47,10 @@ fn main() -> Result<(), String> {
     let img = synthetic_image(96, 96);
     imwrite("output/01_synthetic.png", &img)?;
     let img = imread("output/01_synthetic.png")?;
-    println!("01. create + save + load (io::imwrite/imread): {}x{}", img.w, img.h);
+    println!(
+        "01. create + save + load (io::imwrite/imread): {}x{}",
+        img.w, img.h
+    );
 
     // --- 2. Color conversions -------------------------------------------
     let rgb = mathverse_vision::color::gray_to_rgb(&img);
@@ -122,7 +127,13 @@ fn main() -> Result<(), String> {
     let (_, best_val, _, best_loc) = min_max(&res);
     println!("09. match_template (CCOEFF_NORMED): best={best_loc:?} score={best_val:.3}");
     let mut matched = img.clone();
-    rectangle(&mut matched, (best_loc.0, best_loc.1), (best_loc.0 + 19, best_loc.1 + 19), 0.0, 2);
+    rectangle(
+        &mut matched,
+        (best_loc.0, best_loc.1),
+        (best_loc.0 + 19, best_loc.1 + 19),
+        0.0,
+        2,
+    );
     done("match_template", &matched)?;
 
     // --- 10. Histogram equalization -------------------------------------------

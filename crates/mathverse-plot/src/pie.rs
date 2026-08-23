@@ -188,16 +188,22 @@ pub fn render_pie_chart(slices: &[PieSlice], config: &PieConfig) -> PlotResult<S
 
     // Shadow effect
     if config.shadow {
-        svg.push_str(r#"  <defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+        svg.push_str(
+            r#"  <defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="3" dy="3" stdDeviation="3" flood-opacity="0.3"/>
-    </filter></defs>"#);
+    </filter></defs>"#,
+        );
         svg.push('\n');
     }
 
     // Sort slices if requested
     let mut slices: Vec<&PieSlice> = slices.iter().collect();
     if config.sort_slices {
-        slices.sort_by(|a, b| b.value.partial_cmp(&a.value).unwrap_or(std::cmp::Ordering::Equal));
+        slices.sort_by(|a, b| {
+            b.value
+                .partial_cmp(&a.value)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
     }
 
     // Draw slices

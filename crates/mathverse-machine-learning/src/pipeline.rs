@@ -603,7 +603,6 @@ fn predict_model(model: &ModelFitted, x: &[Vec<f64>]) -> Vec<f64> {
 }
 
 /// Serializes a pipeline to a file using Debug format.
-#[must_use]
 pub fn save_pipeline(pipeline: &Pipeline, path: &str) -> std::io::Result<()> {
     let serialized = format!("{pipeline:?}");
     let mut file = fs::File::create(path)?;
@@ -612,7 +611,6 @@ pub fn save_pipeline(pipeline: &Pipeline, path: &str) -> std::io::Result<()> {
 }
 
 /// Loads a pipeline from a file (not yet implemented).
-#[must_use]
 pub fn load_pipeline(path: &str) -> std::io::Result<Pipeline> {
     let mut file = fs::File::open(path)?;
     let mut contents = String::new();

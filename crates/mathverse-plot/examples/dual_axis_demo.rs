@@ -2,8 +2,8 @@
 //!
 //! Demonstrates how to use dual y-axes and broken axes for plots.
 
-use mathverse_plot::dual_axis::{AxisBreak, AxisBuilder, BreakStyle, DualYAxis};
 use mathverse_plot::axis_config::AxisConfig;
+use mathverse_plot::dual_axis::{AxisBreak, AxisBuilder, BreakStyle, DualYAxis};
 use mathverse_plot::style::Color;
 
 fn main() {
@@ -33,14 +33,25 @@ fn main() {
     let broken = AxisBuilder::broken_y(10.0, 20.0);
 
     println!("\nBroken axis:");
-    println!("  Break range: {} - {}", broken.breaks[0].start, broken.breaks[0].end);
+    println!(
+        "  Break range: {} - {}",
+        broken.breaks[0].start, broken.breaks[0].end
+    );
     println!("  Gap size: {} px", broken.breaks[0].gap_px);
     println!("  Style: {:?}", broken.breaks[0].style);
 
     // Test if values are in break
     let test_values = vec![5.0, 15.0, 25.0];
     for val in &test_values {
-        println!("  Value {}: {} in break", val, if broken.in_break(*val) { "is" } else { "is not" });
+        println!(
+            "  Value {}: {} in break",
+            val,
+            if broken.in_break(*val) {
+                "is"
+            } else {
+                "is not"
+            }
+        );
     }
 
     // Render break marks
@@ -48,8 +59,8 @@ fn main() {
     println!("\nBreak SVG ({} bytes):", break_svg.len());
 
     // Create a more complex broken axis with multiple breaks
-    let multi_break = AxisBuilder::broken_x(10.0, 20.0)
-        .with_break(AxisBreak::new(50.0, 60.0).with_gap_px(20.0));
+    let multi_break =
+        AxisBuilder::broken_x(10.0, 20.0).with_break(AxisBreak::new(50.0, 60.0).with_gap_px(20.0));
 
     println!("\nMultiple breaks:");
     println!("  Number of breaks: {}", multi_break.breaks.len());

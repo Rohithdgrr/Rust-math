@@ -55,12 +55,11 @@ pub fn det_2x2(m: &[f64]) -> f64 {
 /// ```
 #[must_use]
 pub fn det_3x3(m: &[f64]) -> f64 {
-    m[0] * (m[4] * m[8] - m[5] * m[7])
-        - m[1] * (m[3] * m[8] - m[5] * m[6])
+    m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6])
         + m[2] * (m[3] * m[7] - m[4] * m[6])
 }
 
-/// 2×2 inverse via adjugate, returning [`Err(MathError::Singular)`] if `det ≈ 0`.
+/// 2×2 inverse via adjugate, returning ``Err(MathError::Singular)`` if `det ≈ 0`.
 ///
 /// # Errors
 ///
@@ -84,7 +83,7 @@ pub fn inverse_2x2(m: &[f64]) -> Result<[f64; 4], MathError> {
 
 /// 3×3 inverse using the classical adjoint method.
 ///
-/// Returns [`Err(MathError::Singular)`] if `det ≈ 0`.
+/// Returns ``Err(MathError::Singular)`` if `det ≈ 0`.
 ///
 /// # Errors
 ///
@@ -323,11 +322,7 @@ pub fn cofactor_matrix_3x3(m: &[f64]) -> [f64; 9] {
 pub fn adjugate_3x3(m: &[f64]) -> [f64; 9] {
     let c = cofactor_matrix_3x3(m);
     // transpose
-    [
-        c[0], c[3], c[6],
-        c[1], c[4], c[7],
-        c[2], c[5], c[8],
-    ]
+    [c[0], c[3], c[6], c[1], c[4], c[7], c[2], c[5], c[8]]
 }
 
 /// Multiply two 3×3 matrices.
@@ -431,9 +426,15 @@ pub fn matrix_minus_lambda_2x2(m: &[f64], lambda: f64) -> [f64; 4] {
 #[must_use]
 pub fn matrix_minus_lambda_3x3(m: &[f64], lambda: f64) -> [f64; 9] {
     [
-        m[0] - lambda, m[1], m[2],
-        m[3], m[4] - lambda, m[5],
-        m[6], m[7], m[8] - lambda,
+        m[0] - lambda,
+        m[1],
+        m[2],
+        m[3],
+        m[4] - lambda,
+        m[5],
+        m[6],
+        m[7],
+        m[8] - lambda,
     ]
 }
 
@@ -545,7 +546,10 @@ mod tests {
     #[test]
     fn trace_test() {
         assert_eq!(trace_2x2(&[1.0, 2.0, 3.0, 4.0]), 5.0);
-        assert_eq!(trace_3x3(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]), 15.0);
+        assert_eq!(
+            trace_3x3(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
+            15.0
+        );
     }
 
     #[test]

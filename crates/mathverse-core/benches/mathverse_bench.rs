@@ -10,9 +10,7 @@ fn bench_gcd(c: &mut Criterion) {
         b.iter(|| mathverse_core::algorithms::gcd(black_box(48), black_box(18)));
     });
     c.bench_function("gcd(123456, 789012)", |b| {
-        b.iter(|| {
-            mathverse_core::algorithms::gcd(black_box(123_456), black_box(789_012))
-        });
+        b.iter(|| mathverse_core::algorithms::gcd(black_box(123_456), black_box(789_012)));
     });
 }
 
@@ -42,17 +40,13 @@ fn bench_is_prime(c: &mut Criterion) {
         b.iter(|| mathverse_core::algorithms::is_prime(black_box(997)));
     });
     c.bench_function("is_prime_miller_rabin(997, 10)", |b| {
-        b.iter(|| {
-            mathverse_core::algorithms::is_prime_miller_rabin(black_box(997), black_box(10))
-        });
+        b.iter(|| mathverse_core::algorithms::is_prime_miller_rabin(black_box(997), black_box(10)));
     });
 }
 
 fn bench_ops(c: &mut Criterion) {
     c.bench_function("lerp(0, 100, 0.5)", |b| {
-        b.iter(|| {
-            mathverse_core::ops::lerp(black_box(0.0_f64), black_box(100.0), black_box(0.5))
-        });
+        b.iter(|| mathverse_core::ops::lerp(black_box(0.0_f64), black_box(100.0), black_box(0.5)));
     });
     c.bench_function("smoothstep(0.5)", |b| {
         b.iter(|| mathverse_core::ops::smoothstep(black_box(0.5_f64)));
@@ -62,9 +56,7 @@ fn bench_ops(c: &mut Criterion) {
     });
     c.bench_function("normalize([3,4,5,6,7,8,9,10])", |b| {
         b.iter(|| {
-            mathverse_core::ops::normalize(black_box(&[
-                3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0,
-            ]))
+            mathverse_core::ops::normalize(black_box(&[3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]))
         });
     });
 }
@@ -113,4 +105,3 @@ criterion_group!(
     bench_combinatorics,
 );
 criterion_main!(benches);
-

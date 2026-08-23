@@ -191,7 +191,11 @@ impl ChiSquaredTest {
             }
         }
 
-        let df = if observed.is_empty() { 0 } else { observed.len() - 1 };
+        let df = if observed.is_empty() {
+            0
+        } else {
+            observed.len() - 1
+        };
         let p_value = Self::p_value(chi_sq, df);
 
         TestResult::new(chi_sq, p_value, 0.05)
@@ -663,7 +667,7 @@ mod tests {
         // Test with very small sample size - null is NOT rejected
         let result = ZTest::one_sample(5.0, 4.0, 1.0, 2, AlternativeHypothesis::Greater);
         assert!(!result.reject_null);
-        
+
         // Test with large sample size - null IS rejected
         let result = ZTest::one_sample(5.0, 4.0, 1.0, 10000, AlternativeHypothesis::Greater);
         assert!(result.reject_null);
@@ -674,7 +678,7 @@ mod tests {
         // Small sample size
         let result = TTest::one_sample(5.0, 1.0, 4.0, 3, AlternativeHypothesis::TwoSided);
         assert!(result.test_statistic > 0.0);
-        
+
         // Large sample size
         let result = TTest::one_sample(5.0, 1.0, 4.0, 1000, AlternativeHypothesis::TwoSided);
         assert!(result.test_statistic > 0.0);
@@ -701,7 +705,7 @@ mod tests {
         // Very high effect size
         let power = PowerAnalysis::calculate_power(10.0, 100, 0.05, TestType::ZTest);
         assert!(power > 0.99);
-        
+
         // Very low effect size
         let power = PowerAnalysis::calculate_power(0.1, 100, 0.05, TestType::ZTest);
         assert!(power > 0.0 && power < 0.5);
@@ -728,7 +732,7 @@ mod tests {
         let p_values = vec![0.01];
         let rejected = MultipleTesting::bonferroni(&p_values, 0.05);
         assert_eq!(rejected.len(), 1);
-        
+
         // All p-values same
         let p_values = vec![0.05; 10];
         let rejected = MultipleTesting::bonferroni(&p_values, 0.05);

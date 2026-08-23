@@ -100,7 +100,9 @@ pub fn find_contours(img: &Image, connectivity: usize) -> Vec<Vec<(usize, usize)
 }
 
 fn dir_index(dx: i64, dy: i64) -> usize {
-    DIRS.iter().position(|&(x, y)| x == dx && y == dy).unwrap_or(0)
+    DIRS.iter()
+        .position(|&(x, y)| x == dx && y == dy)
+        .unwrap_or(0)
 }
 
 /// Computes the area of a contour using the shoelace formula.
@@ -193,14 +195,51 @@ pub fn convex_hull(contour: &[(usize, usize)]) -> Vec<(usize, usize)> {
     lower.pop();
     upper.pop();
     lower.extend(upper);
-    lower.into_iter().map(|(x, y)| (x as usize, y as usize)).collect()
+    lower
+        .into_iter()
+        .map(|(x, y)| (x as usize, y as usize))
+        .collect()
+}
+
+/// Perpendicular distance function used by the Douglas–Peucker recursion.
+type DistFn = dyn Fn((f64, f64), (f64, f64), (f64, f64)) -> f64;
+
+/// Recursive Douglas–Peucker worker: keeps points whose perpendicular
+/// distance to the `start`–`end` segment exceeds `eps`.
+fn dp(
+    pts: &[(f64, f64)],
+    start: usize,
+    end: usize,
+    eps: f64,
+    dist: &DistFn,
+    out: &mut Vec<(usize, usize)>,
+) {
+    let (a, b) = (pts[start], pts[end]);
+    let mut max_d = 0.0f64;
+    let mut idx = start;
+    for i in (start + 1)..end {
+        let d = dist(pts[i], a, b);
+        if d > max_d {
+            max_d = d;
+            idx = i;
+        }
+    }
+    if max_d > eps {
+        dp(pts, start, idx, eps, dist, out);
+        out.push((pts[idx].0 as usize, pts[idx].1 as usize));
+        dp(pts, idx, end, eps, dist, out);
+    }
 }
 
 /// Approximates a contour with a polygon using the Douglas–Peucker algorithm.
 ///
 /// `epsilon` is the maximum allowed distance between the original contour and
 /// the approximation. Equivalent to `cv2.approxPolyDP(contour, epsilon, closed)`.
-pub fn approx_poly_dp(contour: &[(usize, usize)], epsilon: f64, closed: bool) -> Vec<(usize, usize)> {
+pub fn approx_poly_dp(
+    contour: &[(usize, usize)],
+    epsilon: f64,
+    closed: bool,
+) -> Vec<(usize, usize)> {
     let pts: Vec<(f64, f64)> = contour.iter().map(|&(x, y)| (x as f64, y as f64)).collect();
     if pts.len() <= 2 {
         return contour.to_vec();
@@ -214,31 +253,6 @@ pub fn approx_poly_dp(contour: &[(usize, usize)], epsilon: f64, closed: bool) ->
         }
         ((dx * (a.1 - p.1) - (a.0 - p.0) * dy).abs()) / denom
     };
-
-    fn dp(
-        pts: &[(f64, f64)],
-        start: usize,
-        end: usize,
-        eps: f64,
-        dist: &dyn Fn((f64, f64), (f64, f64), (f64, f64)) -> f64,
-        out: &mut Vec<(usize, usize)>,
-    ) {
-        let (a, b) = (pts[start], pts[end]);
-        let mut max_d = 0.0f64;
-        let mut idx = start;
-        for i in (start + 1)..end {
-            let d = dist(pts[i], a, b);
-            if d > max_d {
-                max_d = d;
-                idx = i;
-            }
-        }
-        if max_d > eps {
-            dp(pts, start, idx, eps, dist, out);
-            out.push((pts[idx].0 as usize, pts[idx].1 as usize));
-            dp(pts, idx, end, eps, dist, out);
-        }
-    }
 
     if !closed {
         let mut result = vec![contour[0]];
@@ -298,7 +312,12 @@ pub fn approx_poly_dp(contour: &[(usize, usize)], epsilon: f64, closed: bool) ->
 ///
 /// Each contour is drawn as a closed polyline with the given `color` and
 /// `thickness`. Equivalent to `cv2.drawContours(img, contours, -1, color, thickness)`.
-pub fn draw_contours(img: &mut Image, contours: &[Vec<(usize, usize)>], color: f64, thickness: usize) {
+pub fn draw_contours(
+    img: &mut Image,
+    contours: &[Vec<(usize, usize)>],
+    color: f64,
+    thickness: usize,
+) {
     for contour in contours {
         if contour.is_empty() {
             continue;
@@ -344,7 +363,10 @@ mod tests {
         let contours = find_contours(&img, 8);
         assert_eq!(contours.len(), 2);
         let areas: Vec<f64> = contours.iter().map(|c| contour_area(c)).collect();
-        assert!(areas.iter().all(|&a| (a - 9.0).abs() < 1e-9), "areas {areas:?}");
+        assert!(
+            areas.iter().all(|&a| (a - 9.0).abs() < 1e-9),
+            "areas {areas:?}"
+        );
     }
 
     #[test]

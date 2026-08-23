@@ -7,11 +7,17 @@ use thiserror::Error;
 pub enum GeometryError {
     /// A negative radius or dimension was provided.
     #[error("invalid dimension: expected non-negative, got {value}")]
-    InvalidDimension { value: f64 },
+    InvalidDimension {
+        /// The offending value.
+        value: f64,
+    },
 
     /// A polygon has too few vertices.
     #[error("polygon requires at least 3 vertices, got {count}")]
-    TooFewVertices { count: usize },
+    TooFewVertices {
+        /// The number of vertices provided.
+        count: usize,
+    },
 
     /// A mesh contains zero triangles.
     #[error("mesh contains no triangles")]
@@ -19,11 +25,17 @@ pub enum GeometryError {
 
     /// Intersection computation failed.
     #[error("intersection computation failed: {reason}")]
-    IntersectionFailed { reason: String },
+    IntersectionFailed {
+        /// Description of the failure.
+        reason: String,
+    },
 
     /// Distance computation failed (e.g., degenerate segment).
     #[error("distance computation failed: {reason}")]
-    DistanceFailed { reason: String },
+    DistanceFailed {
+        /// Description of the failure.
+        reason: String,
+    },
 }
 
 impl GeometryError {

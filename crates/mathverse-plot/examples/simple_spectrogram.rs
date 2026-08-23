@@ -1,7 +1,7 @@
 //! Simple spectrogram example using FFT-based spectral analysis.
 
-use mathverse_plot::{SpectrogramConfig, SpectrogramMode, render_spectrogram_svg};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{render_spectrogram_svg, SpectrogramConfig, SpectrogramMode};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate a test signal: 100 Hz sine wave with 440 Hz sine wave starting at t=0.5s

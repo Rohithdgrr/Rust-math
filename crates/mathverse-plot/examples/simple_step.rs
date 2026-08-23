@@ -1,9 +1,9 @@
 //! Step plot example: Piecewise constant signal.
 
 use mathverse_plot::common::DataPoint;
+use mathverse_plot::save::PlotSaver;
 use mathverse_plot::step::{render_step_plot, StepConfig, StepPosition};
 use mathverse_plot::style::Color;
-use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let points = vec![

@@ -158,10 +158,7 @@ impl ImageData {
     #[must_use]
     pub fn color_bounds(&self) -> (f64, f64) {
         let (min, max) = self.bounds();
-        (
-            self.vmin.unwrap_or(min),
-            self.vmax.unwrap_or(max),
-        )
+        (self.vmin.unwrap_or(min), self.vmax.unwrap_or(max))
     }
 
     /// Resample to `tw × th` output cells and color them.

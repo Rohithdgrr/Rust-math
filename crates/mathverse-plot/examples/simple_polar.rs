@@ -4,8 +4,8 @@
 //! Run: `cargo run -p mathverse-plot --example simple_polar`
 
 use mathverse_plot::polar::render_polar_svg;
-use mathverse_plot::{PolarData, PolarPoint, PolarSeries};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{PolarData, PolarPoint, PolarSeries};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     const N: usize = 360;

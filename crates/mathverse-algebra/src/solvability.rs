@@ -96,9 +96,7 @@ pub fn solvable_by_radicals(coeffs: &[i64]) -> Solvability {
             None => return Solvability::Unknown("zero polynomial"),
         };
         if d <= 4 {
-            return Solvability::SolvableByRadicals(
-                "degree at most 4 after factoring out x",
-            );
+            return Solvability::SolvableByRadicals("degree at most 4 after factoring out x");
         }
     }
 
@@ -141,9 +139,9 @@ pub fn solvable_by_radicals(coeffs: &[i64]) -> Solvability {
     if let Some(r) = integer_root(&cs) {
         let q = divide_by_linear(&cs, r);
         return match solvable_by_radicals(&q) {
-            Solvability::SolvableByRadicals(_) => Solvability::SolvableByRadicals(
-                "reducible via integer root to a solvable quotient",
-            ),
+            Solvability::SolvableByRadicals(_) => {
+                Solvability::SolvableByRadicals("reducible via integer root to a solvable quotient")
+            }
             other => other,
         };
     }
@@ -164,22 +162,17 @@ pub fn solvable_by_radicals(coeffs: &[i64]) -> Solvability {
 /// True when the polynomial has the form `a·xⁿ + b` (exactly two terms).
 #[must_use]
 pub fn is_binomial(coeffs: &[i64]) -> bool {
-    let d = match degree(coeffs) {
-        Some(d) => d,
-        None => return false,
+    let Some(d) = degree(coeffs) else {
+        return false;
     };
-    d >= 1
-        && coeffs[0] != 0
-        && coeffs[d] != 0
-        && (1..d).all(|i| coeffs[i] == 0)
+    d >= 1 && coeffs[0] != 0 && coeffs[d] != 0 && (1..d).all(|i| coeffs[i] == 0)
 }
 
 /// True for `xⁿ - 1` or `xⁿ + 1`.
 #[must_use]
 pub fn is_cyclotomic(coeffs: &[i64]) -> bool {
-    let d = match degree(coeffs) {
-        Some(d) => d,
-        None => return false,
+    let Some(d) = degree(coeffs) else {
+        return false;
     };
     d >= 1 && coeffs[0].abs() == 1 && coeffs[d].abs() == 1 && is_binomial(coeffs)
 }
@@ -187,9 +180,8 @@ pub fn is_cyclotomic(coeffs: &[i64]) -> bool {
 /// True when `coeffs` is palindromic: `a_k = a_{n-k}` for all `k`.
 #[must_use]
 pub fn is_palindromic(coeffs: &[i64]) -> bool {
-    let d = match degree(coeffs) {
-        Some(d) => d,
-        None => return false,
+    let Some(d) = degree(coeffs) else {
+        return false;
     };
     (0..=d / 2).all(|k| coeffs[k] == coeffs[d - k])
 }
@@ -197,9 +189,8 @@ pub fn is_palindromic(coeffs: &[i64]) -> bool {
 /// True when `coeffs` is antipalindromic: `a_k = -a_{n-k}` for all `k`.
 #[must_use]
 pub fn is_antipalindromic(coeffs: &[i64]) -> bool {
-    let d = match degree(coeffs) {
-        Some(d) => d,
-        None => return false,
+    let Some(d) = degree(coeffs) else {
+        return false;
     };
     (0..=d / 2).all(|k| coeffs[k] == -coeffs[d - k])
 }
@@ -223,9 +214,7 @@ pub fn reduce_reciprocal(coeffs: &[i64]) -> Option<Vec<i64>> {
     let mut prev2 = vec![2i64]; // P_0
     let mut prev1 = vec![0i64, 1i64]; // P_1 = y
     for k in 1..=half {
-        let pk: Vec<i64> = if k == 1 {
-            prev1.clone()
-        } else {
+        if k > 1 {
             let mut np = vec![0i64; prev1.len() + 1];
             for (j, &c) in prev1.iter().enumerate() {
                 np[j + 1] += c;
@@ -234,11 +223,10 @@ pub fn reduce_reciprocal(coeffs: &[i64]) -> Option<Vec<i64>> {
                 np[j] -= c;
             }
             prev2 = prev1;
-            prev1 = np.clone();
-            np
-        };
+            prev1 = np;
+        }
         let idx = half - k;
-        for (j, &c) in pk.iter().enumerate() {
+        for (j, &c) in prev1.iter().enumerate() {
             q[idx + j] += coeffs[idx] * c;
         }
     }
@@ -284,12 +272,12 @@ fn is_prime(n: u64) -> bool {
     if n < 2 {
         return false;
     }
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         return n == 2;
     }
     let mut i = 3;
     while i * i <= n {
-        if n % i == 0 {
+        if n.is_multiple_of(i) {
             return false;
         }
         i += 2;
@@ -319,7 +307,7 @@ pub fn integer_root(coeffs: &[i64]) -> Option<i64> {
 fn eval(coeffs: &[i64], x: i64) -> i128 {
     let mut acc: i128 = 0;
     for &c in coeffs.iter().rev() {
-        acc = acc.wrapping_mul(x as i128).wrapping_add(c as i128);
+        acc = acc.wrapping_mul(i128::from(x)).wrapping_add(i128::from(c));
     }
     acc
 }
@@ -328,10 +316,11 @@ fn divisors(n: u64) -> Vec<u64> {
     let mut out = Vec::new();
     let mut i = 1;
     while i * i <= n {
-        if n % i == 0 {
+        if n.is_multiple_of(i) {
             out.push(i);
-            if i != n / i {
-                out.push(n / i);
+            let q = n / i;
+            if q != i {
+                out.push(q);
             }
         }
         i += 1;

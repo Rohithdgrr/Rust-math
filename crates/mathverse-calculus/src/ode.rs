@@ -8,16 +8,24 @@ use mathverse_core::error::MathResult;
 ///
 /// Returns a vector of (t, y) pairs.
 ///
-    /// ```
-    /// use mathverse_calculus::ode::euler;
-    /// // dy/dt = y, y(0) = 1, solution: y = e^t
-    /// let result = euler(&|t, y| y, 0.0, 1.0, 1.0, 100).unwrap();
-    /// let y_final = result.last().unwrap().1;
-    /// assert!((y_final - 1.0_f64.exp()).abs() < 0.02);
-    /// ```
-    pub fn euler(f: &dyn Fn(f64, f64) -> f64, t0: f64, y0: f64, t_end: f64, steps: usize) -> MathResult<Vec<(f64, f64)>> {
+/// ```
+/// use mathverse_calculus::ode::euler;
+/// // dy/dt = y, y(0) = 1, solution: y = e^t
+/// let result = euler(&|t, y| y, 0.0, 1.0, 1.0, 100).unwrap();
+/// let y_final = result.last().unwrap().1;
+/// assert!((y_final - 1.0_f64.exp()).abs() < 0.02);
+/// ```
+pub fn euler(
+    f: &dyn Fn(f64, f64) -> f64,
+    t0: f64,
+    y0: f64,
+    t_end: f64,
+    steps: usize,
+) -> MathResult<Vec<(f64, f64)>> {
     if steps == 0 {
-        return Err(mathverse_core::error::MathError::InvalidArgument("euler: steps must be > 0"));
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "euler: steps must be > 0",
+        ));
     }
     let dt = (t_end - t0) / steps as f64;
     let mut result = Vec::with_capacity(steps + 1);
@@ -36,16 +44,24 @@ use mathverse_core::error::MathResult;
 ///
 /// Returns a vector of (t, y) pairs. Much more accurate than Euler.
 ///
-    /// ```
-    /// use mathverse_calculus::ode::runge_kutta_4;
-    /// // dy/dt = y, y(0) = 1, solution: y = e^t
-    /// let result = runge_kutta_4(&|t, y| y, 0.0, 1.0, 1.0, 10).unwrap();
-    /// let y_final = result.last().unwrap().1;
-    /// assert!((y_final - 1.0_f64.exp()).abs() < 1e-5);
-    /// ```
-    pub fn runge_kutta_4(f: &dyn Fn(f64, f64) -> f64, t0: f64, y0: f64, t_end: f64, steps: usize) -> MathResult<Vec<(f64, f64)>> {
+/// ```
+/// use mathverse_calculus::ode::runge_kutta_4;
+/// // dy/dt = y, y(0) = 1, solution: y = e^t
+/// let result = runge_kutta_4(&|t, y| y, 0.0, 1.0, 1.0, 10).unwrap();
+/// let y_final = result.last().unwrap().1;
+/// assert!((y_final - 1.0_f64.exp()).abs() < 1e-5);
+/// ```
+pub fn runge_kutta_4(
+    f: &dyn Fn(f64, f64) -> f64,
+    t0: f64,
+    y0: f64,
+    t_end: f64,
+    steps: usize,
+) -> MathResult<Vec<(f64, f64)>> {
     if steps == 0 {
-        return Err(mathverse_core::error::MathError::InvalidArgument("runge_kutta_4: steps must be > 0"));
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "runge_kutta_4: steps must be > 0",
+        ));
     }
     let dt = (t_end - t0) / steps as f64;
     let mut result = Vec::with_capacity(steps + 1);
@@ -75,9 +91,17 @@ use mathverse_core::error::MathResult;
 /// let y_final = result.last().unwrap().1;
 /// assert!((y_final - 1.0_f64.exp()).abs() < 0.001);
 /// ```
-pub fn midpoint(f: &dyn Fn(f64, f64) -> f64, t0: f64, y0: f64, t_end: f64, steps: usize) -> MathResult<Vec<(f64, f64)>> {
+pub fn midpoint(
+    f: &dyn Fn(f64, f64) -> f64,
+    t0: f64,
+    y0: f64,
+    t_end: f64,
+    steps: usize,
+) -> MathResult<Vec<(f64, f64)>> {
     if steps == 0 {
-        return Err(mathverse_core::error::MathError::InvalidArgument("midpoint: steps must be > 0"));
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "midpoint: steps must be > 0",
+        ));
     }
     let dt = (t_end - t0) / steps as f64;
     let mut result = Vec::with_capacity(steps + 1);
@@ -97,17 +121,17 @@ pub fn midpoint(f: &dyn Fn(f64, f64) -> f64, t0: f64, y0: f64, t_end: f64, steps
 ///
 /// Solves dy/dt = f(t, y) where y is a vector.
 ///
-    /// ```
-    /// use mathverse_calculus::ode::runge_kutta_4_system;
-    /// // Harmonic oscillator: d²x/dt² = -x
-    /// // Convert to system: dx/dt = v, dv/dt = -x
-    /// let f = |t: f64, y: &[f64]| -> Vec<f64> {
-    ///     vec![y[1], -y[0]]
-    /// };
-    /// let result = runge_kutta_4_system(&f, 0.0, &[1.0, 0.0], 2.0 * core::f64::consts::PI, 100).unwrap();
-    /// let y_final = &result.last().unwrap().1;
-    /// assert!((y_final[0] - 1.0).abs() < 1e-6); // Should return to initial position
-    /// ```
+/// ```
+/// use mathverse_calculus::ode::runge_kutta_4_system;
+/// // Harmonic oscillator: d²x/dt² = -x
+/// // Convert to system: dx/dt = v, dv/dt = -x
+/// let f = |t: f64, y: &[f64]| -> Vec<f64> {
+///     vec![y[1], -y[0]]
+/// };
+/// let result = runge_kutta_4_system(&f, 0.0, &[1.0, 0.0], 2.0 * core::f64::consts::PI, 100).unwrap();
+/// let y_final = &result.last().unwrap().1;
+/// assert!((y_final[0] - 1.0).abs() < 1e-6); // Should return to initial position
+/// ```
 pub fn runge_kutta_4_system(
     f: &dyn Fn(f64, &[f64]) -> Vec<f64>,
     t0: f64,
@@ -116,7 +140,9 @@ pub fn runge_kutta_4_system(
     steps: usize,
 ) -> MathResult<Vec<(f64, Vec<f64>)>> {
     if steps == 0 {
-        return Err(mathverse_core::error::MathError::InvalidArgument("runge_kutta_4_system: steps must be > 0"));
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "runge_kutta_4_system: steps must be > 0",
+        ));
     }
     let dt = (t_end - t0) / steps as f64;
     let n = y0.len();
@@ -126,11 +152,29 @@ pub fn runge_kutta_4_system(
     result.push((t, y.clone()));
     for _ in 0..steps {
         let k1 = f(t, &y).iter().map(|&v| dt * v).collect::<Vec<_>>();
-        let y1: Vec<f64> = y.iter().zip(k1.iter()).map(|(&yi, &k1i)| yi + k1i / 2.0).collect();
-        let k2 = f(t + dt / 2.0, &y1).iter().map(|&v| dt * v).collect::<Vec<_>>();
-        let y2: Vec<f64> = y.iter().zip(k2.iter()).map(|(&yi, &k2i)| yi + k2i / 2.0).collect();
-        let k3 = f(t + dt / 2.0, &y2).iter().map(|&v| dt * v).collect::<Vec<_>>();
-        let y3: Vec<f64> = y.iter().zip(k3.iter()).map(|(&yi, &k3i)| yi + k3i).collect();
+        let y1: Vec<f64> = y
+            .iter()
+            .zip(k1.iter())
+            .map(|(&yi, &k1i)| yi + k1i / 2.0)
+            .collect();
+        let k2 = f(t + dt / 2.0, &y1)
+            .iter()
+            .map(|&v| dt * v)
+            .collect::<Vec<_>>();
+        let y2: Vec<f64> = y
+            .iter()
+            .zip(k2.iter())
+            .map(|(&yi, &k2i)| yi + k2i / 2.0)
+            .collect();
+        let k3 = f(t + dt / 2.0, &y2)
+            .iter()
+            .map(|&v| dt * v)
+            .collect::<Vec<_>>();
+        let y3: Vec<f64> = y
+            .iter()
+            .zip(k3.iter())
+            .map(|(&yi, &k3i)| yi + k3i)
+            .collect();
         let k4 = f(t + dt, &y3).iter().map(|&v| dt * v).collect::<Vec<_>>();
         for i in 0..n {
             y[i] += (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]) / 6.0;
@@ -154,8 +198,8 @@ pub fn runge_kutta_4_system(
 ///
 /// # Errors
 ///
-/// - [`MathError::InvalidArgument`] if `tol <= 0` or `t0 == t_end`.
-/// - [`MathError::NotConverged`] if `max_steps` is exhausted before reaching
+/// - [`MathError::InvalidArgument`](mathverse_core::error::MathError::InvalidArgument) if `tol <= 0` or `t0 == t_end`.
+/// - [`MathError::NotConverged`](mathverse_core::error::MathError::NotConverged) if `max_steps` is exhausted before reaching
 ///   `t_end` (error cannot be met — likely a singularity).
 ///
 /// ```
@@ -165,6 +209,9 @@ pub fn runge_kutta_4_system(
 /// let y_final = sol.last().unwrap().1;
 /// assert!((y_final - core::f64::consts::E).abs() < 1e-6);
 /// ```
+// One explicit RKF45 stage sequence; keeping all stages inline preserves the
+// textbook layout (and exact arithmetic order).
+#[allow(clippy::too_many_lines)]
 pub fn rkf45(
     f: &dyn Fn(f64, f64) -> f64,
     t0: f64,
@@ -179,7 +226,13 @@ pub fn rkf45(
         [3.0 / 32.0, 9.0 / 32.0, 0.0, 0.0, 0.0],
         [1932.0 / 2197.0, -7200.0 / 2197.0, 7296.0 / 2197.0, 0.0, 0.0],
         [439.0 / 216.0, -8.0, 3680.0 / 513.0, -845.0 / 4104.0, 0.0],
-        [-8.0 / 27.0, 2.0, -3544.0 / 2565.0, 1859.0 / 4104.0, -11.0 / 40.0],
+        [
+            -8.0 / 27.0,
+            2.0,
+            -3544.0 / 2565.0,
+            1859.0 / 4104.0,
+            -11.0 / 40.0,
+        ],
     ];
     const C: [f64; 5] = [0.25, 0.375, 12.0 / 13.0, 1.0, 0.5];
     // 5th-order weights (the accepted solution).
@@ -192,7 +245,14 @@ pub fn rkf45(
         2.0 / 55.0,
     ];
     // 4th-order weights (used only for the error estimate).
-    const B4: [f64; 6] = [25.0 / 216.0, 0.0, 1408.0 / 2565.0, 2197.0 / 4104.0, -1.0 / 5.0, 0.0];
+    const B4: [f64; 6] = [
+        25.0 / 216.0,
+        0.0,
+        1408.0 / 2565.0,
+        2197.0 / 4104.0,
+        -1.0 / 5.0,
+        0.0,
+    ];
 
     if tol <= 0.0 || !tol.is_finite() {
         return Err(mathverse_core::error::MathError::InvalidArgument(
@@ -228,26 +288,29 @@ pub fn rkf45(
         loop {
             for (stage, coeffs) in A.iter().enumerate() {
                 let ti = t + C[stage] * h;
-                let yi = y + h * (coeffs[0] * k[0]
-                    + coeffs[1] * k[1]
-                    + coeffs[2] * k[2]
-                    + coeffs[3] * k[3]
-                    + coeffs[4] * k[4]);
+                let yi = y + h
+                    * (coeffs[0] * k[0]
+                        + coeffs[1] * k[1]
+                        + coeffs[2] * k[2]
+                        + coeffs[3] * k[3]
+                        + coeffs[4] * k[4]);
                 k[stage + 1] = f(ti, yi);
             }
-            let y5_trial = y + h * (B5[0] * k[0]
-                + B5[1] * k[1]
-                + B5[2] * k[2]
-                + B5[3] * k[3]
-                + B5[4] * k[4]
-                + B5[5] * k[5]);
+            let y5_trial = y + h
+                * (B5[0] * k[0]
+                    + B5[1] * k[1]
+                    + B5[2] * k[2]
+                    + B5[3] * k[3]
+                    + B5[4] * k[4]
+                    + B5[5] * k[5]);
             // B4/B5 agree on stage 1 (both weights are 0), so it cancels.
-            let err_trial = (h * (k[0] * (B5[0] - B4[0])
-                + k[2] * (B5[2] - B4[2])
-                + k[3] * (B5[3] - B4[3])
-                + k[4] * (B5[4] - B4[4])
-                + k[5] * (B5[5] - B4[5])))
-            .abs();
+            let err_trial = (h
+                * (k[0] * (B5[0] - B4[0])
+                    + k[2] * (B5[2] - B4[2])
+                    + k[3] * (B5[3] - B4[3])
+                    + k[4] * (B5[4] - B4[4])
+                    + k[5] * (B5[5] - B4[5])))
+                .abs();
 
             if err_trial <= tol || h.abs() <= min_h {
                 y5 = y5_trial;
@@ -270,7 +333,9 @@ pub fn rkf45(
 
         // Grow the next step based on the error just achieved (bounded 5x),
         // capped at 10% of the span so we never blow past t_end.
-        h *= (0.9 * tol / err.max(f64::MIN_POSITIVE)).powf(0.2).clamp(0.2, 5.0);
+        h *= (0.9 * tol / err.max(f64::MIN_POSITIVE))
+            .powf(0.2)
+            .clamp(0.2, 5.0);
         if h.abs() > span * 0.1 {
             h = dir * span * 0.1;
         }
@@ -347,8 +412,12 @@ impl<'a> OdeProblem<'a> {
     pub fn solve(self) -> MathResult<Vec<(f64, f64)>> {
         match self.method {
             OdeMethod::Euler => euler(self.f, self.t_span.0, self.y0, self.t_span.1, self.steps),
-            OdeMethod::Midpoint => midpoint(self.f, self.t_span.0, self.y0, self.t_span.1, self.steps),
-            OdeMethod::Rk4 => runge_kutta_4(self.f, self.t_span.0, self.y0, self.t_span.1, self.steps),
+            OdeMethod::Midpoint => {
+                midpoint(self.f, self.t_span.0, self.y0, self.t_span.1, self.steps)
+            }
+            OdeMethod::Rk4 => {
+                runge_kutta_4(self.f, self.t_span.0, self.y0, self.t_span.1, self.steps)
+            }
         }
     }
 }
@@ -469,7 +538,15 @@ mod tests {
         // A boundary layer at t ≈ 0 (y' = -1000(y - 1)) demands tiny initial
         // steps; fixed-step RK4 with h=0.01 would blow up, adaptive survives.
         let lambda = 1000.0;
-        let sol = rkf45(&move |_, y| -lambda * (y - 1.0), 0.0, 0.0, 1.0, 1e-6, 100_000).unwrap();
+        let sol = rkf45(
+            &move |_, y| -lambda * (y - 1.0),
+            0.0,
+            0.0,
+            1.0,
+            1e-6,
+            100_000,
+        )
+        .unwrap();
         let y_final = sol.last().unwrap().1;
         assert!((y_final - 1.0).abs() < 1e-4, "got {y_final}");
         // Early steps must be small relative to the span.

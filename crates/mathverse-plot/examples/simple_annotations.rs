@@ -1,12 +1,11 @@
 //! Annotation system example with text, arrows, and reference lines.
 #![allow(clippy::format_push_string)]
 
-use mathverse_plot::{
-    Annotations, Arrow, DataPoint, DataSeries, PlotConfig, ReferenceLine, SvgPlot,
-    TextAnnotation,
-};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
+use mathverse_plot::{
+    Annotations, Arrow, DataPoint, DataSeries, PlotConfig, ReferenceLine, SvgPlot, TextAnnotation,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create some data

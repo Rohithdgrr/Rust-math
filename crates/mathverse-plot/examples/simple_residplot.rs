@@ -1,7 +1,7 @@
 //! Residual plot example.
 
-use mathverse_plot::{render_residplot, ResidConfig, common::DataPoint};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{common::DataPoint, render_residplot, ResidConfig};
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate data with a linear trend and heteroscedastic noise
@@ -15,7 +15,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .collect();
 
     let mut config = ResidConfig::new();
-    config.plot_config = config.plot_config
+    config.plot_config = config
+        .plot_config
         .with_title("Residual Plot: Fit Diagnostics");
 
     let svg = render_residplot(&points, &config)?;

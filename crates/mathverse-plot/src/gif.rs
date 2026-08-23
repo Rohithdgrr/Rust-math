@@ -224,9 +224,15 @@ mod tests {
         assert_eq!(&gif[8..10], &2u16.to_le_bytes());
         assert_eq!(*gif.last().unwrap(), 0x3B);
         // Two frames -> two image separators.
-        assert_eq!(gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0x2C)), 2);
+        assert_eq!(
+            gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0x2C)),
+            2
+        );
         // Two graphic control extensions.
-        assert_eq!(gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0xF9)), 2);
+        assert_eq!(
+            gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0xF9)),
+            2
+        );
     }
 
     #[test]
@@ -263,6 +269,9 @@ mod tests {
             .collect();
         let gif = encode_gif(w as u16, h as u16, &frames).unwrap();
         assert!(gif.len() > 50);
-        assert_eq!(gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0x2C)), 3);
+        assert_eq!(
+            gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0x2C)),
+            3
+        );
     }
 }

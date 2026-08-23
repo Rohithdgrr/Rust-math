@@ -32,7 +32,11 @@ pub fn round_with_mode(x: f64, mode: RoundingMode) -> f64 {
                 r
             } else if r.fract().abs() < f64::EPSILON {
                 // tie: round to even
-                if r % 2.0 == 0.0 { r } else { x.round_ties_even() }
+                if r % 2.0 == 0.0 {
+                    r
+                } else {
+                    x.round_ties_even()
+                }
             } else {
                 r
             }

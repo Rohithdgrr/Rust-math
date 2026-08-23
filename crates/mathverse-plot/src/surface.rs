@@ -37,8 +37,7 @@ impl SurfaceConfig {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            plot_config: PlotConfig::new()
-                .with_title("3D Surface".to_string()),
+            plot_config: PlotConfig::new().with_title("3D Surface".to_string()),
             camera_distance: 5.0,
             rotation_y: 0.4,
             fovy: 1.0,
@@ -95,38 +94,28 @@ fn project_point(
     )
     .unwrap_or_else(|_| translation(0.0, 0.0, 0.0));
 
-    let proj = perspective(
-        fovy,
-        1.0,
-        0.1,
-        camera_distance * 10.0,
-    );
+    let proj = perspective(fovy, 1.0, 0.1, camera_distance * 10.0);
 
     let p = Vector::new(vec![x, y, z, 1.0]);
     let mvp = proj
         .mul(&view)
         .and_then(|vp| vp.mul(&model))
-        .unwrap_or_else(|_| Matrix::from_rows(&[
-            &[1.0, 0.0, 0.0, 0.0],
-            &[0.0, 1.0, 0.0, 0.0],
-            &[0.0, 0.0, 1.0, 0.0],
-            &[0.0, 0.0, 0.0, 1.0],
-        ]).unwrap());
+        .unwrap_or_else(|_| {
+            Matrix::from_rows(&[
+                &[1.0, 0.0, 0.0, 0.0],
+                &[0.0, 1.0, 0.0, 0.0],
+                &[0.0, 0.0, 1.0, 0.0],
+                &[0.0, 0.0, 0.0, 1.0],
+            ])
+            .unwrap()
+        });
 
     let transformed = mvp.mul_vec(&p).unwrap_or(p);
 
     let data = &transformed.data;
     let w = data[3];
-    let x_ndc = if w.abs() > 1e-10 {
-        data[0] / w
-    } else {
-        0.0
-    };
-    let y_ndc = if w.abs() > 1e-10 {
-        data[1] / w
-    } else {
-        0.0
-    };
+    let x_ndc = if w.abs() > 1e-10 { data[0] / w } else { 0.0 };
+    let y_ndc = if w.abs() > 1e-10 { data[1] / w } else { 0.0 };
 
     (x_ndc, y_ndc)
 }
@@ -220,26 +209,15 @@ mod tests {
     #[test]
     fn surface_wireframe_renders_svg() {
         let config = SurfaceConfig::new();
-        let svg = render_surface_wireframe(
-            |x, y| x * x + y * y,
-            (-2.0, 2.0),
-            (-2.0, 2.0),
-            config,
-        )
-        .unwrap();
+        let svg = render_surface_wireframe(|x, y| x * x + y * y, (-2.0, 2.0), (-2.0, 2.0), config)
+            .unwrap();
         assert!(svg.contains("<svg"));
     }
 
     #[test]
     fn surface_wireframe_saddle() {
         let config = SurfaceConfig::new();
-        let svg = render_surface_wireframe(
-            |x, y| x * y,
-            (-2.0, 2.0),
-            (-2.0, 2.0),
-            config,
-        )
-        .unwrap();
+        let svg = render_surface_wireframe(|x, y| x * y, (-2.0, 2.0), (-2.0, 2.0), config).unwrap();
         assert!(svg.contains("<svg"));
     }
 

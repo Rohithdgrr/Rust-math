@@ -1,4 +1,4 @@
-﻿use alloc::string::String;
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt;
 
@@ -160,10 +160,8 @@ impl Index {
                 }
             }
             Self::MultiIndex(levels) => {
-                let parts: alloc::vec::Vec<String> = levels
-                    .iter()
-                    .map(|level| level[pos].clone())
-                    .collect();
+                let parts: alloc::vec::Vec<String> =
+                    levels.iter().map(|level| level[pos].clone()).collect();
                 Ok(parts.join(", "))
             }
         }
@@ -217,25 +215,46 @@ impl Index {
     pub fn select(&self, positions: &[usize]) -> DataFrameResult<Self> {
         match self {
             Self::Range { start, step, .. } => {
-                let labels: Vec<i64> = positions
-                    .iter()
-                    .map(|&p| start + p as i64 * step)
-                    .collect();
+                let labels: Vec<i64> = positions.iter().map(|&p| start + p as i64 * step).collect();
                 Ok(Self::Int64(labels))
             }
             Self::Int64(v) => {
-                let labels: DataFrameResult<Vec<i64>> =
-                    positions.iter().map(|&p| v.get(p).copied().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: v.len() })).collect();
+                let labels: DataFrameResult<Vec<i64>> = positions
+                    .iter()
+                    .map(|&p| {
+                        v.get(p).copied().ok_or(DataFrameError::IndexOutOfBounds {
+                            index: p,
+                            length: v.len(),
+                        })
+                    })
+                    .collect();
                 Ok(Self::Int64(labels?))
             }
             Self::Labels(v) => {
-                let labels: DataFrameResult<Vec<String>> =
-                    positions.iter().map(|&p| v.get(p).cloned().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: v.len() })).collect();
+                let labels: DataFrameResult<Vec<String>> = positions
+                    .iter()
+                    .map(|&p| {
+                        v.get(p).cloned().ok_or(DataFrameError::IndexOutOfBounds {
+                            index: p,
+                            length: v.len(),
+                        })
+                    })
+                    .collect();
                 Ok(Self::Labels(labels?))
             }
             Self::Categorical { categories, codes } => {
-                let new_codes: DataFrameResult<Vec<i64>> =
-                    positions.iter().map(|&p| codes.get(p).copied().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: codes.len() })).collect();
+                let new_codes: DataFrameResult<Vec<i64>> = positions
+                    .iter()
+                    .map(|&p| {
+                        codes
+                            .get(p)
+                            .copied()
+                            .ok_or(DataFrameError::IndexOutOfBounds {
+                                index: p,
+                                length: codes.len(),
+                            })
+                    })
+                    .collect();
                 Ok(Self::Categorical {
                     categories: categories.clone(),
                     codes: new_codes?,
@@ -247,7 +266,15 @@ impl Index {
                     .map(|level| {
                         positions
                             .iter()
-                            .map(|&p| level.get(p).cloned().ok_or(DataFrameError::IndexOutOfBounds { index: p, length: level.len() }))
+                            .map(|&p| {
+                                level
+                                    .get(p)
+                                    .cloned()
+                                    .ok_or(DataFrameError::IndexOutOfBounds {
+                                        index: p,
+                                        length: level.len(),
+                                    })
+                            })
                             .collect()
                     })
                     .collect();
@@ -279,7 +306,10 @@ impl Index {
     fn bounds_check(&self, pos: usize) -> DataFrameResult<()> {
         let len = self.len();
         if pos >= len {
-            Err(DataFrameError::IndexOutOfBounds { index: pos, length: len })
+            Err(DataFrameError::IndexOutOfBounds {
+                index: pos,
+                length: len,
+            })
         } else {
             Ok(())
         }
@@ -399,11 +429,8 @@ mod tests {
 
     #[test]
     fn categorical_select() {
-        let idx = Index::categorical(
-            vec!["a".into(), "b".into(), "c".into()],
-            vec![0, 1, 2, 1],
-        )
-        .unwrap();
+        let idx =
+            Index::categorical(vec!["a".into(), "b".into(), "c".into()], vec![0, 1, 2, 1]).unwrap();
         let selected = idx.select(&[2, 0]).unwrap();
         assert_eq!(selected.get_str(0).unwrap(), "c");
         assert_eq!(selected.get_str(1).unwrap(), "a");
@@ -411,26 +438,15 @@ mod tests {
 
     #[test]
     fn categorical_is_unique() {
-        let idx = Index::categorical(
-            vec!["a".into(), "b".into()],
-            vec![0, 1],
-        )
-        .unwrap();
+        let idx = Index::categorical(vec!["a".into(), "b".into()], vec![0, 1]).unwrap();
         assert!(idx.is_unique());
-        let idx2 = Index::categorical(
-            vec!["a".into(), "b".into()],
-            vec![0, 0],
-        )
-        .unwrap();
+        let idx2 = Index::categorical(vec!["a".into(), "b".into()], vec![0, 0]).unwrap();
         assert!(!idx2.is_unique());
     }
 
     #[test]
     fn categorical_out_of_range_errors() {
-        let result = Index::categorical(
-            vec!["a".into()],
-            vec![0, 5],
-        );
+        let result = Index::categorical(vec!["a".into()], vec![0, 5]);
         assert!(result.is_err());
     }
 

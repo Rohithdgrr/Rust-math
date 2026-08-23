@@ -37,7 +37,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
             .with_marker_style(mathverse_plot::style::MarkerStyle::Circle),
     ));
 
-PlotSaver::new(plot.generate()).save_png("errorbars.png")?;
-println!("wrote errorbars.png");
+    PlotSaver::new(plot.generate()).save_png("errorbars.png")?;
+    println!("wrote errorbars.png");
     Ok(())
 }

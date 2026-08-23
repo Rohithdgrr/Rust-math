@@ -1,8 +1,8 @@
 //! Colorbar example with heatmap.
 
-use mathverse_plot::{ColorbarConfig, PlotConfig, SvgPlot, render_colorbar};
 use mathverse_plot::color::viridis;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{render_colorbar, ColorbarConfig, PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a simple heatmap
@@ -18,8 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
-    let config = PlotConfig::new()
-        .with_title("Heatmap with Colorbar");
+    let config = PlotConfig::new().with_title("Heatmap with Colorbar");
 
     let mut plot = SvgPlot::new(config);
     plot.add_heatmap("data", grid, viridis)?;

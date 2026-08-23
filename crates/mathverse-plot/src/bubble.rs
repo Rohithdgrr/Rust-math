@@ -176,7 +176,8 @@ pub fn render_bubble_chart(bubbles: &[Bubble], config: &BubbleConfig) -> PlotRes
     // Axes
     svg.push_str(&format!(
         r#"  <text x="{}" y="{}" text-anchor="middle" font-size="11">x</text>"#,
-        width / 2.0, height - 5.0
+        width / 2.0,
+        height - 5.0
     ));
     svg.push('\n');
     svg.push_str(&format!(

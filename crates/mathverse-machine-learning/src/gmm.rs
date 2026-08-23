@@ -20,7 +20,6 @@ pub struct GmmResult {
 }
 
 /// Fit a Gaussian Mixture Model via EM.
-#[must_use]
 pub fn fit_gmm(x: &[Vec<f64>], k: usize, max_iters: usize, tol: f64) -> MathResult<GmmResult> {
     let n = x.len();
     let p = x[0].len();
@@ -146,16 +145,16 @@ fn gaussian(x: &[f64], mean: &[f64], cov: &[Vec<f64>]) -> f64 {
 
 fn log_gaussian(x: &[f64], mean: &[f64], cov: &[Vec<f64>]) -> f64 {
     let p = x.len();
-    
+
     // Use Cholesky decomposition for numerical stability
     if let Ok((l, log_det)) = cholesky_with_logdet(cov) {
         // Solve L * y = (x - mean) using forward substitution
         let diff: Vec<f64> = x.iter().zip(mean.iter()).map(|(xi, mi)| xi - mi).collect();
         let y = forward_substitution(&l, &diff);
-        
+
         // Compute quadratic form: y^T * y
         let quad: f64 = y.iter().map(|yi| yi * yi).sum();
-        
+
         -0.5 * (p as f64 * (2.0 * std::f64::consts::PI).ln() + log_det + quad)
     } else {
         // Fallback to slower but more robust method if Cholesky fails
@@ -176,11 +175,11 @@ fn log_gaussian(x: &[f64], mean: &[f64], cov: &[Vec<f64>]) -> f64 {
 fn cholesky_with_logdet(a: &[Vec<f64>]) -> Result<(Vec<Vec<f64>>, f64), ()> {
     let n = a.len();
     let mut l = vec![vec![0.0; n]; n];
-    
+
     for i in 0..n {
         for j in 0..=i {
             let mut sum = 0.0;
-            
+
             if j == i {
                 // Diagonal elements
                 for k in 0..j {
@@ -200,10 +199,10 @@ fn cholesky_with_logdet(a: &[Vec<f64>]) -> Result<(Vec<Vec<f64>>, f64), ()> {
             }
         }
     }
-    
+
     // Log determinant = 2 * sum(log(diag(L)))
     let log_det: f64 = (0..n).map(|i| l[i][i].ln()).sum::<f64>() * 2.0;
-    
+
     Ok((l, log_det))
 }
 
@@ -211,7 +210,7 @@ fn cholesky_with_logdet(a: &[Vec<f64>]) -> Result<(Vec<Vec<f64>>, f64), ()> {
 fn forward_substitution(l: &[Vec<f64>], b: &[f64]) -> Vec<f64> {
     let n = l.len();
     let mut y = vec![0.0; n];
-    
+
     for i in 0..n {
         let mut sum = 0.0;
         for j in 0..i {
@@ -219,7 +218,7 @@ fn forward_substitution(l: &[Vec<f64>], b: &[f64]) -> Vec<f64> {
         }
         y[i] = (b[i] - sum) / l[i][i];
     }
-    
+
     y
 }
 
@@ -232,10 +231,10 @@ fn determinant_lu(m: &[Vec<f64>]) -> f64 {
     if p == 2 {
         return m[0][0] * m[1][1] - m[0][1] * m[1][0];
     }
-    
+
     let mut det = 1.0;
     let mut lu = m.to_vec();
-    
+
     for i in 0..p {
         // Partial pivoting
         let mut max_val = lu[i][i].abs();
@@ -250,13 +249,13 @@ fn determinant_lu(m: &[Vec<f64>]) -> f64 {
             lu.swap(i, max_row);
             det = -det;
         }
-        
+
         if lu[i][i].abs() < 1e-15 {
             return 0.0;
         }
-        
+
         det *= lu[i][i];
-        
+
         for k in (i + 1)..p {
             let factor = lu[k][i] / lu[i][i];
             for j in (i + 1)..p {
@@ -264,7 +263,7 @@ fn determinant_lu(m: &[Vec<f64>]) -> f64 {
             }
         }
     }
-    
+
     det
 }
 
@@ -272,7 +271,11 @@ fn determinant_lu(m: &[Vec<f64>]) -> f64 {
 fn matrix_inverse(m: &[Vec<f64>], det: f64) -> Vec<Vec<f64>> {
     let n = m.len();
     if n == 1 {
-        return vec![vec![if m[0][0].abs() < 1e-15 { 0.0 } else { 1.0 / m[0][0] }]];
+        return vec![vec![if m[0][0].abs() < 1e-15 {
+            0.0
+        } else {
+            1.0 / m[0][0]
+        }]];
     }
     if n == 2 {
         return vec![
@@ -280,7 +283,7 @@ fn matrix_inverse(m: &[Vec<f64>], det: f64) -> Vec<Vec<f64>> {
             vec![-m[1][0] / det, m[0][0] / det],
         ];
     }
-    
+
     // Gaussian elimination for larger matrices
     let mut aug = vec![vec![0.0; 2 * n]; n];
     for i in 0..n {
@@ -289,7 +292,7 @@ fn matrix_inverse(m: &[Vec<f64>], det: f64) -> Vec<Vec<f64>> {
         }
         aug[i][n + i] = 1.0;
     }
-    
+
     // Forward elimination
     for i in 0..n {
         // Pivot
@@ -300,17 +303,17 @@ fn matrix_inverse(m: &[Vec<f64>], det: f64) -> Vec<Vec<f64>> {
             }
         }
         aug.swap(i, max_row);
-        
+
         let pivot = aug[i][i];
         if pivot.abs() < 1e-15 {
             continue; // Singular matrix
         }
-        
+
         // Normalize row
         for j in 0..2 * n {
             aug[i][j] /= pivot;
         }
-        
+
         // Eliminate column
         for k in 0..n {
             if k != i {
@@ -321,7 +324,7 @@ fn matrix_inverse(m: &[Vec<f64>], det: f64) -> Vec<Vec<f64>> {
             }
         }
     }
-    
+
     // Extract inverse
     let mut inv = vec![vec![0.0; n]; n];
     for i in 0..n {
@@ -329,7 +332,7 @@ fn matrix_inverse(m: &[Vec<f64>], det: f64) -> Vec<Vec<f64>> {
             inv[i][j] = aug[i][n + j];
         }
     }
-    
+
     inv
 }
 
@@ -370,7 +373,7 @@ mod tests {
         for i in 0..20 {
             x.push(vec![5.0 + f64::from(i) * 0.1, 5.0 + f64::from(i) * 0.1]);
         }
-        
+
         let r = fit_gmm(&x, 2, 50, 1e-6).unwrap();
         assert_eq!(r.weights.len(), 2);
         // All points in the same cluster should share a label

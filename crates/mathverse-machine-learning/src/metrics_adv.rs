@@ -455,12 +455,19 @@ mod tests {
     #[test]
     fn test_silhouette_two_well_separated_clusters() {
         let x: Vec<Vec<f64>> = vec![
-            vec![0.0, 0.0], vec![0.1, 0.0], vec![0.0, 0.1],
-            vec![10.0, 10.0], vec![10.1, 10.0], vec![10.0, 10.1],
+            vec![0.0, 0.0],
+            vec![0.1, 0.0],
+            vec![0.0, 0.1],
+            vec![10.0, 10.0],
+            vec![10.1, 10.0],
+            vec![10.0, 10.1],
         ];
         let labels = vec![0, 0, 0, 1, 1, 1];
         let s = silhouette_score(&x, &labels, crate::knn::euclidean);
-        assert!(s > 0.7, "well-separated clusters should score high, got {s}");
+        assert!(
+            s > 0.7,
+            "well-separated clusters should score high, got {s}"
+        );
     }
 
     #[test]

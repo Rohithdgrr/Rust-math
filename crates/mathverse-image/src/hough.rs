@@ -224,7 +224,10 @@ mod tests {
             .iter()
             .filter(|(rho, _)| rho.abs() > 40.0 && rho.abs() < 60.0)
             .collect();
-        assert!(!rho_vals.is_empty(), "Should detect rho ≈ 50 for vertical line at x=50");
+        assert!(
+            !rho_vals.is_empty(),
+            "Should detect rho ≈ 50 for vertical line at x=50"
+        );
     }
 
     #[test]
@@ -261,7 +264,10 @@ mod tests {
         // Should return empty (or very few) lines
         // With threshold=1 and all pixels zero, no lines detected
         // But our implementation considers any non-zero pixel, so test with truly empty
-        assert!(lines.is_empty() || lines.len() < 5, "Should detect very few lines in blank image");
+        assert!(
+            lines.is_empty() || lines.len() < 5,
+            "Should detect very few lines in blank image"
+        );
     }
 
     #[test]
@@ -275,8 +281,8 @@ mod tests {
         }
 
         // Test with different theta resolutions
-        let _lines_coarse = hough_line_transform(&img, 45, 1.0, 10);   // 45 theta steps
-        let lines_fine = hough_line_transform(&img, 180, 1.0, 10);   // 180 theta steps
+        let _lines_coarse = hough_line_transform(&img, 45, 1.0, 10); // 45 theta steps
+        let lines_fine = hough_line_transform(&img, 180, 1.0, 10); // 180 theta steps
 
         // Fine resolution should find the line (diagonal = theta=π/4, rho=0)
         assert!(

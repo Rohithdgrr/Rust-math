@@ -1,7 +1,7 @@
 //! Demonstration of plot customization options.
+use mathverse_plot::axis_config::AxisConfig;
 use mathverse_plot::export::ExportConfig;
 use mathverse_plot::theme::ThemeConfig;
-use mathverse_plot::axis_config::AxisConfig;
 
 fn main() {
     // Create export config

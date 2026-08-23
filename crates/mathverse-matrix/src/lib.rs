@@ -12,28 +12,28 @@ pub mod rng;
 pub mod decompositions;
 pub mod sparse;
 
-pub mod norms;
-pub mod condition;
-pub mod rank;
-pub mod pseudoinverse;
-pub mod functions;
-pub mod kronecker;
-pub mod hadamard;
-pub mod power;
-pub mod schur;
-pub mod eigen_general;
-pub mod eigen_generalized;
-pub mod lowrank;
-pub mod positivedefinite;
-pub mod ldl;
 pub mod banded;
 pub mod block;
-pub mod leastsquares;
-pub mod polar;
-pub mod equations;
-pub mod sparse_formats;
-pub mod iterative;
 pub mod calculus;
+pub mod condition;
+pub mod eigen_general;
+pub mod eigen_generalized;
+pub mod equations;
+pub mod functions;
+pub mod hadamard;
+pub mod iterative;
+pub mod kronecker;
+pub mod ldl;
+pub mod leastsquares;
+pub mod lowrank;
+pub mod norms;
+pub mod polar;
+pub mod positivedefinite;
+pub mod power;
+pub mod pseudoinverse;
+pub mod rank;
+pub mod schur;
+pub mod sparse_formats;
 
 pub use decompositions::{Lu, Qr, Svd};
 pub use sparse::SparseMatrix;
@@ -138,12 +138,20 @@ impl Matrix {
 
     /// Ones matrix.
     pub fn ones(rows: usize, cols: usize) -> Matrix {
-        Matrix { rows, cols, data: vec![1.0; rows * cols] }
+        Matrix {
+            rows,
+            cols,
+            data: vec![1.0; rows * cols],
+        }
     }
 
     /// Zero matrix.
     pub fn zeros(rows: usize, cols: usize) -> Matrix {
-        Matrix { rows, cols, data: vec![0.0; rows * cols] }
+        Matrix {
+            rows,
+            cols,
+            data: vec![0.0; rows * cols],
+        }
     }
 
     /// Identity matrix.
@@ -168,17 +176,25 @@ impl Matrix {
     /// From rows; errors on empty input or ragged rows.
     pub fn from_rows(rows: &[&[f64]]) -> MathResult<Matrix> {
         if rows.is_empty() || rows[0].is_empty() {
-            return Err(MathError::InvalidArgument("matrix must have at least one row and column"));
+            return Err(MathError::InvalidArgument(
+                "matrix must have at least one row and column",
+            ));
         }
         let cols = rows[0].len();
         let mut data = Vec::with_capacity(rows.len() * cols);
         for r in rows {
             if r.len() != cols {
-                return Err(MathError::InvalidArgument("ragged rows: all rows must have equal length"));
+                return Err(MathError::InvalidArgument(
+                    "ragged rows: all rows must have equal length",
+                ));
             }
             data.extend_from_slice(r);
         }
-        Ok(Matrix { rows: rows.len(), cols, data })
+        Ok(Matrix {
+            rows: rows.len(),
+            cols,
+            data,
+        })
     }
 
     /// Get the element at `(r, c)` without bounds checking.
@@ -187,7 +203,10 @@ impl Matrix {
     ///
     /// Panics in debug builds if `(r, c)` is out of bounds.
     pub fn get(&self, r: usize, c: usize) -> f64 {
-        debug_assert!(r < self.rows && c < self.cols, "matrix index ({r}, {c}) out of bounds");
+        debug_assert!(
+            r < self.rows && c < self.cols,
+            "matrix index ({r}, {c}) out of bounds"
+        );
         self.data[r * self.cols + c]
     }
 
@@ -197,7 +216,10 @@ impl Matrix {
     ///
     /// Panics in debug builds if `(r, c)` is out of bounds.
     pub fn set(&mut self, r: usize, c: usize, v: f64) {
-        debug_assert!(r < self.rows && c < self.cols, "matrix index ({r}, {c}) out of bounds");
+        debug_assert!(
+            r < self.rows && c < self.cols,
+            "matrix index ({r}, {c}) out of bounds"
+        );
         self.data[r * self.cols + c] = v;
     }
 
@@ -249,7 +271,12 @@ impl Matrix {
         Ok(Matrix {
             rows: self.rows,
             cols: self.cols,
-            data: self.data.iter().zip(&other.data).map(|(a, b)| f(*a, *b)).collect(),
+            data: self
+                .data
+                .iter()
+                .zip(&other.data)
+                .map(|(a, b)| f(*a, *b))
+                .collect(),
         })
     }
 
@@ -375,7 +402,10 @@ impl Matrix {
 impl Index<(usize, usize)> for Matrix {
     type Output = f64;
     fn index(&self, (r, c): (usize, usize)) -> &f64 {
-        debug_assert!(r < self.rows && c < self.cols, "matrix index ({r}, {c}) out of bounds");
+        debug_assert!(
+            r < self.rows && c < self.cols,
+            "matrix index ({r}, {c}) out of bounds"
+        );
         &self.data[r * self.cols + c]
     }
 }
@@ -402,7 +432,9 @@ mod tests {
         let s = a().add(&a()).unwrap();
         assert_eq!(s, a().scale(2.0));
         assert!(a().add(&Matrix::identity(3)).is_err());
-        let p = a().mul(&Matrix::from_rows(&[&[1.0, 0.0], &[0.0, 1.0]]).unwrap()).unwrap();
+        let p = a()
+            .mul(&Matrix::from_rows(&[&[1.0, 0.0], &[0.0, 1.0]]).unwrap())
+            .unwrap();
         assert_eq!(p, a());
         let v = a().mul_vec(&Vector::new(vec![1.0, 1.0])).unwrap();
         assert_eq!(v, Vector::new(vec![3.0, 7.0]));

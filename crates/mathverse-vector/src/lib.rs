@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_sign_loss)]
@@ -31,22 +30,22 @@
 //!
 //! Both features are opt-in and additive; the default build is fully scalar.
 
-/// Core [`Vector`] type and constructors.
-pub mod vector;
-/// Element-wise arithmetic operations.
-pub mod operations;
-/// L1/L2/L∞/p norms.
-pub mod norms;
+/// Distance metrics between vectors.
+pub mod distance;
 /// Geometric operations: dot, cross, angle, projection.
 pub mod geometry;
 /// Matrix-vector products and linear independence helpers.
 pub mod linear_algebra;
+/// L1/L2/L∞/p norms.
+pub mod norms;
+/// Element-wise arithmetic operations.
+pub mod operations;
 /// Statistical reductions over vectors.
 pub mod statistics;
-/// Distance metrics between vectors.
-pub mod distance;
 /// Utility functions: normalization, clamping, interpolation.
 pub mod utils;
+/// Core [`Vector`] type and constructors.
+pub mod vector;
 
 /// Optional SIMD acceleration (feature `simd`).
 #[cfg(feature = "simd")]
@@ -56,11 +55,11 @@ pub mod simd;
 #[cfg(feature = "parallel")]
 pub mod parallel;
 
-pub use vector::Vector;
-pub use operations::*;
-pub use norms::*;
+pub use distance::*;
 pub use geometry::*;
 pub use linear_algebra::*;
+pub use norms::*;
+pub use operations::*;
 pub use statistics::*;
-pub use distance::*;
 pub use utils::*;
+pub use vector::Vector;

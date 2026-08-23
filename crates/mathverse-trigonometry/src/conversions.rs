@@ -27,9 +27,13 @@ pub const fn wrap_angle_f64(x: f64) -> f64 {
     let pi = core::f64::consts::PI;
     let two_pi = pi * 2.0;
     let v = x % two_pi;
-    if v >= pi { v - two_pi }
-    else if v < -pi { v + two_pi }
-    else { v }
+    if v >= pi {
+        v - two_pi
+    } else if v < -pi {
+        v + two_pi
+    } else {
+        v
+    }
 }
 
 /// Wrap angle in radians to `[0, 2π)`.
@@ -225,7 +229,7 @@ mod tests {
         assert!((wrap_angle_f64(-3.0 * PI) - (-PI)).abs() < EPS);
         assert!((turns_to_radians_f64(0.5) - PI).abs() < EPS);
         assert!((radians_to_turns_f64(PI) - 0.5).abs() < EPS);
-        
+
         // Verify const variants match generic versions
         assert!((wrap_angle_f64(3.0 * PI) - wrap_angle(3.0 * PI)).abs() < EPS);
         assert!((turns_to_radians_f64(0.5) - turns_to_radians(0.5)).abs() < EPS);

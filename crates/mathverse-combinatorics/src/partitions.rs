@@ -1,4 +1,4 @@
-//! Integer partition functions: general, k-parts, distinct, even/odd parts, Euler's formula.
+﻿//! Integer partition functions: general, k-parts, distinct, even/odd parts, Euler's formula.
 
 /// Number of integer partitions of `n`.
 pub fn partition(n: u64) -> u128 {
@@ -6,15 +6,25 @@ pub fn partition(n: u64) -> u128 {
     let mut p = vec![0u128; n + 1];
     p[0] = 1;
     for i in 1..=n {
-        for j in i..=n { p[j] += p[j - i]; }
+        for j in i..=n {
+            p[j] += p[j - i];
+        }
     }
     p[n]
 }
 
+/// Number of partitions of `n` into exactly `k` parts.
+#[must_use]
 pub fn partition_k(n: u64, k: u64) -> u128 {
-    if k > n { return 0; }
-    if n == 0 && k == 0 { return 1; }
-    if k == 0 { return 0; }
+    if k > n {
+        return 0;
+    }
+    if n == 0 && k == 0 {
+        return 1;
+    }
+    if k == 0 {
+        return 0;
+    }
     let n = n as usize;
     let k = k as usize;
     let mut dp = vec![vec![0u128; k + 1]; n + 1];
@@ -27,59 +37,83 @@ pub fn partition_k(n: u64, k: u64) -> u128 {
     dp[n][k]
 }
 
+/// Number of partitions of `n` into distinct parts.
+#[must_use]
 pub fn partition_into_distinct(n: u64) -> u128 {
     let n = n as usize;
     let mut p = vec![0u128; n + 1];
     p[0] = 1;
     for i in 1..=n {
-        for j in (i..=n).rev() { p[j] += p[j - i]; }
+        for j in (i..=n).rev() {
+            p[j] += p[j - i];
+        }
     }
     p[n]
 }
 
+/// Number of partitions of `n` whose parts are all even.
+#[must_use]
 pub fn partition_count_even_parts(n: u64) -> u128 {
     let n = n as usize;
     let mut p = vec![0u128; n + 1];
     p[0] = 1;
     for i in (2..=n).step_by(2) {
-        for j in i..=n { p[j] += p[j - i]; }
+        for j in i..=n {
+            p[j] += p[j - i];
+        }
     }
     p[n]
 }
 
+/// Number of partitions of `n` whose parts are all odd.
+#[must_use]
 pub fn partition_count_odd_parts(n: u64) -> u128 {
     let n = n as usize;
     let mut p = vec![0u128; n + 1];
     p[0] = 1;
     for i in (1..=n).step_by(2) {
-        for j in i..=n { p[j] += p[j - i]; }
+        for j in i..=n {
+            p[j] += p[j - i];
+        }
     }
     p[n]
 }
 
+/// Number of partitions of `n` with no part exceeding `max_part`.
+#[must_use]
 pub fn partitions_leq(n: u64, max_part: u64) -> u128 {
     let n = n as usize;
     let max = max_part as usize;
     let mut p = vec![0u128; n + 1];
     p[0] = 1;
     for i in 1..=max.min(n) {
-        for j in i..=n { p[j] += p[j - i]; }
+        for j in i..=n {
+            p[j] += p[j - i];
+        }
     }
     p[n]
 }
 
+/// Generalized `k`th pentagonal number: `k * (3k - 1) / 2`.
+#[must_use]
 pub fn pentagonal(n: i64) -> i64 {
     n * (3 * n - 1) / 2
 }
 
+/// Compute the partition count of `n` via Euler's pentagonal number theorem.
+#[must_use]
 pub fn euler_partition_formula(n: u64) -> u128 {
     let n = n as i64;
-    if n == 0 { return 1; }
+    if n == 0 {
+        return 1;
+    }
     let mut result: i128 = 0;
     let mut k = 1i64;
     loop {
         let gk = pentagonal(k);
-        if gk > n { break; }
+        if gk > n {
+            break;
+        }
         let sign = if k % 2 == 0 { -1 } else { 1 };
         result += i128::from(sign) * partition((n - gk) as u64) as i128;
         let gk_neg = pentagonal(-k);

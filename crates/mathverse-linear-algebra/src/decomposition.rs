@@ -224,8 +224,14 @@ pub fn eigenvalue_2x2(a: [[f64; 2]; 2]) -> (Complex, Complex) {
         let lambda1 = f64::midpoint(trace, sqrt_disc);
         let lambda2 = (trace - sqrt_disc) / 2.0;
         (
-            Complex { re: lambda1, im: 0.0 },
-            Complex { re: lambda2, im: 0.0 },
+            Complex {
+                re: lambda1,
+                im: 0.0,
+            },
+            Complex {
+                re: lambda2,
+                im: 0.0,
+            },
         )
     } else {
         // Complex eigenvalues
@@ -233,8 +239,14 @@ pub fn eigenvalue_2x2(a: [[f64; 2]; 2]) -> (Complex, Complex) {
         let real_part = trace / 2.0;
         let imag_part = sqrt_disc_abs / 2.0;
         (
-            Complex { re: real_part, im: imag_part },
-            Complex { re: real_part, im: -imag_part },
+            Complex {
+                re: real_part,
+                im: imag_part,
+            },
+            Complex {
+                re: real_part,
+                im: -imag_part,
+            },
         )
     }
 }
@@ -350,11 +362,7 @@ mod tests {
     #[test]
     fn qr_ill_conditioned() {
         // Test QR with a nearly rank-deficient matrix
-        let a = mat(&[
-            &[1.0, 2.0],
-            &[1.0, 2.0 + 1e-8],
-            &[1.0, 2.0 + 2e-8],
-        ]);
+        let a = mat(&[&[1.0, 2.0], &[1.0, 2.0 + 1e-8], &[1.0, 2.0 + 2e-8]]);
         let (q, _r) = qr_decompose(&a).unwrap();
 
         // Check that Q is still orthogonal

@@ -1,5 +1,5 @@
 //! Live camera viewer with OpenCV-like features
-//! 
+//!
 //! Controls:
 //! - ESC or Q: Quit
 //! - E: Toggle edge detection (Canny)
@@ -10,7 +10,7 @@
 //! - R: Reset (show original)
 //! - SPACE: Capture screenshot
 
-use mathverse_vision::{Image, camera::SystemCamera};
+use mathverse_vision::{camera::SystemCamera, Image};
 use minifb::{Key, Window, WindowOptions};
 
 const WIDTH: usize = 640;
@@ -29,21 +29,22 @@ fn main() -> Result<(), String> {
     // Initialize camera
     println!("Initializing camera...");
     let mut cam = SystemCamera::new(0)?;
-    
+
     // Create window
     let mut window = Window::new(
         "MathVerse Vision - Live Camera (ESC to quit)",
         WIDTH,
         HEIGHT,
         WindowOptions::default(),
-    ).map_err(|e| format!("Failed to create window: {e}"))?;
-    
+    )
+    .map_err(|e| format!("Failed to create window: {e}"))?;
+
     // Limit update rate to approximately 30 FPS
     window.set_target_fps(30);
-    
+
     let mut mode = ProcessMode::Original;
     let mut frame_count = 0;
-    
+
     println!("\n=== Camera Controls ===");
     println!("ESC/Q: Quit");
     println!("E: Edge Detection (Canny)");
@@ -54,7 +55,7 @@ fn main() -> Result<(), String> {
     println!("R: Reset to Original");
     println!("SPACE: Capture Screenshot");
     println!("======================\n");
-    
+
     // Main loop
     while window.is_open() && !window.is_key_down(Key::Escape) {
         // Handle keyboard input
@@ -88,58 +89,54 @@ fn main() -> Result<(), String> {
         if window.is_key_pressed(Key::Space, minifb::KeyRepeat::No) {
             println!("Screenshot saved as frame_{frame_count:04}.raw");
         }
-        
+
         // Capture frame
         let (success, frame) = cam.read()?;
-        
+
         if !success {
             println!("Failed to capture frame");
             continue;
         }
-        
+
         // Process frame based on mode
         let processed = match mode {
             ProcessMode::Original => frame,
             ProcessMode::EdgeDetection => {
                 use mathverse_vision::ops::canny;
                 canny(&frame, 0.1, 0.3)
-            },
+            }
             ProcessMode::CornerDetection => {
                 use mathverse_vision::features::harris;
                 let corners = harris(&frame, 1.0, 0.04);
                 // Normalize for display
                 normalize_image(&corners)
-            },
-            ProcessMode::Blur => {
-                frame.gaussian_blur(5, 2.0)
-            },
+            }
+            ProcessMode::Blur => frame.gaussian_blur(5, 2.0),
             ProcessMode::Sobel => {
                 use mathverse_vision::ops::sobel;
                 let (mag, _) = sobel(&frame);
                 normalize_image(&mag)
-            },
-            ProcessMode::HistogramEqualize => {
-                histogram_equalize(&frame)
-            },
+            }
+            ProcessMode::HistogramEqualize => histogram_equalize(&frame),
         };
-        
+
         // Convert grayscale to RGB for display
         let buffer = grayscale_to_rgb_buffer(&processed);
-        
+
         // Update window
         window
             .update_with_buffer(&buffer, WIDTH, HEIGHT)
             .map_err(|e| format!("Window update failed: {e}"))?;
-        
+
         frame_count += 1;
-        
+
         // Print FPS every 30 frames
         if frame_count % 30 == 0 {
             print!("\rFrames: {frame_count} ");
             std::io::Write::flush(&mut std::io::stdout()).ok();
         }
     }
-    
+
     println!("\n\nCamera closed. Total frames: {frame_count}");
     Ok(())
 }
@@ -147,14 +144,14 @@ fn main() -> Result<(), String> {
 /// Convert grayscale image to RGB buffer for minifb (u32 format: 0xRRGGBB)
 fn grayscale_to_rgb_buffer(img: &Image) -> Vec<u32> {
     let mut buffer = vec![0u32; img.w * img.h];
-    
+
     for (i, &val) in img.data.iter().enumerate() {
         // Clamp to [0, 1] and convert to 8-bit
         let byte = (val.clamp(0.0, 1.0) * 255.0) as u8;
         // Pack as 0xRRGGBB
         buffer[i] = (u32::from(byte) << 16) | (u32::from(byte) << 8) | u32::from(byte);
     }
-    
+
     buffer
 }
 
@@ -162,40 +159,44 @@ fn grayscale_to_rgb_buffer(img: &Image) -> Vec<u32> {
 fn normalize_image(img: &Image) -> Image {
     let mut min_val = f64::INFINITY;
     let mut max_val = f64::NEG_INFINITY;
-    
+
     for &val in &img.data {
-        if val < min_val { min_val = val; }
-        if val > max_val { max_val = val; }
+        if val < min_val {
+            min_val = val;
+        }
+        if val > max_val {
+            max_val = val;
+        }
     }
-    
+
     let range = max_val - min_val;
     if range < 1e-10 {
         return img.clone();
     }
-    
+
     let mut out = Image::new(img.w, img.h);
     for (i, &val) in img.data.iter().enumerate() {
         out.data[i] = (val - min_val) / range;
     }
-    
+
     out
 }
 
 /// Simple histogram equalization
 fn histogram_equalize(img: &Image) -> Image {
     use mathverse_vision::ops::histogram;
-    
+
     let hist = histogram(img);
-    
+
     // Compute cumulative distribution function (CDF)
     let mut cdf = [0usize; 256];
     cdf[0] = hist[0];
     for i in 1..256 {
         cdf[i] = cdf[i - 1] + hist[i];
     }
-    
+
     let total_pixels = img.w * img.h;
-    
+
     // Create equalized image
     let mut out = Image::new(img.w, img.h);
     for (i, &val) in img.data.iter().enumerate() {
@@ -205,6 +206,6 @@ fn histogram_equalize(img: &Image) -> Image {
         let equalized = cdf[bin] as f64 / total_pixels as f64;
         out.data[i] = equalized;
     }
-    
+
     out
 }

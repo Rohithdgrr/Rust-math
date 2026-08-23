@@ -4,11 +4,12 @@ use crate::tensor::Tensor;
 use mathverse_core::error::{MathError, MathResult};
 
 /// Vanilla RNN forward pass.
-/// `x`: [batch, seq_len, input_size]
-/// `w_ih`: [hidden_size, input_size]
-/// `w_hh`: [hidden_size, hidden_size]
-/// `h0`: [batch, hidden_size] optional (defaults to zeros)
-/// Returns (output [batch, seq_len, hidden_size], final_hidden [batch, hidden_size]).
+///
+/// `x`: [batch, `seq_len`, `input_size`]
+/// `w_ih`: [`hidden_size`, `input_size`]
+/// `w_hh`: [`hidden_size`, `hidden_size`]
+/// `h0`: [batch, `hidden_size`] optional (defaults to zeros)
+/// Returns (output [batch, `seq_len`, `hidden_size`], `final_hidden` [batch, `hidden_size`]).
 pub fn rnn_forward(
     x: &Tensor,
     w_ih: &Tensor,
@@ -17,7 +18,9 @@ pub fn rnn_forward(
     activation: fn(f64) -> f64,
 ) -> MathResult<(Tensor, Tensor)> {
     if x.shape.len() != 3 {
-        return Err(MathError::InvalidArgument("x must be [batch, seq_len, input_size]"));
+        return Err(MathError::InvalidArgument(
+            "x must be [batch, seq_len, input_size]",
+        ));
     }
     let batch = x.shape[0];
     let seq_len = x.shape[1];
@@ -45,20 +48,23 @@ pub fn rnn_forward(
     for t in 0..seq_len {
         for b in 0..batch {
             let mut new_h = vec![0.0; hidden_size];
-#[allow(clippy::needless_range_loop)]            for i in 0..hidden_size {
+            #[allow(clippy::needless_range_loop)]
+            for i in 0..hidden_size {
                 let mut val = 0.0;
                 // W_ih @ x[t]
                 for j in 0..input_size {
-                    val += w_ih.data[i * input_size + j] * x.data[b * seq_len * input_size + t * input_size + j];
+                    val = w_ih.data[i * input_size + j]
+                        .mul_add(x.data[b * seq_len * input_size + t * input_size + j], val);
                 }
                 // W_hh @ h[t-1]
                 for j in 0..hidden_size {
-                    val += w_hh.data[i * hidden_size + j] * h[b * hidden_size + j];
+                    val = w_hh.data[i * hidden_size + j].mul_add(h[b * hidden_size + j], val);
                 }
                 new_h[i] = activation(val);
             }
             h[b * hidden_size..(b + 1) * hidden_size].copy_from_slice(&new_h);
-            output[b * seq_len * hidden_size + t * hidden_size..b * seq_len * hidden_size + (t + 1) * hidden_size]
+            output[b * seq_len * hidden_size + t * hidden_size
+                ..b * seq_len * hidden_size + (t + 1) * hidden_size]
                 .copy_from_slice(&new_h);
         }
     }
@@ -69,11 +75,12 @@ pub fn rnn_forward(
 }
 
 /// LSTM forward pass.
-/// `x`: [batch, seq_len, input_size]
-/// `w_ih`: [4*hidden_size, input_size] (i, f, g, o gates)
-/// `w_hh`: [4*hidden_size, hidden_size]
-/// `h0`, `c0`: [batch, hidden_size] optional
-/// Returns (output [batch, seq_len, hidden_size], final_h, final_c).
+///
+/// `x`: [batch, `seq_len`, `input_size`]
+/// `w_ih`: [4*`hidden_size`, `input_size`] (i, f, g, o gates)
+/// `w_hh`: [4*`hidden_size`, `hidden_size`]
+/// `h0`, `c0`: [batch, `hidden_size`] optional
+/// Returns (output [batch, `seq_len`, `hidden_size`], `final_h`, `final_c`).
 pub fn lstm_forward(
     x: &Tensor,
     w_ih: &Tensor,
@@ -82,7 +89,9 @@ pub fn lstm_forward(
     c0: Option<&Tensor>,
 ) -> MathResult<(Tensor, Tensor, Tensor)> {
     if x.shape.len() != 3 {
-        return Err(MathError::InvalidArgument("x must be [batch, seq_len, input_size]"));
+        return Err(MathError::InvalidArgument(
+            "x must be [batch, seq_len, input_size]",
+        ));
     }
     let batch = x.shape[0];
     let seq_len = x.shape[1];
@@ -97,7 +106,9 @@ pub fn lstm_forward(
 
     let mut h = match h0 {
         Some(h0) => {
-            if h0.shape != [batch, hidden_size] { return Err(MathError::DimensionMismatch); }
+            if h0.shape != [batch, hidden_size] {
+                return Err(MathError::DimensionMismatch);
+            }
             h0.data.clone()
         }
         None => vec![0.0; batch * hidden_size],
@@ -105,7 +116,9 @@ pub fn lstm_forward(
 
     let mut c = match c0 {
         Some(c0) => {
-            if c0.shape != [batch, hidden_size] { return Err(MathError::DimensionMismatch); }
+            if c0.shape != [batch, hidden_size] {
+                return Err(MathError::DimensionMismatch);
+            }
             c0.data.clone()
         }
         None => vec![0.0; batch * hidden_size],
@@ -116,20 +129,23 @@ pub fn lstm_forward(
     for t in 0..seq_len {
         for b in 0..batch {
             let mut gates = vec![0.0; 4 * hidden_size];
-#[allow(clippy::needless_range_loop)]            for i in 0..4 * hidden_size {
+            #[allow(clippy::needless_range_loop)]
+            for i in 0..4 * hidden_size {
                 let mut val = 0.0;
                 for j in 0..input_size {
-                    val += w_ih.data[i * input_size + j] * x.data[b * seq_len * input_size + t * input_size + j];
+                    val = w_ih.data[i * input_size + j]
+                        .mul_add(x.data[b * seq_len * input_size + t * input_size + j], val);
                 }
                 for j in 0..hidden_size {
-                    val += w_hh.data[i * hidden_size + j] * h[b * hidden_size + j];
+                    val = w_hh.data[i * hidden_size + j].mul_add(h[b * hidden_size + j], val);
                 }
                 gates[i] = val;
             }
 
             let mut new_c = vec![0.0; hidden_size];
             let mut new_h = vec![0.0; hidden_size];
-#[allow(clippy::needless_range_loop)]            for i in 0..hidden_size {
+            #[allow(clippy::needless_range_loop)]
+            for i in 0..hidden_size {
                 let input_gate = sigmoid_val(gates[i]);
                 let forget_gate = sigmoid_val(gates[hidden_size + i]);
                 let cell_gate = gates[2 * hidden_size + i].tanh();
@@ -141,7 +157,8 @@ pub fn lstm_forward(
 
             h[b * hidden_size..(b + 1) * hidden_size].copy_from_slice(&new_h);
             c[b * hidden_size..(b + 1) * hidden_size].copy_from_slice(&new_c);
-            output[b * seq_len * hidden_size + t * hidden_size..b * seq_len * hidden_size + (t + 1) * hidden_size]
+            output[b * seq_len * hidden_size + t * hidden_size
+                ..b * seq_len * hidden_size + (t + 1) * hidden_size]
                 .copy_from_slice(&new_h);
         }
     }
@@ -153,11 +170,12 @@ pub fn lstm_forward(
 }
 
 /// GRU forward pass.
-/// `x`: [batch, seq_len, input_size]
-/// `w_ih`: [3*hidden_size, input_size] (z, r, n gates)
-/// `w_hh`: [3*hidden_size, hidden_size]
-/// `h0`: [batch, hidden_size] optional
-/// Returns (output [batch, seq_len, hidden_size], final_hidden).
+///
+/// `x`: [batch, `seq_len`, `input_size`]
+/// `w_ih`: [3*`hidden_size`, `input_size`] (z, r, n gates)
+/// `w_hh`: [3*`hidden_size`, `hidden_size`]
+/// `h0`: [batch, `hidden_size`] optional
+/// Returns (output [batch, `seq_len`, `hidden_size`], `final_hidden`).
 pub fn gru_forward(
     x: &Tensor,
     w_ih: &Tensor,
@@ -165,7 +183,9 @@ pub fn gru_forward(
     h0: Option<&Tensor>,
 ) -> MathResult<(Tensor, Tensor)> {
     if x.shape.len() != 3 {
-        return Err(MathError::InvalidArgument("x must be [batch, seq_len, input_size]"));
+        return Err(MathError::InvalidArgument(
+            "x must be [batch, seq_len, input_size]",
+        ));
     }
     let batch = x.shape[0];
     let seq_len = x.shape[1];
@@ -180,7 +200,9 @@ pub fn gru_forward(
 
     let mut h = match h0 {
         Some(h0) => {
-            if h0.shape != [batch, hidden_size] { return Err(MathError::DimensionMismatch); }
+            if h0.shape != [batch, hidden_size] {
+                return Err(MathError::DimensionMismatch);
+            }
             h0.data.clone()
         }
         None => vec![0.0; batch * hidden_size],
@@ -194,23 +216,29 @@ pub fn gru_forward(
             let mut gates_hh = vec![0.0; 3 * hidden_size];
             for i in 0..3 * hidden_size {
                 for j in 0..input_size {
-                    gates_ih[i] += w_ih.data[i * input_size + j] * x.data[b * seq_len * input_size + t * input_size + j];
+                    gates_ih[i] = w_ih.data[i * input_size + j].mul_add(
+                        x.data[b * seq_len * input_size + t * input_size + j],
+                        gates_ih[i],
+                    );
                 }
                 for j in 0..hidden_size {
-                    gates_hh[i] += w_hh.data[i * hidden_size + j] * h[b * hidden_size + j];
+                    gates_hh[i] =
+                        w_hh.data[i * hidden_size + j].mul_add(h[b * hidden_size + j], gates_hh[i]);
                 }
             }
 
             let mut new_h = vec![0.0; hidden_size];
-#[allow(clippy::needless_range_loop)]            for i in 0..hidden_size {
+            #[allow(clippy::needless_range_loop)]
+            for i in 0..hidden_size {
                 let z = sigmoid_val(gates_ih[i] + gates_hh[i]);
                 let r = sigmoid_val(gates_ih[hidden_size + i] + gates_hh[hidden_size + i]);
                 let n = (gates_ih[2 * hidden_size + i] + r * gates_hh[2 * hidden_size + i]).tanh();
-                new_h[i] = (1.0 - z) * n + z * h[b * hidden_size + i];
+                new_h[i] = (1.0 - z).mul_add(n, z * h[b * hidden_size + i]);
             }
 
             h[b * hidden_size..(b + 1) * hidden_size].copy_from_slice(&new_h);
-            output[b * seq_len * hidden_size + t * hidden_size..b * seq_len * hidden_size + (t + 1) * hidden_size]
+            output[b * seq_len * hidden_size + t * hidden_size
+                ..b * seq_len * hidden_size + (t + 1) * hidden_size]
                 .copy_from_slice(&new_h);
         }
     }
@@ -234,7 +262,7 @@ mod tests {
     use super::*;
     const E: f64 = 1e-5;
 
-#[test]
+    #[test]
     fn rnn_forward_test() {
         let x = Tensor::new(&[1, 2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
         let w_ih = Tensor::new(&[2, 3], &[0.1, 0.2, 0.3, 0.4, 0.5, 0.6]).unwrap();
@@ -246,7 +274,7 @@ mod tests {
         assert!(h.data.iter().any(|&v| v.abs() > E));
     }
 
-#[test]
+    #[test]
     fn rnn_with_initial_hidden() {
         let x = Tensor::new(&[1, 1, 2], &[1.0, 1.0]).unwrap();
         let w_ih = Tensor::new(&[2, 2], &[0.1, 0.2, 0.3, 0.4]).unwrap();
@@ -294,11 +322,3 @@ mod tests {
         assert!((h.data[0] - h.data[2]).abs() > 1e-6 || (h.data[1] - h.data[3]).abs() > 1e-6);
     }
 }
-
-
-
-
-
-
-
-

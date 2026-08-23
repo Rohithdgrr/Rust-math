@@ -4,15 +4,19 @@
 #![allow(missing_docs)]
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use std::hint::black_box;
 use mathverse_calculus::prelude::*;
+use std::hint::black_box;
 
 fn bench_derivatives(c: &mut Criterion) {
     let f = |x: f64| x.sin() * x.cos() + x * x;
     let mut group = c.benchmark_group("derivative");
     group.bench_function("first", |b| b.iter(|| derivative(&f, black_box(1.0))));
-    group.bench_function("second", |b| b.iter(|| second_derivative(&f, black_box(1.0))));
-    group.bench_function("nth_5", |b| b.iter(|| nth_derivative(&f, black_box(1.0), black_box(5))));
+    group.bench_function("second", |b| {
+        b.iter(|| second_derivative(&f, black_box(1.0)));
+    });
+    group.bench_function("nth_5", |b| {
+        b.iter(|| nth_derivative(&f, black_box(1.0), black_box(5)));
+    });
     group.bench_function("partial", |b| {
         let g = |x: &[f64]| x[0] * x[0] + x[1] * x[1];
         b.iter(|| partial_derivative(&g, black_box(&[1.0, 2.0]), black_box(0)));
@@ -51,12 +55,29 @@ fn bench_integration(c: &mut Criterion) {
     }
 
     group.bench_function("romberg", |b| {
-        b.iter(|| romberg(&f, black_box(0.0), black_box(1.0), black_box(10), black_box(1e-12)));
+        b.iter(|| {
+            romberg(
+                &f,
+                black_box(0.0),
+                black_box(1.0),
+                black_box(10),
+                black_box(1e-12),
+            )
+        });
     });
 
     group.bench_function("integrate_2d", |b| {
         let g = |x: f64, y: f64| x * y;
-        b.iter(|| integrate_2d(&g, black_box(0.0), black_box(1.0), black_box(0.0), black_box(1.0), black_box(5)));
+        b.iter(|| {
+            integrate_2d(
+                &g,
+                black_box(0.0),
+                black_box(1.0),
+                black_box(0.0),
+                black_box(1.0),
+                black_box(5),
+            )
+        });
     });
 
     group.finish();
@@ -80,7 +101,15 @@ fn bench_ode(c: &mut Criterion) {
 
     group.bench_function("system_rk4", |b| {
         let sys = |_: f64, y: &[f64]| vec![y[1], -y[0]];
-        b.iter(|| runge_kutta_4_system(&sys, black_box(0.0), black_box(&[1.0, 0.0]), black_box(1.0), black_box(1000)));
+        b.iter(|| {
+            runge_kutta_4_system(
+                &sys,
+                black_box(0.0),
+                black_box(&[1.0, 0.0]),
+                black_box(1.0),
+                black_box(1000),
+            )
+        });
     });
 
     group.bench_function("builder", |b| {

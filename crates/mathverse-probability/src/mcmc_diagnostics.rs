@@ -13,7 +13,10 @@
 /// Panics if `samples` has fewer than 2 elements.
 #[must_use]
 pub fn autocorrelation(samples: &[f64], lag: usize) -> f64 {
-    assert!(samples.len() >= 2, "autocorrelation needs at least 2 samples");
+    assert!(
+        samples.len() >= 2,
+        "autocorrelation needs at least 2 samples"
+    );
     let n = samples.len();
     if lag >= n {
         return 0.0;
@@ -35,7 +38,9 @@ pub fn autocorrelation(samples: &[f64], lag: usize) -> f64 {
 #[must_use]
 pub fn autocorrelation_function(samples: &[f64], max_lag: usize) -> Vec<f64> {
     let max_lag = max_lag.min(samples.len().saturating_sub(2));
-    (0..=max_lag).map(|lag| autocorrelation(samples, lag)).collect()
+    (0..=max_lag)
+        .map(|lag| autocorrelation(samples, lag))
+        .collect()
 }
 
 /// Integrated autocorrelation time: `1 + 2 * sum_{k>=1} rho_k`, using Geyer's
@@ -205,7 +210,9 @@ fn batch_variance(samples: &[f64], overall_mean: f64) -> f64 {
     let batch_size = n / BATCHES;
     let batch_means: Vec<f64> = (0..BATCHES)
         .map(|b| {
-            samples[b * batch_size..(b + 1) * batch_size].iter().sum::<f64>()
+            samples[b * batch_size..(b + 1) * batch_size]
+                .iter()
+                .sum::<f64>()
                 / batch_size as f64
         })
         .collect();
@@ -251,11 +258,7 @@ pub fn summarize(samples: &[f64]) -> ChainSummary {
     let n = samples.len();
     let mean = samples.iter().sum::<f64>() / n as f64;
     let var = if n > 1 {
-        samples
-            .iter()
-            .map(|&x| (x - mean).powi(2))
-            .sum::<f64>()
-            / (n - 1) as f64
+        samples.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (n - 1) as f64
     } else {
         0.0
     };
@@ -265,7 +268,11 @@ pub fn summarize(samples: &[f64]) -> ChainSummary {
         std_dev: var.sqrt(),
         ess: effective_sample_size(samples),
         iact: integrated_autocorrelation_time(samples),
-        rho1: if n >= 2 { autocorrelation(samples, 1) } else { 0.0 },
+        rho1: if n >= 2 {
+            autocorrelation(samples, 1)
+        } else {
+            0.0
+        },
     }
 }
 
@@ -274,11 +281,7 @@ pub fn summarize(samples: &[f64]) -> ChainSummary {
 pub fn _assert_ci95(samples: &[f64], true_mean: f64) {
     let n = samples.len();
     let mean = samples.iter().sum::<f64>() / n as f64;
-    let var = samples
-        .iter()
-        .map(|&x| (x - mean).powi(2))
-        .sum::<f64>()
-        / (n - 1) as f64;
+    let var = samples.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
     let se = (var / n as f64).sqrt();
     assert!(
         (mean - true_mean).abs() < 4.0 * se,
@@ -329,7 +332,12 @@ mod tests {
         let mut x = Vec::with_capacity(2000);
         let mut v = 0.0;
         for _ in 0..2000 {
-            v = 0.95 * v + crate::distributions::Normal { mu: 0.0, sigma: 0.3 }.sample(&mut rng);
+            v = 0.95 * v
+                + crate::distributions::Normal {
+                    mu: 0.0,
+                    sigma: 0.3,
+                }
+                .sample(&mut rng);
             x.push(v);
         }
         let ess = effective_sample_size(&x);
@@ -386,7 +394,10 @@ mod tests {
         let x = independent_normal_chain(4000, 0.0);
         let z = geweke(&x, 0.1, 0.5);
         assert!(z.is_finite());
-        assert!(z.abs() < 3.0, "Geweke z {z} too extreme for stationary chain");
+        assert!(
+            z.abs() < 3.0,
+            "Geweke z {z} too extreme for stationary chain"
+        );
     }
 
     #[test]
@@ -402,7 +413,12 @@ mod tests {
         let mut x = Vec::with_capacity(2000);
         let mut v = 0.0;
         for _ in 0..2000 {
-            v = 0.9 * v + crate::distributions::Normal { mu: 0.0, sigma: 0.5 }.sample(&mut rng);
+            v = 0.9 * v
+                + crate::distributions::Normal {
+                    mu: 0.0,
+                    sigma: 0.5,
+                }
+                .sample(&mut rng);
             x.push(v);
         }
         let interval = thinning_interval(&x, 0.1);
@@ -424,9 +440,16 @@ mod tests {
     #[test]
     fn multi_dimension_ess_and_rhat() {
         let mut rng = Rng::new(11);
-        let dist = crate::distributions::Normal { mu: 0.0, sigma: 1.0 };
+        let dist = crate::distributions::Normal {
+            mu: 0.0,
+            sigma: 1.0,
+        };
         let chains: Vec<Vec<Vec<f64>>> = (0..3)
-            .map(|_| (0..600).map(|_| vec![dist.sample(&mut rng), dist.sample(&mut rng)]).collect())
+            .map(|_| {
+                (0..600)
+                    .map(|_| vec![dist.sample(&mut rng), dist.sample(&mut rng)])
+                    .collect()
+            })
             .collect();
         let rhat = gelman_rubin(&chains);
         assert_eq!(rhat.len(), 2);

@@ -113,7 +113,7 @@ pub fn quadratic_reciprocity(p: u64, q: u64) -> i64 {
 ///
 /// Returns `None` if `d` is a perfect square (no non-trivial solution) or
 /// if the solution does not fit in `u128`. With the `bigint` feature,
-/// [`pell_fundamental_big`] supports arbitrary precision.
+/// ``pell_fundamental_big`` supports arbitrary precision.
 ///
 /// ```
 /// use mathverse_number_theory::pell_fundamental;

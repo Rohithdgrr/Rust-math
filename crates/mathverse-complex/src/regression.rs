@@ -38,9 +38,7 @@ pub fn least_squares(x: &ComplexMatrix, y: &[Complex]) -> MathResult<Vec<Complex
         return Err(MathError::DimensionMismatch);
     }
     if n < p {
-        return Err(MathError::InvalidArgument(
-            "Underdetermined system: n < p",
-        ));
+        return Err(MathError::InvalidArgument("Underdetermined system: n < p"));
     }
 
     // Xᴴ (conjugate transpose)
@@ -75,11 +73,7 @@ pub fn least_squares(x: &ComplexMatrix, y: &[Complex]) -> MathResult<Vec<Complex
 /// # Errors
 /// [`MathError::DimensionMismatch`] if dimensions are incompatible.
 /// [`MathError::Singular`] if the system is singular.
-pub fn ridge(
-    x: &ComplexMatrix,
-    y: &[Complex],
-    lambda: f64,
-) -> MathResult<Vec<Complex>> {
+pub fn ridge(x: &ComplexMatrix, y: &[Complex], lambda: f64) -> MathResult<Vec<Complex>> {
     let (n, p) = (x.rows, x.cols);
     if y.len() != n {
         return Err(MathError::DimensionMismatch);
@@ -243,10 +237,7 @@ pub fn mse(predicted: &[Complex], actual: &[Complex]) -> f64 {
 /// If `predicted.len() != actual.len()`.
 pub fn r_squared(predicted: &[Complex], actual: &[Complex]) -> f64 {
     assert_eq!(predicted.len(), actual.len());
-    let mean: Complex = actual
-        .iter()
-        .copied()
-        .fold(Complex::zero(), |a, b| a + b)
+    let mean: Complex = actual.iter().copied().fold(Complex::zero(), |a, b| a + b)
         / Complex::real(actual.len() as f64);
 
     let ss_res: f64 = predicted
@@ -255,10 +246,7 @@ pub fn r_squared(predicted: &[Complex], actual: &[Complex]) -> f64 {
         .map(|(p, a)| (*p - *a).norm_sq())
         .sum();
 
-    let ss_tot: f64 = actual
-        .iter()
-        .map(|a| (*a - mean).norm_sq())
-        .sum();
+    let ss_tot: f64 = actual.iter().map(|a| (*a - mean).norm_sq()).sum();
 
     if ss_tot < 1e-15 {
         1.0
@@ -296,17 +284,23 @@ mod tests {
         // Fit y = (1+i)·x to data
         let x = make_matrix(3, 1, &[1.0, 2.0, 3.0]);
         let coeff = Complex::new(1.0, 1.0);
-        let y: Vec<Complex> = (1..=3).map(|i| coeff * Complex::real(f64::from(i))).collect();
+        let y: Vec<Complex> = (1..=3)
+            .map(|i| coeff * Complex::real(f64::from(i)))
+            .collect();
         let w = least_squares(&x, &y).unwrap();
         assert!((w[0] - coeff).norm() < 1e-8);
     }
 
     #[test]
     fn ridge_reduces_coefficients() {
-        let x = make_matrix(10, 2, &[
-            1.0, 0.5, 1.0, 1.0, 1.0, 1.5, 1.0, 2.0, 1.0, 2.5,
-            1.0, 3.0, 1.0, 3.5, 1.0, 4.0, 1.0, 4.5, 1.0, 5.0,
-        ]);
+        let x = make_matrix(
+            10,
+            2,
+            &[
+                1.0, 0.5, 1.0, 1.0, 1.0, 1.5, 1.0, 2.0, 1.0, 2.5, 1.0, 3.0, 1.0, 3.5, 1.0, 4.0,
+                1.0, 4.5, 1.0, 5.0,
+            ],
+        );
         let y: Vec<Complex> = (0..10)
             .map(|i| Complex::real(f64::from(i) * 2.0 + 1.0))
             .collect();
@@ -338,7 +332,10 @@ mod tests {
 
         // With strong regularization, some weights should be near zero
         let non_zero = w.iter().filter(|w| w.norm() > 1e-6).count();
-        assert!(non_zero < 3, "Expected sparsity, got {non_zero} non-zero weights");
+        assert!(
+            non_zero < 3,
+            "Expected sparsity, got {non_zero} non-zero weights"
+        );
     }
 
     #[test]

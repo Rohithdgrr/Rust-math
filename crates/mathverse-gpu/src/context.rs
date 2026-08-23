@@ -50,16 +50,17 @@ impl GpuContext {
     pub fn create_buffer_init(&self, data: &[f64]) -> wgpu::Buffer {
         use wgpu::util::DeviceExt;
         let bytes: &[u8] = bytemuck::cast_slice(data);
-        self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("MathVerse Buffer"),
-            contents: bytes,
-            usage: wgpu::BufferUsages::STORAGE
-                | wgpu::BufferUsages::COPY_SRC
-                | wgpu::BufferUsages::COPY_DST,
-        })
+        self.device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("MathVerse Buffer"),
+                contents: bytes,
+                usage: wgpu::BufferUsages::STORAGE
+                    | wgpu::BufferUsages::COPY_SRC
+                    | wgpu::BufferUsages::COPY_DST,
+            })
     }
 
-    /// Read back a buffer to a Vec<f64>.
+    /// Read back a buffer to a `Vec<f64>`.
     pub async fn read_buffer(&self, buffer: &wgpu::Buffer, len: usize) -> MathResult<Vec<f64>> {
         let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Staging"),
@@ -68,7 +69,9 @@ impl GpuContext {
             mapped_at_creation: false,
         });
 
-        let mut encoder = self.device.create_command_encoder(&Default::default());
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
         encoder.copy_buffer_to_buffer(buffer, 0, &staging, 0, (len * 8) as u64);
         self.queue.submit([encoder.finish()]);
 

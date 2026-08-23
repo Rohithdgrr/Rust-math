@@ -34,18 +34,32 @@ pub mod transform;
 pub mod utils;
 pub mod video;
 
+/// A simple grayscale image: `width × height` pixels stored row-major.
 #[derive(Debug, Clone)]
 pub struct Image {
+    /// Image width in pixels.
     pub w: usize,
+    /// Image height in pixels.
     pub h: usize,
+    /// Pixel data, row-major with length `w * h`.
     pub data: Vec<f64>,
 }
 
 impl Image {
+    /// Create a zero-filled image of the given size.
     pub fn new(w: usize, h: usize) -> Self {
-        Self { w, h, data: vec![0.0; w * h] }
+        Self {
+            w,
+            h,
+            data: vec![0.0; w * h],
+        }
     }
 
+    /// Build an image from existing pixel data (must be exactly `w * h`).
+    ///
+    /// # Panics
+    ///
+    /// Panics when `data.len() != w * h`.
     pub fn from_data(w: usize, h: usize, data: Vec<f64>) -> Self {
         assert_eq!(w * h, data.len());
         Self { w, h, data }
@@ -57,9 +71,14 @@ impl Image {
     /// finite differences (e.g. Sobel, Lucas–Kanade) call `get` near borders,
     /// where an implicit zero border is the standard padding convention.
     pub fn get(&self, x: usize, y: usize) -> f64 {
-        if x < self.w && y < self.h { self.data[y * self.w + x] } else { 0.0 }
+        if x < self.w && y < self.h {
+            self.data[y * self.w + x]
+        } else {
+            0.0
+        }
     }
 
+    /// Write a pixel; out-of-bounds coordinates are silently ignored.
     pub fn set(&mut self, x: usize, y: usize, v: f64) {
         if x < self.w && y < self.h {
             self.data[y * self.w + x] = v;
@@ -111,7 +130,9 @@ impl Image {
                 sum += v;
             }
         }
-        for v in &mut kernel { *v /= sum; }
+        for v in &mut kernel {
+            *v /= sum;
+        }
         let (w, h) = (self.w, self.h);
         let mut out = Self::new(w, h);
         // Interior pixels are always in bounds; index the data directly.

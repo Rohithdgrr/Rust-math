@@ -1,8 +1,8 @@
 //! Bubble chart example: Countries by GDP, population, and area.
 
 use mathverse_plot::bubble::{render_bubble_chart, Bubble, BubbleConfig};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bubbles = vec![

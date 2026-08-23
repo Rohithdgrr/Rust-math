@@ -73,8 +73,22 @@ pub fn shi_tomasi(img: &Image) -> Image {
 pub fn fast(img: &Image, threshold: f64, non_max_suppression: bool) -> Image {
     // Bresenham circle of radius 3, clockwise starting at (0, -3).
     const CIRCLE: [(i64, i64); 16] = [
-        (0, -3), (1, -3), (2, -2), (3, -1), (3, 0), (3, 1), (2, 2), (1, 3),
-        (0, 3), (-1, 3), (-2, 2), (-3, 1), (-3, 0), (-3, -1), (-2, -2), (-1, -3),
+        (0, -3),
+        (1, -3),
+        (2, -2),
+        (3, -1),
+        (3, 0),
+        (3, 1),
+        (2, 2),
+        (1, 3),
+        (0, 3),
+        (-1, 3),
+        (-2, 2),
+        (-3, 1),
+        (-3, 0),
+        (-3, -1),
+        (-2, -2),
+        (-1, -3),
     ];
     const ARC: usize = 9;
 
@@ -120,7 +134,9 @@ pub fn fast(img: &Image, threshold: f64, non_max_suppression: bool) -> Image {
         let center = img.data[y * w + x];
         CIRCLE
             .iter()
-            .map(|(dx, dy)| (img.data[(y as i64 + dy) as usize * w + (x as i64 + dx) as usize] - center).abs())
+            .map(|(dx, dy)| {
+                (img.data[(y as i64 + dy) as usize * w + (x as i64 + dx) as usize] - center).abs()
+            })
             .fold(0.0, f64::max)
     };
 
@@ -173,7 +189,10 @@ mod tests {
         let r = harris(&img, 1.0, 0.04);
         let at_corner = r.get(6, 6);
         let at_flat = r.get(2, 2);
-        assert!(at_corner > at_flat + 1e-4, "corner {} flat {}", at_corner, at_flat);
+        assert!(
+            at_corner > at_flat + 1e-4,
+            "corner {at_corner} flat {at_flat}"
+        );
     }
 
     #[test]
@@ -185,8 +204,8 @@ mod tests {
             }
         }
         let r = harris(&img, 1.0, 0.04);
-        let mx = r.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-        assert!(mx < 1e-4, "edge max {}", mx);
+        let mx = r.data.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        assert!(mx < 1e-4, "edge max {mx}");
     }
 
     #[test]
@@ -199,11 +218,14 @@ mod tests {
         }
         let r = shi_tomasi(&img);
         // Corners of the checker squares get high response.
-        let max = r.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let max = r.data.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         assert!(max > 1e-3, "max response {max}");
         let at_corner = r.get(6, 6);
         let at_flat = r.get(2, 2);
-        assert!(at_corner > at_flat + 1e-4, "corner {} flat {}", at_corner, at_flat);
+        assert!(
+            at_corner > at_flat + 1e-4,
+            "corner {at_corner} flat {at_flat}"
+        );
     }
 
     #[test]

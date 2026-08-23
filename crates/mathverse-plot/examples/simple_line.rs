@@ -1,7 +1,7 @@
 //! Simple line plot with tick labels, rendered to SVG and terminal.
 
-use mathverse_plot::{DataPoint, DataSeries, PlotConfig, SvgPlot, TerminalPlot};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{DataPoint, DataSeries, PlotConfig, SvgPlot, TerminalPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let xs: Vec<f64> = (0..=100).map(|i| f64::from(i) * 0.1).collect();

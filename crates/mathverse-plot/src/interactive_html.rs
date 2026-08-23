@@ -127,10 +127,7 @@ impl InteractiveConfig {
 }
 
 /// Generate a self-contained interactive HTML page with JavaScript interactivity.
-pub fn render_interactive_html(
-    data: &PlotData,
-    config: &InteractiveConfig,
-) -> PlotResult<String> {
+pub fn render_interactive_html(data: &PlotData, config: &InteractiveConfig) -> PlotResult<String> {
     let width = data.config.width;
     let height = data.config.height;
     let padding = data.config.padding;

@@ -6,10 +6,18 @@
 pub fn dst1(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let scale = (2.0 / (n + 1) as f64).sqrt();
-    (0..n).map(|k| {
-        let s: f64 = (0..n).map(|i| x[i] * (core::f64::consts::PI * (i + 1) as f64 * (k + 1) as f64 / (n + 1) as f64).sin()).sum();
-        scale * s
-    }).collect()
+    (0..n)
+        .map(|k| {
+            let s: f64 = (0..n)
+                .map(|i| {
+                    x[i] * (core::f64::consts::PI * (i + 1) as f64 * (k + 1) as f64
+                        / (n + 1) as f64)
+                        .sin()
+                })
+                .sum();
+            scale * s
+        })
+        .collect()
 }
 
 /// Discrete Sine Transform, Type II (orthonormal).
@@ -18,11 +26,22 @@ pub fn dst1(x: &[f64]) -> Vec<f64> {
 /// `c(k) = √(2/N)` otherwise.
 pub fn dst2(x: &[f64]) -> Vec<f64> {
     let n = x.len();
-    (0..n).map(|k| {
-        let c = if k == n - 1 { (1.0 / n as f64).sqrt() } else { (2.0 / n as f64).sqrt() };
-        let s: f64 = (0..n).map(|i| x[i] * (core::f64::consts::PI * (i as f64 + 0.5) * (k + 1) as f64 / n as f64).sin()).sum();
-        c * s
-    }).collect()
+    (0..n)
+        .map(|k| {
+            let c = if k == n - 1 {
+                (1.0 / n as f64).sqrt()
+            } else {
+                (2.0 / n as f64).sqrt()
+            };
+            let s: f64 = (0..n)
+                .map(|i| {
+                    x[i] * (core::f64::consts::PI * (i as f64 + 0.5) * (k + 1) as f64 / n as f64)
+                        .sin()
+                })
+                .sum();
+            c * s
+        })
+        .collect()
 }
 
 /// Discrete Sine Transform, Type III (orthonormal).
@@ -32,12 +51,22 @@ pub fn dst2(x: &[f64]) -> Vec<f64> {
 /// orthonormal [`dst2`].
 pub fn dst3(x: &[f64]) -> Vec<f64> {
     let n = x.len();
-    (0..n).map(|k| {
-        (0..n).map(|i| {
-            let w = if i == n - 1 { (1.0 / n as f64).sqrt() } else { (2.0 / n as f64).sqrt() };
-            w * x[i] * (core::f64::consts::PI * (k as f64 + 0.5) * (i + 1) as f64 / n as f64).sin()
-        }).sum()
-    }).collect()
+    (0..n)
+        .map(|k| {
+            (0..n)
+                .map(|i| {
+                    let w = if i == n - 1 {
+                        (1.0 / n as f64).sqrt()
+                    } else {
+                        (2.0 / n as f64).sqrt()
+                    };
+                    w * x[i]
+                        * (core::f64::consts::PI * (k as f64 + 0.5) * (i + 1) as f64 / n as f64)
+                            .sin()
+                })
+                .sum()
+        })
+        .collect()
 }
 
 /// Discrete Sine Transform, Type IV (orthonormal).
@@ -47,10 +76,17 @@ pub fn dst3(x: &[f64]) -> Vec<f64> {
 pub fn dst4(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let scale = (2.0 / n as f64).sqrt();
-    (0..n).map(|k| {
-        let s: f64 = (0..n).map(|i| x[i] * (core::f64::consts::PI * (i as f64 + 0.5) * (k as f64 + 0.5) / n as f64).sin()).sum();
-        scale * s
-    }).collect()
+    (0..n)
+        .map(|k| {
+            let s: f64 = (0..n)
+                .map(|i| {
+                    x[i] * (core::f64::consts::PI * (i as f64 + 0.5) * (k as f64 + 0.5) / n as f64)
+                        .sin()
+                })
+                .sum();
+            scale * s
+        })
+        .collect()
 }
 
 #[cfg(test)]

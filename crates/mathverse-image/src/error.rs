@@ -51,12 +51,12 @@ pub enum ImageError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
-/// Image encoding/decoding error.
-#[error("image encoding/decoding error: {0}")]
-ImageError(#[from] image::ImageError),
-/// Invalid image data (e.g. dimensions or pixel buffer length mismatch).
-#[error("invalid image data: {0}")]
-InvalidImageData(String),
+    /// Image encoding/decoding error.
+    #[error("image encoding/decoding error: {0}")]
+    ImageError(#[from] image::ImageError),
+    /// Invalid image data (e.g. dimensions or pixel buffer length mismatch).
+    #[error("invalid image data: {0}")]
+    InvalidImageData(String),
 }
 
 /// Result type alias for image operations.
@@ -68,7 +68,10 @@ mod tests {
 
     #[test]
     fn test_error_display() {
-        let err = ImageError::InvalidDimensions { width: 0, height: 10 };
+        let err = ImageError::InvalidDimensions {
+            width: 0,
+            height: 10,
+        };
         assert!(err.to_string().contains("invalid dimensions"));
     }
 

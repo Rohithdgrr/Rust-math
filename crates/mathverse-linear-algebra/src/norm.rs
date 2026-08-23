@@ -119,9 +119,7 @@ mod tests {
         let a = mat(&[&[1.0, 2.0], &[3.0, 4.0]]);
         assert!((norm_1(&a) - 6.0).abs() < 1e-10);
         assert!((norm_inf(&a) - 7.0).abs() < 1e-10);
-        assert!(
-            (norm_frobenius(&a) - (1.0_f64 + 4.0 + 9.0 + 16.0).sqrt()).abs() < 1e-10,
-        );
+        assert!((norm_frobenius(&a) - (1.0_f64 + 4.0 + 9.0 + 16.0).sqrt()).abs() < 1e-10,);
     }
 
     #[test]

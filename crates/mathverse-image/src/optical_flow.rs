@@ -69,10 +69,7 @@ fn sample_field(field: &[f64], w: usize, h: usize, x: f64, y: f64) -> f64 {
     let v10 = field[y0 * w + x1];
     let v01 = field[y1 * w + x0];
     let v11 = field[y1 * w + x1];
-    v00 * (1.0 - fx) * (1.0 - fy)
-        + v10 * fx * (1.0 - fy)
-        + v01 * (1.0 - fx) * fy
-        + v11 * fx * fy
+    v00 * (1.0 - fx) * (1.0 - fy) + v10 * fx * (1.0 - fy) + v01 * (1.0 - fx) * fy + v11 * fx * fy
 }
 
 /// Halve an image: Gaussian anti-alias blur followed by 2× subsampling.
@@ -118,7 +115,11 @@ fn downsample(img: &GrayImage) -> GrayImage {
 /// All calculations use `f64` arithmetic. Flow values may exceed one pixel
 /// when multiple pyramid levels are used.
 #[allow(clippy::too_many_lines)]
-pub fn dense_optical_flow(prev: &GrayImage, curr: &GrayImage, pyramid_levels: usize) -> OpticalFlow {
+pub fn dense_optical_flow(
+    prev: &GrayImage,
+    curr: &GrayImage,
+    pyramid_levels: usize,
+) -> OpticalFlow {
     assert_eq!(prev.w, curr.w, "both frames must have the same width");
     assert_eq!(prev.h, curr.h, "both frames must have the same height");
     assert!(pyramid_levels >= 1, "pyramid_levels must be >= 1");
@@ -177,10 +178,8 @@ pub fn dense_optical_flow(prev: &GrayImage, curr: &GrayImage, pyramid_levels: us
                 let xp = (x + 1).min(lw - 1);
                 let ym = y.saturating_sub(1);
                 let yp = (y + 1).min(lh - 1);
-                ix[y * lw + x] = (iprev.get(xp, y) - iprev.get(xm, y))
-                    / (xp - xm) as f64;
-                iy[y * lw + x] = (iprev.get(x, yp) - iprev.get(x, ym))
-                    / (yp - ym) as f64;
+                ix[y * lw + x] = (iprev.get(xp, y) - iprev.get(xm, y)) / (xp - xm) as f64;
+                iy[y * lw + x] = (iprev.get(x, yp) - iprev.get(x, ym)) / (yp - ym) as f64;
             }
         }
 
@@ -328,8 +327,14 @@ mod tests {
         // All flows should be near zero
         let u_sum: f64 = flow.u.iter().sum();
         let v_sum: f64 = flow.v.iter().sum();
-        assert!(u_sum.abs() < 0.1, "identical frames should have zero flow u, sum={u_sum}");
-        assert!(v_sum.abs() < 0.1, "identical frames should have zero flow v, sum={v_sum}");
+        assert!(
+            u_sum.abs() < 0.1,
+            "identical frames should have zero flow u, sum={u_sum}"
+        );
+        assert!(
+            v_sum.abs() < 0.1,
+            "identical frames should have zero flow v, sum={v_sum}"
+        );
     }
 
     #[test]
@@ -357,7 +362,10 @@ mod tests {
             .map(|(x, y)| flow2.u[y * 64 + x])
             .sum::<f64>()
             / 64.0;
-        assert!(mean_u2 > 1.0, "pyramid flow should track rightward motion, got {mean_u2}");
+        assert!(
+            mean_u2 > 1.0,
+            "pyramid flow should track rightward motion, got {mean_u2}"
+        );
     }
 
     #[test]

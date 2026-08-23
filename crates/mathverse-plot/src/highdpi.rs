@@ -106,23 +106,17 @@ pub fn svg_header(width: u32, height: u32, dpi_config: &DpiConfig) -> String {
     let (scaled_w, scaled_h) = dpi_config.scale_dimensions(width, height);
 
     if dpi_config.scale == 1.0 {
-        format!(
-            r#"<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">"#,
-        )
+        format!(r#"<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">"#)
     } else {
         // Use viewBox for resolution independence
         format!(
-            r#"<svg width="{scaled_w}" height="{scaled_h}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#,
+            r#"<svg width="{scaled_w}" height="{scaled_h}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#
         )
     }
 }
 
 /// Generate an SVG header with physical dimensions for print.
-pub fn svg_header_physical(
-    width: u32,
-    height: u32,
-    dpi_config: &DpiConfig,
-) -> String {
+pub fn svg_header_physical(width: u32, height: u32, dpi_config: &DpiConfig) -> String {
     let width_in = f64::from(width) / f64::from(dpi_config.dpi);
     let height_in = f64::from(height) / f64::from(dpi_config.dpi);
 

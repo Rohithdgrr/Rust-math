@@ -1,7 +1,7 @@
 //! Histogram with bins chosen by mathverse-statistics rules.
 
-use mathverse_plot::{BinningMethod, Color, Histogram, PlotConfig, SvgPlot};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{BinningMethod, Color, Histogram, PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // A little deterministic pseudo-random sample
@@ -34,9 +34,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let (lo, hi) = (hist.edges()[i], hist.edges()[i + 1]);
             plot.add_bar(lo, hi, count as f64, Color::BLUE);
         }
-  let file = format!("histogram_{method:?}.png").to_lowercase();
-  PlotSaver::new(plot.generate()).save_png(&file)?;
-  println!("{method:?}: {} bins -> {file}", hist.counts().len());
+        let file = format!("histogram_{method:?}.png").to_lowercase();
+        PlotSaver::new(plot.generate()).save_png(&file)?;
+        println!("{method:?}: {} bins -> {file}", hist.counts().len());
     }
 
     Ok(())

@@ -14,11 +14,15 @@ pub fn solve_linear(a: f64, b: f64) -> Vec<f64> {
 
 /// Solves `ax² + bx + c = 0`. Falls back to [`solve_linear`] if `a ≈ 0`.
 pub fn solve_quadratic(a: f64, b: f64, c: f64) -> Vec<f64> {
-    if a.abs() < 1e-15 { return solve_linear(b, c); }
+    if a.abs() < 1e-15 {
+        return solve_linear(b, c);
+    }
     let disc = b * b - 4.0 * a * c;
-    if disc < -1e-15 { vec![] }
-    else if disc.abs() < 1e-15 { vec![-b / (2.0 * a)] }
-    else {
+    if disc < -1e-15 {
+        vec![]
+    } else if disc.abs() < 1e-15 {
+        vec![-b / (2.0 * a)]
+    } else {
         let sqrt_disc = disc.sqrt();
         vec![(-b - sqrt_disc) / (2.0 * a), (-b + sqrt_disc) / (2.0 * a)]
     }
@@ -27,7 +31,9 @@ pub fn solve_quadratic(a: f64, b: f64, c: f64) -> Vec<f64> {
 /// Solves `ax³ + bx² + cx + d = 0` using Cardano's method (trigonometric for
 /// three real roots). Falls back to [`solve_quadratic`] if `a ≈ 0`.
 pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
-    if a.abs() < 1e-15 { return solve_quadratic(b, c, d); }
+    if a.abs() < 1e-15 {
+        return solve_quadratic(b, c, d);
+    }
     let b = b / a;
     let c = c / a;
     let d = d / a;
@@ -40,7 +46,11 @@ pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
         let v = (-q / 2.0 - sq).cbrt();
         vec![u + v - b / 3.0]
     } else if disc.abs() < 1e-15 {
-        let u = if q.abs() < 1e-30 { 0.0 } else { (-q / 2.0).cbrt() };
+        let u = if q.abs() < 1e-30 {
+            0.0
+        } else {
+            (-q / 2.0).cbrt()
+        };
         vec![2.0 * u - b / 3.0, -u - b / 3.0]
     } else {
         let r = (-p * p * p / 27.0).sqrt();
@@ -57,7 +67,9 @@ pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
 /// Solves `ax⁴ + bx³ + cx² + dx + e = 0` via Ferrari's method.
 /// Falls back to [`solve_cubic`] if `a ≈ 0`.
 pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
-    if a.abs() < 1e-15 { return solve_cubic(b, c, d, e); }
+    if a.abs() < 1e-15 {
+        return solve_cubic(b, c, d, e);
+    }
     let b = b / a;
     let c = c / a;
     let d = d / a;
@@ -67,7 +79,9 @@ pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
     let r = -3.0 * b * b * b * b / 256.0 + c * b * b / 16.0 - b * d / 4.0 + e;
     if q.abs() < 1e-15 {
         let disc = p * p - 4.0 * r;
-        if disc < -1e-15 { return vec![]; }
+        if disc < -1e-15 {
+            return vec![];
+        }
         let sqrt_disc = disc.sqrt();
         let mut roots = Vec::new();
         for sign in [-1.0, 1.0] {
@@ -82,7 +96,10 @@ pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
     } else {
         // Ferrari: find resolvent root m, then s = sqrt(2m - p), t = q/(2s)
         let cubic_roots = solve_cubic(1.0, -p / 2.0, -r, r * p / 2.0 - q * q / 8.0);
-        let m = cubic_roots.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let m = cubic_roots
+            .iter()
+            .copied()
+            .fold(f64::NEG_INFINITY, f64::max);
         let s_sq = 2.0 * m - p;
         if s_sq < -1e-15 || q.abs() > 1e-15 && s_sq.abs() < 1e-15 {
             return vec![];

@@ -1,4 +1,4 @@
-﻿/// Dense `f64` vector backed by `Vec<f64>`.
+/// Dense `f64` vector backed by `Vec<f64>`.
 ///
 /// Provides basic element-wise arithmetic and dot product operations.
 #[derive(Debug, Clone, PartialEq)]
@@ -12,37 +12,61 @@ use mathverse_core::error::{MathError, MathResult};
 impl Vector {
     /// Creates a new `Vector` from the given data.
     #[must_use]
-    pub const fn new(data: Vec<f64>) -> Self { Self { data } }
+    pub const fn new(data: Vec<f64>) -> Self {
+        Self { data }
+    }
 
     /// Creates a zero vector of length `n`.
     #[must_use]
-    pub fn zeros(n: usize) -> Self { Self { data: vec![0.0; n] } }
+    pub fn zeros(n: usize) -> Self {
+        Self { data: vec![0.0; n] }
+    }
 
     /// Returns the number of elements.
     #[must_use]
-    pub const fn len(&self) -> usize { self.data.len() }
+    pub const fn len(&self) -> usize {
+        self.data.len()
+    }
 
     /// Returns `true` if the vector contains no elements.
     #[must_use]
-    pub const fn is_empty(&self) -> bool { self.data.is_empty() }
+    pub const fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
 
     /// Returns the element at index `i`.
     #[must_use]
-    pub fn get(&self, i: usize) -> f64 { self.data[i] }
+    pub fn get(&self, i: usize) -> f64 {
+        self.data[i]
+    }
 
     /// Sets the element at index `i` to `v`.
-    pub fn set(&mut self, i: usize, v: f64) { self.data[i] = v; }
+    pub fn set(&mut self, i: usize, v: f64) {
+        self.data[i] = v;
+    }
 
     /// Element-wise addition of two vectors.
     #[must_use]
     pub fn add(&self, other: &Self) -> Self {
-        Self::new(self.data.iter().zip(&other.data).map(|(a, b)| a + b).collect())
+        Self::new(
+            self.data
+                .iter()
+                .zip(&other.data)
+                .map(|(a, b)| a + b)
+                .collect(),
+        )
     }
 
     /// Element-wise subtraction of two vectors.
     #[must_use]
     pub fn sub(&self, other: &Self) -> Self {
-        Self::new(self.data.iter().zip(&other.data).map(|(a, b)| a - b).collect())
+        Self::new(
+            self.data
+                .iter()
+                .zip(&other.data)
+                .map(|(a, b)| a - b)
+                .collect(),
+        )
     }
 
     /// Scalar multiplication.

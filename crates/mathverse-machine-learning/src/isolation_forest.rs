@@ -149,10 +149,10 @@ fn c_factor(n: usize) -> f64 {
     if n == 2 {
         return 1.0;
     }
-    
+
     // Compute harmonic number H(n-1)
     let harmonic: f64 = (1..n).map(|i| 1.0 / i as f64).sum();
-    
+
     2.0 * harmonic - 2.0 * (n as f64 - 1.0) / n as f64
 }
 
@@ -225,7 +225,9 @@ mod tests {
 
     #[test]
     fn isolation_forest_test() {
-        let normal: Vec<Vec<f64>> = (0..100).map(|i| vec![f64::from(i), f64::from(i) * 2.0]).collect();
+        let normal: Vec<Vec<f64>> = (0..100)
+            .map(|i| vec![f64::from(i), f64::from(i) * 2.0])
+            .collect();
         let anomaly = vec![vec![1000.0, 2000.0]];
         let mut x = normal.clone();
         x.extend(anomaly.clone());
@@ -252,11 +254,17 @@ mod tests {
         // For n=256, harmonic number should give ~10.25, not 10.09
         let c_256 = c_factor(256);
         let expected_approx = 10.25;
-        assert!((c_256 - expected_approx).abs() < 0.2, "c_factor(256) should be close to {expected_approx}, got {c_256}");
-        
+        assert!(
+            (c_256 - expected_approx).abs() < 0.2,
+            "c_factor(256) should be close to {expected_approx}, got {c_256}"
+        );
+
         // For n=4, should be ~2.17, not 1.70
         let c_4 = c_factor(4);
         let expected_4 = 2.17;
-        assert!((c_4 - expected_4).abs() < 0.2, "c_factor(4) should be close to {expected_4}, got {c_4}");
+        assert!(
+            (c_4 - expected_4).abs() < 0.2,
+            "c_factor(4) should be close to {expected_4}, got {c_4}"
+        );
     }
 }

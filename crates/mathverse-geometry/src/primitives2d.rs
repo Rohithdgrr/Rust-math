@@ -11,22 +11,30 @@ use super::shapes2d::Point2;
 /// Directed line segment from `a` to `b`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LineSegment2 {
+    /// Start point.
     pub a: Point2,
+    /// End point.
     pub b: Point2,
 }
 
 impl LineSegment2 {
+    /// Creates a segment from two endpoints.
     #[must_use]
     pub const fn new(a: Point2, b: Point2) -> Self {
         Self { a, b }
     }
+    /// Euclidean length of the segment.
     #[must_use]
     pub fn length(self) -> f64 {
         self.a.distance_to(self.b)
     }
+    /// Point halfway between the endpoints.
     #[must_use]
     pub const fn midpoint(self) -> Point2 {
-        Point2::new(f64::midpoint(self.a.x, self.b.x), f64::midpoint(self.a.y, self.b.y))
+        Point2::new(
+            f64::midpoint(self.a.x, self.b.x),
+            f64::midpoint(self.a.y, self.b.y),
+        )
     }
     /// Direction angle in radians.
     #[must_use]
@@ -60,7 +68,9 @@ impl LineSegment2 {
 /// Ray starting at `origin` going in direction `dir`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ray2 {
+    /// Starting point.
     pub origin: Point2,
+    /// Non-zero direction.
     pub dir: Point2,
 }
 
@@ -74,16 +84,21 @@ impl Ray2 {
         );
         Self { origin, dir }
     }
+    /// Point at parameter `t` along the ray (`t >= 0` lies on the half-line).
     #[must_use]
     pub fn point_at(self, t: f64) -> Point2 {
-        Point2::new(t.mul_add(self.dir.x, self.origin.x), t.mul_add(self.dir.y, self.origin.y))
+        Point2::new(
+            t.mul_add(self.dir.x, self.origin.x),
+            t.mul_add(self.dir.y, self.origin.y),
+        )
     }
     /// Distance from point `p` to the ray (closest point on the half-line).
     #[must_use]
     pub fn distance_to_point(self, p: Point2) -> f64 {
         let vx = p.x - self.origin.x;
         let vy = p.y - self.origin.y;
-        let t = vy.mul_add(self.dir.y, vx * self.dir.x) / self.dir.y.mul_add(self.dir.y, self.dir.x * self.dir.x);
+        let t = vy.mul_add(self.dir.y, vx * self.dir.x)
+            / self.dir.y.mul_add(self.dir.y, self.dir.x * self.dir.x);
         if t <= 0.0 {
             return p.distance_to(self.origin);
         }
@@ -98,9 +113,13 @@ impl Ray2 {
 /// Circular arc defined by center, radius, start angle, and sweep angle (radians).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Arc {
+    /// Center of the full circle.
     pub center: Point2,
+    /// Non-negative radius.
     pub radius: f64,
+    /// Start angle in radians.
     pub start: f64,
+    /// Sweep angle in radians (may be negative for clockwise).
     pub sweep: f64,
 }
 
@@ -116,6 +135,7 @@ impl Arc {
             sweep,
         }
     }
+    /// First endpoint of the arc.
     #[must_use]
     pub fn start_point(self) -> Point2 {
         Point2::new(
@@ -123,6 +143,7 @@ impl Arc {
             self.radius.mul_add(self.start.sin(), self.center.y),
         )
     }
+    /// Second endpoint of the arc.
     #[must_use]
     pub fn end_point(self) -> Point2 {
         let a = self.start + self.sweep;
@@ -195,13 +216,18 @@ impl Arc {
 /// Circular sector (pie slice) defined by center, radius, start angle, sweep angle.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Sector {
+    /// Center of the full circle.
     pub center: Point2,
+    /// Non-negative radius.
     pub radius: f64,
+    /// Start angle in radians.
     pub start: f64,
+    /// Sweep angle in radians (may be negative for clockwise).
     pub sweep: f64,
 }
 
 impl Sector {
+    /// Panics if `radius < 0`. `sweep` may be negative (clockwise).
     #[must_use]
     pub fn new(center: Point2, radius: f64, start: f64, sweep: f64) -> Self {
         assert!(radius >= 0.0, "sector radius must be non-negative");
@@ -212,14 +238,17 @@ impl Sector {
             sweep,
         }
     }
+    /// Area enclosed by the two radii and the arc.
     #[must_use]
     pub fn area(self) -> f64 {
         0.5 * self.radius * self.radius * self.sweep.abs()
     }
+    /// Perimeter: the two radii plus the arc length.
     #[must_use]
     pub fn perimeter(self) -> f64 {
         self.radius.mul_add(self.sweep.abs(), 2.0 * self.radius)
     }
+    /// Whether `p` lies inside or on the sector.
     #[must_use]
     pub fn contains(self, p: Point2) -> bool {
         let dx = p.x - self.center.x;
@@ -265,13 +294,18 @@ impl Sector {
 /// Region between a chord and the arc it subtends.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CircularSegment {
+    /// Center of the full circle.
     pub center: Point2,
+    /// Non-negative radius.
     pub radius: f64,
+    /// Start angle in radians.
     pub start: f64,
+    /// Sweep angle in radians (may be negative for clockwise).
     pub sweep: f64,
 }
 
 impl CircularSegment {
+    /// Panics if `radius < 0`. `sweep` may be negative (clockwise).
     #[must_use]
     pub fn new(center: Point2, radius: f64, start: f64, sweep: f64) -> Self {
         assert!(radius >= 0.0, "segment radius must be non-negative");
@@ -286,8 +320,7 @@ impl CircularSegment {
     #[must_use]
     pub fn area(self) -> f64 {
         let sector = 0.5 * self.radius * self.radius * self.sweep.abs();
-        let triangle =
-            0.5 * self.radius * self.radius * self.sweep.abs().sin();
+        let triangle = 0.5 * self.radius * self.radius * self.sweep.abs().sin();
         sector - triangle
     }
     /// Chord length.
@@ -314,11 +347,14 @@ impl CircularSegment {
 /// Open or closed polyline (ordered vertex list).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Polyline {
+    /// Ordered vertices.
     pub points: Vec<Point2>,
+    /// Whether the last vertex joins the first.
     pub closed: bool,
 }
 
 impl Polyline {
+    /// Creates an open polyline from ordered vertices.
     #[must_use]
     pub const fn open(points: Vec<Point2>) -> Self {
         Self {
@@ -326,6 +362,7 @@ impl Polyline {
             closed: false,
         }
     }
+    /// Creates a closed polyline from ordered vertices.
     #[must_use]
     pub const fn closed(points: Vec<Point2>) -> Self {
         Self {
@@ -333,6 +370,7 @@ impl Polyline {
             closed: true,
         }
     }
+    /// Total length, including the closing edge if the polyline is closed.
     #[must_use]
     pub fn total_length(&self) -> f64 {
         self.points
@@ -345,7 +383,7 @@ impl Polyline {
                 0.0
             }
     }
-    /// Point at parameter `t` ∈ [0, 1] along the polyline.
+    /// Point at parameter `t` in `[0, 1]` along the polyline.
     #[must_use]
     pub fn point_at(&self, t: f64) -> Point2 {
         let total = self.total_length();
@@ -366,11 +404,7 @@ impl Polyline {
             }
             acc += seg;
         }
-        if self.closed && self.points.len() > 1 {
-            *self.points.last().unwrap()
-        } else {
-            *self.points.last().unwrap()
-        }
+        *self.points.last().unwrap()
     }
 }
 
@@ -381,18 +415,23 @@ impl Polyline {
 /// Cubic Bézier curve with 4 control points.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BezierCurve {
+    /// First control point (curve start).
     pub p0: Point2,
+    /// Second control point.
     pub p1: Point2,
+    /// Third control point.
     pub p2: Point2,
+    /// Fourth control point (curve end).
     pub p3: Point2,
 }
 
 impl BezierCurve {
+    /// Creates a cubic Bézier curve from four control points.
     #[must_use]
     pub const fn new(p0: Point2, p1: Point2, p2: Point2, p3: Point2) -> Self {
         Self { p0, p1, p2, p3 }
     }
-    /// Evaluate at parameter `t` ∈ [0, 1].
+    /// Evaluate at parameter `t` in `[0, 1]`.
     #[must_use]
     pub fn point_at(self, t: f64) -> Point2 {
         let u = 1.0 - t;
@@ -401,8 +440,16 @@ impl BezierCurve {
         let t2 = t * t;
         let t3 = t2 * t;
         Point2::new(
-            t3.mul_add(self.p3.x, (3.0 * u * t2).mul_add(self.p2.x, (3.0 * u2 * t).mul_add(self.p1.x, u3 * self.p0.x))),
-            t3.mul_add(self.p3.y, (3.0 * u * t2).mul_add(self.p2.y, (3.0 * u2 * t).mul_add(self.p1.y, u3 * self.p0.y))),
+            t3.mul_add(
+                self.p3.x,
+                (3.0 * u * t2)
+                    .mul_add(self.p2.x, (3.0 * u2 * t).mul_add(self.p1.x, u3 * self.p0.x)),
+            ),
+            t3.mul_add(
+                self.p3.y,
+                (3.0 * u * t2)
+                    .mul_add(self.p2.y, (3.0 * u2 * t).mul_add(self.p1.y, u3 * self.p0.y)),
+            ),
         )
     }
     /// Approximate length via adaptive subdivision.
@@ -415,32 +462,13 @@ impl BezierCurve {
             if (poly - chord).abs() < 1e-6 || depth > 10 {
                 return f64::midpoint(chord, poly);
             }
-            let m01 = Point2::new(
-                f64::midpoint(p0.x, p1.x),
-                f64::midpoint(p0.y, p1.y),
-            );
-            let m12 = Point2::new(
-                f64::midpoint(p1.x, p2.x),
-                f64::midpoint(p1.y, p2.y),
-            );
-            let m23 = Point2::new(
-                f64::midpoint(p2.x, p3.x),
-                f64::midpoint(p2.y, p3.y),
-            );
-            let m012 = Point2::new(
-                f64::midpoint(m01.x, m12.x),
-                f64::midpoint(m01.y, m12.y),
-            );
-            let m123 = Point2::new(
-                f64::midpoint(m12.x, m23.x),
-                f64::midpoint(m12.y, m23.y),
-            );
-            let mid = Point2::new(
-                f64::midpoint(m012.x, m123.x),
-                f64::midpoint(m012.y, m123.y),
-            );
-            approx_len(p0, m01, m012, mid, depth + 1)
-                + approx_len(mid, m123, m23, p3, depth + 1)
+            let m01 = Point2::new(f64::midpoint(p0.x, p1.x), f64::midpoint(p0.y, p1.y));
+            let m12 = Point2::new(f64::midpoint(p1.x, p2.x), f64::midpoint(p1.y, p2.y));
+            let m23 = Point2::new(f64::midpoint(p2.x, p3.x), f64::midpoint(p2.y, p3.y));
+            let m012 = Point2::new(f64::midpoint(m01.x, m12.x), f64::midpoint(m01.y, m12.y));
+            let m123 = Point2::new(f64::midpoint(m12.x, m23.x), f64::midpoint(m12.y, m23.y));
+            let mid = Point2::new(f64::midpoint(m012.x, m123.x), f64::midpoint(m012.y, m123.y));
+            approx_len(p0, m01, m012, mid, depth + 1) + approx_len(mid, m123, m23, p3, depth + 1)
         }
         approx_len(self.p0, self.p1, self.p2, self.p3, 0)
     }
@@ -449,7 +477,7 @@ impl BezierCurve {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mathverse_core::constants::{PI, TAU};
+    use mathverse_core::constants::PI;
     use std::f64::consts::FRAC_PI_2;
 
     fn pt(x: f64, y: f64) -> Point2 {
@@ -495,7 +523,7 @@ mod tests {
     fn segment_area() {
         let s = CircularSegment::new(pt(0.0, 0.0), 1.0, 0.0, PI);
         let expected = PI / 2.0 - 0.0; // sector - triangle = π/2 - 0
-        // sector = 0.5*1*π = π/2, triangle = 0.5*1*sin(π) = 0
+                                       // sector = 0.5*1*π = π/2, triangle = 0.5*1*sin(π) = 0
         assert!((s.area() - expected).abs() < 1e-12);
     }
 

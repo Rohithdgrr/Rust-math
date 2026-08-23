@@ -6,6 +6,20 @@ use mathverse_vector::Vector;
 
 use crate::context::GpuContext;
 
+/// Builds a storage-buffer bind group layout entry.
+fn storage_entry(binding: u32, read_only: bool) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::COMPUTE,
+        ty: wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Storage { read_only },
+            has_dynamic_offset: false,
+            min_binding_size: None,
+        },
+        count: None,
+    }
+}
+
 /// GPU matrix multiplication.
 ///
 /// Uploads both matrices to GPU, runs the compute shader, and downloads
@@ -35,59 +49,30 @@ pub fn gpu_mat_mul(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matri
         .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("MatMul Layout"),
             entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
+                storage_entry(0, true),
+                storage_entry(1, true),
+                storage_entry(2, false),
             ],
         });
 
-    let bind_group = ctx
-        .device
-        .create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("MatMul BindGroup"),
-            layout: &layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: buf_a.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: buf_b.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: buf_out.as_entire_binding(),
-                },
-            ],
-        });
+    let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("MatMul BindGroup"),
+        layout: &layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: buf_a.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: buf_b.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: buf_out.as_entire_binding(),
+            },
+        ],
+    });
 
     // Create pipeline
     let module = ctx
@@ -112,14 +97,16 @@ pub fn gpu_mat_mul(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matri
             layout: Some(&pipeline_layout),
             module: &module,
             entry_point: Some("main"),
-            compilation_options: Default::default(),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
             cache: None,
         });
 
     // Dispatch
-    let mut encoder = ctx.device.create_command_encoder(&Default::default());
+    let mut encoder = ctx
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
     {
-        let mut pass = encoder.begin_compute_pass(&Default::default());
+        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
         pass.set_pipeline(&pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         let workgroup_size = 16;
@@ -164,46 +151,10 @@ pub fn gpu_add(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
         .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Add Layout"),
             entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
+                storage_entry(0, true),
+                storage_entry(1, true),
+                storage_entry(2, false),
+                storage_entry(3, true),
             ],
         });
 
@@ -211,30 +162,28 @@ pub fn gpu_add(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
     let metadata: Vec<f64> = vec![a.rows() as f64, a.cols() as f64, 0.0]; // op 0 = add
     let buf_meta = ctx.create_buffer_init(&metadata);
 
-    let bind_group = ctx
-        .device
-        .create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Add BindGroup"),
-            layout: &layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: buf_a.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: buf_b.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: buf_out.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: buf_meta.as_entire_binding(),
-                },
-            ],
-        });
+    let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Add BindGroup"),
+        layout: &layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: buf_a.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: buf_b.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: buf_out.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: buf_meta.as_entire_binding(),
+            },
+        ],
+    });
 
     let pipeline_layout = ctx
         .device
@@ -251,13 +200,15 @@ pub fn gpu_add(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
             layout: Some(&pipeline_layout),
             module: &module,
             entry_point: Some("main"),
-            compilation_options: Default::default(),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
             cache: None,
         });
 
-    let mut encoder = ctx.device.create_command_encoder(&Default::default());
+    let mut encoder = ctx
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
     {
-        let mut pass = encoder.begin_compute_pass(&Default::default());
+        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
         pass.set_pipeline(&pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         let workgroup_size = 256;

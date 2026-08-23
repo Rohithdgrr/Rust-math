@@ -1,7 +1,7 @@
 //! Condition number: computation, analysis, and sensitivity to perturbations.
 
-use crate::Matrix;
 use crate::norms::MatrixNorms;
+use crate::Matrix;
 use mathverse_core::error::{MathError, MathResult};
 
 /// Condition number analysis.
@@ -13,11 +13,11 @@ impl ConditionNumber {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let svd = m.svd()?;
         let sigma_max = svd.s[0];
         let sigma_min = svd.s.last().copied().unwrap_or(0.0);
-        
+
         if sigma_min < 1e-14 {
             Ok(f64::INFINITY)
         } else {
@@ -30,11 +30,11 @@ impl ConditionNumber {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let norm_a = MatrixNorms::frobenius(m);
         let inv = m.inverse()?;
         let norm_inv = MatrixNorms::frobenius(&inv);
-        
+
         Ok(norm_a * norm_inv)
     }
 
@@ -43,11 +43,11 @@ impl ConditionNumber {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let norm_a = MatrixNorms::l1(m);
         let inv = m.inverse()?;
         let norm_inv = MatrixNorms::l1(&inv);
-        
+
         Ok(norm_a * norm_inv)
     }
 
@@ -56,11 +56,11 @@ impl ConditionNumber {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let norm_a = MatrixNorms::linf(m);
         let inv = m.inverse()?;
         let norm_inv = MatrixNorms::linf(&inv);
-        
+
         Ok(norm_a * norm_inv)
     }
 
@@ -69,11 +69,11 @@ impl ConditionNumber {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let norm_a = MatrixNorms::induced_p_norm(m, p)?;
         let inv = m.inverse()?;
         let norm_inv = MatrixNorms::induced_p_norm(&inv, p)?;
-        
+
         Ok(norm_a * norm_inv)
     }
 
@@ -82,22 +82,18 @@ impl ConditionNumber {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let x = m.solve(b)?;
         let norm_x = MatrixNorms::vector_p_norm(&x.data, 2.0);
         let norm_b = MatrixNorms::vector_p_norm(&b.data, 2.0);
-        
+
         let cond = Self::spectral(m)?;
         Ok(cond * norm_b / norm_x)
     }
 
     /// Relative error bound for solution perturbation.
     /// Δx/x ≤ κ(A) * (ΔA/A + Δb/b).
-    pub fn error_bound(
-        m: &Matrix,
-        delta_a: f64,
-        delta_b: f64,
-    ) -> MathResult<f64> {
+    pub fn error_bound(m: &Matrix, delta_a: f64, delta_b: f64) -> MathResult<f64> {
         let cond = Self::spectral(m)?;
         Ok(cond * (delta_a + delta_b))
     }
@@ -107,9 +103,10 @@ impl ConditionNumber {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let (vals, vecs) = m.eigen_symmetric()?;
-        let cond = vals.iter()
+        let cond = vals
+            .iter()
             .zip(vecs.data.chunks(m.rows))
             .map(|(&lam, v)| {
                 let v_norm = v.iter().map(|&x| x * x).sum::<f64>().sqrt();
@@ -120,7 +117,7 @@ impl ConditionNumber {
                 }
             })
             .fold(f64::NEG_INFINITY, f64::max);
-        
+
         Ok(cond)
     }
 
@@ -129,7 +126,7 @@ impl ConditionNumber {
         let svd = m.svd()?;
         let sigma_max = svd.s[0];
         let sigma_min = svd.s.last().copied().unwrap_or(0.0);
-        
+
         if sigma_min < 1e-14 {
             Ok(f64::INFINITY)
         } else {
@@ -166,14 +163,14 @@ impl SensitivityAnalysis {
     ) -> MathResult<(f64, f64)> {
         let cond = ConditionNumber::spectral(m)?;
         let x = m.solve(b)?;
-        
+
         let norm_x = MatrixNorms::vector_p_norm(&x.data, 2.0);
         let norm_b = MatrixNorms::vector_p_norm(&b.data, 2.0);
         let norm_a = MatrixNorms::spectral(m)?;
-        
+
         let relative_error_x = cond * (delta_a / norm_a + delta_b / norm_b);
         let absolute_error_x = relative_error_x * norm_x;
-        
+
         Ok((relative_error_x, absolute_error_x))
     }
 
@@ -187,7 +184,7 @@ impl SensitivityAnalysis {
         let diff = residual.sub(b);
         let norm_residual = MatrixNorms::vector_p_norm(&diff.data, 2.0);
         let norm_b = MatrixNorms::vector_p_norm(&b.data, 2.0);
-        
+
         if norm_b > 0.0 {
             norm_residual / norm_b
         } else {
@@ -203,7 +200,7 @@ impl SensitivityAnalysis {
         let diff = x_computed.sub(x_exact);
         let norm_diff = MatrixNorms::vector_p_norm(&diff.data, 2.0);
         let norm_exact = MatrixNorms::vector_p_norm(&x_exact.data, 2.0);
-        
+
         if norm_exact > 0.0 {
             norm_diff / norm_exact
         } else {
@@ -216,7 +213,9 @@ impl SensitivityAnalysis {
         x_computed: &mathverse_vector::Vector,
         x_exact: &mathverse_vector::Vector,
     ) -> f64 {
-        let max_error = x_computed.data.iter()
+        let max_error = x_computed
+            .data
+            .iter()
             .zip(x_exact.data.iter())
             .map(|(&c, &e)| {
                 if e.abs() > 0.0 {
@@ -226,7 +225,7 @@ impl SensitivityAnalysis {
                 }
             })
             .fold(f64::NEG_INFINITY, f64::max);
-        
+
         max_error
     }
 }
@@ -266,11 +265,9 @@ impl ConditioningClassification {
     pub fn effective_rank(m: &Matrix, tolerance: f64) -> MathResult<usize> {
         let svd = m.svd()?;
         let sigma_max = svd.s[0];
-        
-        let rank = svd.s.iter()
-            .filter(|&&s| s > tolerance * sigma_max)
-            .count();
-        
+
+        let rank = svd.s.iter().filter(|&&s| s > tolerance * sigma_max).count();
+
         Ok(rank)
     }
 }
@@ -310,9 +307,18 @@ mod tests {
 
     #[test]
     fn test_classification() {
-        assert_eq!(ConditioningClassification::classify(5.0), "well-conditioned");
-        assert_eq!(ConditioningClassification::classify(50.0), "moderately conditioned");
-        assert_eq!(ConditioningClassification::classify(500.0), "ill-conditioned");
+        assert_eq!(
+            ConditioningClassification::classify(5.0),
+            "well-conditioned"
+        );
+        assert_eq!(
+            ConditioningClassification::classify(50.0),
+            "moderately conditioned"
+        );
+        assert_eq!(
+            ConditioningClassification::classify(500.0),
+            "ill-conditioned"
+        );
     }
 
     #[test]

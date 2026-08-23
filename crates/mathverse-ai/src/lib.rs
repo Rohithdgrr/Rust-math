@@ -3,18 +3,17 @@
 //! # Features
 //!
 //! - N-dimensional tensor with broadcasting, reshaping, and element-wise math
-//! - Activation functions: ReLU, GELU, Swish, Mish, Softmax, Sigmoid, Tanh, and more
+//! - Activation functions: `ReLU`, GELU, Swish, Mish, Softmax, Sigmoid, Tanh, and more
 //! - Loss functions: MSE, MAE, Huber, Cross-Entropy, Binary Cross-Entropy, KL Divergence, Hinge
 //! - Evaluation metrics: Accuracy, Precision, Recall, F1, Confusion Matrix, ROC AUC, R², Explained Variance
-//! - Stateful optimizers: SGD (with momentum), Adam, AdamW
+//! - Stateful optimizers: SGD (with momentum), Adam, `AdamW`
 //! - Learning rate schedulers: Constant, Step Decay, Cosine Annealing, Linear Warmup
 //! - Attention math: QKV projection, scaled dot-product attention, multi-head attention
-//! - Positional encodings: sinusoidal (additive), rotary (RoPE)
+//! - Positional encodings: sinusoidal (additive), rotary (`RoPE`)
 //! - Layer/Batch/RMS normalization
 
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::approx_constant)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_possible_truncation)]
@@ -34,30 +33,32 @@ extern crate alloc;
 
 mod internal;
 
-pub mod tensor;
 pub mod activations;
+pub mod attention;
+pub mod attention_adv;
+pub mod autograd;
+pub mod conv_transpose;
+pub mod data;
+pub mod generative;
+pub mod layers;
 pub mod losses;
 pub mod metrics;
-pub mod optimizers;
-pub mod attention;
-pub mod autograd;
-pub mod layers;
 pub mod models;
-pub mod data;
-pub mod conv_transpose;
+pub mod optimizers;
 pub mod recurrent;
-pub mod attention_adv;
-pub mod vision;
-pub mod generative;
 pub mod registry;
+pub mod tensor;
+pub mod vision;
 
-pub use tensor::Tensor;
-pub use activations::{relu, sigmoid, softmax, gelu, swish, tanh as tanh_act};
-pub use losses::{mse, cross_entropy, binary_cross_entropy_with_logits};
-pub use metrics::{accuracy, f1, confusion_matrix};
-pub use optimizers::{Sgd, Adam, AdamW, LrScheduler, Schedule};
-pub use attention::{scaled_dot_product_attention, multi_head_attention, sinusoidal_encoding, apply_rope};
-pub use layers::{Linear, LayerNorm, BatchNorm, Dropout};
-pub use models::{Sequential, MLP, TransformerBlock, Activation};
-pub use data::{DataLoader, Batch, train_test_split};
+pub use activations::{gelu, relu, sigmoid, softmax, swish, tanh as tanh_act};
+pub use attention::{
+    apply_rope, multi_head_attention, scaled_dot_product_attention, sinusoidal_encoding,
+};
 pub use autograd::{ComputationGraph, GradTensor};
+pub use data::{Batch, DataLoader, train_test_split};
+pub use layers::{BatchNorm, Dropout, LayerNorm, Linear};
+pub use losses::{binary_cross_entropy_with_logits, cross_entropy, mse};
+pub use metrics::{accuracy, confusion_matrix, f1};
+pub use models::{Activation, MLP, Sequential, TransformerBlock};
+pub use optimizers::{Adam, AdamW, LrScheduler, Schedule, Sgd};
+pub use tensor::Tensor;

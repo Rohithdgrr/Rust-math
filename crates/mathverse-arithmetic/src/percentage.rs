@@ -31,7 +31,9 @@ impl Percentage {
     /// Calculate selling price from cost and margin rate.
     pub fn selling_price_from_margin(cost: f64, margin_rate: f64) -> MathResult<f64> {
         if margin_rate >= 100.0 {
-            return Err(MathError::InvalidArgument("margin rate must be less than 100%"));
+            return Err(MathError::InvalidArgument(
+                "margin rate must be less than 100%",
+            ));
         }
         Ok(cost / (1.0 - margin_rate / 100.0))
     }
@@ -53,19 +55,16 @@ impl Percentage {
     /// Calculate original price from discounted price and discount rate.
     pub fn original_price(discounted_price: f64, discount_rate: f64) -> MathResult<f64> {
         if discount_rate >= 100.0 {
-            return Err(MathError::InvalidArgument("discount rate must be less than 100%"));
+            return Err(MathError::InvalidArgument(
+                "discount rate must be less than 100%",
+            ));
         }
         Ok(discounted_price / (1.0 - discount_rate / 100.0))
     }
 
     /// Calculate compound interest: A = P(1 + r/n)^(nt).
     #[must_use]
-    pub fn compound_interest(
-        principal: f64,
-        rate: f64,
-        times_per_year: u32,
-        years: f64,
-    ) -> f64 {
+    pub fn compound_interest(principal: f64, rate: f64, times_per_year: u32, years: f64) -> f64 {
         let n = f64::from(times_per_year);
         principal * (1.0 + rate / 100.0 / n).powf(n * years)
     }
@@ -165,10 +164,16 @@ impl ProfitLoss {
     }
 
     /// Calculate break-even point in units.
-    pub fn break_even_units(fixed_costs: f64, price_per_unit: f64, variable_cost_per_unit: f64) -> MathResult<f64> {
+    pub fn break_even_units(
+        fixed_costs: f64,
+        price_per_unit: f64,
+        variable_cost_per_unit: f64,
+    ) -> MathResult<f64> {
         let contribution_margin = price_per_unit - variable_cost_per_unit;
         if contribution_margin <= 0.0 {
-            return Err(MathError::InvalidArgument("contribution margin must be positive"));
+            return Err(MathError::InvalidArgument(
+                "contribution margin must be positive",
+            ));
         }
         Ok(fixed_costs / contribution_margin)
     }
@@ -176,7 +181,9 @@ impl ProfitLoss {
     /// Calculate break-even point in revenue.
     pub fn break_even_revenue(fixed_costs: f64, contribution_margin_ratio: f64) -> MathResult<f64> {
         if contribution_margin_ratio <= 0.0 {
-            return Err(MathError::InvalidArgument("contribution margin ratio must be positive"));
+            return Err(MathError::InvalidArgument(
+                "contribution margin ratio must be positive",
+            ));
         }
         Ok(fixed_costs / contribution_margin_ratio)
     }
@@ -195,7 +202,9 @@ mod tests {
     #[test]
     fn test_margin() {
         assert!((Percentage::margin_rate(100.0, 125.0).unwrap() - 20.0).abs() < 1e-10);
-        assert!((Percentage::selling_price_from_margin(100.0, 20.0).unwrap() - 125.0).abs() < 1e-10);
+        assert!(
+            (Percentage::selling_price_from_margin(100.0, 20.0).unwrap() - 125.0).abs() < 1e-10
+        );
     }
 
     #[test]

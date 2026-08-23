@@ -25,8 +25,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     cfg.plot_config.height = 500;
 
     let svg = render_contour(&grid, (-2.0, 2.0), (-2.0, 2.0), &cfg)?;
-PlotSaver::new(&svg).save_png("contour.png")?;
-println!("wrote contour.png");
+    PlotSaver::new(&svg).save_png("contour.png")?;
+    println!("wrote contour.png");
 
     Ok(())
 }

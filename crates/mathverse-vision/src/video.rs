@@ -30,8 +30,6 @@ pub struct VideoWriter {
     height: usize,
     /// Frame count
     frame_count: usize,
-    /// Frame rate (fps)
-    fps: u32,
 }
 
 impl VideoWriter {
@@ -59,14 +57,13 @@ impl VideoWriter {
     /// let mut writer = VideoWriter::new("test_output.raw", 640, 480, 30);
     /// assert!(Path::new("test_output.raw").exists());
     /// ```
-    pub fn new(path: &str, width: usize, height: usize, fps: u32) -> Self {
+    pub fn new(path: &str, width: usize, height: usize, _fps: u32) -> Self {
         let file = File::create(path).expect("Cannot create video file");
         Self {
             file,
             width,
             height,
             frame_count: 0,
-            fps,
         }
     }
 
@@ -88,12 +85,12 @@ impl VideoWriter {
     /// use mathverse_vision::{Image, video::VideoWriter};
     /// use std::path::Path;
     ///
-/// let mut writer = VideoWriter::new("test.raw", 640, 480, 30);
-/// let img = Image::new(640, 480);
-/// writer.write_frame(&img).unwrap();
-/// writer.close();
-/// // Clean up
-/// let _ = std::fs::remove_file("test.raw");
+    /// let mut writer = VideoWriter::new("test.raw", 640, 480, 30);
+    /// let img = Image::new(640, 480);
+    /// writer.write_frame(&img).unwrap();
+    /// writer.close();
+    /// // Clean up
+    /// let _ = std::fs::remove_file("test.raw");
     /// ```
     pub fn write_frame(&mut self, img: &Image) -> std::io::Result<()> {
         // Write frame dimensions once (on first frame)
@@ -102,13 +99,11 @@ impl VideoWriter {
             self.file.write_all(&(self.width as u32).to_le_bytes())?;
             self.file.write_all(&(self.height as u32).to_le_bytes())?;
         }
-        
+
         // Write frame data: width * height f64 values
-        let byte_data: Vec<u8> = img.data.iter()
-            .flat_map(|&f| f.to_le_bytes())
-            .collect();
+        let byte_data: Vec<u8> = img.data.iter().flat_map(|&f| f.to_le_bytes()).collect();
         self.file.write_all(&byte_data)?;
-        
+
         self.frame_count += 1;
         Ok(())
     }

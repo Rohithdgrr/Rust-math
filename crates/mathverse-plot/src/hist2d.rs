@@ -45,13 +45,11 @@ impl Hist2DConfig {
 }
 
 /// Render a 2D histogram as SVG.
-pub fn render_hist2d(
-    x_data: &[f64],
-    y_data: &[f64],
-    config: &Hist2DConfig,
-) -> PlotResult<String> {
+pub fn render_hist2d(x_data: &[f64], y_data: &[f64], config: &Hist2DConfig) -> PlotResult<String> {
     if x_data.len() != y_data.len() {
-        return Err(PlotError::InvalidData("x and y must have same length".into()));
+        return Err(PlotError::InvalidData(
+            "x and y must have same length".into(),
+        ));
     }
     if x_data.is_empty() {
         return Err(PlotError::InvalidData("no data provided".into()));
@@ -82,7 +80,10 @@ pub fn render_hist2d(
     }
 
     // Find max count
-    let max_count = bins.iter().flat_map(|r| r.iter()).fold(0.0_f64, |a, &b| a.max(b));
+    let max_count = bins
+        .iter()
+        .flat_map(|r| r.iter())
+        .fold(0.0_f64, |a, &b| a.max(b));
     if max_count == 0.0 {
         return Err(PlotError::InvalidData("no data in bins".into()));
     }
@@ -157,7 +158,8 @@ pub fn render_hist2d(
             let val = max_count * f64::from(i) / 4.0;
             svg.push_str(&format!(
                 r#"  <text x="{}" y="{y}" font-size="9" dominant-baseline="middle">{:.0}</text>"#,
-                cb_x + cb_width + 5.0, val
+                cb_x + cb_width + 5.0,
+                val
             ));
             svg.push('\n');
         }
@@ -166,7 +168,8 @@ pub fn render_hist2d(
     // Axes
     svg.push_str(&format!(
         r#"  <text x="{}" y="{}" text-anchor="middle" font-size="11">x</text>"#,
-        padding + chart_width / 2.0, height - 5.0
+        padding + chart_width / 2.0,
+        height - 5.0
     ));
     svg.push('\n');
     svg.push_str(&format!(

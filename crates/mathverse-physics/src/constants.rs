@@ -36,6 +36,7 @@ impl PhysicalConstant {
 
 /// Speed of light in vacuum: 299 792 458 m/s (exact by SI definition).
 pub const C: f64 = 299_792_458.0;
+/// Speed of light in vacuum as a [`PhysicalConstant`] (exact by SI definition).
 pub const C_CONST: PhysicalConstant = PhysicalConstant {
     value: C,
     uncertainty: 0.0,
@@ -44,6 +45,7 @@ pub const C_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Gravitational constant: 6.67430(15) × 10⁻¹¹ m³·kg⁻¹·s⁻².
 pub const G: f64 = 6.674_30e-11;
+/// Gravitational constant as a [`PhysicalConstant`] (CODATA 2018).
 pub const G_CONST: PhysicalConstant = PhysicalConstant {
     value: 6.674_30e-11,
     uncertainty: 0.000_15e-11,
@@ -52,6 +54,7 @@ pub const G_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Planck constant: 6.626 070 15 × 10⁻³⁴ J·s (exact by SI definition).
 pub const H: f64 = 6.626_070_15e-34;
+/// Planck constant as a [`PhysicalConstant`] (exact by SI definition).
 pub const H_CONST: PhysicalConstant = PhysicalConstant {
     value: H,
     uncertainty: 0.0,
@@ -60,6 +63,7 @@ pub const H_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Reduced Planck constant: ħ = h / (2π).
 pub const H_BAR: f64 = H / (2.0 * PI);
+/// Reduced Planck constant ħ as a [`PhysicalConstant`].
 pub const H_BAR_CONST: PhysicalConstant = PhysicalConstant {
     value: H_BAR,
     uncertainty: 0.0,
@@ -68,6 +72,7 @@ pub const H_BAR_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Elementary charge: 1.602 176 634 × 10⁻¹⁹ C (exact by SI definition).
 pub const E: f64 = 1.602_176_634e-19;
+/// Elementary charge as a [`PhysicalConstant`] (exact by SI definition).
 pub const E_CONST: PhysicalConstant = PhysicalConstant {
     value: E,
     uncertainty: 0.0,
@@ -76,6 +81,7 @@ pub const E_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Boltzmann constant: 1.380 649 × 10⁻²³ J/K (exact by SI definition).
 pub const K_B: f64 = 1.380_649e-23;
+/// Boltzmann constant as a [`PhysicalConstant`] (exact by SI definition).
 pub const K_B_CONST: PhysicalConstant = PhysicalConstant {
     value: K_B,
     uncertainty: 0.0,
@@ -84,6 +90,7 @@ pub const K_B_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Avogadro constant: 6.022 140 76 × 10²³ mol⁻¹ (exact by SI definition).
 pub const N_A: f64 = 6.022_140_76e23;
+/// Avogadro constant as a [`PhysicalConstant`] (exact by SI definition).
 pub const N_A_CONST: PhysicalConstant = PhysicalConstant {
     value: N_A,
     uncertainty: 0.0,
@@ -92,6 +99,7 @@ pub const N_A_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Molar gas constant: R = N_A · k_B.
 pub const R: f64 = N_A * K_B;
+/// Molar gas constant R = N_A·k_B as a [`PhysicalConstant`].
 pub const R_CONST: PhysicalConstant = PhysicalConstant {
     value: R,
     uncertainty: 0.0,
@@ -100,6 +108,7 @@ pub const R_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Permittivity of free space: 8.854 187 812 8 × 10⁻¹² F/m.
 pub const EPSILON_0: f64 = 8.854_187_812_8e-12;
+/// Permittivity of free space as a [`PhysicalConstant`] (CODATA 2018).
 pub const EPSILON_0_CONST: PhysicalConstant = PhysicalConstant {
     value: EPSILON_0,
     uncertainty: 0.000_000_001_3e-12,
@@ -108,6 +117,7 @@ pub const EPSILON_0_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Permeability of free space: 4π × 10⁻⁷ H/m (exact by SI definition).
 pub const MU_0: f64 = 4.0 * PI * 1.0e-7;
+/// Permeability of free space as a [`PhysicalConstant`] (exact by SI definition).
 pub const MU_0_CONST: PhysicalConstant = PhysicalConstant {
     value: MU_0,
     uncertainty: 0.0,
@@ -116,6 +126,7 @@ pub const MU_0_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Standard gravitational acceleration: 9.80665 m/s².
 pub const G_0: f64 = 9.806_65;
+/// Standard gravitational acceleration as a [`PhysicalConstant`].
 pub const G_0_CONST: PhysicalConstant = PhysicalConstant {
     value: G_0,
     uncertainty: 0.0,
@@ -124,6 +135,7 @@ pub const G_0_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Astronomical unit: 1.495 978 707 × 10¹¹ m.
 pub const AU: f64 = 1.495_978_707e11;
+/// Astronomical unit as a [`PhysicalConstant`].
 pub const AU_CONST: PhysicalConstant = PhysicalConstant {
     value: AU,
     uncertainty: 0.0,
@@ -132,6 +144,7 @@ pub const AU_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Electron mass: 9.109 383 701 5 × 10⁻³¹ kg.
 pub const M_E: f64 = 9.109_383_701_5e-31;
+/// Electron mass as a [`PhysicalConstant`] (CODATA 2018).
 pub const M_E_CONST: PhysicalConstant = PhysicalConstant {
     value: M_E,
     uncertainty: 0.000_000_002_8e-31,
@@ -140,6 +153,7 @@ pub const M_E_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Proton mass: 1.672 621 923 69 × 10⁻²⁷ kg.
 pub const M_P: f64 = 1.672_621_923_69e-27;
+/// Proton mass as a [`PhysicalConstant`] (CODATA 2018).
 pub const M_P_CONST: PhysicalConstant = PhysicalConstant {
     value: M_P,
     uncertainty: 0.000_000_000_83e-27,
@@ -148,6 +162,7 @@ pub const M_P_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Neutron mass: 1.674 927 498 04 × 10⁻²⁷ kg.
 pub const M_N: f64 = 1.674_927_498_04e-27;
+/// Neutron mass as a [`PhysicalConstant`] (CODATA 2018).
 pub const M_N_CONST: PhysicalConstant = PhysicalConstant {
     value: M_N,
     uncertainty: 0.000_000_000_95e-27,
@@ -156,6 +171,7 @@ pub const M_N_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Rydberg constant: 10 973 731.568 160 m⁻¹.
 pub const R_INF: f64 = 10_973_731.568_160;
+/// Rydberg constant as a [`PhysicalConstant`] (CODATA 2018).
 pub const R_INF_CONST: PhysicalConstant = PhysicalConstant {
     value: R_INF,
     uncertainty: 0.000_021,
@@ -164,6 +180,7 @@ pub const R_INF_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Fine structure constant (dimensionless).
 pub const ALPHA: f64 = 7.297_352_569_3e-3;
+/// Fine-structure constant as a [`PhysicalConstant`] (CODATA 2018).
 pub const ALPHA_CONST: PhysicalConstant = PhysicalConstant {
     value: ALPHA,
     uncertainty: 0.000_000_000_001_2e-3,
@@ -172,6 +189,7 @@ pub const ALPHA_CONST: PhysicalConstant = PhysicalConstant {
 
 /// Stefan-Boltzmann constant: 5.670 374 419 × 10⁻⁸ W·m⁻²·K⁻⁴.
 pub const SIGMA: f64 = 5.670_374_419e-8;
+/// Stefan-Boltzmann constant as a [`PhysicalConstant`] (CODATA 2018).
 pub const SIGMA_CONST: PhysicalConstant = PhysicalConstant {
     value: SIGMA,
     uncertainty: 0.0,
@@ -249,7 +267,9 @@ mod tests {
         assert!((convert_temperature(273.15, "Kelvin", "Celsius").unwrap() - 0.0).abs() < 1e-10);
         assert!((convert_temperature(32.0, "Fahrenheit", "Celsius").unwrap() - 0.0).abs() < 1e-9);
         assert!((convert_temperature(32.0, "Fahrenheit", "Kelvin").unwrap() - 273.15).abs() < 1e-9);
-        assert!((convert_temperature(491.67, "Rankine", "Fahrenheit").unwrap() - 32.0).abs() < 1e-9);
+        assert!(
+            (convert_temperature(491.67, "Rankine", "Fahrenheit").unwrap() - 32.0).abs() < 1e-9
+        );
         assert!(convert_temperature(0.0, "Banana", "Kelvin").is_err());
     }
 }

@@ -43,17 +43,21 @@ impl PlotData {
 
 #[derive(Debug, Clone, Copy)]
 pub struct BarSnapshot {
-    pub x_lo: f64, pub x_hi: f64, pub y: f64,
+    pub x_lo: f64,
+    pub x_hi: f64,
+    pub y: f64,
     pub color: crate::style::Color,
 }
 #[derive(Debug, Clone)]
 pub struct BoxSnapshot {
-    pub name: String, pub stats: BoxStats,
+    pub name: String,
+    pub stats: BoxStats,
     pub color: crate::style::Color,
 }
 #[derive(Debug, Clone, Copy)]
 pub struct ErrorBarSnapshot {
-    pub x: f64, pub bar: ErrorBar,
+    pub x: f64,
+    pub bar: ErrorBar,
     pub color: crate::style::Color,
 }
 #[derive(Debug, Clone)]

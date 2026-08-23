@@ -1,3 +1,10 @@
+//! Criterion benchmarks for the machine-learning crate: kNN, k-means,
+//! decision tree, random forest, linear regression, and PCA.
+
+// `criterion_group!` generates undocumented items, which trips the
+// workspace-wide `missing_docs` lint; silence it for this generated code.
+#![allow(missing_docs)]
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use mathverse_machine_learning::forest::RandomForest;
 use mathverse_machine_learning::kmeans;
@@ -6,8 +13,11 @@ use mathverse_machine_learning::linear;
 use mathverse_machine_learning::pca::PCA;
 use mathverse_machine_learning::tree::DecisionTree;
 
+/// Benchmark kNN classification on 500 training rows.
 fn bench_knn(c: &mut Criterion) {
-    let train_x: Vec<Vec<f64>> = (0..500).map(|i| vec![f64::from(i), f64::from(i) * 0.5]).collect();
+    let train_x: Vec<Vec<f64>> = (0..500)
+        .map(|i| vec![f64::from(i), f64::from(i) * 0.5])
+        .collect();
     let train_y: Vec<f64> = (0..500)
         .map(|i| if i % 2 == 0 { 0.0 } else { 1.0 })
         .collect();
@@ -24,15 +34,21 @@ fn bench_knn(c: &mut Criterion) {
     });
 }
 
+/// Benchmark k-means clustering (3 clusters, 1000 points).
 fn bench_kmeans(c: &mut Criterion) {
-    let x: Vec<Vec<f64>> = (0..1000).map(|i| vec![f64::from(i), f64::from(i * 2)]).collect();
+    let x: Vec<Vec<f64>> = (0..1000)
+        .map(|i| vec![f64::from(i), f64::from(i * 2)])
+        .collect();
     c.bench_function("kmeans_3_clusters_1000", |b| {
         b.iter(|| kmeans::kmeans(black_box(&x), 3, 10, 1e-6));
     });
 }
 
+/// Benchmark decision tree prediction.
 fn bench_decision_tree(c: &mut Criterion) {
-    let x: Vec<Vec<f64>> = (0..500).map(|i| vec![f64::from(i), f64::from(i) * 0.5]).collect();
+    let x: Vec<Vec<f64>> = (0..500)
+        .map(|i| vec![f64::from(i), f64::from(i) * 0.5])
+        .collect();
     let y: Vec<f64> = (0..500)
         .map(|i| if i % 2 == 0 { 0.0 } else { 1.0 })
         .collect();
@@ -44,8 +60,11 @@ fn bench_decision_tree(c: &mut Criterion) {
     });
 }
 
+/// Benchmark random forest prediction.
 fn bench_random_forest(c: &mut Criterion) {
-    let x: Vec<Vec<f64>> = (0..500).map(|i| vec![f64::from(i), f64::from(i) * 0.5]).collect();
+    let x: Vec<Vec<f64>> = (0..500)
+        .map(|i| vec![f64::from(i), f64::from(i) * 0.5])
+        .collect();
     let y: Vec<f64> = (0..500)
         .map(|i| if i % 2 == 0 { 0.0 } else { 1.0 })
         .collect();
@@ -57,6 +76,7 @@ fn bench_random_forest(c: &mut Criterion) {
     });
 }
 
+/// Benchmark linear regression fit + predict on 1000 rows.
 fn bench_linear_regression(c: &mut Criterion) {
     let x: Vec<Vec<f64>> = (0..1000).map(|i| vec![f64::from(i)]).collect();
     let y: Vec<f64> = (0..1000).map(|i| f64::from(i) * 2.0 + 1.0).collect();
@@ -69,6 +89,7 @@ fn bench_linear_regression(c: &mut Criterion) {
     });
 }
 
+/// Benchmark PCA fit_transform on a 500x3 dataset.
 fn bench_pca(c: &mut Criterion) {
     let x: Vec<Vec<f64>> = (0..500)
         .map(|i| vec![f64::from(i), f64::from(i) * 0.5, f64::from(i) * 0.3])

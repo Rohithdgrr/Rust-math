@@ -158,7 +158,7 @@ pub fn factors_latex(roots: &[f64]) -> String {
     let mut out = String::new();
     for &r in roots {
         out.push('(');
-        out.push_str("x");
+        out.push('x');
         if r >= 0.0 {
             out.push_str(" - ");
         } else {
@@ -195,7 +195,7 @@ mod tests {
     fn equation_render() {
         assert_eq!(
             equation_solution_latex(&[6.0, -5.0, 1.0], &[2.0, 3.0]),
-"x^{2} - 5x + 6 = 0 \\quad\\Longrightarrow\\quad x \\in \\{2, 3\\}"
+            "x^{2} - 5x + 6 = 0 \\quad\\Longrightarrow\\quad x \\in \\{2, 3\\}"
         );
     }
 

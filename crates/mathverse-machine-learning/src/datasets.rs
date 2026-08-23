@@ -195,7 +195,7 @@ mod tests {
         assert_eq!(x.len(), 100);
         assert_eq!(x[0].len(), 4);
         assert_eq!(y.len(), 100);
-        let classes: Vec<f64> = y.to_vec();
+        let classes: Vec<f64> = y.clone();
         assert!(classes.contains(&0.0));
         assert!(classes.contains(&1.0));
         assert!(classes.contains(&2.0));

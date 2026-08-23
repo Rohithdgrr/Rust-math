@@ -122,7 +122,11 @@ fn erode_once(img: &Image, kernel: &[[bool; 3]; 3]) -> Image {
                     }
                 }
             }
-            out.data[y * w + x] = if min_v.is_finite() { min_v } else { img.data[y * w + x] };
+            out.data[y * w + x] = if min_v.is_finite() {
+                min_v
+            } else {
+                img.data[y * w + x]
+            };
         }
     }
     out
@@ -145,7 +149,11 @@ fn dilate_once(img: &Image, kernel: &[[bool; 3]; 3]) -> Image {
                     }
                 }
             }
-            out.data[y * w + x] = if max_v.is_finite() { max_v } else { img.data[y * w + x] };
+            out.data[y * w + x] = if max_v.is_finite() {
+                max_v
+            } else {
+                img.data[y * w + x]
+            };
         }
     }
     out

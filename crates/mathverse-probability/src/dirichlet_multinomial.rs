@@ -21,7 +21,9 @@ impl Categorical {
             || probs.iter().any(|&p| !p.is_finite() || p < 0.0)
             || (sum - 1.0).abs() > 1e-9
         {
-            return Err("categorical probabilities must be finite, non-negative and sum to 1".into());
+            return Err(
+                "categorical probabilities must be finite, non-negative and sum to 1".into(),
+            );
         }
         Ok(Self { probs })
     }
@@ -154,9 +156,7 @@ pub struct Dirichlet {
 impl Dirichlet {
     /// Validate that all `alphas` are positive.
     pub fn new(alphas: Vec<f64>) -> Result<Self, String> {
-        if alphas.is_empty()
-            || alphas.iter().any(|&a| !a.is_finite() || a <= 0.0)
-        {
+        if alphas.is_empty() || alphas.iter().any(|&a| !a.is_finite() || a <= 0.0) {
             return Err("dirichlet alphas must be finite and positive".into());
         }
         Ok(Self { alphas })
@@ -188,7 +188,11 @@ impl Dirichlet {
     /// Panics if `x.len() != self.alphas.len()`.
     #[must_use]
     pub fn log_pdf(&self, x: &[f64]) -> f64 {
-        assert_eq!(x.len(), self.alphas.len(), "dirichlet x has wrong dimension");
+        assert_eq!(
+            x.len(),
+            self.alphas.len(),
+            "dirichlet x has wrong dimension"
+        );
         let alpha_sum: f64 = self.alphas.iter().sum();
         let mut log_d = ln_gamma(alpha_sum);
         for (&a, &xi) in self.alphas.iter().zip(x) {

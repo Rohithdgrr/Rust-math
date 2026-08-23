@@ -247,7 +247,8 @@ impl MetropolisHastings {
         let mut current = initial.to_vec();
         let mut current_log_prob = (self.target_log_prob)(&current);
 
-        assert!(current_log_prob.is_finite(), 
+        assert!(
+            current_log_prob.is_finite(),
             "MetropolisHastings: initial state has non-finite log probability {current_log_prob}"
         );
 

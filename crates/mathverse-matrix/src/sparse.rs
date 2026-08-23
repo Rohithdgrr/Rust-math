@@ -18,7 +18,11 @@ pub struct SparseMatrix {
 impl SparseMatrix {
     /// Create an empty sparse matrix with room for `rows × cols` entries.
     pub fn new(rows: usize, cols: usize) -> SparseMatrix {
-        SparseMatrix { rows, cols, entries: Vec::new() }
+        SparseMatrix {
+            rows,
+            cols,
+            entries: Vec::new(),
+        }
     }
 
     /// Insert `value` at `(r, c)`; duplicates accumulate on matvec.
@@ -122,6 +126,9 @@ mod tests {
         let t = s.transpose();
         assert_eq!(t.rows(), 3);
         assert_eq!(t.get(1, 0), 1.0);
-        assert_eq!(t.mul_vec(&Vector::new(vec![1.0, 1.0])).unwrap(), Vector::new(vec![2.0, 1.0, 3.0]));
+        assert_eq!(
+            t.mul_vec(&Vector::new(vec![1.0, 1.0])).unwrap(),
+            Vector::new(vec![2.0, 1.0, 3.0])
+        );
     }
 }

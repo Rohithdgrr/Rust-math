@@ -1,6 +1,5 @@
 //! Unit conversion factors and utilities.
 
-
 /// Conversion factors between common units.
 pub struct ConversionFactors;
 

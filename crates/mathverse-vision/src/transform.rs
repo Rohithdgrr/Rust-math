@@ -27,23 +27,23 @@ use crate::Image;
 /// ```
 pub fn resize(img: &Image, new_w: usize, new_h: usize) -> Image {
     let mut out = Image::new(new_w, new_h);
-    
+
     if new_w == 0 || new_h == 0 {
         return out;
     }
-    
+
     let scale_x = img.w as f64 / new_w as f64;
     let scale_y = img.h as f64 / new_h as f64;
-    
+
     for y in 0..new_h {
         for x in 0..new_w {
             // Map output pixel to input coordinates (top-left mapping)
             let src_x = (x as f64 * scale_x).min((img.w - 1) as f64);
             let src_y = (y as f64 * scale_y).min((img.h - 1) as f64);
-            
+
             let sx = src_x as usize;
             let sy = src_y as usize;
-            
+
             out.data[y * new_w + x] = img.data[sy * img.w + sx];
         }
     }
@@ -78,11 +78,11 @@ pub fn rotate(img: &Image, angle_deg: f64) -> Image {
     let angle_rad = angle_deg.to_radians();
     let cos_a = angle_rad.cos();
     let sin_a = angle_rad.sin();
-    
+
     // Compute output bounds (bounding box of rotated rectangle)
     let w = img.w;
     let h = img.h;
-    
+
     // Four corners of input image
     let corners = [
         (0.0, 0.0),
@@ -90,12 +90,12 @@ pub fn rotate(img: &Image, angle_deg: f64) -> Image {
         (0.0, h as f64),
         (w as f64, h as f64),
     ];
-    
+
     let mut min_x = f64::INFINITY;
     let mut max_x = f64::NEG_INFINITY;
     let mut min_y = f64::INFINITY;
     let mut max_y = f64::NEG_INFINITY;
-    
+
     for (cx, cy) in &corners {
         let rx = cx * cos_a - cy * sin_a;
         let ry = cx * sin_a + cy * cos_a;
@@ -104,17 +104,17 @@ pub fn rotate(img: &Image, angle_deg: f64) -> Image {
         min_y = min_y.min(ry);
         max_y = max_y.max(ry);
     }
-    
+
     let out_w = ((max_x - min_x).ceil()) as usize;
     let out_h = ((max_y - min_y).ceil()) as usize;
-    
+
     // Adjust origin so that min_x, min_y become 0
     let mut out = Image::new(out_w, out_h);
-    
+
     // Center of original image
     let cx = (w - 1) as f64 / 2.0;
     let cy = (h - 1) as f64 / 2.0;
-    
+
     for y in 0..out_h {
         for x in 0..out_w {
             // Map output pixel back to input space (inverse rotation)
@@ -123,14 +123,14 @@ pub fn rotate(img: &Image, angle_deg: f64) -> Image {
             //   y_in = cy + (x - out_w/2) * sin + (y - out_h/2) * cos
             let dx = x as f64 - (out_w - 1) as f64 / 2.0;
             let dy = y as f64 - (out_h - 1) as f64 / 2.0;
-            
+
             let src_x = cx + dx * cos_a - dy * sin_a;
             let src_y = cy + dx * sin_a + dy * cos_a;
-            
+
             // Clip to input image bounds
             let sx = src_x.max(0.0).min((w - 1) as f64);
             let sy = src_y.max(0.0).min((h - 1) as f64);
-            
+
             let ix = sx as usize;
             let iy = sy as usize;
             out.data[y * out_w + x] = img.data[iy * w + ix];
@@ -174,7 +174,7 @@ pub fn affine(img: &Image, a: f64, b: f64, tx: f64, c: f64, d: f64, ty: f64) -> 
     let w = img.w;
     let h = img.h;
     let mut out = Image::new(w, h);
-    
+
     for y in 0..h {
         for x in 0..w {
             // Inverse mapping: compute source position
@@ -182,10 +182,14 @@ pub fn affine(img: &Image, a: f64, b: f64, tx: f64, c: f64, d: f64, ty: f64) -> 
             // [y'] = [c d ty] [y] = [y]
             // Actually for inverse, we solve for source given destination
             // Using the matrix directly on destination coordinates
-            
-            let src_x = (a * x as f64 + b * y as f64 + tx).max(0.0).min((w - 1) as f64);
-            let src_y = (c * x as f64 + d * y as f64 + ty).max(0.0).min((h - 1) as f64);
-            
+
+            let src_x = (a * x as f64 + b * y as f64 + tx)
+                .max(0.0)
+                .min((w - 1) as f64);
+            let src_y = (c * x as f64 + d * y as f64 + ty)
+                .max(0.0)
+                .min((h - 1) as f64);
+
             let sx = src_x as usize;
             let sy = src_y as usize;
             out.data[y * w + x] = img.data[sy * w + sx];
@@ -203,7 +207,10 @@ pub fn affine(img: &Image, a: f64, b: f64, tx: f64, c: f64, d: f64, ty: f64) -> 
 ///
 /// Panics if `flip_code` is not `-1`, `0`, or `1`.
 pub fn flip(img: &Image, flip_code: i32) -> Image {
-    assert!((-1..=1).contains(&flip_code), "flip: code must be -1, 0 or 1");
+    assert!(
+        (-1..=1).contains(&flip_code),
+        "flip: code must be -1, 0 or 1"
+    );
     let (w, h) = (img.w, img.h);
     let mut out = Image::new(w, h);
     for y in 0..h {
@@ -433,22 +440,30 @@ mod tests {
     #[test]
     fn resize_identity() {
         let mut img = Image::new(4, 4);
-        for y in 0..4 { for x in 0..4 { img.set(x, y, (x + y) as f64); } }
+        for y in 0..4 {
+            for x in 0..4 {
+                img.set(x, y, (x + y) as f64);
+            }
+        }
         let small = resize(&img, 2, 2);
         // Nearest neighbor: each 2x2 block becomes 1 pixel
-        assert_eq!(small.data[0], 0.0);   // (0,0) block -> pixel (0,0)
-        assert_eq!(small.data[1], 2.0);   // (0,1) and (1,0) block -> pixel (0,0) had value 0... 
+        assert_eq!(small.data[0], 0.0); // (0,0) block -> pixel (0,0)
+        assert_eq!(small.data[1], 2.0); // (0,1) and (1,0) block -> pixel (0,0) had value 0...
     }
 
     #[test]
     fn affine_identity() {
         let mut img = Image::new(4, 4);
-        for y in 0..4 { for x in 0..4 { img.set(x, y, 1.0); } }
+        for y in 0..4 {
+            for x in 0..4 {
+                img.set(x, y, 1.0);
+            }
+        }
         let out = affine(&img, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0);
         // Should be same size with same values
         assert_eq!(out.w, 4);
         assert_eq!(out.h, 4);
-        assert_eq!(out.data.iter().all(|&v| v == 1.0), true);
+        assert!(out.data.iter().all(|&v| v == 1.0));
     }
 
     #[test]

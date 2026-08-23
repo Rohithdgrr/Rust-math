@@ -156,7 +156,11 @@ pub fn waic(log_likelihood_samples: &[Vec<f64>]) -> (f64, f64) {
             .sum();
         lppd += max + sum.ln() - n_draws.ln();
 
-        let mean = log_likelihood_samples.iter().map(|row| row[obs]).sum::<f64>() / n_draws;
+        let mean = log_likelihood_samples
+            .iter()
+            .map(|row| row[obs])
+            .sum::<f64>()
+            / n_draws;
         let var = if n_draws > 1.0 {
             log_likelihood_samples
                 .iter()

@@ -1,10 +1,10 @@
 //! Simple animation example generating SVG frames.
 
-use mathverse_plot::{
-    AnimationConfig, DataPoint, DataSeries, PlotConfig,
-    generate_frames, render_frame, assemble_animated_svg,
-};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{
+    assemble_animated_svg, generate_frames, render_frame, AnimationConfig, DataPoint, DataSeries,
+    PlotConfig,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate frames for a moving sine wave
@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             PlotConfig::new()
                 .with_title("Animated Sine Wave")
                 .with_x_label("x")
-                .with_y_label("sin(x + phase)")
+                .with_y_label("sin(x + phase)"),
         );
 
     let frames = generate_frames(

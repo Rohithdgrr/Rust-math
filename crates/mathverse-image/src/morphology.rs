@@ -23,7 +23,11 @@ pub fn erode(img: &GrayImage) -> GrayImage {
                 .iter()
                 .all(|(dx, dy)| {
                     let (nx, ny) = (x as i64 + dx, y as i64 + dy);
-                    nx >= 0 && ny >= 0 && nx < img.w as i64 && ny < img.h as i64 && img.get(nx as usize, ny as usize) >= 0.5
+                    nx >= 0
+                        && ny >= 0
+                        && nx < img.w as i64
+                        && ny < img.h as i64
+                        && img.get(nx as usize, ny as usize) >= 0.5
                 });
             if ok {
                 out.set(x, y, 1.0);
@@ -42,11 +46,16 @@ pub fn dilate(img: &GrayImage) -> GrayImage {
                 out.set(x, y, 1.0);
                 continue;
             }
-            let hit = [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)].iter().any(|(dx, dy)| {
-                let (nx, ny) = (x as i64 + dx, y as i64 + dy);
-                nx >= 0 && ny >= 0 && nx < img.w as i64 && ny < img.h as i64
-                    && img.get(nx as usize, ny as usize) >= 0.5
-            });
+            let hit = [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)]
+                .iter()
+                .any(|(dx, dy)| {
+                    let (nx, ny) = (x as i64 + dx, y as i64 + dy);
+                    nx >= 0
+                        && ny >= 0
+                        && nx < img.w as i64
+                        && ny < img.h as i64
+                        && img.get(nx as usize, ny as usize) >= 0.5
+                });
             if hit {
                 out.set(x, y, 1.0);
             }
@@ -89,7 +98,7 @@ mod tests {
         assert!((sum(&e) - 9.0).abs() < 1e-9); // 3x3 after border removal
         let d = dilate(&img);
         assert!((sum(&d) - 45.0).abs() < 1e-9); // 5x5 plus one-pixel strips
-        // cross structuring element: close restores the block, open rounds corners
+                                                // cross structuring element: close restores the block, open rounds corners
         assert!((sum(&close(&img)) - 25.0).abs() < 1e-9);
         assert!((sum(&open(&img)) - 21.0).abs() < 1e-9);
         // erode of a 2x2 block vanishes

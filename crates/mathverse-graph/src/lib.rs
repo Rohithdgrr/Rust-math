@@ -11,4 +11,4 @@
 //! Edge weights default to `0.0` for unweighted queries.
 
 mod graph;
-pub use graph::{Graph, WeightedGraph, DirectedGraph};
+pub use graph::{DirectedGraph, Graph, WeightedGraph};

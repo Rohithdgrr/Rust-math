@@ -113,14 +113,19 @@ impl Default for RcParams {
 
 /// Return a snapshot of the current global params.
 pub fn rc() -> RcParams {
-    global().read().unwrap_or_else(|e| panic!("rcParams lock poisoned: {e}")).clone()
+    global()
+        .read()
+        .unwrap_or_else(|e| panic!("rcParams lock poisoned: {e}"))
+        .clone()
 }
 
 /// Mutate the global params in place.
 ///
 /// The closure receives `&mut RcParams`. Existing plots are unaffected.
 pub fn rc_set(f: impl FnOnce(&mut RcParams)) {
-    let mut p = global().write().unwrap_or_else(|e| panic!("rcParams lock poisoned: {e}"));
+    let mut p = global()
+        .write()
+        .unwrap_or_else(|e| panic!("rcParams lock poisoned: {e}"));
     f(&mut p);
 }
 
@@ -149,7 +154,9 @@ pub fn set_tick_count(count: usize) {
 
 /// Reset all global params to defaults.
 pub fn reset() {
-    *global().write().unwrap_or_else(|e| panic!("rcParams lock poisoned: {e}")) = RcParams::builtin_default();
+    *global()
+        .write()
+        .unwrap_or_else(|e| panic!("rcParams lock poisoned: {e}")) = RcParams::builtin_default();
 }
 
 #[cfg(test)]

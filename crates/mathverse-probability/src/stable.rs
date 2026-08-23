@@ -44,8 +44,7 @@ impl Stable {
             (-tail, self.delta * t + skew)
         } else {
             let tail = self.gamma * at;
-            let skew =
-                -self.beta * sign * tail * (2.0 / pi) * (self.gamma * at).ln();
+            let skew = -self.beta * sign * tail * (2.0 / pi) * (self.gamma * at).ln();
             (-tail, self.delta * t + skew)
         };
         let scale = re_exp.exp();
@@ -104,8 +103,7 @@ impl Stable {
             norm * (self.alpha * (v + xi)).sin() / v.cos().powf(inv_alpha) * term
         } else {
             ((half_pi + self.beta * v) * v.tan()
-                - self.beta
-                    * ((half_pi * w * v.cos()) / (half_pi + self.beta * v)).ln())
+                - self.beta * ((half_pi * w * v.cos()) / (half_pi + self.beta * v)).ln())
                 / half_pi
         };
         if (self.alpha - 1.0).abs() > 1e-12 {
@@ -166,7 +164,10 @@ mod tests {
             delta: 0.0,
         };
         let pdf0 = s.pdf(0.0);
-        assert!((pdf0 - 1.0 / core::f64::consts::PI).abs() < 1e-6, "pdf0 {pdf0}");
+        assert!(
+            (pdf0 - 1.0 / core::f64::consts::PI).abs() < 1e-6,
+            "pdf0 {pdf0}"
+        );
         let cdf1 = s.cdf(1.0);
         assert!((cdf1 - 0.75).abs() < 1e-6, "cdf1 {cdf1}");
     }

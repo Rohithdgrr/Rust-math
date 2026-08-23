@@ -1,7 +1,7 @@
 //! Simple ML plots example: confusion matrix and ROC curve.
 
-use mathverse_plot::{PlotConfig, render_confusion_matrix, render_roc_curve};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{render_confusion_matrix, render_roc_curve, PlotConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Confusion matrix

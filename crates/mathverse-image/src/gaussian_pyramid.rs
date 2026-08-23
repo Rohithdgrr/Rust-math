@@ -114,7 +114,7 @@ mod tests {
         assert_eq!(pyramid[0].w, 64); // level 0
         assert_eq!(pyramid[1].w, 32); // level 1
         assert_eq!(pyramid[2].w, 16); // level 2
-        assert_eq!(pyramid[3].w, 8);  // level 3
+        assert_eq!(pyramid[3].w, 8); // level 3
     }
 
     #[test]

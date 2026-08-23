@@ -1,20 +1,35 @@
-//! Amplitude modulation (AM), frequency modulation (FM), phase modulation (PM).
+﻿//! Amplitude modulation (AM), frequency modulation (FM), phase modulation (PM).
 
+/// Apply amplitude modulation with the given modulation depth.
+#[must_use]
 pub fn amplitude_modulate(carrier: &[f64], modulating: &[f64], depth: f64) -> Vec<f64> {
     let n = carrier.len().min(modulating.len());
-    (0..n).map(|i| carrier[i] * (1.0 + depth * modulating[i])).collect()
+    (0..n)
+        .map(|i| carrier[i] * (1.0 + depth * modulating[i]))
+        .collect()
 }
 
-pub fn frequency_modulate(carrier: &[f64], modulating: &[f64], mod_index: f64, sample_rate: f64) -> Vec<f64> {
+/// Apply frequency modulation with the given deviation index `mod_index`.
+#[must_use]
+pub fn frequency_modulate(
+    carrier: &[f64],
+    modulating: &[f64],
+    mod_index: f64,
+    sample_rate: f64,
+) -> Vec<f64> {
     let n = carrier.len().min(modulating.len());
     let mut phase = 0.0;
-    (0..n).map(|i| {
-        let inst_freq = 1.0 + mod_index * modulating[i];
-        phase += 2.0 * core::f64::consts::PI * inst_freq / sample_rate;
-        phase.sin()
-    }).collect()
+    (0..n)
+        .map(|i| {
+            let inst_freq = 1.0 + mod_index * modulating[i];
+            phase += 2.0 * core::f64::consts::PI * inst_freq / sample_rate;
+            phase.sin()
+        })
+        .collect()
 }
 
+/// Demodulate an AM signal using envelope detection with a one-pole filter.
+#[must_use]
 pub fn am_demodulate(signal: &[f64], carrier_freq: f64, sample_rate: f64) -> Vec<f64> {
     let n = signal.len();
     let mut envelope = Vec::with_capacity(n);
@@ -30,7 +45,17 @@ pub fn am_demodulate(signal: &[f64], carrier_freq: f64, sample_rate: f64) -> Vec
     envelope
 }
 
-pub fn fsk_modulate(bits: &[bool], freq0: f64, freq1: f64, samples_per_bit: usize, sample_rate: f64) -> Vec<f64> {
+/// Generate a frequency-shift-keyed signal from a bit sequence.
+///
+/// Each bit produces `samples_per_bit` samples at `freq0` (0) or `freq1` (1).
+#[must_use]
+pub fn fsk_modulate(
+    bits: &[bool],
+    freq0: f64,
+    freq1: f64,
+    samples_per_bit: usize,
+    sample_rate: f64,
+) -> Vec<f64> {
     let mut signal = Vec::new();
     for &bit in bits {
         let freq = if bit { freq1 } else { freq0 };
@@ -41,20 +66,39 @@ pub fn fsk_modulate(bits: &[bool], freq0: f64, freq1: f64, samples_per_bit: usiz
     signal
 }
 
-pub fn bpsk_modulate(bits: &[bool], carrier_freq: f64, samples_per_bit: usize, sample_rate: f64) -> Vec<f64> {
+/// Generate a binary phase-shift-keyed signal from a bit sequence.
+///
+/// Bit 1 uses phase 0 and bit 0 uses a phase of pi.
+#[must_use]
+pub fn bpsk_modulate(
+    bits: &[bool],
+    carrier_freq: f64,
+    samples_per_bit: usize,
+    sample_rate: f64,
+) -> Vec<f64> {
     let mut signal = Vec::new();
     for &bit in bits {
         let phase = if bit { 0.0 } else { core::f64::consts::PI };
         for i in 0..samples_per_bit {
-            signal.push((2.0 * core::f64::consts::PI * carrier_freq * i as f64 / sample_rate + phase).sin());
+            signal.push(
+                (2.0 * core::f64::consts::PI * carrier_freq * i as f64 / sample_rate + phase).sin(),
+            );
         }
     }
     signal
 }
 
-pub fn db_to_linear(db: f64) -> f64 { 10.0_f64.powf(db / 20.0) }
+/// Convert decibels to a linear amplitude ratio.
+#[must_use]
+pub fn db_to_linear(db: f64) -> f64 {
+    10.0_f64.powf(db / 20.0)
+}
 
-pub fn linear_to_db(linear: f64) -> f64 { 20.0 * linear.abs().max(1e-15).log10() }
+/// Convert a linear amplitude ratio to decibels, floored near zero.
+#[must_use]
+pub fn linear_to_db(linear: f64) -> f64 {
+    20.0 * linear.abs().max(1e-15).log10()
+}
 
 #[cfg(test)]
 mod tests {
@@ -63,7 +107,9 @@ mod tests {
     #[test]
     fn am_test() {
         let carrier = vec![1.0; 100];
-        let modulating: Vec<f64> = (0..100).map(|i| (2.0 * core::f64::consts::PI * f64::from(i) / 50.0).sin()).collect();
+        let modulating: Vec<f64> = (0..100)
+            .map(|i| (2.0 * core::f64::consts::PI * f64::from(i) / 50.0).sin())
+            .collect();
         let am = amplitude_modulate(&carrier, &modulating, 0.5);
         assert_eq!(am.len(), 100);
     }

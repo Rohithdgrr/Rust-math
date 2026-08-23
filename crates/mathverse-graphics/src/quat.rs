@@ -5,17 +5,28 @@ use mathverse_vector::Vector;
 /// Unit quaternion `(w, x, y, z)` representing a rotation.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Quat {
+    /// Scalar component.
     pub w: f64,
+    /// Vector component along `x`.
     pub x: f64,
+    /// Vector component along `y`.
     pub y: f64,
+    /// Vector component along `z`.
     pub z: f64,
 }
 
 impl Quat {
+    /// Creates a quaternion from its components `(w, x, y, z)`.
+    ///
+    /// Does not normalize; combine with [`Quat::normalized`] when a unit
+    /// quaternion is required.
+    #[must_use]
     pub fn new(w: f64, x: f64, y: f64, z: f64) -> Quat {
         Quat { w, x, y, z }
     }
 
+    /// Returns the identity quaternion representing no rotation.
+    #[must_use]
     pub fn identity() -> Quat {
         Quat::new(1.0, 0.0, 0.0, 0.0)
     }
@@ -27,15 +38,25 @@ impl Quat {
         Quat::new(c, s * v.get(0), s * v.get(1), s * v.get(2))
     }
 
+    /// Returns the Euclidean norm of the quaternion.
+    #[must_use]
     pub fn norm(&self) -> f64 {
         (self.w * self.w + self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
     }
 
+    /// Returns a unit-length copy of this quaternion.
+    ///
+    /// # Panics
+    /// Panics if the quaternion is zero-length (division by zero).
+    #[must_use]
     pub fn normalized(&self) -> Quat {
         let n = self.norm();
         Quat::new(self.w / n, self.x / n, self.y / n, self.z / n)
     }
 
+    /// Returns the conjugate `(w, -x, -y, -z)`, i.e. the inverse rotation for
+    /// a unit quaternion.
+    #[must_use]
     pub fn conjugate(&self) -> Quat {
         Quat::new(self.w, -self.x, -self.y, -self.z)
     }
@@ -109,7 +130,11 @@ mod tests {
         assert!(p[0] + 1.0 < 1e-12 && p[1].abs() < 1e-12);
         // inverse rotation round-trips
         let back = q.conjugate().rotate(q.rotate([1.0, 2.0, 3.0]));
-        assert!((back[0] - 1.0).abs() < 1e-12 && (back[1] - 2.0).abs() < 1e-12 && (back[2] - 3.0).abs() < 1e-12);
+        assert!(
+            (back[0] - 1.0).abs() < 1e-12
+                && (back[1] - 2.0).abs() < 1e-12
+                && (back[2] - 3.0).abs() < 1e-12
+        );
     }
 
     #[test]
@@ -119,7 +144,11 @@ mod tests {
         let mid = a.slerp(&b, 0.5);
         let p = mid.rotate([0.0, 1.0, 0.0]);
         let expected = Quat::from_axis_angle([1.0, 0.0, 0.0], 0.5).rotate([0.0, 1.0, 0.0]);
-        assert!((p[0] - expected[0]).abs() < 1e-9 && (p[1] - expected[1]).abs() < 1e-9 && (p[2] - expected[2]).abs() < 1e-9);
+        assert!(
+            (p[0] - expected[0]).abs() < 1e-9
+                && (p[1] - expected[1]).abs() < 1e-9
+                && (p[2] - expected[2]).abs() < 1e-9
+        );
         // t = 1 gives b
         let end = a.slerp(&b, 1.0);
         assert!((end.w - b.w).abs() < 1e-9);

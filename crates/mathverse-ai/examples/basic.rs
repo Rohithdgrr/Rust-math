@@ -1,4 +1,6 @@
-use mathverse_ai::{Tensor, Adam};
+//! Minimal Adam optimizer example for `mathverse-ai`.
+
+use mathverse_ai::Adam;
 
 fn main() {
     let mut opt = Adam::new(0.1, 0.9, 0.999, 1e-8, 0.0);

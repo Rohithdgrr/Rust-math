@@ -17,7 +17,7 @@ impl PositiveDefinite {
         if !m.is_square() || !m.is_symmetric(1e-10) {
             return false;
         }
-        
+
         let (vals, _) = m.eigen_symmetric().unwrap_or((vec![], Matrix::zeros(1, 1)));
         vals.iter().all(|&v| v >= -tolerance)
     }
@@ -27,7 +27,7 @@ impl PositiveDefinite {
         if !m.is_square() || !m.is_symmetric(1e-10) {
             return false;
         }
-        
+
         let neg_m = m.scale(-1.0);
         Self::is_positive_definite(&neg_m)
     }
@@ -37,7 +37,7 @@ impl PositiveDefinite {
         if !m.is_square() || !m.is_symmetric(1e-10) {
             return false;
         }
-        
+
         let neg_m = m.scale(-1.0);
         Self::is_positive_semi_definite(&neg_m, tolerance)
     }
@@ -47,11 +47,11 @@ impl PositiveDefinite {
         if !m.is_square() || !m.is_symmetric(1e-10) {
             return false;
         }
-        
+
         let (vals, _) = m.eigen_symmetric().unwrap_or((vec![], Matrix::zeros(1, 1)));
         let has_positive = vals.iter().any(|&v| v > tolerance);
         let has_negative = vals.iter().any(|&v| v < -tolerance);
-        
+
         has_positive && has_negative
     }
 
@@ -60,7 +60,7 @@ impl PositiveDefinite {
         if !m.is_square() {
             return false;
         }
-        
+
         for k in 1..=m.rows {
             let leading = Self::leading_principal_minor(m, k);
             let det = leading.det();
@@ -68,7 +68,7 @@ impl PositiveDefinite {
                 return false;
             }
         }
-        
+
         true
     }
 
@@ -88,9 +88,11 @@ impl PositiveDefinite {
         if !m.is_square() || !m.is_symmetric(1e-10) {
             return false;
         }
-        
-        let Ok((vals, _)) = m.eigen_symmetric() else { return false };
-        
+
+        let Ok((vals, _)) = m.eigen_symmetric() else {
+            return false;
+        };
+
         vals.iter().all(|&v| v > tolerance)
     }
 
@@ -99,21 +101,21 @@ impl PositiveDefinite {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let (vals, _) = m.eigen_symmetric()?;
         let min_val = vals.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-        
+
         let shift = if min_val < min_eigenvalue {
             min_eigenvalue - min_val
         } else {
             0.0
         };
-        
+
         let mut result = m.clone();
         for i in 0..m.rows {
             result.set(i, i, result.get(i, i) + shift);
         }
-        
+
         Ok(result)
     }
 
@@ -122,7 +124,7 @@ impl PositiveDefinite {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         // Symmetrize
         let mut a = m.clone();
         for i in 0..m.rows {
@@ -132,14 +134,14 @@ impl PositiveDefinite {
                 a.set(j, i, avg);
             }
         }
-        
+
         // Ensure positive eigenvalues
         let (vals, vecs) = a.eigen_symmetric()?;
         let mut vals_clamped = Vec::new();
         for &v in &vals {
             vals_clamped.push(v.max(tolerance));
         }
-        
+
         // Reconstruct
         let d = Matrix::diagonal(&vals_clamped);
         vecs.mul(&d)?.mul(&vecs.transpose())
@@ -155,11 +157,11 @@ impl DefinitenessClassification {
         if !m.is_square() {
             return "not square";
         }
-        
+
         if !m.is_symmetric(1e-10) {
             return "not symmetric";
         }
-        
+
         if PositiveDefinite::is_positive_definite(m) {
             "positive definite"
         } else if PositiveDefinite::is_positive_semi_definite(m, tolerance) {
@@ -200,16 +202,16 @@ impl CholeskyTests {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = m.rows;
         let mut l = Matrix::zeros(n, n);
         let mut pivots: Vec<usize> = (0..n).collect();
-        
+
         for k in 0..n {
             // Find pivot
-           let mut max_diag = m.get(pivots[k], pivots[k]);
+            let mut max_diag = m.get(pivots[k], pivots[k]);
             let mut max_idx = k;
-            
+
             for i in (k + 1)..n {
                 let diag = m.get(pivots[i], pivots[i]);
                 if diag > max_diag {
@@ -217,16 +219,16 @@ impl CholeskyTests {
                     max_idx = i;
                 }
             }
-            
+
             pivots.swap(k, max_idx);
-            
+
             let d = m.get(pivots[k], pivots[k]);
             if d <= tolerance {
                 return Err(MathError::InvalidArgument("matrix not positive definite"));
             }
-            
+
             l.set(k, k, d.sqrt());
-            
+
             for j in (k + 1)..n {
                 let mut sum = 0.0;
                 for i in 0..k {
@@ -235,7 +237,7 @@ impl CholeskyTests {
                 l.set(j, k, (m.get(pivots[j], pivots[k]) - sum) / l.get(k, k));
             }
         }
-        
+
         Ok((l, pivots))
     }
 }
@@ -249,7 +251,7 @@ impl QuadraticForm {
         if m.rows != x.len() || m.cols != x.len() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let x_vec = mathverse_vector::Vector::new(x.to_vec());
         let ax = m.mul_vec(&x_vec)?;
         Ok(x_vec.dot(&ax))
@@ -264,7 +266,7 @@ impl QuadraticForm {
     pub fn rayleigh_quotient(m: &Matrix, x: &[f64]) -> MathResult<f64> {
         let quadratic = Self::evaluate(m, x)?;
         let norm_sq: f64 = x.iter().map(|v| v * v).sum();
-        
+
         if norm_sq > 0.0 {
             Ok(quadratic / norm_sq)
         } else {
@@ -275,28 +277,30 @@ impl QuadraticForm {
     /// Minimize Rayleigh quotient (smallest eigenvalue).
     pub fn minimize_rayleigh(m: &Matrix) -> MathResult<(f64, Vec<f64>)> {
         let (vals, vecs) = m.eigen_symmetric()?;
-        let min_idx = vals.iter()
+        let min_idx = vals
+            .iter()
             .enumerate()
             .min_by(|(_, a), (_, b)| a.total_cmp(b))
             .map_or(0, |(i, _)| i);
-        
+
         let min_val = vals[min_idx];
         let min_vec = vecs.col(min_idx);
-        
+
         Ok((min_val, min_vec))
     }
 
     /// Maximize Rayleigh quotient (largest eigenvalue).
     pub fn maximize_rayleigh(m: &Matrix) -> MathResult<(f64, Vec<f64>)> {
         let (vals, vecs) = m.eigen_symmetric()?;
-        let max_idx = vals.iter()
+        let max_idx = vals
+            .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| a.total_cmp(b))
             .map_or(0, |(i, _)| i);
-        
+
         let max_val = vals[max_idx];
         let max_vec = vecs.col(max_idx);
-        
+
         Ok((max_val, max_vec))
     }
 }
@@ -320,10 +324,16 @@ mod tests {
     #[test]
     fn test_classification() {
         let pd = Matrix::from_rows(&[&[4.0, 1.0], &[1.0, 3.0]]).unwrap();
-        assert_eq!(DefinitenessClassification::classify(&pd, 1e-10), "positive definite");
-        
+        assert_eq!(
+            DefinitenessClassification::classify(&pd, 1e-10),
+            "positive definite"
+        );
+
         let ind = Matrix::from_rows(&[&[1.0, 2.0], &[2.0, -1.0]]).unwrap();
-        assert_eq!(DefinitenessClassification::classify(&ind, 1e-10), "indefinite");
+        assert_eq!(
+            DefinitenessClassification::classify(&ind, 1e-10),
+            "indefinite"
+        );
     }
 
     #[test]

@@ -13,7 +13,8 @@ pub fn translation(tx: f64, ty: f64, tz: f64) -> Matrix {
         &[0.0, 1.0, 0.0, ty],
         &[0.0, 0.0, 1.0, tz],
         &[0.0, 0.0, 0.0, 1.0],
-    ]).unwrap()
+    ])
+    .unwrap()
 }
 
 /// 3D rotation about the X axis, angle in radians.
@@ -24,7 +25,8 @@ pub fn rotation_x(a: f64) -> Matrix {
         &[0.0, c, -s, 0.0],
         &[0.0, s, c, 0.0],
         &[0.0, 0.0, 0.0, 1.0],
-    ]).unwrap()
+    ])
+    .unwrap()
 }
 /// 3D rotation about the Y axis.
 pub fn rotation_y(a: f64) -> Matrix {
@@ -34,7 +36,8 @@ pub fn rotation_y(a: f64) -> Matrix {
         &[0.0, 1.0, 0.0, 0.0],
         &[-s, 0.0, c, 0.0],
         &[0.0, 0.0, 0.0, 1.0],
-    ]).unwrap()
+    ])
+    .unwrap()
 }
 /// 3D rotation about the Z axis.
 pub fn rotation_z(a: f64) -> Matrix {
@@ -44,7 +47,8 @@ pub fn rotation_z(a: f64) -> Matrix {
         &[s, c, 0.0, 0.0],
         &[0.0, 0.0, 1.0, 0.0],
         &[0.0, 0.0, 0.0, 1.0],
-    ]).unwrap()
+    ])
+    .unwrap()
 }
 
 /// Uniform 3D scale.
@@ -54,7 +58,8 @@ pub fn scale(s: f64) -> Matrix {
         &[0.0, s, 0.0, 0.0],
         &[0.0, 0.0, s, 0.0],
         &[0.0, 0.0, 0.0, 1.0],
-    ]).unwrap()
+    ])
+    .unwrap()
 }
 
 /// 2D affine transform matrix (3×3, homogeneous, column convention).
@@ -64,19 +69,33 @@ pub fn transform2d(a: f64, tx: f64, ty: f64, s: f64) -> Matrix {
         &[s * cs, -s * sn, tx],
         &[s * sn, s * cs, ty],
         &[0.0, 0.0, 1.0],
-    ]).unwrap()
+    ])
+    .unwrap()
 }
 
 /// Apply an affine matrix to a 3D point (homogeneous divide).
 pub fn apply(m: &Matrix, x: f64, y: f64, z: f64) -> (f64, f64, f64) {
     assert_eq!(m.shape(), (4, 4));
     let p = m.mul_vec(&Vector::new(vec![x, y, z, 1.0])).unwrap();
-    (p.get(0) / p.get(3), p.get(1) / p.get(3), p.get(2) / p.get(3))
+    (
+        p.get(0) / p.get(3),
+        p.get(1) / p.get(3),
+        p.get(2) / p.get(3),
+    )
 }
 
 /// Camera-space matrix `look_at(eye, target, up)` (column convention).
-pub fn look_at(eye: [f64; 3], target: [f64; 3], up: [f64; 3]) -> mathverse_core::error::MathResult<Matrix> {
-    let f = Vector::new(vec![target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]]).normalized()?;
+pub fn look_at(
+    eye: [f64; 3],
+    target: [f64; 3],
+    up: [f64; 3],
+) -> mathverse_core::error::MathResult<Matrix> {
+    let f = Vector::new(vec![
+        target[0] - eye[0],
+        target[1] - eye[1],
+        target[2] - eye[2],
+    ])
+    .normalized()?;
     let upv = Vector::new(up.to_vec()).normalized()?;
     let s = f.cross3(&upv)?.normalized()?;
     let u = s.cross3(&f)?;
@@ -90,16 +109,22 @@ pub fn look_at(eye: [f64; 3], target: [f64; 3], up: [f64; 3]) -> mathverse_core:
     rot.mul(&translation(-eye[0], -eye[1], -eye[2]))
 }
 
-/// Perspective projection matrix (column convention, right-handed, depth in [0,1]).
+/// Perspective projection matrix (column convention, right-handed, depth in ``[0,1]``).
 /// `fovy` vertical field of view, `aspect = w/h`, near/far planes.
 pub fn perspective(fovy: f64, aspect: f64, near: f64, far: f64) -> Matrix {
     let f = 1.0 / (fovy / 2.0).tan();
     Matrix::from_rows(&[
         &[f / aspect, 0.0, 0.0, 0.0],
         &[0.0, f, 0.0, 0.0],
-        &[0.0, 0.0, (far + near) / (near - far), 2.0 * far * near / (near - far)],
+        &[
+            0.0,
+            0.0,
+            (far + near) / (near - far),
+            2.0 * far * near / (near - far),
+        ],
         &[0.0, 0.0, -1.0, 0.0],
-    ]).unwrap()
+    ])
+    .unwrap()
 }
 
 /// 2D rotation of a point around the origin.
@@ -120,7 +145,9 @@ mod tests {
         let ti = translation(-5.0, 1.0, -2.0);
         let p = apply(&t, x, y, z);
         let back = apply(&ti, p.0, p.1, p.2);
-        assert!((back.0 - x).abs() < 1e-12 && (back.1 - y).abs() < 1e-12 && (back.2 - z).abs() < 1e-12);
+        assert!(
+            (back.0 - x).abs() < 1e-12 && (back.1 - y).abs() < 1e-12 && (back.2 - z).abs() < 1e-12
+        );
         // rotate then rotate back
         let r = rotation_z(core::f64::consts::FRAC_PI_2);
         let ri = rotation_z(-core::f64::consts::FRAC_PI_2);

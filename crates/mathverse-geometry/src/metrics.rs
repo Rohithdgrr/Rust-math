@@ -122,7 +122,16 @@ pub fn moment_of_inertia_origin(poly: &Polygon) -> f64 {
         let (a, b) = (pts[i], pts[(i + 1) % n]);
         let cross = b.x.mul_add(-a.y, a.x * b.y);
         area2 += cross;
-        moi += cross * (a.y.mul_add(b.y, a.y.mul_add(a.y, b.x.mul_add(b.x, a.x.mul_add(b.x, a.x * a.x)))) + b.y * b.y);
+        moi = cross.mul_add(
+            b.y.mul_add(
+                b.y,
+                a.y.mul_add(
+                    b.y,
+                    a.y.mul_add(a.y, b.x.mul_add(b.x, a.x.mul_add(b.x, a.x * a.x))),
+                ),
+            ),
+            moi,
+        );
     }
     moi / (6.0 * area2.abs())
 }
@@ -183,7 +192,8 @@ pub fn monte_carlo_area(poly: &Polygon, bounds: (Point2, Point2), samples: usize
             let yi_gt = pt.y > p.y;
             let yj_gt = poly.points[j].y > p.y;
             if yi_gt != yj_gt {
-                let x_intersect = (poly.points[j].x - pt.x) * (p.y - pt.y) / (poly.points[j].y - pt.y) + pt.x;
+                let x_intersect =
+                    (poly.points[j].x - pt.x) * (p.y - pt.y) / (poly.points[j].y - pt.y) + pt.x;
                 if p.x < x_intersect {
                     inside_ray = !inside_ray;
                 }
@@ -199,10 +209,12 @@ pub fn monte_carlo_area(poly: &Polygon, bounds: (Point2, Point2), samples: usize
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::shapes2d::Point2;
+    use super::*;
 
-    fn pt(x: f64, y: f64) -> Point2 { Point2::new(x, y) }
+    fn pt(x: f64, y: f64) -> Point2 {
+        Point2::new(x, y)
+    }
 
     #[test]
     fn angle_between_test() {

@@ -2,7 +2,7 @@
 //!
 //! This example demonstrates creating and working with quantities.
 
-use mathverse_units::{Quantity, dimensions::LengthDim, si::Meter};
+use mathverse_units::{dimensions::LengthDim, si::Meter, Quantity};
 
 fn main() {
     // Create a length quantity

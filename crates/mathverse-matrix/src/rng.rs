@@ -8,7 +8,9 @@ pub struct Rng {
 impl Rng {
     /// Create new RNG with seed.
     pub fn new(seed: u64) -> Self {
-        Rng { state: seed.wrapping_add(1) }
+        Rng {
+            state: seed.wrapping_add(1),
+        }
     }
 
     /// Generate random u64 using xorshift64*.

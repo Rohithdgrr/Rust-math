@@ -3,10 +3,10 @@
 use crate::expr::Expr;
 
 /// Convert an expression to LaTeX format
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to convert
-/// 
+///
 /// # Returns
 /// LaTeX string representation
 pub fn to_latex(expr: &Expr) -> String {
@@ -15,7 +15,10 @@ pub fn to_latex(expr: &Expr) -> String {
             if c.fract() == 0.0 {
                 format!("{}", *c as i64)
             } else {
-                format!("{c:.6}").trim_end_matches('0').trim_end_matches('.').to_string()
+                format!("{c:.6}")
+                    .trim_end_matches('0')
+                    .trim_end_matches('.')
+                    .to_string()
             }
         }
         Expr::Variable(name) => name.clone(),
@@ -35,10 +38,18 @@ pub fn to_latex(expr: &Expr) -> String {
             // Add parentheses if needed
             let left_paren = needs_parentheses(a, true);
             let right_paren = needs_parentheses(b, false);
-            
-            let left_str = if left_paren { format!("({left})") } else { left };
-            let right_str = if right_paren { format!("({right})") } else { right };
-            
+
+            let left_str = if left_paren {
+                format!("({left})")
+            } else {
+                left
+            };
+            let right_str = if right_paren {
+                format!("({right})")
+            } else {
+                right
+            };
+
             format!("{left_str} \\cdot {right_str}")
         }
         Expr::Div(a, b) => {
@@ -50,7 +61,11 @@ pub fn to_latex(expr: &Expr) -> String {
             let base = to_latex(a);
             let exp = to_latex(b);
             let base_paren = needs_parentheses(a, true);
-            let base_str = if base_paren { format!("({base})") } else { base };
+            let base_str = if base_paren {
+                format!("({base})")
+            } else {
+                base
+            };
             format!("{base_str}^{{{exp}}}")
         }
         Expr::Neg(a) => {
@@ -62,46 +77,14 @@ pub fn to_latex(expr: &Expr) -> String {
                 inner
             }
         }
-        Expr::Ln(a) => {
-            let inner = to_latex(a);
-            let inner_paren = needs_parentheses(a, false);
-            if inner_paren {
-                format!("\\ln({inner})")
-            } else {
-                format!("\\ln {inner}")
-            }
-        }
+        Expr::Ln(a) => unary_fn("ln", a),
         Expr::Exp(a) => {
             let inner = to_latex(a);
             format!("e^{{{inner}}}")
         }
-        Expr::Sin(a) => {
-            let inner = to_latex(a);
-            let inner_paren = needs_parentheses(a, false);
-            if inner_paren {
-                format!("\\sin({inner})")
-            } else {
-                format!("\\sin {inner}")
-            }
-        }
-        Expr::Cos(a) => {
-            let inner = to_latex(a);
-            let inner_paren = needs_parentheses(a, false);
-            if inner_paren {
-                format!("\\cos({inner})")
-            } else {
-                format!("\\cos {inner}")
-            }
-        }
-        Expr::Tan(a) => {
-            let inner = to_latex(a);
-            let inner_paren = needs_parentheses(a, false);
-            if inner_paren {
-                format!("\\tan({inner})")
-            } else {
-                format!("\\tan {inner}")
-            }
-        }
+        Expr::Sin(a) => unary_fn("sin", a),
+        Expr::Cos(a) => unary_fn("cos", a),
+        Expr::Tan(a) => unary_fn("tan", a),
         Expr::Sqrt(a) => {
             let inner = to_latex(a);
             format!("\\sqrt{{{inner}}}")
@@ -109,23 +92,37 @@ pub fn to_latex(expr: &Expr) -> String {
     }
 }
 
+/// Render a named unary function, parenthesizing the argument if needed.
+fn unary_fn(name: &str, a: &Expr) -> String {
+    let inner = to_latex(a);
+    if needs_parentheses(a, false) {
+        format!("\\{name}({inner})")
+    } else {
+        format!("\\{name} {inner}")
+    }
+}
+
 /// Check if an expression needs parentheses in LaTeX output
 fn needs_parentheses(expr: &Expr, is_power_base: bool) -> bool {
     match expr {
-        Expr::Constant(_) | Expr::Variable(_) => false,
-        Expr::Add(_, _) | Expr::Sub(_, _) => true,
+        Expr::Constant(_)
+        | Expr::Variable(_)
+        | Expr::Ln(_)
+        | Expr::Exp(_)
+        | Expr::Sin(_)
+        | Expr::Cos(_)
+        | Expr::Tan(_)
+        | Expr::Sqrt(_) => false,
+        Expr::Add(_, _) | Expr::Sub(_, _) | Expr::Pow(_, _) | Expr::Neg(_) => true,
         Expr::Mul(_, _) | Expr::Div(_, _) => is_power_base,
-        Expr::Pow(_, _) => true,
-        Expr::Neg(_) => true,
-        Expr::Ln(_) | Expr::Exp(_) | Expr::Sin(_) | Expr::Cos(_) | Expr::Tan(_) | Expr::Sqrt(_) => false,
     }
 }
 
 /// Convert an expression to LaTeX with display mode (centered, larger)
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to convert
-/// 
+///
 /// # Returns
 /// LaTeX string with display mode
 pub fn to_latex_display(expr: &Expr) -> String {
@@ -133,10 +130,10 @@ pub fn to_latex_display(expr: &Expr) -> String {
 }
 
 /// Convert an expression to LaTeX with inline mode
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to convert
-/// 
+///
 /// # Returns
 /// LaTeX string with inline mode
 pub fn to_latex_inline(expr: &Expr) -> String {
@@ -144,11 +141,11 @@ pub fn to_latex_inline(expr: &Expr) -> String {
 }
 
 /// Create a LaTeX equation environment
-/// 
+///
 /// # Arguments
 /// * `label` - Optional label for the equation
 /// * `expr` - The expression to convert
-/// 
+///
 /// # Returns
 /// LaTeX equation environment string
 pub fn to_latex_equation(label: Option<&str>, expr: &Expr) -> String {
@@ -160,10 +157,10 @@ pub fn to_latex_equation(label: Option<&str>, expr: &Expr) -> String {
 }
 
 /// Create a LaTeX align environment for multiple expressions
-/// 
+///
 /// # Arguments
 /// * `exprs` - Slice of expressions to align
-/// 
+///
 /// # Returns
 /// LaTeX align environment string
 pub fn to_latex_align(exprs: &[Expr]) -> String {
@@ -190,19 +187,19 @@ mod tests {
 
     #[test]
     fn test_addition_latex() {
-        let expr = Expr::v("x").add(Expr::v("y"));
+        let expr = Expr::v("x") + Expr::v("y");
         assert_eq!(to_latex(&expr), "x + y");
     }
 
     #[test]
     fn test_multiplication_latex() {
-        let expr = Expr::v("x").mul(Expr::v("y"));
+        let expr = Expr::v("x") * Expr::v("y");
         assert_eq!(to_latex(&expr), "x \\cdot y");
     }
 
     #[test]
     fn test_division_latex() {
-        let expr = Expr::v("x").div(Expr::v("y"));
+        let expr = Expr::v("x") / Expr::v("y");
         assert_eq!(to_latex(&expr), "\\frac{x}{y}");
     }
 

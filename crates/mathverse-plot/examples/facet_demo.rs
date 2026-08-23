@@ -7,14 +7,30 @@ use mathverse_plot::facet::{FacetBuilder, FacetData, FacetGrid, FacetScale, Face
 fn main() {
     // Create sample data with categorical variables
     let data = vec![
-        FacetData::new(1.0, 10.0).with_column("group", "A").with_column("time", "T1"),
-        FacetData::new(2.0, 20.0).with_column("group", "B").with_column("time", "T1"),
-        FacetData::new(3.0, 15.0).with_column("group", "A").with_column("time", "T2"),
-        FacetData::new(4.0, 25.0).with_column("group", "B").with_column("time", "T2"),
-        FacetData::new(1.5, 12.0).with_column("group", "A").with_column("time", "T1"),
-        FacetData::new(2.5, 22.0).with_column("group", "B").with_column("time", "T1"),
-        FacetData::new(3.5, 18.0).with_column("group", "A").with_column("time", "T2"),
-        FacetData::new(4.5, 28.0).with_column("group", "B").with_column("time", "T2"),
+        FacetData::new(1.0, 10.0)
+            .with_column("group", "A")
+            .with_column("time", "T1"),
+        FacetData::new(2.0, 20.0)
+            .with_column("group", "B")
+            .with_column("time", "T1"),
+        FacetData::new(3.0, 15.0)
+            .with_column("group", "A")
+            .with_column("time", "T2"),
+        FacetData::new(4.0, 25.0)
+            .with_column("group", "B")
+            .with_column("time", "T2"),
+        FacetData::new(1.5, 12.0)
+            .with_column("group", "A")
+            .with_column("time", "T1"),
+        FacetData::new(2.5, 22.0)
+            .with_column("group", "B")
+            .with_column("time", "T1"),
+        FacetData::new(3.5, 18.0)
+            .with_column("group", "A")
+            .with_column("time", "T2"),
+        FacetData::new(4.5, 28.0)
+            .with_column("group", "B")
+            .with_column("time", "T2"),
     ];
 
     println!("Sample data: {} points", data.len());
@@ -26,9 +42,7 @@ fn main() {
     println!("Times: {times:?}");
 
     // Create a simple column facet grid
-    let grid_col = FacetGrid::new()
-        .col("group")
-        .with_title("Faceted by Group");
+    let grid_col = FacetGrid::new().col("group").with_title("Faceted by Group");
 
     println!("\nColumn facet grid:");
     let (rows, cols) = grid_col.grid_dims(&data);
@@ -36,9 +50,7 @@ fn main() {
     println!("  Total panels: {}", grid_col.total_panels(&data));
 
     // Create a row facet grid
-    let grid_row = FacetGrid::new()
-        .row("time")
-        .with_title("Faceted by Time");
+    let grid_row = FacetGrid::new().row("time").with_title("Faceted by Time");
 
     println!("\nRow facet grid:");
     let (rows, cols) = grid_row.grid_dims(&data);
@@ -86,7 +98,10 @@ fn main() {
     println!("  Col var: {:?}", grid_from_builder.col_var);
 
     let grid_from_builder2 = FacetBuilder::grid("group", "time");
-    println!("  Grid builder: col={:?}, row={:?}", grid_from_builder2.col_var, grid_from_builder2.row_var);
+    println!(
+        "  Grid builder: col={:?}, row={:?}",
+        grid_from_builder2.col_var, grid_from_builder2.row_var
+    );
 
     // Test subset filtering
     let subset_a = FacetGrid::subset(&data, Some("group"), Some("A"), None, None);

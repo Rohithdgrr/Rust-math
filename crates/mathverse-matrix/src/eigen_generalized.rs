@@ -23,22 +23,22 @@ impl GeneralizedEigen {
         if !a.is_square() || !b.is_square() || a.rows != b.rows {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         // Try Cholesky decomposition of B (assumes B is positive definite)
         let l = b.cholesky();
-        
+
         if let Ok(l) = l {
             // Transform to standard eigenvalue problem: L^{-1} A L^{-T} y = λ y
             let l_inv = l.inverse()?;
             let l_inv_t = l_inv.transpose();
             let transformed = l_inv.mul(a)?.mul(&l_inv_t)?;
-            
+
             // Solve standard eigenvalue problem
             let (vals, vecs) = transformed.eigen_symmetric()?;
-            
+
             // Transform back: x = L^{-T} y
             let eigenvectors = l_inv_t.mul(&vecs)?;
-            
+
             Ok(GeneralizedEigenDecomposition {
                 eigenvalues: vals,
                 eigenvectors,
@@ -55,16 +55,16 @@ impl GeneralizedEigen {
         let n = a.rows;
         let mut eigenvalues = Vec::new();
         let mut eigenvectors = Matrix::zeros(n, n);
-        
+
         for j in 0..n {
             // Use a distinct starting vector for each eigenvalue
             let mut x = vec![0.0; n];
             x[j] = 1.0;
-            
+
             // Normalize
             let norm: f64 = x.iter().map(|v| v * v).sum::<f64>().sqrt();
             x = x.iter().map(|v| v / norm).collect();
-            
+
             // Inverse iteration
             for _ in 0..30 {
                 // Solve B x_new = A x
@@ -72,7 +72,7 @@ impl GeneralizedEigen {
                 let ax = a.mul_vec(&x_vec)?;
                 let x_new = b.solve(&ax)?;
                 x = x_new.data;
-                
+
                 // Deflation: orthogonalize against already-found eigenvectors
                 for k in 0..j {
                     let ek: Vec<f64> = (0..n).map(|i| eigenvectors.get(i, k)).collect();
@@ -81,29 +81,41 @@ impl GeneralizedEigen {
                         x[i] -= dot * ek[i];
                     }
                 }
-                
+
                 // Normalize
                 let norm: f64 = x.iter().map(|v| v * v).sum::<f64>().sqrt();
                 if norm > 0.0 {
                     x = x.iter().map(|v| v / norm).collect();
                 }
             }
-            
+
             // Rayleigh quotient: λ = (x^T A x) / (x^T B x)
             let x_vec = mathverse_vector::Vector::new(x.clone());
             let ax = a.mul_vec(&x_vec)?;
             let bx = b.mul_vec(&x_vec)?;
-            let xtbx: f64 = x.iter().zip(bx.data.iter()).map(|(&xi, &bxi)| xi * bxi).sum();
-            let xtax: f64 = x.iter().zip(ax.data.iter()).map(|(&xi, &axi)| xi * axi).sum();
-            let lambda = if xtbx.abs() > 1e-15 { xtax / xtbx } else { xtax };
-            
+            let xtbx: f64 = x
+                .iter()
+                .zip(bx.data.iter())
+                .map(|(&xi, &bxi)| xi * bxi)
+                .sum();
+            let xtax: f64 = x
+                .iter()
+                .zip(ax.data.iter())
+                .map(|(&xi, &axi)| xi * axi)
+                .sum();
+            let lambda = if xtbx.abs() > 1e-15 {
+                xtax / xtbx
+            } else {
+                xtax
+            };
+
             eigenvalues.push(lambda);
-            
+
             for i in 0..n {
                 eigenvectors.set(i, j, x[i]);
             }
         }
-        
+
         Ok(GeneralizedEigenDecomposition {
             eigenvalues,
             eigenvectors,
@@ -125,7 +137,7 @@ impl GeneralizedEigen {
         if det_b.abs() < tolerance {
             return Ok(false);
         }
-        
+
         // Check if pencil (A - λB) is regular
         let n = a.rows;
         for i in 0..n {
@@ -135,14 +147,22 @@ impl GeneralizedEigen {
                 return Ok(false);
             }
         }
-        
+
         Ok(true)
     }
 
     /// Compute generalized Schur form (simplified).
-    pub fn generalized_schur(a: &Matrix, b: &Matrix) -> MathResult<(Matrix, Matrix, Matrix, Matrix)> {
+    pub fn generalized_schur(
+        a: &Matrix,
+        b: &Matrix,
+    ) -> MathResult<(Matrix, Matrix, Matrix, Matrix)> {
         // Simplified: return original matrices
-        Ok((a.clone(), b.clone(), Matrix::identity(a.rows), Matrix::identity(b.rows)))
+        Ok((
+            a.clone(),
+            b.clone(),
+            Matrix::identity(a.rows),
+            Matrix::identity(b.rows),
+        ))
     }
 }
 
@@ -155,13 +175,13 @@ impl GeneralizedEigenApplications {
         if !m.is_square() || !c.is_square() || !k.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = m.rows;
-        
+
         // Linearize to generalized eigenvalue problem
         let mut a = Matrix::zeros(2 * n, 2 * n);
         let mut b = Matrix::zeros(2 * n, 2 * n);
-        
+
         // A = [0, I; -K, -C]
         for i in 0..n {
             for j in 0..n {
@@ -170,7 +190,7 @@ impl GeneralizedEigenApplications {
                 a.set(n + i, n + j, -c.get(i, j));
             }
         }
-        
+
         // B = [I, 0; 0, M]
         for i in 0..n {
             for j in 0..n {
@@ -178,7 +198,7 @@ impl GeneralizedEigenApplications {
                 b.set(n + i, n + j, m.get(i, j));
             }
         }
-        
+
         let decomp = GeneralizedEigen::compute(&a, &b)?;
         Ok(decomp.eigenvalues)
     }
@@ -188,26 +208,26 @@ impl GeneralizedEigenApplications {
         if coefficients.is_empty() {
             return Ok(Vec::new());
         }
-        
+
         let n = coefficients[0].rows;
         let degree = coefficients.len() - 1;
-        
+
         // Linearize to generalized eigenvalue problem
         let block_size = degree * n;
         let mut a = Matrix::zeros(block_size, block_size);
         let mut b = Matrix::zeros(block_size, block_size);
-        
+
         // Build companion form
         for i in 0..((degree - 1) * n) {
             a.set(i, i + n, 1.0);
         }
-        
+
         for i in 0..n {
             for j in 0..n {
                 b.set(i, j, coefficients[degree].get(i, j));
             }
         }
-        
+
         for k in 0..degree {
             for i in 0..n {
                 for j in 0..n {
@@ -215,7 +235,7 @@ impl GeneralizedEigenApplications {
                 }
             }
         }
-        
+
         let decomp = GeneralizedEigen::compute(&a, &b)?;
         Ok(decomp.eigenvalues)
     }
@@ -252,15 +272,16 @@ impl GeneralizedEigenSensitivity {
         eigenvector: &[f64],
     ) -> f64 {
         let n = a.rows;
-        
+
         // Compute numerator: v^T (dA - λ dB) v
         let mut numerator = 0.0;
         for i in 0..n {
             for j in 0..n {
-                numerator += eigenvector[i] * (da.get(i, j) - eigenvalue * db.get(i, j)) * eigenvector[j];
+                numerator +=
+                    eigenvector[i] * (da.get(i, j) - eigenvalue * db.get(i, j)) * eigenvector[j];
             }
         }
-        
+
         // Compute denominator: v^T B v
         let mut denominator = 0.0;
         for i in 0..n {
@@ -268,7 +289,7 @@ impl GeneralizedEigenSensitivity {
                 denominator += eigenvector[i] * b.get(i, j) * eigenvector[j];
             }
         }
-        
+
         if denominator.abs() > 1e-15 {
             numerator / denominator
         } else {
@@ -285,17 +306,17 @@ impl GeneralizedEigenSensitivity {
         left_eigenvector: &[f64],
     ) -> f64 {
         let n = a.rows;
-        
+
         let x_norm: f64 = eigenvector.iter().map(|x| x * x).sum::<f64>().sqrt();
         let y_norm: f64 = left_eigenvector.iter().map(|y| y * y).sum::<f64>().sqrt();
-        
+
         let mut denom = 0.0;
         for i in 0..n {
             for j in 0..n {
                 denom += left_eigenvector[i] * b.get(i, j) * eigenvector[j];
             }
         }
-        
+
         if denom.abs() > 1e-15 {
             x_norm * y_norm / denom.abs()
         } else {
@@ -312,9 +333,9 @@ mod tests {
     fn test_generalized_eigen_identity() {
         let a = Matrix::from_rows(&[&[2.0, 1.0], &[1.0, 2.0]]).unwrap();
         let b = Matrix::identity(2);
-        
+
         let decomp = GeneralizedEigen::compute(&a, &b).unwrap();
-        
+
         // Should match standard eigenvalues
         assert_eq!(decomp.eigenvalues.len(), 2);
     }
@@ -323,9 +344,9 @@ mod tests {
     fn test_generalized_eigen_positive_definite() {
         let a = Matrix::from_rows(&[&[4.0, 1.0], &[1.0, 3.0]]).unwrap();
         let b = Matrix::from_rows(&[&[2.0, 0.0], &[0.0, 1.0]]).unwrap();
-        
+
         let decomp = GeneralizedEigen::compute(&a, &b).unwrap();
-        
+
         assert_eq!(decomp.eigenvalues.len(), 2);
     }
 
@@ -333,9 +354,9 @@ mod tests {
     fn test_natural_frequencies() {
         let k = Matrix::from_rows(&[&[2.0, -1.0], &[-1.0, 2.0]]).unwrap();
         let m = Matrix::identity(2);
-        
+
         let frequencies = GeneralizedEigenApplications::natural_frequencies(&k, &m).unwrap();
-        
+
         assert_eq!(frequencies.len(), 2);
     }
 }

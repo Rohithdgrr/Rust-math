@@ -82,7 +82,9 @@ pub fn render_residplot(points: &[DataPoint], config: &ResidConfig) -> PlotResul
 
     // Compute residuals and fitted values
     let fitted: Vec<f64> = x.iter().map(|&xi| slope * xi + intercept).collect();
-    let residuals: Vec<f64> = y.iter().zip(fitted.iter())
+    let residuals: Vec<f64> = y
+        .iter()
+        .zip(fitted.iter())
         .map(|(&yi, &fi)| yi - fi)
         .collect();
 
@@ -187,7 +189,12 @@ mod tests {
     #[test]
     fn residplot_renders() {
         let points: Vec<DataPoint> = (0..20)
-            .map(|i| DataPoint::new(f64::from(i), f64::from(i) * 2.0 + 1.0 + (f64::from(i) * 0.5).sin()))
+            .map(|i| {
+                DataPoint::new(
+                    f64::from(i),
+                    f64::from(i) * 2.0 + 1.0 + (f64::from(i) * 0.5).sin(),
+                )
+            })
             .collect();
         let config = ResidConfig::new();
         let svg = render_residplot(&points, &config).unwrap();

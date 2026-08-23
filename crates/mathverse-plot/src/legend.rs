@@ -3,8 +3,7 @@
 use crate::style::Color;
 
 /// Legend position relative to the plot.
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum LegendPosition {
     /// Top-right corner (default).
     #[default]
@@ -29,10 +28,8 @@ pub enum LegendPosition {
     Custom(f64, f64),
 }
 
-
 /// Legend layout direction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LegendLayout {
     /// Vertical list (default).
     Vertical,
@@ -42,7 +39,6 @@ pub enum LegendLayout {
     #[default]
     Auto,
 }
-
 
 /// Configuration for legend rendering.
 #[derive(Debug, Clone)]
@@ -201,10 +197,7 @@ pub fn legend_position(
             padding + (plot_height - legend_height) / 2.0,
         ),
         LegendPosition::OutsideRight => (padding + plot_width + margin, padding),
-        LegendPosition::OutsideLeft => (
-            padding - legend_width - margin,
-            padding,
-        ),
+        LegendPosition::OutsideLeft => (padding - legend_width - margin, padding),
         LegendPosition::OutsideTop => (
             padding + (plot_width - legend_width) / 2.0,
             padding - legend_height - margin,
@@ -218,10 +211,7 @@ pub fn legend_position(
 }
 
 /// Estimate the size of the legend box.
-pub fn estimate_legend_size(
-    items: &[LegendItem],
-    config: &LegendConfig,
-) -> (f64, f64) {
+pub fn estimate_legend_size(items: &[LegendItem], config: &LegendConfig) -> (f64, f64) {
     let is_horizontal = config.layout == LegendLayout::Horizontal
         || (config.layout == LegendLayout::Auto && items.len() <= 4);
 
@@ -233,30 +223,19 @@ pub fn estimate_legend_size(
         let rows = items.len().div_ceil(cols);
         let width = cols as f64 * item_width + (cols - 1) as f64 * config.column_spacing;
         let height = rows as f64 * item_height;
-        (
-            width + 2.0 * config.padding,
-            height + 2.0 * config.padding,
-        )
+        (width + 2.0 * config.padding, height + 2.0 * config.padding)
     } else {
         let width = items
             .iter()
             .map(|item| item.name.len() as f64 * config.font_size * 0.6 + 20.0)
             .fold(0.0_f64, f64::max);
         let height = items.len() as f64 * item_height;
-        (
-            width + 2.0 * config.padding,
-            height + 2.0 * config.padding,
-        )
+        (width + 2.0 * config.padding, height + 2.0 * config.padding)
     }
 }
 
 /// Render a legend as SVG.
-pub fn render_legend(
-    items: &[LegendItem],
-    x: f64,
-    y: f64,
-    config: &LegendConfig,
-) -> String {
+pub fn render_legend(items: &[LegendItem], x: f64, y: f64, config: &LegendConfig) -> String {
     let (w, h) = estimate_legend_size(items, config);
     let mut svg = String::new();
 
@@ -286,7 +265,8 @@ pub fn render_legend(
 
     if is_horizontal {
         let cols = config.columns.min(items.len());
-        let item_w = (w - 2.0 * config.padding - (cols - 1) as f64 * config.column_spacing) / cols as f64;
+        let item_w =
+            (w - 2.0 * config.padding - (cols - 1) as f64 * config.column_spacing) / cols as f64;
 
         for (i, item) in items.iter().enumerate() {
             let col = i % cols;
@@ -306,7 +286,8 @@ pub fn render_legend(
             let text_y = iy + swatch_size * 0.8;
             svg.push_str(&format!(
                 r#"  <text x="{text_x}" y="{text_y}" font-size="{}">{}</text>"#,
-                config.font_size, crate::common::xml_escape(&item.name)
+                config.font_size,
+                crate::common::xml_escape(&item.name)
             ));
             svg.push('\n');
         }
@@ -327,7 +308,8 @@ pub fn render_legend(
             let text_y = iy + swatch_size * 0.8;
             svg.push_str(&format!(
                 r#"  <text x="{text_x}" y="{text_y}" font-size="{}">{}</text>"#,
-                config.font_size, crate::common::xml_escape(&item.name)
+                config.font_size,
+                crate::common::xml_escape(&item.name)
             ));
             svg.push('\n');
         }

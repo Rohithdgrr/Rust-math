@@ -1,13 +1,14 @@
 //! Attention math: QKV projection, scaled dot-product attention,
-//! multi-head attention, sinusoidal positional encoding, rotary embeddings (RoPE).
+//! multi-head attention, sinusoidal positional encoding, rotary embeddings (`RoPE`).
 
 use crate::tensor::Tensor;
 use mathverse_core::error::{MathError, MathResult};
 
 /// QKV projection: splits X into Q, K, V via weight matrices.
-/// `x`: [batch, seq_len, d_model]
-/// `wq`: [d_model, d_k], `wk`: [d_model, d_k], `wv`: [d_model, d_v]
-/// Returns (Q, K, V) each [batch, seq_len, d_k] or [batch, seq_len, d_v].
+///
+/// `x`: [batch, `seq_len`, `d_model`]
+/// `wq`: [`d_model`, `d_k`], `wk`: [`d_model`, `d_k`], `wv`: [`d_model`, `d_v`]
+/// Returns (Q, K, V) each [batch, `seq_len`, `d_k`] or [batch, `seq_len`, `d_v`].
 pub fn qkv_projection(
     x: &Tensor,
     wq: &Tensor,
@@ -30,8 +31,8 @@ pub fn qkv_projection(
 }
 
 /// Scaled dot-product attention.
-/// `q`: [batch, seq_q, d_k], `k`: [batch, seq_kv, d_k], `v`: [batch, seq_kv, d_v]
-/// Returns (output [batch, seq_q, d_v], weights [batch, seq_q, seq_kv]).
+/// `q`: [batch, `seq_q`, `d_k`], `k`: [batch, `seq_kv`, `d_k`], `v`: [batch, `seq_kv`, `d_v`]
+/// Returns (output [batch, `seq_q`, `d_v`], weights [batch, `seq_q`, `seq_kv`]).
 pub fn scaled_dot_product_attention(
     q: &Tensor,
     k: &Tensor,
@@ -40,7 +41,7 @@ pub fn scaled_dot_product_attention(
     mask: Option<&Tensor>,
 ) -> MathResult<(Tensor, Tensor)> {
     let d_k = q.shape[2] as f64;
-    let s = scale.unwrap_or(1.0 / d_k.sqrt());
+    let s = scale.unwrap_or_else(|| 1.0 / d_k.sqrt());
 
     // scores = Q @ K^T * scale → [batch, seq_q, seq_kv]
     // K^T: [batch, d_k, seq_kv]
@@ -50,10 +51,13 @@ pub fn scaled_dot_product_attention(
     let d_v = v.shape[2];
 
     // Input validation: check q/k/v for NaN/Inf
-    if q.data.iter().any(|&x| x.is_nan() || x.is_infinite()) 
-        || k.data.iter().any(|&x| x.is_nan() || x.is_infinite()) 
-        || v.data.iter().any(|&x| x.is_nan() || x.is_infinite()) {
-        return Err(MathError::InvalidArgument("NaN/Inf detected in Q/K/V inputs".into()));
+    if q.data.iter().any(|&x| x.is_nan() || x.is_infinite())
+        || k.data.iter().any(|&x| x.is_nan() || x.is_infinite())
+        || v.data.iter().any(|&x| x.is_nan() || x.is_infinite())
+    {
+        return Err(MathError::InvalidArgument(
+            "NaN/Inf detected in Q/K/V inputs",
+        ));
     }
     let mut scores_data = vec![0.0; batch * seq_q * seq_kv];
     for bi in 0..batch {
@@ -61,8 +65,8 @@ pub fn scaled_dot_product_attention(
             for j in 0..seq_kv {
                 let mut dot = 0.0;
                 for d in 0..q.shape[2] {
-                    dot += q.data[bi * seq_q * q.shape[2] + i * q.shape[2] + d]
-                         * k.data[bi * seq_kv * k.shape[2] + j * k.shape[2] + d];
+                    dot = q.data[bi * seq_q * q.shape[2] + i * q.shape[2] + d]
+                        .mul_add(k.data[bi * seq_kv * k.shape[2] + j * k.shape[2] + d], dot);
                 }
                 scores_data[bi * seq_q * seq_kv + i * seq_kv + j] = dot * s;
             }
@@ -80,22 +84,22 @@ pub fn scaled_dot_product_attention(
     }
 
     // Catch NaN/Inf from dot product or mask
-for idx in 0..scores_data.len() {
-    if scores_data[idx].is_nan() || scores_data[idx].is_infinite() {
-        scores_data[idx] = f64::NEG_INFINITY;
+    for score in &mut scores_data {
+        if score.is_nan() || score.is_infinite() {
+            *score = f64::NEG_INFINITY;
+        }
     }
-}
 
-// Softmax along last axis
+    // Softmax along last axis
     let scores = Tensor::new(&[batch, seq_q, seq_kv], &scores_data)?;
     let mut weights = crate::activations::softmax(&scores, 2)?;
 
-// Catch NaN/Inf propagation from softmax
-for idx in 0..weights.data.len() {
-    if weights.data[idx].is_nan() || weights.data[idx].is_infinite() {
-        weights.data[idx] = 0.0;
+    // Catch NaN/Inf propagation from softmax
+    for idx in 0..weights.data.len() {
+        if weights.data[idx].is_nan() || weights.data[idx].is_infinite() {
+            weights.data[idx] = 0.0;
+        }
     }
-}
 
     // output = weights @ V → [batch, seq_q, d_v]
     let mut out_data = vec![0.0; batch * seq_q * d_v];
@@ -104,8 +108,8 @@ for idx in 0..weights.data.len() {
             for d in 0..d_v {
                 let mut val = 0.0;
                 for j in 0..seq_kv {
-                    val += weights.data[bi * seq_q * seq_kv + i * seq_kv + j]
-                         * v.data[bi * seq_kv * d_v + j * d_v + d];
+                    val = weights.data[bi * seq_q * seq_kv + i * seq_kv + j]
+                        .mul_add(v.data[bi * seq_kv * d_v + j * d_v + d], val);
                 }
                 out_data[bi * seq_q * d_v + i * d_v + d] = val;
             }
@@ -117,9 +121,10 @@ for idx in 0..weights.data.len() {
 }
 
 /// Multi-head attention.
-/// `x`: [batch, seq_len, d_model]
-/// `wq`: [d_model, num_heads*d_k], `wk`: [d_model, num_heads*d_k], `wv`: [d_model, num_heads*d_v]
-/// `wo`: [num_heads*d_v, d_model]
+///
+/// `x`: [batch, `seq_len`, `d_model`]
+/// `wq`: [`d_model`, `num_heads`*`d_k`], `wk`: [`d_model`, `num_heads`*`d_k`], `wv`: [`d_model`, `num_heads`*`d_v`]
+/// `wo`: [`num_heads`*`d_v`, `d_model`]
 pub fn multi_head_attention(
     x: &Tensor,
     wq: &Tensor,
@@ -139,32 +144,39 @@ pub fn multi_head_attention(
     let (q, k, v) = qkv_projection(x, wq, wk, wv)?;
 
     // Reshape to [batch, num_heads, seq_len, d_k/d_v]
-    let q = q.reshape(&[batch, seq_len, num_heads, d_k])?.permute(&[0, 2, 1, 3])?;
-    let k = k.reshape(&[batch, seq_len, num_heads, d_k])?.permute(&[0, 2, 1, 3])?;
-    let v = v.reshape(&[batch, seq_len, num_heads, d_v])?.permute(&[0, 2, 1, 3])?;
+    let q = q
+        .reshape(&[batch, seq_len, num_heads, d_k])?
+        .permute(&[0, 2, 1, 3])?;
+    let k = k
+        .reshape(&[batch, seq_len, num_heads, d_k])?
+        .permute(&[0, 2, 1, 3])?;
+    let v = v
+        .reshape(&[batch, seq_len, num_heads, d_v])?
+        .permute(&[0, 2, 1, 3])?;
 
     // Compute attention per head
     // q: [batch, num_heads, seq_len, d_k]
     let mut head_outputs = Vec::new();
-    let mut all_weights = Vec::new();
-#[allow(clippy::needless_range_loop)]    for h in 0..num_heads {
+    #[allow(clippy::needless_range_loop)]
+    for h in 0..num_heads {
         // Extract head h: [batch, seq_len, d_k]
-        let qh = extract_head(&q, h)?;
-        let kh = extract_head(&k, h)?;
-        let vh = extract_head(&v, h)?;
-        let (out, weights) = scaled_dot_product_attention(&qh, &kh, &vh, None, mask)?;
+        let qh = extract_head(&q, h);
+        let kh = extract_head(&k, h);
+        let vh = extract_head(&v, h);
+        let (out, _weights) = scaled_dot_product_attention(&qh, &kh, &vh, None, mask)?;
         head_outputs.push(out);
-        all_weights.push(weights);
     }
 
     // Concatenate heads: [batch, seq_len, num_heads*d_v]
     let mut concat_data = vec![0.0; batch * seq_len * num_heads * d_v];
-#[allow(clippy::needless_range_loop)]    for h in 0..num_heads {
+    #[allow(clippy::needless_range_loop)]
+    for h in 0..num_heads {
         for bi in 0..batch {
             for s in 0..seq_len {
                 for d in 0..d_v {
                     let src_idx = bi * seq_len * d_v + s * d_v + d;
-                    let dst_idx = bi * seq_len * (num_heads * d_v) + s * (num_heads * d_v) + h * d_v + d;
+                    let dst_idx =
+                        bi * seq_len * (num_heads * d_v) + s * (num_heads * d_v) + h * d_v + d;
                     concat_data[dst_idx] = head_outputs[h].data[src_idx];
                 }
             }
@@ -178,8 +190,8 @@ pub fn multi_head_attention(
     Ok(out)
 }
 
-/// Extract a single head from [batch, num_heads, seq_len, d].
-fn extract_head(t: &Tensor, head: usize) -> MathResult<Tensor> {
+/// Extract a single head from [batch, `num_heads`, `seq_len`, d].
+fn extract_head(t: &Tensor, head: usize) -> Tensor {
     let (batch, _nh, seq, d) = (t.shape[0], t.shape[1], t.shape[2], t.shape[3]);
     let mut data = vec![0.0; batch * seq * d];
     for bi in 0..batch {
@@ -191,11 +203,15 @@ fn extract_head(t: &Tensor, head: usize) -> MathResult<Tensor> {
             }
         }
     }
-    Ok(Tensor { shape: vec![batch, seq, d], data })
+    Tensor {
+        shape: vec![batch, seq, d],
+        data,
+    }
 }
 
 /// Sinusoidal positional encoding (additive).
-/// Returns tensor of shape [1, seq_len, d_model].
+/// Returns tensor of shape [1, `seq_len`, `d_model`].
+#[must_use]
 pub fn sinusoidal_encoding(seq_len: usize, d_model: usize, max_len: usize) -> Tensor {
     let mut data = vec![0.0; seq_len * d_model];
     for pos in 0..seq_len {
@@ -205,10 +221,14 @@ pub fn sinusoidal_encoding(seq_len: usize, d_model: usize, max_len: usize) -> Te
             data[pos * d_model + 2 * i + 1] = angle.cos();
         }
     }
-    Tensor { shape: vec![1, seq_len, d_model], data }
+    Tensor {
+        shape: vec![1, seq_len, d_model],
+        data,
+    }
 }
 
-/// Compute RoPE frequency tensor: [seq_len, d_head].
+/// Compute `RoPE` frequency tensor: [`seq_len`, `d_head`].
+#[must_use]
 pub fn rope_freqs(d_head: usize, seq_len: usize, base: f64) -> Tensor {
     let mut data = vec![0.0; seq_len * d_head];
     for pos in 0..seq_len {
@@ -218,11 +238,15 @@ pub fn rope_freqs(d_head: usize, seq_len: usize, base: f64) -> Tensor {
             data[pos * d_head + 2 * i + 1] = pos as f64 * freq;
         }
     }
-    Tensor { shape: vec![seq_len, d_head], data }
+    Tensor {
+        shape: vec![seq_len, d_head],
+        data,
+    }
 }
 
 /// Apply rotary positional embeddings to a tensor.
-/// `x`: [batch, seq_len, d_head] — applies cos/sin rotation to each pair.
+/// `x`: [batch, `seq_len`, `d_head`] — applies cos/sin rotation to each pair.
+#[must_use]
 pub fn apply_rope(x: &Tensor, seq_len: usize, base: f64) -> Tensor {
     let d_head = x.shape[x.shape.len() - 1];
     let freqs = rope_freqs(d_head, seq_len, base);
@@ -249,11 +273,14 @@ pub fn apply_rope(x: &Tensor, seq_len: usize, base: f64) -> Tensor {
 
         let x0 = x.data[i0];
         let x1 = x.data[i1];
-        out[i0] = x0 * cos_t - x1 * sin_t;
-        out[i1] = x0 * sin_t + x1 * cos_t;
+        out[i0] = x1.mul_add(-sin_t, x0 * cos_t);
+        out[i1] = x1.mul_add(cos_t, x0 * sin_t);
     }
 
-    Tensor { shape: x.shape.clone(), data: out }
+    Tensor {
+        shape: x.shape.clone(),
+        data: out,
+    }
 }
 
 #[cfg(test)]
@@ -264,18 +291,9 @@ mod tests {
     #[test]
     fn scaled_dot_product_attention_test() {
         // Simple case: batch=1, seq_q=2, seq_kv=2, d_k=3
-        let q = Tensor::new(&[1, 2, 3], &[
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-        ]).unwrap();
-        let k = Tensor::new(&[1, 2, 3], &[
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-        ]).unwrap();
-        let v = Tensor::new(&[1, 2, 3], &[
-            1.0, 2.0, 3.0,
-            4.0, 5.0, 6.0,
-        ]).unwrap();
+        let q = Tensor::new(&[1, 2, 3], &[1.0, 0.0, 0.0, 0.0, 1.0, 0.0]).unwrap();
+        let k = Tensor::new(&[1, 2, 3], &[1.0, 0.0, 0.0, 0.0, 1.0, 0.0]).unwrap();
+        let v = Tensor::new(&[1, 2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
         let (out, weights) = scaled_dot_product_attention(&q, &k, &v, None, None).unwrap();
         assert_eq!(out.shape, vec![1, 2, 3]);
         assert_eq!(weights.shape, vec![1, 2, 2]);
@@ -291,10 +309,7 @@ mod tests {
         let k = Tensor::new(&[1, 2, 2], &[1.0, 0.0, 0.0, 1.0]).unwrap();
         let v = Tensor::new(&[1, 2, 2], &[1.0, 2.0, 3.0, 4.0]).unwrap();
         // mask: pos 0 can only attend to pos 0 (pos 1 masked), pos 1 can attend to both
-        let mask = Tensor::new(&[1, 2, 2], &[
-            0.0, f64::NEG_INFINITY,
-            0.0, 0.0,
-        ]).unwrap();
+        let mask = Tensor::new(&[1, 2, 2], &[0.0, f64::NEG_INFINITY, 0.0, 0.0]).unwrap();
         let (out, _) = scaled_dot_product_attention(&q, &k, &v, None, Some(&mask)).unwrap();
         // Position 0 attends only to v[0]=[1,2] → output[0] = [1,2]
         assert!((out.data[0] - 1.0).abs() < E);
@@ -322,7 +337,7 @@ mod tests {
 
     #[test]
     fn apply_rope_preserves_norm() {
-        let x = Tensor::new(&[1, 4, 4], &(0..16).map(|i| i as f64).collect::<Vec<_>>()).unwrap();
+        let x = Tensor::new(&[1, 4, 4], &(0..16).map(f64::from).collect::<Vec<_>>()).unwrap();
         let norm_before: f64 = x.data.iter().map(|v| v * v).sum();
         let y = apply_rope(&x, 4, 10000.0);
         let norm_after: f64 = y.data.iter().map(|v| v * v).sum();
@@ -345,13 +360,3 @@ mod tests {
         assert_eq!(out.shape, vec![batch, seq, d_model]);
     }
 }
-
-
-
-
-
-
-
-
-
-

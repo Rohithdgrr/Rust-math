@@ -62,33 +62,40 @@ pub fn binary(img: &Image, thresh: f64, maxval: f64) -> Image {
 /// let adapt = adaptive(&img, 15, 5.0);
 /// ```
 pub fn adaptive(img: &Image, block_size: usize, constant: f64) -> Image {
-    assert!(block_size >= 3 && block_size % 2 == 1, "block_size must be odd and >= 3");
+    assert!(
+        block_size >= 3 && block_size % 2 == 1,
+        "block_size must be odd and >= 3"
+    );
     let mut out = Image::new(img.w, img.h);
-    
+
     let half = block_size / 2;
-    
+
     for y in 0..img.h {
         for x in 0..img.w {
             // Compute mean in the block around (x, y)
             let (mut sum, mut count) = (0.0, 0usize);
-            
+
             let y_min = y.saturating_sub(half);
             let y_max = (y + half).min(img.h - 1);
             let x_min = x.saturating_sub(half);
             let x_max = (x + half).min(img.w - 1);
-            
+
             for j in y_min..=y_max {
                 for i in x_min..=x_max {
                     sum += img.data[j * img.w + i];
                     count += 1;
                 }
             }
-            
+
             let mean = if count > 0 { sum / (count as f64) } else { 0.0 };
             let threshold = mean - constant;
-            
-            out.data[y * img.w + x] = if img.data[y * img.w + x] > threshold { 255.0 } else { 0.0 };
-    }
+
+            out.data[y * img.w + x] = if img.data[y * img.w + x] > threshold {
+                255.0
+            } else {
+                0.0
+            };
+        }
     }
     out
 }
@@ -194,11 +201,13 @@ mod tests {
 
     #[test]
     fn binary_threshold() {
-        let img = Image::new(4, 4);
+        let _img = Image::new(4, 4);
         let mut img_data = vec![0.0; 16];
         // Set high values in right half
-        for i in 8..16 { img_data[i] = 200.0; }
-        let mut img2 = Image::from_data(4, 4, img_data);
+        for i in 8..16 {
+            img_data[i] = 200.0;
+        }
+        let img2 = Image::from_data(4, 4, img_data);
         let result = binary(&img2, 100.0, 255.0);
         // Right half pixels (200 > 100) should be 255
         assert_eq!(result.data[8], 255.0);
@@ -210,10 +219,12 @@ mod tests {
 
     #[test]
     fn adaptive_threshold_odd_block() {
-        let img = Image::new(8, 8);
+        let _img = Image::new(8, 8);
         let mut data = vec![0.0; 64];
         // Create a gradient
-        for i in 0..64 { data[i] = (i as f64 / 63.0) * 255.0; }
+        for i in 0..64 {
+            data[i] = (i as f64 / 63.0) * 255.0;
+        }
         let img2 = Image::from_data(8, 8, data);
         let result = adaptive(&img2, 3, 0.0); // 3x3 block
         assert_eq!(result.w, 8);

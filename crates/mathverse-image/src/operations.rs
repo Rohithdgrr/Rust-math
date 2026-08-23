@@ -47,7 +47,15 @@ impl GrayImage {
 
                 let mean = sum / f64::from(count);
                 let local_threshold = mean - c;
-                out.set(x, y, if self.get(x, y) >= local_threshold { 1.0 } else { 0.0 });
+                out.set(
+                    x,
+                    y,
+                    if self.get(x, y) >= local_threshold {
+                        1.0
+                    } else {
+                        0.0
+                    },
+                );
             }
         }
         out
@@ -200,9 +208,7 @@ impl GrayImage {
     /// Compute the standard deviation of pixel values.
     pub fn std_dev(&self) -> f64 {
         let mean = self.mean();
-        let variance: f64 = self.data.iter()
-            .map(|v| (v - mean).powi(2))
-            .sum();
+        let variance: f64 = self.data.iter().map(|v| (v - mean).powi(2)).sum();
         (variance / self.data.len() as f64).sqrt()
     }
 

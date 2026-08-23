@@ -1,8 +1,8 @@
 //! Waterfall chart example: Budget breakdown.
 
+use mathverse_plot::save::PlotSaver;
 use mathverse_plot::style::Color;
 use mathverse_plot::waterfall::{render_waterfall, WaterfallBar, WaterfallConfig};
-use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bars = vec![

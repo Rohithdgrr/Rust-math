@@ -8,11 +8,7 @@ use rayon::prelude::*;
 pub fn par_mat_vec(m: &Matrix, v: &Vector) -> Vector {
     let data: Vec<f64> = (0..m.rows())
         .into_par_iter()
-        .map(|i| {
-            (0..m.cols())
-                .map(|j| m.get(i, j) * v.get(j))
-                .sum()
-        })
+        .map(|i| (0..m.cols()).map(|j| m.get(i, j) * v.get(j)).sum())
         .collect();
     Vector::new(data)
 }

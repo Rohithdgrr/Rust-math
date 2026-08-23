@@ -69,19 +69,31 @@ pub fn match_template(img: &Image, templ: &Image, method: MatchMethod) -> Image 
                 MatchMethod::SqDiff => sq_diff,
                 MatchMethod::SqDiffNormed => {
                     let denom = (sum_i2 * sum_t2).sqrt();
-                    if denom > 1e-12 { sq_diff / denom } else { f64::INFINITY }
+                    if denom > 1e-12 {
+                        sq_diff / denom
+                    } else {
+                        f64::INFINITY
+                    }
                 }
                 MatchMethod::CCorr => corr,
                 MatchMethod::CCorrNormed => {
                     let denom = (sum_i2 * sum_t2).sqrt();
-                    if denom > 1e-12 { corr / denom } else { 0.0 }
+                    if denom > 1e-12 {
+                        corr / denom
+                    } else {
+                        0.0
+                    }
                 }
                 MatchMethod::CCoeff => cov,
                 MatchMethod::CCoeffNormed => {
                     let var_i = (sum_i2 - sum_i * sum_i / n).max(0.0);
                     let var_t = (sum_t2 - sum_t * sum_t / n).max(0.0);
                     let denom = (var_i * var_t).sqrt();
-                    if denom > 1e-12 { cov / denom } else { 0.0 }
+                    if denom > 1e-12 {
+                        cov / denom
+                    } else {
+                        0.0
+                    }
                 }
             };
         }
@@ -158,7 +170,11 @@ mod tests {
         let (_, best_val, _, best_loc) = crate::utils::min_max(&res);
         // The exact location must be the strongest match (~1.0), and the worst
         // match must be strictly weaker.
-        assert!((res.get(8, 8) - 1.0).abs() < 1e-9, "score at true loc {}", res.get(8, 8));
+        assert!(
+            (res.get(8, 8) - 1.0).abs() < 1e-9,
+            "score at true loc {}",
+            res.get(8, 8)
+        );
         assert_eq!(best_loc, (8, 8), "best {best_loc:?} val {best_val}");
     }
 
@@ -179,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "match_template: template must not exceed image size")]
     fn template_larger_than_image_panics() {
         let img = Image::new(3, 3);
         let templ = Image::new(5, 5);

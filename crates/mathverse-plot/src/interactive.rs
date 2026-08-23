@@ -246,7 +246,11 @@ impl InteractivePlot {
         };
         let saver = crate::save::PlotSaver::new(svg)
             .with_dimensions(self.data.config.width, self.data.config.height);
-        let result = saver.save_as("mathverse_plot_interactive", crate::save::OutputFormat::Png, &crate::save::FormatSet::png());
+        let result = saver.save_as(
+            "mathverse_plot_interactive",
+            crate::save::OutputFormat::Png,
+            &crate::save::FormatSet::png(),
+        );
         if result.success {
             eprintln!("saved PNG -> {:?}", result.path);
         } else {

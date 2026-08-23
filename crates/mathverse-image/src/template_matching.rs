@@ -128,14 +128,21 @@ pub struct TemplateResult {
 pub fn template_matching_with_template(img: &GrayImage, template: &GrayImage) -> TemplateResult {
     // Validate sizes
     if template.w == 0 || template.h == 0 || template.w > img.w || template.h > img.h {
-        return TemplateResult { x: 0.0, y: 0.0, ncc: -1.0 };
+        return TemplateResult {
+            x: 0.0,
+            y: 0.0,
+            ncc: -1.0,
+        };
     }
 
     // Precompute template statistics once.
     let n_t = (template.w * template.h) as f64;
     let template_mean: f64 = template.data.iter().sum::<f64>() / n_t;
-    let template_sum_sq: f64 =
-        template.data.iter().map(|&v| (v - template_mean).powi(2)).sum();
+    let template_sum_sq: f64 = template
+        .data
+        .iter()
+        .map(|&v| (v - template_mean).powi(2))
+        .sum();
 
     let mut best_ncc: f64 = f64::NEG_INFINITY;
     let mut best_x: f64 = 0.0;
@@ -229,9 +236,21 @@ mod tests {
 
         let result = template_matching_with_template(&img, &template);
         // Should find match exactly at the square's top-left corner
-        assert!((result.x - 21.0).abs() < 2.0, "x should be near 21, got {}", result.x);
-        assert!((result.y - 17.0).abs() < 2.0, "y should be near 17, got {}", result.y);
-        assert!(result.ncc > 0.9, "NCC should be high for good match, got {}", result.ncc);
+        assert!(
+            (result.x - 21.0).abs() < 2.0,
+            "x should be near 21, got {}",
+            result.x
+        );
+        assert!(
+            (result.y - 17.0).abs() < 2.0,
+            "y should be near 17, got {}",
+            result.y
+        );
+        assert!(
+            result.ncc > 0.9,
+            "NCC should be high for good match, got {}",
+            result.ncc
+        );
     }
 
     #[test]
@@ -278,22 +297,34 @@ mod tests {
         // 8px period would be constant — integer division — so use 4px cells)
         for y in 0..32 {
             for x in 0..32 {
-                let v = if (x/4 + y/4) % 2 == 0 { 1.0 } else { 0.0 };
+                let v = if (x / 4 + y / 4) % 2 == 0 { 1.0 } else { 0.0 };
                 img.set(x, y, v);
             }
         }
         for y in 0..8 {
             for x in 0..8 {
-                let v = if (x/4 + y/4) % 2 == 0 { 1.0 } else { 0.0 };
+                let v = if (x / 4 + y / 4) % 2 == 0 { 1.0 } else { 0.0 };
                 template.set(x, y, v);
             }
         }
 
         let result = template_matching_with_template(&img, &template);
         // Should find match at (0, 0) with NCC = 1.0
-        assert!((result.x - 0.0).abs() < 0.1, "x should be 0, got {}", result.x);
-        assert!((result.y - 0.0).abs() < 0.1, "y should be 0, got {}", result.y);
-        assert!((result.ncc - 1.0).abs() < 0.01, "NCC should be 1.0 for exact match, got {}", result.ncc);
+        assert!(
+            (result.x - 0.0).abs() < 0.1,
+            "x should be 0, got {}",
+            result.x
+        );
+        assert!(
+            (result.y - 0.0).abs() < 0.1,
+            "y should be 0, got {}",
+            result.y
+        );
+        assert!(
+            (result.ncc - 1.0).abs() < 0.01,
+            "NCC should be 1.0 for exact match, got {}",
+            result.ncc
+        );
     }
 
     #[test]

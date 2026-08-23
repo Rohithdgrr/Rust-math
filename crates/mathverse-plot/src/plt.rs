@@ -208,7 +208,8 @@ impl Axes {
             .zip(ys.iter())
             .map(|(&x, &y)| DataPoint::new(x, y))
             .collect();
-        self.series.push(DataSeries::with_style(name.into(), points, style));
+        self.series
+            .push(DataSeries::with_style(name.into(), points, style));
         self
     }
 
@@ -384,8 +385,11 @@ impl Axes {
             .with_marker_color(color)
             .with_marker_style(MarkerStyle::Circle)
             .with_marker_size(3.0);
-        self.twin_series
-            .push(DataSeries::with_style(name.into(), Self::zip_points(xs, ys), style));
+        self.twin_series.push(DataSeries::with_style(
+            name.into(),
+            Self::zip_points(xs, ys),
+            style,
+        ));
         self
     }
 
@@ -407,17 +411,15 @@ impl Axes {
     /// width (matplotlib `axhspan`).
     pub fn axhspan(&mut self, ymin: f64, ymax: f64) -> &mut Self {
         let xr = self.effective_x_range();
-        self.annotations
-            .rectangles
-            .push(
-                crate::annotations::Rectangle::new(
-                    crate::common::DataPoint::new(xr.min, ymin),
-                    xr.max - xr.min,
-                    ymax - ymin,
-                )
-                .with_fill(crate::style::Color::rgb(173, 216, 230))
-                .with_stroke(crate::style::Color::BLUE),
-            );
+        self.annotations.rectangles.push(
+            crate::annotations::Rectangle::new(
+                crate::common::DataPoint::new(xr.min, ymin),
+                xr.max - xr.min,
+                ymax - ymin,
+            )
+            .with_fill(crate::style::Color::rgb(173, 216, 230))
+            .with_stroke(crate::style::Color::BLUE),
+        );
         self
     }
 
@@ -425,17 +427,15 @@ impl Axes {
     /// height (matplotlib `axvspan`).
     pub fn axvspan(&mut self, xmin: f64, xmax: f64) -> &mut Self {
         let yr = self.effective_y_range();
-        self.annotations
-            .rectangles
-            .push(
-                crate::annotations::Rectangle::new(
-                    crate::common::DataPoint::new(xmin, yr.min),
-                    xmax - xmin,
-                    yr.max - yr.min,
-                )
-                .with_fill(crate::style::Color::rgb(173, 216, 230))
-                .with_stroke(crate::style::Color::BLUE),
-            );
+        self.annotations.rectangles.push(
+            crate::annotations::Rectangle::new(
+                crate::common::DataPoint::new(xmin, yr.min),
+                xmax - xmin,
+                yr.max - yr.min,
+            )
+            .with_fill(crate::style::Color::rgb(173, 216, 230))
+            .with_stroke(crate::style::Color::BLUE),
+        );
         self
     }
 
@@ -563,7 +563,13 @@ impl Figure {
 
     /// Set the span (in grid cells) of the axes at `(row, col)` — the
     /// analogue of `fig.add_subplot(row, col, rowspan, colspan)`.
-    pub fn set_span(&mut self, row: usize, col: usize, row_span: usize, col_span: usize) -> &mut Self {
+    pub fn set_span(
+        &mut self,
+        row: usize,
+        col: usize,
+        row_span: usize,
+        col_span: usize,
+    ) -> &mut Self {
         let idx = row * self.cols + col;
         if row_span > 0 && col_span > 0 {
             if self.spans.len() <= idx {
@@ -631,8 +637,10 @@ impl Figure {
         // Estimate per-subplot text height for labels and titles
         let text_height = 60.0; // px for title + xlabel + padding
         let text_width = 80.0; // px for ylabel + padding
-        let total_w = self.cols as f64 * (800.0 + text_width) + (self.cols - 1) as f64 * self.spacing;
-        let total_h = self.rows as f64 * (600.0 + text_height) + (self.rows - 1) as f64 * self.spacing;
+        let total_w =
+            self.cols as f64 * (800.0 + text_width) + (self.cols - 1) as f64 * self.spacing;
+        let total_h =
+            self.rows as f64 * (600.0 + text_height) + (self.rows - 1) as f64 * self.spacing;
         // Adjust each axes config to fit within the computed bounds
         let w = ((total_w - (self.cols + 1) as f64 * 20.0) / self.cols as f64) as u32;
         let h = ((total_h - (self.rows + 1) as f64 * 20.0) / self.rows as f64) as u32;
@@ -733,9 +741,8 @@ impl Figure {
         ));
         out.push('\n');
 
-        let span_of = |idx: usize| -> (usize, usize) {
-            self.spans.get(idx).copied().unwrap_or((1, 1))
-        };
+        let span_of =
+            |idx: usize| -> (usize, usize) { self.spans.get(idx).copied().unwrap_or((1, 1)) };
         for (row, col) in self.iter_positions() {
             let idx = row * self.cols + col;
             let (row_span, col_span) = span_of(idx);
@@ -752,9 +759,13 @@ impl Figure {
             // Position of the top-left cell of this axes.
             let x0: f64 = col_widths[..col].iter().sum::<f64>();
             let y0: f64 = row_heights[..row].iter().sum::<f64>();
-            let span_w: f64 = col_widths[col..(col + col_span).min(self.cols)].iter().sum::<f64>()
+            let span_w: f64 = col_widths[col..(col + col_span).min(self.cols)]
+                .iter()
+                .sum::<f64>()
                 + col_span.saturating_sub(1) as f64 * self.spacing;
-            let span_h: f64 = row_heights[row..(row + row_span).min(self.rows)].iter().sum::<f64>()
+            let span_h: f64 = row_heights[row..(row + row_span).min(self.rows)]
+                .iter()
+                .sum::<f64>()
                 + row_span.saturating_sub(1) as f64 * self.spacing;
             let x = pad + x0;
             let y = pad + y0;
@@ -851,11 +862,12 @@ impl Figure {
                 std::fs::write(path, &bytes)?;
             }
             "pdf" => {
-                let res = PlotSaver::new(&svg)
-                    .with_title("Figure")
-                    .save_as(path.to_str().ok_or_else(|| {
-                        PlotError::UnsupportedFormat("non-UTF8 path".into())
-                    })?, OutputFormat::Pdf, &FormatSet::default());
+                let res = PlotSaver::new(&svg).with_title("Figure").save_as(
+                    path.to_str()
+                        .ok_or_else(|| PlotError::UnsupportedFormat("non-UTF8 path".into()))?,
+                    OutputFormat::Pdf,
+                    &FormatSet::default(),
+                );
                 if !res.success {
                     return Err(PlotError::Backend(
                         res.error.unwrap_or_else(|| "pdf export failed".into()),
@@ -864,9 +876,8 @@ impl Figure {
             }
             "html" => {
                 let res = PlotSaver::new(&svg).save_as(
-                    path.to_str().ok_or_else(|| {
-                        PlotError::UnsupportedFormat("non-UTF8 path".into())
-                    })?,
+                    path.to_str()
+                        .ok_or_else(|| PlotError::UnsupportedFormat("non-UTF8 path".into()))?,
                     OutputFormat::Html,
                     &FormatSet::default(),
                 );
@@ -953,7 +964,9 @@ mod tests {
     #[test]
     fn figure_subplots_and_axes() {
         let mut fig = Figure::subplots(1, 2);
-        fig.axes_at(0, 0).set_title("left").plot(&[0.0, 1.0], &[0.0, 1.0], "s");
+        fig.axes_at(0, 0)
+            .set_title("left")
+            .plot(&[0.0, 1.0], &[0.0, 1.0], "s");
         fig.axes_at(0, 1).set_title("right");
         let svg = fig.render();
         assert!(svg.contains("left"));
@@ -973,9 +986,13 @@ mod tests {
     fn animation_produces_frames() {
         let mut ax = Axes::new();
         let mut frames = Vec::new();
-        ax.animate(3, |a, i| {
-            a.plot(&[0.0, 1.0], &[i as f64, 0.0], format!("t{i}"));
-        }, &mut frames);
+        ax.animate(
+            3,
+            |a, i| {
+                a.plot(&[0.0, 1.0], &[i as f64, 0.0], format!("t{i}"));
+            },
+            &mut frames,
+        );
         assert_eq!(frames.len(), 3);
         assert_eq!(ax.len(), 3);
     }

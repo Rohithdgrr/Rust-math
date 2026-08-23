@@ -1,10 +1,8 @@
 //! Flexible legend positioning example.
 
-use mathverse_plot::{
-    DataPoint, DataSeries, PlotConfig, SvgPlot,
-};
-use mathverse_plot::style::{Color, PlotStyle};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::{Color, PlotStyle};
+use mathverse_plot::{DataPoint, DataSeries, PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create multiple data series
@@ -72,11 +70,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut svg = plot.generate();
 
     // Add legend manually (simplified - in real use, this would be integrated)
-    let legend_svg = r#"  <rect x="60" y="450" width="120" height="60" fill="white" stroke="gray" rx="4"/>
+    let legend_svg =
+        r#"  <rect x="60" y="450" width="120" height="60" fill="white" stroke="gray" rx="4"/>
   <line x1="70" y1="470" x2="90" y2="470" stroke="red" stroke-width="2"/>
   <text x="95" y="474" font-size="11">sin(x)</text>
   <line x1="70" y1="490" x2="90" y2="490" stroke="blue" stroke-width="2"/>
-  <text x="95" y="494" font-size="11">cos(x)</text>"#.to_string();
+  <text x="95" y="494" font-size="11">cos(x)</text>"#
+            .to_string();
 
     svg = svg.replace("</svg>", &format!("{legend_svg}\n</svg>"));
     PlotSaver::new(&svg).save_png("legend_lower_left.png")?;
@@ -108,13 +108,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut svg = plot.generate();
 
     // Add legend outside right
-    let legend_svg = r#"  <rect x="760" y="50" width="100" height="80" fill="white" stroke="gray" rx="4"/>
+    let legend_svg =
+        r#"  <rect x="760" y="50" width="100" height="80" fill="white" stroke="gray" rx="4"/>
   <line x1="770" y1="70" x2="790" y2="70" stroke="red" stroke-width="2"/>
   <text x="795" y="74" font-size="11">sin(x)</text>
   <line x1="770" y1="90" x2="790" y2="90" stroke="blue" stroke-width="2"/>
   <text x="795" y="94" font-size="11">cos(x)</text>
   <line x1="770" y1="110" x2="790" y2="110" stroke="green" stroke-width="2"/>
-  <text x="795" y="114" font-size="11">sin(x/2)</text>"#.to_string();
+  <text x="795" y="114" font-size="11">sin(x/2)</text>"#
+            .to_string();
 
     svg = svg.replace("</svg>", &format!("{legend_svg}\n</svg>"));
     PlotSaver::new(&svg).save_png("legend_outside_right.png")?;

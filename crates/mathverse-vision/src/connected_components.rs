@@ -62,7 +62,10 @@ impl DisjointSet {
 ///
 /// Panics if `connectivity` is not 4 or 8.
 pub fn connected_components(img: &Image, connectivity: usize) -> (Vec<u32>, u32) {
-    assert!(connectivity == 4 || connectivity == 8, "connectivity must be 4 or 8");
+    assert!(
+        connectivity == 4 || connectivity == 8,
+        "connectivity must be 4 or 8"
+    );
     let (w, h) = (img.w, img.h);
     let n = w * h;
     let mut labels = vec![0u32; n];
@@ -149,7 +152,7 @@ mod tests {
         }
         let (labels, count) = connected_components(&img, 4);
         assert_eq!(count, 2);
-        let l1 = labels[1 * 10 + 1];
+        let l1 = labels[10 + 1];
         let l2 = labels[6 * 10 + 6];
         assert!(l1 != 0 && l2 != 0 && l1 != l2);
         // Background stays 0.

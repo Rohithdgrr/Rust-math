@@ -78,7 +78,11 @@ pub fn render_stem_plot(points: &[DataPoint], config: &StemConfig) -> PlotResult
     // Find bounds
     let min_x = points.iter().map(|p| p.x).fold(f64::MAX, f64::min);
     let max_x = points.iter().map(|p| p.x).fold(f64::MIN, f64::max);
-    let all_y: Vec<f64> = points.iter().map(|p| p.y).chain(std::iter::once(config.baseline)).collect();
+    let all_y: Vec<f64> = points
+        .iter()
+        .map(|p| p.y)
+        .chain(std::iter::once(config.baseline))
+        .collect();
     let min_y = all_y.iter().fold(f64::INFINITY, |a, &b| a.min(b));
     let max_y = all_y.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 
@@ -154,7 +158,10 @@ pub fn render_stem_plot(points: &[DataPoint], config: &StemConfig) -> PlotResult
                 let r = config.marker_radius;
                 svg.push_str(&format!(
                     r#"  <rect x="{}" y="{}" width="{}" height="{}" fill="{}"/>"#,
-                    x - r, y - r, r * 2.0, r * 2.0,
+                    x - r,
+                    y - r,
+                    r * 2.0,
+                    r * 2.0,
                     config.marker_color.to_hex()
                 ));
             }
@@ -162,10 +169,14 @@ pub fn render_stem_plot(points: &[DataPoint], config: &StemConfig) -> PlotResult
                 let r = config.marker_radius;
                 svg.push_str(&format!(
                     r#"  <polygon points="{},{} {},{} {},{} {},{}" fill="{}"/>"#,
-                    x, y - r,
-                    x + r, y,
-                    x, y + r,
-                    x - r, y,
+                    x,
+                    y - r,
+                    x + r,
+                    y,
+                    x,
+                    y + r,
+                    x - r,
+                    y,
                     config.marker_color.to_hex()
                 ));
             }

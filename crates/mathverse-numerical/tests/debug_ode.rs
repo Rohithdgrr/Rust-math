@@ -13,7 +13,10 @@ fn debug_rkf45() {
             eprintln!("RKF45 Final t: {}", r.last().unwrap().t);
             eprintln!("RKF45 Final y: {}", r.last().unwrap().y[0]);
             eprintln!("RKF45 Expected e: {}", std::f64::consts::E);
-            eprintln!("RKF45 Error: {}", (r.last().unwrap().y[0] - std::f64::consts::E).abs());
+            eprintln!(
+                "RKF45 Error: {}",
+                (r.last().unwrap().y[0] - std::f64::consts::E).abs()
+            );
             for (i, s) in r.iter().take(10).enumerate() {
                 eprintln!("  Step {}: t={}, y={}", i, s.t, s.y[0]);
             }

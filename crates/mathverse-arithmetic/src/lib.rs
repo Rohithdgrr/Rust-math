@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_sign_loss)]
@@ -13,8 +12,8 @@
 //! rounding modes, financial TVM, and checked/saturating operations.
 //!
 //! Addition, subtraction, multiplication, division, logarithms,
-//! exponentials and rounding live in `mathverse-core` (traits + [`ops`] +
-//! [`precision`]); this crate re-exports them and adds what was missing.
+//! exponentials and rounding live in `mathverse-core` (traits + ``ops`` +
+//! ``precision``); this crate re-exports them and adds what was missing.
 
 use mathverse_core::traits::{Num, Real, Signed};
 
@@ -24,23 +23,22 @@ pub use mathverse_core::ops::{
 };
 pub use mathverse_core::precision::{almost_eq, almost_eq_rel, round_to, significant_figures};
 
+pub mod checked_ops;
+pub mod finance;
 pub mod percentage;
 pub mod rounding;
-pub mod finance;
-pub mod checked_ops;
 
-pub use percentage::{Percentage, ProfitLoss};
-pub use rounding::{round_with_mode, round_to_with_mode, round_ties_even, quantize, RoundingMode};
-pub use finance::{
-    future_value, present_value, annuity_future_value, annuity_present_value,
-    perpetuity_present_value, growing_perpetuity, periods_to_reach, rate_for_target,
-    continuous_compound, rule_of_72, rule_of_693,
-};
 pub use checked_ops::{
-    checked_add, checked_sub, checked_mul, checked_div,
-    saturating_add, saturating_sub, saturating_mul,
-    approx_eq, approx_eq_rel, inverse_lerp, remap,
+    approx_eq, approx_eq_rel, checked_add, checked_div, checked_mul, checked_sub, inverse_lerp,
+    remap, saturating_add, saturating_mul, saturating_sub,
 };
+pub use finance::{
+    annuity_future_value, annuity_present_value, continuous_compound, future_value,
+    growing_perpetuity, periods_to_reach, perpetuity_present_value, present_value, rate_for_target,
+    rule_of_693, rule_of_72,
+};
+pub use percentage::{Percentage, ProfitLoss};
+pub use rounding::{quantize, round_ties_even, round_to_with_mode, round_with_mode, RoundingMode};
 
 /// Compensated (Neumaier) summation of a slice — accurate to near machine
 /// precision even for large, cancellative, or widely-scaled inputs.
@@ -150,7 +148,7 @@ pub fn pow<T: Num>(base: T, mut exp: u32) -> T {
     acc
 }
 
-/// Integer remainder `x % m`. `m == 0` -> [`MathError::DivisionByZero`].
+/// Integer remainder `x % m`. `m == 0` -> ``MathError::DivisionByZero``.
 pub fn modulus<T: Num + core::ops::Rem<Output = T>>(
     x: T,
     m: T,
@@ -193,7 +191,10 @@ mod tests {
     #[test]
     fn modulus_and_abs() {
         assert_eq!(modulus(17, 5).unwrap(), 2);
-        assert_eq!(modulus(17, 0), Err(mathverse_core::error::MathError::DivisionByZero));
+        assert_eq!(
+            modulus(17, 0),
+            Err(mathverse_core::error::MathError::DivisionByZero)
+        );
         assert!((absolute(-4.5) - 4.5).abs() < 1e-12);
     }
 

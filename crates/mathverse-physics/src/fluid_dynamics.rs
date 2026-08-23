@@ -108,11 +108,9 @@ mod tests {
 
     #[test]
     fn test_poiseuille() {
-        assert!(
-            poiseuille_flow_rate(0.01, 1000.0, 1e-3, 1.0)
-                .unwrap()
-                .is_finite()
-        );
+        assert!(poiseuille_flow_rate(0.01, 1000.0, 1e-3, 1.0)
+            .unwrap()
+            .is_finite());
         assert!(poiseuille_flow_rate(0.01, 1000.0, 0.0, 1.0).is_none());
     }
 }

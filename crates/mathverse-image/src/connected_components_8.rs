@@ -42,7 +42,7 @@
 //!   (1-indexed as raw `f64` label values; 0.0 = background). Labels are written
 //!   directly into the data buffer so values above 1 are preserved rather than
 //!   clamped by [`GrayImage::set`].
-//! - `components`: Vec<Component> with statistics for each connected region,
+//! - `components`: `Vec<Component>` with statistics for each connected region,
 //!   ordered by label (discovery order).
 
 use crate::GrayImage;
@@ -88,9 +88,14 @@ pub struct Component {
 pub fn connected_components_8(img: &GrayImage) -> (GrayImage, Vec<Component>) {
     // 8-connected neighborhood offsets.
     const NEIGHBORS: [(i64, i64); 8] = [
-        (-1, -1), (0, -1), (1, -1),
-        (-1, 0),           (1, 0),
-        (-1, 1),  (0, 1),  (1, 1),
+        (-1, -1),
+        (0, -1),
+        (1, -1),
+        (-1, 0),
+        (1, 0),
+        (-1, 1),
+        (0, 1),
+        (1, 1),
     ];
 
     let w = img.w;

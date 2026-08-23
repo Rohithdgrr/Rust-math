@@ -1,13 +1,19 @@
 //! Violin plot example: Distribution comparison across groups.
 
+use mathverse_plot::save::PlotSaver;
 use mathverse_plot::style::Color;
 use mathverse_plot::violin::{render_violin_plot, ViolinConfig, ViolinData};
-use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
-    let group_a: Vec<f64> = (0..200).map(|i| 3.0 + (f64::from(i) * 0.05).sin() * 1.0).collect();
-    let group_b: Vec<f64> = (0..200).map(|i| 5.0 + (f64::from(i) * 0.03).cos() * 1.5).collect();
-    let group_c: Vec<f64> = (0..200).map(|i| 4.0 + ((f64::from(i) * 0.07).sin() * 0.8)).collect();
+    let group_a: Vec<f64> = (0..200)
+        .map(|i| 3.0 + (f64::from(i) * 0.05).sin() * 1.0)
+        .collect();
+    let group_b: Vec<f64> = (0..200)
+        .map(|i| 5.0 + (f64::from(i) * 0.03).cos() * 1.5)
+        .collect();
+    let group_c: Vec<f64> = (0..200)
+        .map(|i| 4.0 + ((f64::from(i) * 0.07).sin() * 0.8))
+        .collect();
 
     let data = vec![
         ViolinData::new("Group A", group_a, Color::rgb(66, 133, 244)),

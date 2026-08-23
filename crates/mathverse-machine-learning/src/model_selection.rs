@@ -215,7 +215,11 @@ pub struct ClassificationReport {
 
 /// Build a multi-class classification report from predictions and targets.
 #[must_use]
-pub fn classification_report(pred: &[f64], target: &[f64], num_classes: usize) -> ClassificationReport {
+pub fn classification_report(
+    pred: &[f64],
+    target: &[f64],
+    num_classes: usize,
+) -> ClassificationReport {
     let (precision, recall, f1, support) = precision_recall_f1(pred, target, num_classes);
     let total: usize = support.iter().sum();
     let accuracy = accuracy(pred, target);
@@ -297,7 +301,7 @@ mod tests {
     #[test]
     fn train_test_split_sizes() {
         let x: Vec<Vec<f64>> = (0..100).map(|i| vec![f64::from(i)]).collect();
-        let y: Vec<f64> = (0..100).map(|i| f64::from(i)).collect();
+        let y: Vec<f64> = (0..100).map(f64::from).collect();
         let (xt, xte, yt, yte) = train_test_split(&x, &y, 0.2, 42);
         assert_eq!(xt.len() + xte.len(), 100);
         assert_eq!(yt.len() + yte.len(), 100);

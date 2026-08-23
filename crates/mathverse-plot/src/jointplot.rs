@@ -54,7 +54,9 @@ pub fn render_jointplot(
     config: &JointConfig,
 ) -> PlotResult<String> {
     if x_data.len() != y_data.len() {
-        return Err(PlotError::InvalidData("x and y must have same length".into()));
+        return Err(PlotError::InvalidData(
+            "x and y must have same length".into(),
+        ));
     }
     if x_data.is_empty() {
         return Err(PlotError::InvalidData("no data provided".into()));
@@ -95,7 +97,11 @@ pub fn render_jointplot(
             let bin = bin.min(config.bins - 1);
             hist[bin] += 1;
         }
-        let max_count = *hist.iter().max().ok_or_else(|| PlotError::InvalidData("empty histogram".into()))? as f64;
+        let max_count = *hist
+            .iter()
+            .max()
+            .ok_or_else(|| PlotError::InvalidData("empty histogram".into()))?
+            as f64;
         let bar_w = main_size / config.bins as f64;
         let marginal_height = margin_size - 20.0;
 
@@ -127,7 +133,11 @@ pub fn render_jointplot(
             let bin = bin.min(config.bins - 1);
             hist[bin] += 1;
         }
-        let max_count = *hist.iter().max().ok_or_else(|| PlotError::InvalidData("empty histogram".into()))? as f64;
+        let max_count = *hist
+            .iter()
+            .max()
+            .ok_or_else(|| PlotError::InvalidData("empty histogram".into()))?
+            as f64;
         let bar_h = main_size / config.bins as f64;
         let marginal_width = margin_size - 20.0;
 

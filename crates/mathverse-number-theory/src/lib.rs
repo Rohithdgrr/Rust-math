@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_sign_loss)]
@@ -27,7 +26,7 @@
 //! | [`totient`] | Euler φ, Carmichael λ, primitive roots, multiplicative order |
 //! | [`quadratic_residue`] | Legendre/Jacobi symbols, Tonelli-Shanks, CRT combination |
 //! | [`diophantine`] | Extended GCD, Pell equation (u128 + bigint), Kronecker symbol |
-//! | [`continued_fraction`] | CF expansion, convergents, π/e/φ constants |
+//! | [`mod@continued_fraction`] | CF expansion, convergents, π/e/φ constants |
 //! | [`advanced`] | Next/prev prime, radical, highly composite, perfect powers |
 //!
 //! ## Quick Start

@@ -59,14 +59,11 @@
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::cast_possible_wrap)]
-#![allow(clippy::module_name_repetitions)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::missing_panics_doc)]
+// `suboptimal_flops` suggests rewriting `a * b + c` as `a.mul_add(b, c)`, which
+// changes floating-point rounding behavior. With 200+ sites across this crate
+// the churn would be enormous and results would no longer be bit-for-bit
+// identical, so it is disabled for the whole crate.
+#![allow(clippy::suboptimal_flops)]
 
 use mathverse_core::error::{MathError, MathResult};
 

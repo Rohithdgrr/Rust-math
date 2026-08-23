@@ -1,10 +1,8 @@
 //! Simple Argand diagram and domain coloring example.
 
 use mathverse_complex::Complex;
-use mathverse_plot::{
-    ComplexPlaneConfig, ComplexPlaneMode, render_argand, render_domain_coloring,
-};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{render_argand, render_domain_coloring, ComplexPlaneConfig, ComplexPlaneMode};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Argand diagram with complex numbers on the unit circle

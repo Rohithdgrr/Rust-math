@@ -147,12 +147,7 @@ impl InsetAxes {
             ];
 
             // Four corners of the inset
-            let inset_corners = [
-                (ix, iy + h),
-                (ix + w, iy + h),
-                (ix + w, iy),
-                (ix, iy),
-            ];
+            let inset_corners = [(ix, iy + h), (ix + w, iy + h), (ix + w, iy), (ix, iy)];
 
             for ((px, py), (sx, sy)) in corners.iter().zip(inset_corners.iter()) {
                 svg.push_str(&format!(

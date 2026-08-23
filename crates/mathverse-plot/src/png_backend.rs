@@ -96,7 +96,9 @@ impl PngBackend {
                     let mut pb = tiny_skia::PathBuilder::new();
                     pb.move_to(to_px_x(w[0].x), to_px_y(w[0].y));
                     pb.line_to(to_px_x(w[1].x), to_px_y(w[1].y));
-                    let path = pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build series path".into()))?;
+                    let path = pb.finish().ok_or_else(|| {
+                        PlotError::InvalidData("failed to build series path".into())
+                    })?;
                     let mut p = tiny_skia::Paint::default();
                     p.set_color(c);
                     pixmap.stroke_path(
@@ -203,7 +205,9 @@ impl PngBackend {
             pb.line_to(cx + 4.0, y_lo);
             pb.move_to(cx - 4.0, y_hi);
             pb.line_to(cx + 4.0, y_hi);
-            let path = pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build error bar path".into()))?;
+            let path = pb
+                .finish()
+                .ok_or_else(|| PlotError::InvalidData("failed to build error bar path".into()))?;
             let mut p = tiny_skia::Paint::default();
             p.set_color(c);
             pixmap.stroke_path(
@@ -247,7 +251,9 @@ impl PngBackend {
             pb.line_to(cx + 5.0, y_lo);
             pb.move_to(cx - 5.0, y_hi);
             pb.line_to(cx + 5.0, y_hi);
-            let path = pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build whisker path".into()))?;
+            let path = pb
+                .finish()
+                .ok_or_else(|| PlotError::InvalidData("failed to build whisker path".into()))?;
             let mut p = tiny_skia::Paint::default();
             p.set_color(c);
             pixmap.stroke_path(
@@ -271,7 +277,9 @@ impl PngBackend {
                 pb.line_to(rect.right(), rect.bottom());
                 pb.line_to(rect.left(), rect.bottom());
                 pb.close();
-                let rp = pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build box rect path".into()))?;
+                let rp = pb.finish().ok_or_else(|| {
+                    PlotError::InvalidData("failed to build box rect path".into())
+                })?;
                 pixmap.stroke_path(
                     &rp,
                     &p,
@@ -288,7 +296,9 @@ impl PngBackend {
             let mut pb2 = tiny_skia::PathBuilder::new();
             pb2.move_to(x0, y_med);
             pb2.line_to(x0 + box_w, y_med);
-            let med = pb2.finish().ok_or_else(|| PlotError::InvalidData("failed to build median path".into()))?;
+            let med = pb2
+                .finish()
+                .ok_or_else(|| PlotError::InvalidData("failed to build median path".into()))?;
             pixmap.stroke_path(
                 &med,
                 &p,
@@ -383,15 +393,19 @@ fn circle_path(cx: f32, cy: f32, r: f32) -> PlotResult<tiny_skia::Path> {
     pb.cubic_to(cx - r, cy - r * k, cx - r * k, cy - r, cx, cy - r);
     pb.cubic_to(cx + r * k, cy - r, cx + r, cy - r * k, cx + r, cy);
     pb.close();
-    pb.finish().ok_or_else(|| PlotError::InvalidData("failed to build circle path".into()))
+    pb.finish()
+        .ok_or_else(|| PlotError::InvalidData("failed to build circle path".into()))
 }
 
 fn color_to_skia(c: Color) -> tiny_skia::Color {
     match c {
-        Color::Rgb(r, g, b) => {
-            tiny_skia::Color::from_rgba(f32::from(r) / 255.0, f32::from(g) / 255.0, f32::from(b) / 255.0, 1.0)
-                .unwrap_or(tiny_skia::Color::BLACK)
-        }
+        Color::Rgb(r, g, b) => tiny_skia::Color::from_rgba(
+            f32::from(r) / 255.0,
+            f32::from(g) / 255.0,
+            f32::from(b) / 255.0,
+            1.0,
+        )
+        .unwrap_or(tiny_skia::Color::BLACK),
         Color::Rgba(r, g, b, a) => tiny_skia::Color::from_rgba(
             f32::from(r) / 255.0,
             f32::from(g) / 255.0,

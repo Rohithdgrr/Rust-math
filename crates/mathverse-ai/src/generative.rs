@@ -29,7 +29,10 @@ pub fn vae_loss(
     let recon_loss = diff.data.iter().map(|x| x * x).sum::<f64>() / diff.numel() as f64;
 
     // KL divergence
-    let kl: f64 = mean.data.iter().zip(&logvar.data)
+    let kl: f64 = mean
+        .data
+        .iter()
+        .zip(&logvar.data)
         .map(|(m, lv)| -0.5 * (1.0 + lv - m * m - lv.exp()))
         .sum();
 
@@ -39,12 +42,18 @@ pub fn vae_loss(
 /// GAN discriminator loss: -E[log(D(real))] - E[log(1 - D(fake))]
 pub fn gan_discriminator_loss(real_pred: &Tensor, fake_pred: &Tensor) -> MathResult<f64> {
     let eps = 1e-12;
-    let real_loss: f64 = real_pred.data.iter()
+    let real_loss: f64 = real_pred
+        .data
+        .iter()
         .map(|&x| -(x.max(eps).ln()))
-        .sum::<f64>() / real_pred.numel() as f64;
-    let fake_loss: f64 = fake_pred.data.iter()
+        .sum::<f64>()
+        / real_pred.numel() as f64;
+    let fake_loss: f64 = fake_pred
+        .data
+        .iter()
         .map(|&x| -((1.0 - x).max(eps).ln()))
-        .sum::<f64>() / fake_pred.numel() as f64;
+        .sum::<f64>()
+        / fake_pred.numel() as f64;
     Ok(real_loss + fake_loss)
 }
 
@@ -52,14 +61,17 @@ pub fn gan_discriminator_loss(real_pred: &Tensor, fake_pred: &Tensor) -> MathRes
 /// Returns mean(-log(D(fake))), which the generator minimizes.
 pub fn gan_generator_loss(fake_pred: &Tensor) -> MathResult<f64> {
     let eps = 1e-12;
-    let loss: f64 = fake_pred.data.iter()
+    let loss: f64 = fake_pred
+        .data
+        .iter()
         .map(|&x| -(x.max(eps).ln()))
-        .sum::<f64>() / fake_pred.numel() as f64;
+        .sum::<f64>()
+        / fake_pred.numel() as f64;
     Ok(loss)
 }
 
-/// Diffusion forward process: q(x_t | x_0) = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise
-/// Returns (noisy_x, noise).
+/// Diffusion forward process: `q(x_t` | `x_0`) = `sqrt(alpha_bar_t)` * `x_0` + sqrt(1 - `alpha_bar_t`) * noise
+/// Returns (`noisy_x`, noise).
 pub fn diffusion_forward_process(
     x0: &Tensor,
     t: usize,
@@ -78,12 +90,14 @@ pub fn diffusion_forward_process(
     let sqrt_one_minus_alpha = (1.0 - alpha_bar).sqrt();
 
     let noise = Tensor::randn(&x0.shape);
-    let noisy = x0.mul_scalar(sqrt_alpha).add(&noise.mul_scalar(sqrt_one_minus_alpha))?;
+    let noisy = x0
+        .mul_scalar(sqrt_alpha)
+        .add(&noise.mul_scalar(sqrt_one_minus_alpha))?;
     Ok((noisy, noise))
 }
 
 /// Diffusion reverse process: denoise one step.
-/// x_{t-1} = (1/sqrt(alpha_t)) * (x_t - (beta_t / sqrt(1 - alpha_bar_t)) * predicted_noise) + sigma_t * z
+/// x_{t-1} = (`1/sqrt(alpha_t)`) * (`x_t` - (`beta_t` / sqrt(1 - `alpha_bar_t`)) * `predicted_noise`) + `sigma_t` * z
 pub fn diffusion_reverse_process(
     x_t: &Tensor,
     predicted_noise: &Tensor,
@@ -105,7 +119,9 @@ pub fn diffusion_reverse_process(
     let sqrt_alpha = alpha_t.sqrt();
     let coeff = beta_t / (1.0 - alpha_bar).sqrt();
 
-    let mean = x_t.sub(&predicted_noise.mul_scalar(coeff))?.div_scalar(sqrt_alpha);
+    let mean = x_t
+        .sub(&predicted_noise.mul_scalar(coeff))?
+        .div_scalar(sqrt_alpha);
     let sigma = beta_t.sqrt();
     let z = Tensor::randn(&x_t.shape);
     mean.add(&z.mul_scalar(sigma))
@@ -163,12 +179,20 @@ mod tests {
     #[test]
     fn diffusion_forward_test() {
         let x0 = Tensor::new(&[1, 4], &[1.0, 2.0, 3.0, 4.0]).unwrap();
-        let betas: Vec<f64> = (0..10).map(|i| 0.001 + i as f64 * 0.0001).collect();
+        let betas: Vec<f64> = (0..10)
+            .map(|i| f64::from(i).mul_add(0.0001, 0.001))
+            .collect();
         let (noisy, noise) = diffusion_forward_process(&x0, 5, &betas).unwrap();
         assert_eq!(noisy.shape, vec![1, 4]);
         assert_eq!(noise.shape, vec![1, 4]);
         // noisy ≈ sqrt(alpha_bar)*x0 + sqrt(1-alpha_bar)*noise, should differ from x0
-        let diff: f64 = noisy.data.iter().zip(&x0.data).map(|(a, b)| (a - b).abs()).sum::<f64>() / 4.0;
+        let diff: f64 = noisy
+            .data
+            .iter()
+            .zip(&x0.data)
+            .map(|(a, b)| (a - b).abs())
+            .sum::<f64>()
+            / 4.0;
         assert!(diff > 1e-6);
     }
 
@@ -176,18 +200,11 @@ mod tests {
     fn diffusion_reverse_test() {
         let x_t = Tensor::new(&[1, 4], &[0.5, 1.5, 2.5, 3.5]).unwrap();
         let noise = Tensor::new(&[1, 4], &[0.1, 0.1, 0.1, 0.1]).unwrap();
-        let betas: Vec<f64> = (0..10).map(|i| 0.001 + i as f64 * 0.0001).collect();
+        let betas: Vec<f64> = (0..10)
+            .map(|i| f64::from(i).mul_add(0.0001, 0.001))
+            .collect();
         let x_prev = diffusion_reverse_process(&x_t, &noise, 5, &betas).unwrap();
         assert_eq!(x_prev.shape, vec![1, 4]);
         assert!(x_prev.data.iter().all(|&x| x.is_finite()));
     }
 }
-
-
-
-
-
-
-
-
-

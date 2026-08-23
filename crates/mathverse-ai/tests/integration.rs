@@ -1,4 +1,6 @@
-use mathverse_ai::{Tensor, Adam};
+//! Integration tests exercising tensors and the Adam optimizer together.
+
+use mathverse_ai::{Adam, Tensor};
 
 #[test]
 fn tensor_create_and_reshape() {

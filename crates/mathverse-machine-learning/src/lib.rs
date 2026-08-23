@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![warn(clippy::all)]
 #![allow(clippy::approx_constant)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_possible_truncation)]
@@ -78,12 +77,7 @@ mod validate;
 /// println!("Negated mean cross-validated loss: {:.4}", score);
 /// ```
 #[must_use]
-pub fn learn(
-    x: &[Vec<f64>],
-    y: &[f64],
-    pipeline: &pipeline::Pipeline,
-    k: usize,
-) -> f64 {
+pub fn learn(x: &[Vec<f64>], y: &[f64], pipeline: &pipeline::Pipeline, k: usize) -> f64 {
     let scores = evaluation::cross_val_score(x, y, k, |train_x, train_y, test_x| {
         // Fit a fresh pipeline on this fold's training split before predicting;
         // cloning also discards any state fitted on other folds.
@@ -100,7 +94,7 @@ pub fn learn(
 mod tests {
     use super::*;
     use crate::datasets::{make_classification, make_regression};
-    use crate::pipeline::{Pipeline, PipelineStep, ModelType};
+    use crate::pipeline::{ModelType, Pipeline, PipelineStep};
 
     #[test]
     fn test_learn_logistic() {
@@ -114,7 +108,10 @@ mod tests {
         // A fitted logistic pipeline must beat the trivial baseline of
         // predicting the class prior (~MSE 0.25 for balanced binary labels);
         // this fails if the pipeline is never fit inside cross-validation.
-        assert!(mean_mse > -0.25, "model must outperform prior baseline, got {mean_mse}");
+        assert!(
+            mean_mse > -0.25,
+            "model must outperform prior baseline, got {mean_mse}"
+        );
     }
 
     #[test]

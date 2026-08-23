@@ -74,12 +74,7 @@ pub fn integrate(f: &dyn Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
 /// // ∫₀¹ x² dx = 1/3
 /// assert!((gaussian_quadrature(&|x| x * x, 0.0, 1.0, 3).unwrap() - 1.0/3.0).abs() < 1e-10);
 /// ```
-pub fn gaussian_quadrature(
-    f: &dyn Fn(f64) -> f64,
-    a: f64,
-    b: f64,
-    n: usize,
-) -> MathResult<f64> {
+pub fn gaussian_quadrature(f: &dyn Fn(f64) -> f64, a: f64, b: f64, n: usize) -> MathResult<f64> {
     let (nodes, weights) = legendre_nodes_weights(n)?;
     let scale = (b - a) / 2.0;
     let shift = f64::midpoint(a, b);
@@ -171,15 +166,18 @@ pub fn integrate_2d(
 
 fn legendre_nodes_weights(n: usize) -> MathResult<(Vec<f64>, Vec<f64>)> {
     match n {
-        0 => Err(MathError::InvalidArgument("gaussian_quadrature: n must be > 0")),
-        1 => Ok((vec![0.0], vec![2.0])),
-        2 => Ok((
-            vec![-1.0_f64.sqrt(), 1.0_f64.sqrt()],
-            vec![1.0, 1.0],
+        0 => Err(MathError::InvalidArgument(
+            "gaussian_quadrature: n must be > 0",
         )),
+        1 => Ok((vec![0.0], vec![2.0])),
+        2 => Ok((vec![-1.0_f64.sqrt(), 1.0_f64.sqrt()], vec![1.0, 1.0])),
         3 => Ok((
             vec![-0.774_596_669_241_483_4, 0.0, 0.774_596_669_241_483_4],
-            vec![0.555_555_555_555_555_6, 0.888_888_888_888_888_8, 0.555_555_555_555_555_6],
+            vec![
+                0.555_555_555_555_555_6,
+                0.888_888_888_888_888_8,
+                0.555_555_555_555_555_6,
+            ],
         )),
         4 => Ok((
             vec![
@@ -188,7 +186,12 @@ fn legendre_nodes_weights(n: usize) -> MathResult<(Vec<f64>, Vec<f64>)> {
                 0.339_981_043_584_856_3,
                 0.861_136_311_594_052_6,
             ],
-            vec![0.347_854_845_137_453_8, 0.652_145_154_862_546_1, 0.652_145_154_862_546_1, 0.347_854_845_137_453_8],
+            vec![
+                0.347_854_845_137_453_8,
+                0.652_145_154_862_546_1,
+                0.652_145_154_862_546_1,
+                0.347_854_845_137_453_8,
+            ],
         )),
         5 => Ok((
             vec![
@@ -214,9 +217,9 @@ fn legendre_nodes_weights(n: usize) -> MathResult<(Vec<f64>, Vec<f64>)> {
 
             for i in 1..=n / 2 {
                 // Tricomi initial guess
-                let theta =
-                    (4.0 * i as f64 - 1.0) * core::f64::consts::PI / (4.0 * n as f64 + 2.0);
-                let x = (1.0 - 1.0 / (8.0 * n as f64 * n as f64)
+                let theta = (4.0 * i as f64 - 1.0) * core::f64::consts::PI / (4.0 * n as f64 + 2.0);
+                let x = (1.0
+                    - 1.0 / (8.0 * n as f64 * n as f64)
                     - 1.0 / (8.0 * n as f64 * n as f64 * n as f64))
                     * theta.cos();
 
@@ -249,7 +252,9 @@ fn legendre_root_weight(x0: f64, n: usize) -> MathResult<(f64, f64)> {
     for _ in 0..100 {
         let (p, dp) = legendre_and_derivative(x, n);
         if dp.abs() < 1e-300 {
-            return Err(MathError::NotConverged("legendre_root_weight: derivative too small, stagnation"));
+            return Err(MathError::NotConverged(
+                "legendre_root_weight: derivative too small, stagnation",
+            ));
         }
         let dx = p / dp;
         x -= dx;
@@ -259,7 +264,9 @@ fn legendre_root_weight(x0: f64, n: usize) -> MathResult<(f64, f64)> {
         }
     }
     if !converged {
-        return Err(MathError::NotConverged("legendre_root_weight: Newton-Raphson did not converge"));
+        return Err(MathError::NotConverged(
+            "legendre_root_weight: Newton-Raphson did not converge",
+        ));
     }
     let (_, dp) = legendre_and_derivative(x, n);
     let weight = 2.0 / ((1.0 - x * x) * dp * dp);
@@ -279,7 +286,8 @@ fn legendre_and_derivative(x: f64, n: usize) -> (f64, f64) {
     let mut dp_curr = 1.0;
     for k in 1..n {
         let p_next = ((2 * k + 1) as f64 * x * p_curr - k as f64 * p_prev) / ((k + 1) as f64);
-        let dp_next = ((2 * k + 1) as f64 * (p_curr + x * dp_curr) - k as f64 * dp_prev) / ((k + 1) as f64);
+        let dp_next =
+            ((2 * k + 1) as f64 * (p_curr + x * dp_curr) - k as f64 * dp_prev) / ((k + 1) as f64);
         p_prev = p_curr;
         p_curr = p_next;
         dp_prev = dp_curr;
@@ -315,14 +323,21 @@ mod tests {
     #[test]
     fn gaussian_quadrature_test() {
         // ∫₀¹ x² dx = 1/3
-        assert!((gaussian_quadrature(&|x| x * x, 0.0, 1.0, 3).unwrap() - 1.0/3.0).abs() < 1e-10);
+        assert!((gaussian_quadrature(&|x| x * x, 0.0, 1.0, 3).unwrap() - 1.0 / 3.0).abs() < 1e-10);
         // ∫₋₁¹ x⁴ dx = 2/5
-        assert!((gaussian_quadrature(&|x| x.powi(4), -1.0, 1.0, 3).unwrap() - 2.0/5.0).abs() < 1e-10);
+        assert!(
+            (gaussian_quadrature(&|x| x.powi(4), -1.0, 1.0, 3).unwrap() - 2.0 / 5.0).abs() < 1e-10
+        );
         // ∫₀^π sin(x) dx = 2; 5-point Gauss error is ~1e-7, not machine eps
-        assert!((gaussian_quadrature(&f64::sin, 0.0, core::f64::consts::PI, 5).unwrap() - 2.0).abs() < 1e-6);
+        assert!(
+            (gaussian_quadrature(&f64::sin, 0.0, core::f64::consts::PI, 5).unwrap() - 2.0).abs()
+                < 1e-6
+        );
 
         // Higher n (triggers Newton-Raphson path)
-        assert!((gaussian_quadrature(&|x| x.powi(6), -1.0, 1.0, 8).unwrap() - 2.0/7.0).abs() < 1e-10);
+        assert!(
+            (gaussian_quadrature(&|x| x.powi(6), -1.0, 1.0, 8).unwrap() - 2.0 / 7.0).abs() < 1e-10
+        );
         assert!(gaussian_quadrature(&|x| x, 0.0, 1.0, 0).is_err());
     }
 
@@ -334,7 +349,7 @@ mod tests {
 
         // ∫₀¹ x² dx = 1/3 (Romberg should be exact after 2 steps)
         let result = romberg(&|x| x * x, 0.0, 1.0, 5, 1e-12).unwrap();
-        assert!((result - 1.0/3.0).abs() < 1e-10);
+        assert!((result - 1.0 / 3.0).abs() < 1e-10);
 
         // ∫₀¹ e^x dx = e - 1
         let result = romberg(&|x| x.exp(), 0.0, 1.0, 10, 1e-12).unwrap();
@@ -348,8 +363,8 @@ mod tests {
         assert!((result - 0.25).abs() < 1e-10);
 
         // ∫₋₁¹ ∫₋₁¹ (x² + y²) dx dy = 8/3
-        let result = integrate_2d(&|x, y| x*x + y*y, -1.0, 1.0, -1.0, 1.0, 5).unwrap();
-        assert!((result - 8.0/3.0).abs() < 1e-10);
+        let result = integrate_2d(&|x, y| x * x + y * y, -1.0, 1.0, -1.0, 1.0, 5).unwrap();
+        assert!((result - 8.0 / 3.0).abs() < 1e-10);
     }
 
     #[test]

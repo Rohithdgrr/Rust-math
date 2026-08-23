@@ -866,7 +866,8 @@ pub fn is_sorted<T: PartialOrd>(xs: &[T]) -> bool {
 #[must_use]
 #[inline]
 pub fn min_value<T: PartialOrd>(xs: &[T]) -> Option<&T> {
-    xs.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
+    xs.iter()
+        .min_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
 }
 
 /// Maximum value in a slice. Returns `None` for an empty slice.
@@ -882,7 +883,8 @@ pub fn min_value<T: PartialOrd>(xs: &[T]) -> Option<&T> {
 #[must_use]
 #[inline]
 pub fn max_value<T: PartialOrd>(xs: &[T]) -> Option<&T> {
-    xs.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
+    xs.iter()
+        .max_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal))
 }
 
 /// Mean (average) of a slice. Returns `None` for an empty slice.
@@ -963,7 +965,10 @@ pub fn dot_product<T: Num + Copy + core::ops::Add<Output = T> + core::ops::Mul<O
     a: &[T],
     b: &[T],
 ) -> T {
-    a.iter().zip(b.iter()).map(|(&x, &y)| x * y).fold(T::zero(), |acc, x| acc + x)
+    a.iter()
+        .zip(b.iter())
+        .map(|(&x, &y)| x * y)
+        .fold(T::zero(), |acc, x| acc + x)
 }
 
 /// Parameterized smoothstep: C1 interpolation between `edge0` and `edge1`.
@@ -1053,28 +1058,31 @@ mod tests {
         assert_eq!(distance(3.0, 7.0), 4.0);
     }
 
-#[test]
-fn wrap_and_angle() {
-    assert_eq!(wrap(15.0, 0.0, 10.0), 5.0);
-    assert_eq!(wrap(-3.0, 0.0, 10.0), 7.0);
-    assert_eq!(repeat(15.0, 10.0), 5.0);
-    assert_eq!(ping_pong(0.0, 10.0), 0.0);
-    assert_eq!(ping_pong(7.5, 10.0), 7.5);
-    assert_eq!(ping_pong(12.5, 10.0), 7.5);
-    assert_eq!(ping_pong(20.0, 10.0), 0.0);
-    assert!((wrap_angle(core::f64::consts::PI + 0.1) - (-core::f64::consts::PI + 0.1)).abs() < 1e-15);
-    assert!((wrap_angle_positive(-0.1) - (2.0 * core::f64::consts::PI - 0.1)).abs() < 1e-15);
-    // NaN/Inf passthrough
-    assert!(wrap(f64::NAN, 0.0, 1.0).is_nan());
-    assert!(wrap(f64::INFINITY, 0.0, 1.0).is_infinite());
-    assert!(wrap(f64::NEG_INFINITY, 0.0, 1.0).is_infinite());
-}
+    #[test]
+    fn wrap_and_angle() {
+        assert_eq!(wrap(15.0, 0.0, 10.0), 5.0);
+        assert_eq!(wrap(-3.0, 0.0, 10.0), 7.0);
+        assert_eq!(repeat(15.0, 10.0), 5.0);
+        assert_eq!(ping_pong(0.0, 10.0), 0.0);
+        assert_eq!(ping_pong(7.5, 10.0), 7.5);
+        assert_eq!(ping_pong(12.5, 10.0), 7.5);
+        assert_eq!(ping_pong(20.0, 10.0), 0.0);
+        assert!(
+            (wrap_angle(core::f64::consts::PI + 0.1) - (-core::f64::consts::PI + 0.1)).abs()
+                < 1e-15
+        );
+        assert!((wrap_angle_positive(-0.1) - (2.0 * core::f64::consts::PI - 0.1)).abs() < 1e-15);
+        // NaN/Inf passthrough
+        assert!(wrap(f64::NAN, 0.0, 1.0).is_nan());
+        assert!(wrap(f64::INFINITY, 0.0, 1.0).is_infinite());
+        assert!(wrap(f64::NEG_INFINITY, 0.0, 1.0).is_infinite());
+    }
 
     #[test]
     fn lerp_angle_normalization() {
         // Both inputs outside [-pi, pi] should still take shortest path
-        let a = core::f64::consts::PI * 3.0;  // equivalent to pi
-        let b = core::f64::consts::PI * 5.0;  // equivalent to pi
+        let a = core::f64::consts::PI * 3.0; // equivalent to pi
+        let b = core::f64::consts::PI * 5.0; // equivalent to pi
         let result = lerp_angle(a, b, 0.5);
         // Both normalize to ~pi, so midpoint should be ~pi
         assert!((result - core::f64::consts::PI).abs() < 1e-10);

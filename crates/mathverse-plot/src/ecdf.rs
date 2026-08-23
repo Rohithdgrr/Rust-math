@@ -67,7 +67,9 @@ pub fn render_ecdf(values: &[f64], config: &EcdfConfig) -> PlotResult<String> {
 
     let n = sorted.len() as f64;
     let min_val = sorted[0];
-    let max_val = sorted.last().ok_or_else(|| PlotError::InvalidData("empty data".into()))?;
+    let max_val = sorted
+        .last()
+        .ok_or_else(|| PlotError::InvalidData("empty data".into()))?;
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;
@@ -181,7 +183,8 @@ pub fn render_ecdf(values: &[f64], config: &EcdfConfig) -> PlotResult<String> {
     // Axes
     svg.push_str(&format!(
         r#"  <text x="{}" y="{}" text-anchor="middle" font-size="11">x</text>"#,
-        width / 2.0, height - 5.0
+        width / 2.0,
+        height - 5.0
     ));
     svg.push('\n');
     svg.push_str(&format!(

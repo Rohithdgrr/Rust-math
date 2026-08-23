@@ -278,9 +278,7 @@ mod tests {
         let f0 = 100.0;
         let dt = 0.001;
         let n = 50;
-        let phases: Vec<f64> = (0..n)
-            .map(|k| 2.0 * PI * f0 * k as f64 * dt)
-            .collect();
+        let phases: Vec<f64> = (0..n).map(|k| 2.0 * PI * f0 * k as f64 * dt).collect();
         let freq = instantaneous_frequency(&phases, dt);
         // Interior points should be close to f0
         for f in &freq[1..n - 1] {

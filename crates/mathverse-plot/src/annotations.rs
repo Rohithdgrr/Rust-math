@@ -364,7 +364,10 @@ mod tests {
     fn annotations_collection() {
         let ann = Annotations::new()
             .add_text(TextAnnotation::new(DataPoint::new(0.0, 0.0), "A"))
-            .add_arrow(Arrow::new(DataPoint::new(0.0, 0.0), DataPoint::new(1.0, 1.0)))
+            .add_arrow(Arrow::new(
+                DataPoint::new(0.0, 0.0),
+                DataPoint::new(1.0, 1.0),
+            ))
             .add_line(ReferenceLine::horizontal(5.0));
         assert!(!ann.is_empty());
     }

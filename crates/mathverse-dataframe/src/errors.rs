@@ -52,10 +52,7 @@ impl fmt::Display for DataFrameError {
         match self {
             Self::ColumnNotFound(name) => write!(f, "column not found: `{name}`"),
             Self::IndexOutOfBounds { index, length } => {
-                write!(
-                    f,
-                    "index {index} out of bounds for length {length}"
-                )
+                write!(f, "index {index} out of bounds for length {length}")
             }
             Self::TypeMismatch { expected, actual } => {
                 write!(f, "type mismatch: expected {expected}, got {actual}")
@@ -73,10 +70,7 @@ impl fmt::Display for DataFrameError {
                 write!(f, "operation requires a non-empty DataFrame")
             }
             Self::ParseError { value, target } => {
-                write!(
-                    f,
-                    "failed to parse `{value}` as {target}"
-                )
+                write!(f, "failed to parse `{value}` as {target}")
             }
             Self::Io(msg) => write!(f, "I/O error: {msg}"),
             Self::InvalidOperation(msg) => write!(f, "invalid operation: {msg}"),

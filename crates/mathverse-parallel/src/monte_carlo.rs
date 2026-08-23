@@ -73,7 +73,7 @@ fn fresh_seed() -> u64 {
 
 /// Simple pseudo-random f64 in [0, 1) using a per-thread SplitMix64 stream.
 ///
-/// Each thread derives a distinct seed on first use (see [`fresh_seed`]), so
+/// Each thread derives a distinct seed on first use (see ``fresh_seed``), so
 /// parallel callers never share a sequence. Reproducibility across runs is
 /// **not** guaranteed when threads are involved; **not** cryptographically
 /// secure.
@@ -85,7 +85,9 @@ pub fn rand_f64() -> f64 {
         static STATE: Cell<Option<u64>> = const { Cell::new(None) };
     }
     STATE.with(|s| {
-        let mut x = if let Some(seed) = s.get() { seed } else {
+        let mut x = if let Some(seed) = s.get() {
+            seed
+        } else {
             let seed = fresh_seed();
             s.set(Some(seed));
             seed
@@ -148,18 +150,24 @@ mod tests {
         use std::collections::HashSet;
         use std::thread;
         let firsts: Vec<f64> = (0..16)
-            .map(|_| thread::spawn(|| {
-                // Drain any pre-existing stream state from this thread so the
-                // first call here is genuinely this thread's seed draw.
-                rand_f64();
-                rand_f64()
-            }))
+            .map(|_| {
+                thread::spawn(|| {
+                    // Drain any pre-existing stream state from this thread so the
+                    // first call here is genuinely this thread's seed draw.
+                    rand_f64();
+                    rand_f64()
+                })
+            })
             .collect::<Vec<_>>()
             .into_iter()
             .map(|h| h.join().unwrap())
             .collect();
         let unique: HashSet<u64> = firsts.iter().map(|f| f.to_bits() >> 12).collect();
-        assert_eq!(unique.len(), firsts.len(), "threads shared a stream: {firsts:?}");
+        assert_eq!(
+            unique.len(),
+            firsts.len(),
+            "threads shared a stream: {firsts:?}"
+        );
     }
 
     #[test]

@@ -3,12 +3,12 @@
 pub use crate::constants::G_0;
 
 /// Calculate displacement with constant acceleration
-/// 
+///
 /// # Arguments
 /// * `v0` - Initial velocity (m/s)
 /// * `a` - Acceleration (m/s²)
 /// * `t` - Time (s)
-/// 
+///
 /// # Returns
 /// Displacement (m)
 pub fn displacement(v0: f64, a: f64, t: f64) -> f64 {
@@ -16,12 +16,12 @@ pub fn displacement(v0: f64, a: f64, t: f64) -> f64 {
 }
 
 /// Calculate final velocity with constant acceleration
-/// 
+///
 /// # Arguments
 /// * `v0` - Initial velocity (m/s)
 /// * `a` - Acceleration (m/s²)
 /// * `t` - Time (s)
-/// 
+///
 /// # Returns
 /// Final velocity (m/s)
 pub fn final_velocity(v0: f64, a: f64, t: f64) -> f64 {
@@ -29,26 +29,28 @@ pub fn final_velocity(v0: f64, a: f64, t: f64) -> f64 {
 }
 
 /// Calculate velocity from displacement and acceleration
-/// 
+///
 /// # Arguments
 /// * `v0` - Initial velocity (m/s)
 /// * `a` - Acceleration (m/s²)
 /// * `d` - Displacement (m)
-/// 
+///
 /// # Returns
 /// Final velocity (m/s), or `None` if `v0² + 2ad` is negative (no real solution).
 pub fn velocity_from_displacement(v0: f64, a: f64, d: f64) -> Option<f64> {
     let radicand = v0 * v0 + 2.0 * a * d;
-    if radicand < 0.0 { return None; }
+    if radicand < 0.0 {
+        return None;
+    }
     Some(radicand.sqrt())
 }
 
 /// Calculate kinetic energy
-/// 
+///
 /// # Arguments
 /// * `m` - Mass (kg)
 /// * `v` - Velocity (m/s)
-/// 
+///
 /// # Returns
 /// Kinetic energy (J)
 pub fn kinetic_energy(m: f64, v: f64) -> f64 {
@@ -56,12 +58,12 @@ pub fn kinetic_energy(m: f64, v: f64) -> f64 {
 }
 
 /// Calculate potential energy (gravitational)
-/// 
+///
 /// # Arguments
 /// * `m` - Mass (kg)
 /// * `h` - Height (m)
 /// * `g` - Gravitational acceleration (default: 9.80665 m/s²)
-/// 
+///
 /// # Returns
 /// Potential energy (J)
 pub fn potential_energy(m: f64, h: f64, g: Option<f64>) -> f64 {
@@ -69,11 +71,11 @@ pub fn potential_energy(m: f64, h: f64, g: Option<f64>) -> f64 {
 }
 
 /// Calculate momentum
-/// 
+///
 /// # Arguments
 /// * `m` - Mass (kg)
 /// * `v` - Velocity (m/s)
-/// 
+///
 /// # Returns
 /// Momentum (kg·m/s)
 pub fn momentum(m: f64, v: f64) -> f64 {
@@ -81,11 +83,11 @@ pub fn momentum(m: f64, v: f64) -> f64 {
 }
 
 /// Calculate force from mass and acceleration
-/// 
+///
 /// # Arguments
 /// * `m` - Mass (kg)
 /// * `a` - Acceleration (m/s²)
-/// 
+///
 /// # Returns
 /// Force (N)
 pub fn force(m: f64, a: f64) -> f64 {
@@ -113,66 +115,74 @@ pub fn work_deg(f: f64, d: f64, theta_deg: f64) -> f64 {
 }
 
 /// Calculate power
-/// 
+///
 /// # Arguments
 /// * `w` - Work done (J)
 /// * `t` - Time (s)
-/// 
+///
 /// # Returns
 /// Power (W), or `None` if the time is zero.
 pub fn power(w: f64, t: f64) -> Option<f64> {
-    if t == 0.0 { return None; }
+    if t == 0.0 {
+        return None;
+    }
     Some(w / t)
 }
 
 /// Calculate centripetal force
-/// 
+///
 /// # Arguments
 /// * `m` - Mass (kg)
 /// * `v` - Velocity (m/s)
 /// * `r` - Radius (m)
-/// 
+///
 /// # Returns
 /// Centripetal force (N), or `None` if the radius is zero.
 pub fn centripetal_force(m: f64, v: f64, r: f64) -> Option<f64> {
-    if r == 0.0 { return None; }
+    if r == 0.0 {
+        return None;
+    }
     Some(m * v * v / r)
 }
 
 /// Calculate gravitational force between two masses
-/// 
+///
 /// # Arguments
 /// * `m1` - First mass (kg)
 /// * `m2` - Second mass (kg)
 /// * `r` - Distance between masses (m)
-/// 
+///
 /// # Returns
 /// Gravitational force (N), or `None` if the distance is zero.
 pub fn gravitational_force(m1: f64, m2: f64, r: f64) -> Option<f64> {
-    if r == 0.0 { return None; }
+    if r == 0.0 {
+        return None;
+    }
     Some(crate::constants::G * m1 * m2 / (r * r))
 }
 
 /// Calculate period of a simple pendulum
-/// 
+///
 /// # Arguments
 /// * `l` - Length of pendulum (m)
 /// * `g` - Gravitational acceleration (default: 9.80665 m/s²)
-/// 
+///
 /// # Returns
 /// Period (s), or `None` if `l < 0` or `g <= 0`.
 pub fn pendulum_period(l: f64, g: Option<f64>) -> Option<f64> {
     let g = g.unwrap_or(G_0);
-    if l < 0.0 || g <= 0.0 { return None; }
+    if l < 0.0 || g <= 0.0 {
+        return None;
+    }
     Some(2.0 * std::f64::consts::PI * (l / g).sqrt())
 }
 
 /// Calculate spring force (Hooke's law)
-/// 
+///
 /// # Arguments
 /// * `k` - Spring constant (N/m)
 /// * `x` - Displacement from equilibrium (m)
-/// 
+///
 /// # Returns
 /// Spring force (N)
 pub fn spring_force(k: f64, x: f64) -> f64 {
@@ -180,24 +190,26 @@ pub fn spring_force(k: f64, x: f64) -> f64 {
 }
 
 /// Calculate angular velocity
-/// 
+///
 /// # Arguments
 /// * `v` - Linear velocity (m/s)
 /// * `r` - Radius (m)
-/// 
+///
 /// # Returns
 /// Angular velocity (rad/s), or `None` if the radius is zero.
 pub fn angular_velocity(v: f64, r: f64) -> Option<f64> {
-    if r == 0.0 { return None; }
+    if r == 0.0 {
+        return None;
+    }
     Some(v / r)
 }
 
 /// Calculate moment of inertia for a solid cylinder
-/// 
+///
 /// # Arguments
 /// * `m` - Mass (kg)
 /// * `r` - Radius (m)
-/// 
+///
 /// # Returns
 /// Moment of inertia (kg·m²)
 pub fn moment_of_inertia_cylinder(m: f64, r: f64) -> f64 {
@@ -205,11 +217,11 @@ pub fn moment_of_inertia_cylinder(m: f64, r: f64) -> f64 {
 }
 
 /// Calculate moment of inertia for a solid sphere
-/// 
+///
 /// # Arguments
 /// * `m` - Mass (kg)
 /// * `r` - Radius (m)
-/// 
+///
 /// # Returns
 /// Moment of inertia (kg·m²)
 pub fn moment_of_inertia_sphere(m: f64, r: f64) -> f64 {
@@ -249,13 +261,21 @@ mod tests {
 
     #[test]
     fn test_velocity_from_displacement() {
-        assert_relative_eq!(velocity_from_displacement(0.0, 9.8, 2.0).unwrap(), 39.2_f64.sqrt(), epsilon = 1e-6);
+        assert_relative_eq!(
+            velocity_from_displacement(0.0, 9.8, 2.0).unwrap(),
+            39.2_f64.sqrt(),
+            epsilon = 1e-6
+        );
         assert!(velocity_from_displacement(1.0, -0.5, 100.0).is_none());
     }
 
     #[test]
     fn test_potential_energy_uses_g_0() {
-        assert_relative_eq!(potential_energy(2.0, 3.0, None), 2.0 * 3.0 * G_0, epsilon = 1e-9);
+        assert_relative_eq!(
+            potential_energy(2.0, 3.0, None),
+            2.0 * 3.0 * G_0,
+            epsilon = 1e-9
+        );
         assert_relative_eq!(potential_energy(2.0, 3.0, Some(10.0)), 60.0, epsilon = 1e-9);
     }
 

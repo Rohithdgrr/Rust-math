@@ -3,7 +3,9 @@
 /// Solves a 2×2 system `Ax = b` using Cramer's rule.
 pub fn solve_2x2(a: [[f64; 2]; 2], b: [f64; 2]) -> Option<[f64; 2]> {
     let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
-    if det.abs() < 1e-15 { return None; }
+    if det.abs() < 1e-15 {
+        return None;
+    }
     Some([
         (b[0] * a[1][1] - b[1] * a[0][1]) / det,
         (a[0][0] * b[1] - a[1][0] * b[0]) / det,
@@ -13,42 +15,71 @@ pub fn solve_2x2(a: [[f64; 2]; 2], b: [f64; 2]) -> Option<[f64; 2]> {
 /// Solves a 3×3 system `Ax = b` via the inverse-matrix method.
 pub fn solve_3x3(a: [[f64; 3]; 3], b: [f64; 3]) -> Option<[f64; 3]> {
     let det = a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1])
-            - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0])
-            + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
-    if det.abs() < 1e-15 { return None; }
+        - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0])
+        + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
+    if det.abs() < 1e-15 {
+        return None;
+    }
     let inv = [
-        [a[1][1]*a[2][2]-a[1][2]*a[2][1], a[0][2]*a[2][1]-a[0][1]*a[2][2], a[0][1]*a[1][2]-a[0][2]*a[1][1]],
-        [a[1][2]*a[2][0]-a[1][0]*a[2][2], a[0][0]*a[2][2]-a[0][2]*a[2][0], a[0][2]*a[1][0]-a[0][0]*a[1][2]],
-        [a[1][0]*a[2][1]-a[1][1]*a[2][0], a[0][1]*a[2][0]-a[0][0]*a[2][1], a[0][0]*a[1][1]-a[0][1]*a[1][0]],
+        [
+            a[1][1] * a[2][2] - a[1][2] * a[2][1],
+            a[0][2] * a[2][1] - a[0][1] * a[2][2],
+            a[0][1] * a[1][2] - a[0][2] * a[1][1],
+        ],
+        [
+            a[1][2] * a[2][0] - a[1][0] * a[2][2],
+            a[0][0] * a[2][2] - a[0][2] * a[2][0],
+            a[0][2] * a[1][0] - a[0][0] * a[1][2],
+        ],
+        [
+            a[1][0] * a[2][1] - a[1][1] * a[2][0],
+            a[0][1] * a[2][0] - a[0][0] * a[2][1],
+            a[0][0] * a[1][1] - a[0][1] * a[1][0],
+        ],
     ];
-    Some([
-        inv[0][0]*b[0]+inv[0][1]*b[1]+inv[0][2]*b[2],
-        inv[1][0]*b[0]+inv[1][1]*b[1]+inv[1][2]*b[2],
-        inv[2][0]*b[0]+inv[2][1]*b[1]+inv[2][2]*b[2],
-    ].map(|v| v / det))
+    Some(
+        [
+            inv[0][0] * b[0] + inv[0][1] * b[1] + inv[0][2] * b[2],
+            inv[1][0] * b[0] + inv[1][1] * b[1] + inv[1][2] * b[2],
+            inv[2][0] * b[0] + inv[2][1] * b[1] + inv[2][2] * b[2],
+        ]
+        .map(|v| v / det),
+    )
 }
 
 /// Reduces `matrix` to row echelon form in place using partial pivoting.
 /// Returns `true` if the coefficient part (all but the last column) has full rank.
 pub fn row_reduce(matrix: &mut [Vec<f64>]) -> bool {
     let n = matrix.len();
-    if n == 0 { return true; }
+    if n == 0 {
+        return true;
+    }
     let m = matrix[0].len();
     // A zero-column matrix has nothing to reduce; it is only "full rank"
     // when it also has no rows (which is handled above).
-    if m == 0 { return n == 0; }
+    if m == 0 {
+        return n == 0;
+    }
     let mut row = 0;
-    for col in 0..m-1 {
-        if row >= n { break; }
+    for col in 0..m - 1 {
+        if row >= n {
+            break;
+        }
         let mut max_row = row;
-        for r in row+1..n {
-            if matrix[r][col].abs() > matrix[max_row][col].abs() { max_row = r; }
+        for r in row + 1..n {
+            if matrix[r][col].abs() > matrix[max_row][col].abs() {
+                max_row = r;
+            }
         }
         matrix.swap(row, max_row);
-        if matrix[row][col].abs() < 1e-15 { continue; }
-        for r in row+1..n {
+        if matrix[row][col].abs() < 1e-15 {
+            continue;
+        }
+        for r in row + 1..n {
             let f = matrix[r][col] / matrix[row][col];
-            for c in col..m { matrix[r][c] -= f * matrix[row][c]; }
+            for c in col..m {
+                matrix[r][c] -= f * matrix[row][c];
+            }
         }
         row += 1;
     }
@@ -56,7 +87,9 @@ pub fn row_reduce(matrix: &mut [Vec<f64>]) -> bool {
 }
 
 /// Deprecated alias for [`row_reduce`].
-#[deprecated(note = "misleading name — only does row reduction, does not solve. Use `row_reduce` or `solve_gauss`")]
+#[deprecated(
+    note = "misleading name — only does row reduction, does not solve. Use `row_reduce` or `solve_gauss`"
+)]
 pub fn gaussian_elimination(matrix: &mut [Vec<f64>]) -> bool {
     row_reduce(matrix)
 }

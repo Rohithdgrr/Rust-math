@@ -17,7 +17,11 @@ fn series_block(x: f64, a: u64, alternating: bool) -> f64 {
     let mut k = 1.0;
     loop {
         term *= quarter / (k * (k + a as f64));
-        sum += if alternating && k % 2.0 == 1.0 { -term } else { term };
+        sum += if alternating && k % 2.0 == 1.0 {
+            -term
+        } else {
+            term
+        };
         if term.abs() < sum.abs() * 1e-16 || k > 500.0 {
             break;
         }

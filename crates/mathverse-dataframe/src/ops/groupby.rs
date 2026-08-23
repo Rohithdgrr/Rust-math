@@ -284,7 +284,11 @@ impl GroupBy<'_> {
     }
 
     /// Adds the key columns to the result, one row per group.
-    fn add_key_columns(&self, result: &mut DataFrame, groups: &[(Vec<u8>, Vec<usize>)]) -> DataFrameResult<()> {
+    fn add_key_columns(
+        &self,
+        result: &mut DataFrame,
+        groups: &[(Vec<u8>, Vec<usize>)],
+    ) -> DataFrameResult<()> {
         for name in &self.keys {
             let col = self.df.column(name)?;
             let picks: Vec<usize> = groups.iter().map(|(_, rows)| rows[0]).collect();
@@ -355,12 +359,16 @@ impl DataFrame {
         let columns_col_data = self.column(columns_col)?;
 
         // Build (index_key, column_key) -> Vec<row> mapping.
-        let mut cell_map: alloc::collections::BTreeMap<Vec<u8>, alloc::collections::BTreeMap<Vec<u8>, Vec<usize>>> =
-            alloc::collections::BTreeMap::new();
+        let mut cell_map: alloc::collections::BTreeMap<
+            Vec<u8>,
+            alloc::collections::BTreeMap<Vec<u8>, Vec<usize>>,
+        > = alloc::collections::BTreeMap::new();
         // Track unique column keys in order.
-        let mut col_keys_seen: alloc::collections::BTreeMap<Vec<u8>, String> = alloc::collections::BTreeMap::new();
+        let mut col_keys_seen: alloc::collections::BTreeMap<Vec<u8>, String> =
+            alloc::collections::BTreeMap::new();
         // Track unique index keys in order.
-        let mut idx_keys_seen: alloc::collections::BTreeMap<Vec<u8>, String> = alloc::collections::BTreeMap::new();
+        let mut idx_keys_seen: alloc::collections::BTreeMap<Vec<u8>, String> =
+            alloc::collections::BTreeMap::new();
 
         for row in 0..self.nrows() {
             if index_col_data.is_null(row) || columns_col_data.is_null(row) || values.is_null(row) {
@@ -377,7 +385,12 @@ impl DataFrame {
 
             idx_keys_seen.entry(idx_key.clone()).or_insert(idx_name);
             col_keys_seen.entry(col_key.clone()).or_insert(col_name);
-            cell_map.entry(idx_key).or_default().entry(col_key).or_default().push(row);
+            cell_map
+                .entry(idx_key)
+                .or_default()
+                .entry(col_key)
+                .or_default()
+                .push(row);
         }
 
         // Build result DataFrame.
@@ -459,10 +472,7 @@ fn order_preserving_f64(bits: u64) -> u64 {
 fn is_numeric(col: &AnyColumn) -> bool {
     matches!(
         col,
-        AnyColumn::Float64(_)
-            | AnyColumn::Float32(_)
-            | AnyColumn::Int64(_)
-            | AnyColumn::Int32(_)
+        AnyColumn::Float64(_) | AnyColumn::Float32(_) | AnyColumn::Int64(_) | AnyColumn::Int32(_)
     )
 }
 
@@ -513,8 +523,16 @@ mod tests {
 
     fn sample() -> DataFrame {
         let mut df = DataFrame::new();
-        df.add_column("city", vec![String::from("NYC"), String::from("LA"), String::from("NYC"), String::from("LA")])
-            .unwrap();
+        df.add_column(
+            "city",
+            vec![
+                String::from("NYC"),
+                String::from("LA"),
+                String::from("NYC"),
+                String::from("LA"),
+            ],
+        )
+        .unwrap();
         df.add_column("temp", vec![20.0, 25.0, 22.0, 30.0]).unwrap();
         df.add_column("rain", vec![1.0, 0.0, 0.0, 1.0]).unwrap();
         df
@@ -563,8 +581,11 @@ mod tests {
     #[test]
     fn group_multi_key() {
         let mut df = DataFrame::new();
-        df.add_column("a", vec![String::from("x"), String::from("x"), String::from("y")])
-            .unwrap();
+        df.add_column(
+            "a",
+            vec![String::from("x"), String::from("x"), String::from("y")],
+        )
+        .unwrap();
         df.add_column("b", vec![1_i64, 1, 2]).unwrap();
         df.add_column("v", vec![10.0, 20.0, 30.0]).unwrap();
         let g = df.group_by(&["a", "b"]).unwrap().sum().unwrap();
@@ -594,7 +615,11 @@ mod tests {
     #[test]
     fn group_transform_mean() {
         let df = sample();
-        let t = df.group_by(&["city"]).unwrap().transform(AggOp::Mean).unwrap();
+        let t = df
+            .group_by(&["city"])
+            .unwrap()
+            .transform(AggOp::Mean)
+            .unwrap();
         assert_eq!(t.nrows(), df.nrows()); // same shape
         assert_eq!(t.ncols(), df.ncols());
         let temps = t.column("temp_mean").unwrap().as_f64().unwrap();
@@ -608,17 +633,31 @@ mod tests {
     #[test]
     fn pivot_table_mean() {
         let mut df = DataFrame::new();
-        df.add_column("city", vec![
-            String::from("NYC"), String::from("NYC"),
-            String::from("LA"), String::from("LA"),
-        ]).unwrap();
-        df.add_column("season", vec![
-            String::from("summer"), String::from("winter"),
-            String::from("summer"), String::from("winter"),
-        ]).unwrap();
+        df.add_column(
+            "city",
+            vec![
+                String::from("NYC"),
+                String::from("NYC"),
+                String::from("LA"),
+                String::from("LA"),
+            ],
+        )
+        .unwrap();
+        df.add_column(
+            "season",
+            vec![
+                String::from("summer"),
+                String::from("winter"),
+                String::from("summer"),
+                String::from("winter"),
+            ],
+        )
+        .unwrap();
         df.add_column("temp", vec![30.0, 0.0, 25.0, 10.0]).unwrap();
 
-        let pivot = df.pivot_table("temp", "city", "season", AggOp::Mean).unwrap();
+        let pivot = df
+            .pivot_table("temp", "city", "season", AggOp::Mean)
+            .unwrap();
         assert_eq!(pivot.nrows(), 2); // NYC, LA
         assert!(pivot.has_column("city"));
         assert!(pivot.has_column("season=summer"));

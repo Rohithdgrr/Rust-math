@@ -2,7 +2,9 @@
 
 /// Unsigned Stirling number of the first kind S1(n, k).
 pub fn stirling1_unsigned(n: u64, k: u64) -> u128 {
-    if k > n { return 0; }
+    if k > n {
+        return 0;
+    }
     let (n, k) = (n as usize, k as usize);
     let mut t = vec![vec![0u128; k + 1]; n + 1];
     t[0][0] = 1;
@@ -14,8 +16,12 @@ pub fn stirling1_unsigned(n: u64, k: u64) -> u128 {
     t[n][k]
 }
 
+/// Number of ways to partition `n` items into `k` non-empty unlabeled subsets.
+#[must_use]
 pub fn stirling2(n: u64, k: u64) -> u128 {
-    if k > n { return 0; }
+    if k > n {
+        return 0;
+    }
     let (n, k) = (n as usize, k as usize);
     let mut t = vec![vec![0u128; k + 1]; n + 1];
     t[0][0] = 1;
@@ -27,6 +33,8 @@ pub fn stirling2(n: u64, k: u64) -> u128 {
     t[n][k]
 }
 
+/// `n`th Bell number: total number of partitions of a set of `n` items.
+#[must_use]
 pub fn bell(n: u64) -> u128 {
     let n = n as usize;
     let mut t = vec![vec![0u128; n + 1]; n + 1];
@@ -40,9 +48,13 @@ pub fn bell(n: u64) -> u128 {
     t[n][0]
 }
 
+/// Number of derangements (permutations with no fixed point) of `n` items.
+#[must_use]
 pub fn derangements(n: u64) -> u128 {
     let n = n as usize;
-    if n == 0 { return 1; }
+    if n == 0 {
+        return 1;
+    }
     let (mut a, mut b) = (1u128, 0u128);
     for i in 2..=n {
         let t = (i as u128 - 1) * (b + a);
@@ -52,16 +64,29 @@ pub fn derangements(n: u64) -> u128 {
     b
 }
 
-pub fn Lah_number(n: u64, k: u64) -> u128 {
-    if k > n || n == 0 { return 0; }
-    if k == 0 { return 0; }
+/// Number of partitions of `n` into `k` non-empty linearly ordered subsets.
+#[must_use]
+pub fn lah_number(n: u64, k: u64) -> u128 {
     use mathverse_core::algorithms::binomial;
-    mathverse_core::algorithms::factorial(n) / mathverse_core::algorithms::factorial(k) * binomial(n - 1, k - 1)
+
+    if k > n || n == 0 {
+        return 0;
+    }
+    if k == 0 {
+        return 0;
+    }
+    mathverse_core::algorithms::factorial(n) / mathverse_core::algorithms::factorial(k)
+        * binomial(n - 1, k - 1)
 }
 
+/// Eulerian number A(n, k): number of permutations of `n` elements with
+/// exactly `k` ascents.
+#[must_use]
 pub fn eulerian_number(n: u64, k: u64) -> u128 {
     if k >= n {
-        if n == 0 && k == 0 { return 1; }
+        if n == 0 && k == 0 {
+            return 1;
+        }
         return 0;
     }
     let (n, k) = (n as usize, k as usize);
@@ -111,7 +136,7 @@ mod tests {
 
     #[test]
     fn lah() {
-        assert_eq!(Lah_number(4, 2), 36);
-        assert_eq!(Lah_number(3, 3), 1);
+        assert_eq!(lah_number(4, 2), 36);
+        assert_eq!(lah_number(3, 3), 1);
     }
 }

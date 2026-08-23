@@ -1,4 +1,4 @@
-﻿use alloc::string::{String, ToString};
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt;
 
@@ -225,7 +225,10 @@ impl AnyColumn {
     /// Returns `IndexOutOfBounds` if `pos >= len`.
     pub fn get_str(&self, pos: usize) -> DataFrameResult<String> {
         if pos >= self.len() {
-            return Err(DataFrameError::IndexOutOfBounds { index: pos, length: self.len() });
+            return Err(DataFrameError::IndexOutOfBounds {
+                index: pos,
+                length: self.len(),
+            });
         }
         match self {
             Self::Float64(s) => Ok(alloc::format!("{}", s.data()[pos])),
@@ -267,7 +270,11 @@ impl AnyColumn {
             Self::Float32(s) => s.data().iter().map(|&v| f64::from(v)).collect(),
             Self::Int64(s) => s.data().iter().map(|&v| v as f64).collect(),
             Self::Int32(s) => s.data().iter().map(|&v| f64::from(v)).collect(),
-            Self::Bool(s) => s.data().iter().map(|&v| if v { 1.0 } else { 0.0 }).collect(),
+            Self::Bool(s) => s
+                .data()
+                .iter()
+                .map(|&v| if v { 1.0 } else { 0.0 })
+                .collect(),
             Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
                 s.data().iter().map(|&v| v as f64).collect()
             }
@@ -330,13 +337,9 @@ impl AnyColumn {
             ))),
             // Note: preserved legacy behavior of returning `Date` for all
             // date-time-like columns.
-            Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
-                Ok(Self::Date(Series::with_validity(
-                    s.name(),
-                    gather_positions(s, positions)?,
-                    validity,
-                )))
-            }
+            Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => Ok(Self::Date(
+                Series::with_validity(s.name(), gather_positions(s, positions)?, validity),
+            )),
         }
     }
 
@@ -383,7 +386,11 @@ impl AnyColumn {
                 )))
             }
             Self::Bool(s) => {
-                let data: Vec<f32> = s.data().iter().map(|&v| if v { 1.0 } else { 0.0 }).collect();
+                let data: Vec<f32> = s
+                    .data()
+                    .iter()
+                    .map(|&v| if v { 1.0 } else { 0.0 })
+                    .collect();
                 Ok(Self::Float32(Series::with_validity(
                     s.name(),
                     data,
@@ -650,14 +657,18 @@ impl AnyColumn {
     pub fn str_strip(&self) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
-                let data: Vec<String> = s.data().iter().map(|v| {
-                    let trimmed = v.trim();
-                    if trimmed.len() == v.len() {
-                        v.clone()
-                    } else {
-                        trimmed.to_string()
-                    }
-                }).collect();
+                let data: Vec<String> = s
+                    .data()
+                    .iter()
+                    .map(|v| {
+                        let trimmed = v.trim();
+                        if trimmed.len() == v.len() {
+                            v.clone()
+                        } else {
+                            trimmed.to_string()
+                        }
+                    })
+                    .collect();
                 let validity = crate::null::NullBitmap::from_bools(
                     &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
                 );
@@ -684,29 +695,33 @@ impl AnyColumn {
     pub fn str_replace(&self, from: &str, to: &str, count: Option<usize>) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
-                let data: Vec<String> = s.data().iter().map(|v| {
-                    count.map_or_else(
-                        || v.replace(from, to),
-                        |n| {
-                            let mut result = String::new();
-                            let mut remaining = v.as_str();
-                            let mut replaced = 0;
-                            while let Some(idx) = remaining.find(from) {
-                                if replaced >= n {
-                                    result.push_str(remaining);
-                                    remaining = "";
-                                    break;
+                let data: Vec<String> = s
+                    .data()
+                    .iter()
+                    .map(|v| {
+                        count.map_or_else(
+                            || v.replace(from, to),
+                            |n| {
+                                let mut result = String::new();
+                                let mut remaining = v.as_str();
+                                let mut replaced = 0;
+                                while let Some(idx) = remaining.find(from) {
+                                    if replaced >= n {
+                                        result.push_str(remaining);
+                                        remaining = "";
+                                        break;
+                                    }
+                                    result.push_str(&remaining[..idx]);
+                                    result.push_str(to);
+                                    remaining = &remaining[idx + from.len()..];
+                                    replaced += 1;
                                 }
-                                result.push_str(&remaining[..idx]);
-                                result.push_str(to);
-                                remaining = &remaining[idx + from.len()..];
-                                replaced += 1;
-                            }
-                            result.push_str(remaining);
-                            result
-                        },
-                    )
-                }).collect();
+                                result.push_str(remaining);
+                                result
+                            },
+                        )
+                    })
+                    .collect();
                 let validity = crate::null::NullBitmap::from_bools(
                     &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
                 );
@@ -833,15 +848,19 @@ impl AnyColumn {
     pub fn str_pad_left(&self, width: usize, pad_char: char) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
-                let data: Vec<String> = s.data().iter().map(|v| {
-                    if v.len() >= width {
-                        v.clone()
-                    } else {
-                        let pad: String = std::iter::repeat_n(pad_char, width - v.len())
-                            .collect();
-                        alloc::format!("{pad}{v}")
-                    }
-                }).collect();
+                let data: Vec<String> = s
+                    .data()
+                    .iter()
+                    .map(|v| {
+                        if v.len() >= width {
+                            v.clone()
+                        } else {
+                            let pad: String =
+                                std::iter::repeat_n(pad_char, width - v.len()).collect();
+                            alloc::format!("{pad}{v}")
+                        }
+                    })
+                    .collect();
                 let validity = crate::null::NullBitmap::from_bools(
                     &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
                 );
@@ -864,7 +883,11 @@ impl AnyColumn {
         let validity = crate::null::NullBitmap::from_bools(
             &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
         );
-        Ok(Self::Float64(Series::with_validity(s.name(), data, validity)))
+        Ok(Self::Float64(Series::with_validity(
+            s.name(),
+            data,
+            validity,
+        )))
     }
 
     /// Returns a new column with ranks assigned. `method` is one of:
@@ -947,7 +970,11 @@ impl AnyColumn {
         let validity = crate::null::NullBitmap::from_bools(
             &(0..self.len()).map(|i| self.is_null(i)).collect::<Vec<_>>(),
         );
-        Ok(Self::Float64(Series::with_validity(self.name(), out_data, validity)))
+        Ok(Self::Float64(Series::with_validity(
+            self.name(),
+            out_data,
+            validity,
+        )))
     }
 
     /// Returns a boolean column: `true` where the value is an outlier
@@ -968,9 +995,18 @@ impl AnyColumn {
         let lower = k.mul_add(-iqr, q1);
         let upper = k.mul_add(iqr, q3);
         let s = self.to_f64()?;
-        let flags: Vec<bool> = s.data().iter().enumerate().map(|(i, &v)| {
-            if s.is_null(i) { false } else { v < lower || v > upper }
-        }).collect();
+        let flags: Vec<bool> = s
+            .data()
+            .iter()
+            .enumerate()
+            .map(|(i, &v)| {
+                if s.is_null(i) {
+                    false
+                } else {
+                    v < lower || v > upper
+                }
+            })
+            .collect();
         Ok(Self::Bool(Series::new(self.name(), flags)))
     }
 
@@ -991,14 +1027,22 @@ impl AnyColumn {
             let validity = crate::null::NullBitmap::from_bools(
                 &(0..self.len()).map(|i| self.is_null(i)).collect::<Vec<_>>(),
             );
-            return Ok(Self::Float64(Series::with_validity(self.name(), data, validity)));
+            return Ok(Self::Float64(Series::with_validity(
+                self.name(),
+                data,
+                validity,
+            )));
         }
         let s = self.to_f64()?;
         let data: Vec<f64> = s.data().iter().map(|v| (v - mean) / std).collect();
         let validity = crate::null::NullBitmap::from_bools(
             &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
         );
-        Ok(Self::Float64(Series::with_validity(s.name(), data, validity)))
+        Ok(Self::Float64(Series::with_validity(
+            s.name(),
+            data,
+            validity,
+        )))
     }
 
     /// Returns a new Float64 column scaled to `[0, 1]` (min-max) or
@@ -1008,7 +1052,10 @@ impl AnyColumn {
         let s = self.to_f64()?;
         match method {
             "minmax" => {
-                let vals: Vec<f64> = s.data().iter().enumerate()
+                let vals: Vec<f64> = s
+                    .data()
+                    .iter()
+                    .enumerate()
                     .filter(|(i, _)| !s.is_null(*i))
                     .map(|(_, &v)| v)
                     .collect();
@@ -1026,10 +1073,17 @@ impl AnyColumn {
                 let validity = crate::null::NullBitmap::from_bools(
                     &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
                 );
-                Ok(Self::Float64(Series::with_validity(s.name(), data, validity)))
+                Ok(Self::Float64(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity,
+                )))
             }
             "maxabs" => {
-                let max_abs = s.data().iter().enumerate()
+                let max_abs = s
+                    .data()
+                    .iter()
+                    .enumerate()
                     .filter(|(i, _)| !s.is_null(*i))
                     .map(|(_, &v)| v.abs())
                     .fold(0.0f64, f64::max);
@@ -1041,7 +1095,11 @@ impl AnyColumn {
                 let validity = crate::null::NullBitmap::from_bools(
                     &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
                 );
-                Ok(Self::Float64(Series::with_validity(s.name(), data, validity)))
+                Ok(Self::Float64(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity,
+                )))
             }
             other => Err(DataFrameError::InvalidOperation(alloc::format!(
                 "unknown normalize method '{other}', expected minmax|maxabs"
@@ -1054,7 +1112,12 @@ impl fmt::Display for AnyColumn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let max_display = 5;
         let len = self.len();
-        write!(f, "Column(\"{}\" [{}], len={len}): ", self.name(), self.dtype())?;
+        write!(
+            f,
+            "Column(\"{}\" [{}], len={len}): ",
+            self.name(),
+            self.dtype()
+        )?;
         for i in 0..len.min(max_display) {
             if i > 0 {
                 write!(f, ", ")?;

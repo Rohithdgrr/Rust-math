@@ -159,11 +159,7 @@ pub fn segmented_sieve(low: u64, high: u64) -> Vec<u64> {
         if p * p > high {
             break;
         }
-        let start = if low <= p {
-            p * p
-        } else {
-            low.div_ceil(p) * p
-        };
+        let start = if low <= p { p * p } else { low.div_ceil(p) * p };
         let start = start.max(p * p);
         if start > high {
             continue;

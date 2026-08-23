@@ -21,7 +21,13 @@ use mathverse_numerical as num;
 /// let root = newton(|x| x*x - 2.0, |x| 2.0*x, 1.0, 1e-10, 100).unwrap();
 /// assert!((root - 1.41421).abs() < 1e-4);
 /// ```
-pub fn newton(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -> Option<f64> {
+pub fn newton(
+    f: impl Fn(f64) -> f64,
+    df: impl Fn(f64) -> f64,
+    x0: f64,
+    tol: f64,
+    max_iter: usize,
+) -> Option<f64> {
     num::newton_raphson(&f, &df, x0, tol, max_iter).ok()
 }
 
@@ -56,15 +62,25 @@ pub fn bisection(f: impl Fn(f64) -> f64, a0: f64, b0: f64, tol: f64) -> Option<f
 }
 
 /// Newton's method for a system of nonlinear equations.
-pub fn newton_system(f: &[impl Fn(&[f64]) -> f64], j: &impl Fn(&[f64]) -> Vec<Vec<f64>>, x0: &[f64], tol: f64, max_iter: usize) -> Option<Vec<f64>> {
+pub fn newton_system(
+    f: &[impl Fn(&[f64]) -> f64],
+    j: &impl Fn(&[f64]) -> Vec<Vec<f64>>,
+    x0: &[f64],
+    tol: f64,
+    max_iter: usize,
+) -> Option<Vec<f64>> {
     let n = x0.len();
     let mut x = x0.to_vec();
     for _ in 0..max_iter {
         let fx: Vec<f64> = f.iter().map(|fi| fi(&x)).collect();
-        if fx.iter().map(|v| v * v).sum::<f64>().sqrt() < tol { return Some(x); }
+        if fx.iter().map(|v| v * v).sum::<f64>().sqrt() < tol {
+            return Some(x);
+        }
         let jac = j(&x);
         let dx = super::matrix_eq::solve_gauss(&jac, &fx)?;
-        for i in 0..n { x[i] -= dx[i]; }
+        for i in 0..n {
+            x[i] -= dx[i];
+        }
     }
     Some(x)
 }
@@ -75,19 +91,19 @@ mod tests {
 
     #[test]
     fn newton_sqrt() {
-        let x = newton(|x| x*x - 2.0, |x| 2.0*x, 1.0, 1e-15, 100).unwrap();
+        let x = newton(|x| x * x - 2.0, |x| 2.0 * x, 1.0, 1e-15, 100).unwrap();
         assert!((x - 2.0_f64.sqrt()).abs() < 1e-12);
     }
 
     #[test]
     fn secant_method() {
-        let x = secant(|x| x*x - 2.0, 1.0, 2.0, 1e-15, 100).unwrap();
+        let x = secant(|x| x * x - 2.0, 1.0, 2.0, 1e-15, 100).unwrap();
         assert!((x - 2.0_f64.sqrt()).abs() < 1e-12);
     }
 
     #[test]
     fn bisect() {
-        let x = bisection(|x| x*x - 2.0, 0.0, 2.0, 1e-12).unwrap();
+        let x = bisection(|x| x * x - 2.0, 0.0, 2.0, 1e-12).unwrap();
         assert!((x - 2.0_f64.sqrt()).abs() < 1e-10);
     }
 
@@ -95,13 +111,10 @@ mod tests {
     fn newton_system_test() {
         type ObjectiveVec = Vec<Box<dyn Fn(&[f64]) -> f64>>;
         let f: ObjectiveVec = vec![
-            Box::new(|x| x[0]*x[0] + x[1]*x[1] - 1.0),
+            Box::new(|x| x[0] * x[0] + x[1] * x[1] - 1.0),
             Box::new(|x| x[0] - x[1]),
         ];
-        let j = |x: &[f64]| vec![
-            vec![2.0*x[0], 2.0*x[1]],
-            vec![1.0, -1.0],
-        ];
+        let j = |x: &[f64]| vec![vec![2.0 * x[0], 2.0 * x[1]], vec![1.0, -1.0]];
         let result = newton_system(&f, &j, &[0.5, 0.5], 1e-12, 100).unwrap();
         let expected = 1.0 / 2.0_f64.sqrt();
         assert!((result[0] - expected).abs() < 1e-10);

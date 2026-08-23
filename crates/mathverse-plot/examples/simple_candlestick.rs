@@ -4,8 +4,8 @@
 //! Run: `cargo run -p mathverse-plot --example simple_candlestick`
 
 use mathverse_finance::investment::holding_period_return;
-use mathverse_plot::{render_candlestick_svg, Candlestick, CandlestickSeries};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{render_candlestick_svg, Candlestick, CandlestickSeries};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let candles = vec![

@@ -61,10 +61,9 @@ impl Color {
                 "silver" => (192, 192, 192),
                 "lime" => (0, 255, 0),
                 other => {
-                    let h = other
-                        .as_bytes()
-                        .iter()
-                        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(u64::from(*b)));
+                    let h = other.as_bytes().iter().fold(0u64, |acc, b| {
+                        acc.wrapping_mul(31).wrapping_add(u64::from(*b))
+                    });
                     let v = (h & 0xFF) as u8;
                     (v, v, v)
                 }

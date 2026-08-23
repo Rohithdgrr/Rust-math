@@ -89,7 +89,9 @@ fn linear_regression(x: &[f64], y: &[f64]) -> LinReg {
     let r_squared = (ss_xy * ss_xy) / (ss_xx * ss_yy);
 
     // Standard error of estimate
-    let sse: f64 = y.iter().zip(x.iter())
+    let sse: f64 = y
+        .iter()
+        .zip(x.iter())
         .map(|(&yi, &xi)| (yi - (slope * xi + intercept)).powi(2))
         .sum();
     let se = (sse / (n - 2.0)).sqrt();

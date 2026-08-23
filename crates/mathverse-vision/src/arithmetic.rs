@@ -39,7 +39,11 @@ pub fn add_scalar(img: &Image, s: f64) -> Image {
 ///
 /// Panics if the images have different dimensions.
 pub fn subtract(a: &Image, b: &Image) -> Image {
-    assert_eq!((a.w, a.h), (b.w, b.h), "subtract: image dimensions must match");
+    assert_eq!(
+        (a.w, a.h),
+        (b.w, b.h),
+        "subtract: image dimensions must match"
+    );
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
         out.data[i] = (x - y).clamp(0.0, 1.0);
@@ -64,7 +68,11 @@ pub fn subtract_scalar(img: &Image, s: f64) -> Image {
 ///
 /// Panics if the images have different dimensions.
 pub fn absdiff(a: &Image, b: &Image) -> Image {
-    assert_eq!((a.w, a.h), (b.w, b.h), "absdiff: image dimensions must match");
+    assert_eq!(
+        (a.w, a.h),
+        (b.w, b.h),
+        "absdiff: image dimensions must match"
+    );
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
         out.data[i] = (x - y).abs();
@@ -80,7 +88,11 @@ pub fn absdiff(a: &Image, b: &Image) -> Image {
 ///
 /// Panics if the images have different dimensions.
 pub fn multiply(a: &Image, b: &Image) -> Image {
-    assert_eq!((a.w, a.h), (b.w, b.h), "multiply: image dimensions must match");
+    assert_eq!(
+        (a.w, a.h),
+        (b.w, b.h),
+        "multiply: image dimensions must match"
+    );
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
         out.data[i] = (x * y).clamp(0.0, 1.0);
@@ -105,10 +117,18 @@ pub fn multiply_scalar(img: &Image, s: f64) -> Image {
 ///
 /// Panics if the images have different dimensions.
 pub fn divide(a: &Image, b: &Image) -> Image {
-    assert_eq!((a.w, a.h), (b.w, b.h), "divide: image dimensions must match");
+    assert_eq!(
+        (a.w, a.h),
+        (b.w, b.h),
+        "divide: image dimensions must match"
+    );
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
-        out.data[i] = if *y == 0.0 { 0.0 } else { (x / y).clamp(0.0, 1.0) };
+        out.data[i] = if *y == 0.0 {
+            0.0
+        } else {
+            (x / y).clamp(0.0, 1.0)
+        };
     }
     out
 }
@@ -117,7 +137,11 @@ pub fn divide(a: &Image, b: &Image) -> Image {
 pub fn divide_scalar(img: &Image, s: f64) -> Image {
     let mut out = img.clone();
     for v in &mut out.data {
-        *v = if s == 0.0 { 0.0 } else { (*v / s).clamp(0.0, 1.0) };
+        *v = if s == 0.0 {
+            0.0
+        } else {
+            (*v / s).clamp(0.0, 1.0)
+        };
     }
     out
 }
@@ -131,7 +155,11 @@ pub fn divide_scalar(img: &Image, s: f64) -> Image {
 ///
 /// Panics if the images have different dimensions.
 pub fn add_weighted(a: &Image, alpha: f64, b: &Image, beta: f64, gamma: f64) -> Image {
-    assert_eq!((a.w, a.h), (b.w, b.h), "add_weighted: image dimensions must match");
+    assert_eq!(
+        (a.w, a.h),
+        (b.w, b.h),
+        "add_weighted: image dimensions must match"
+    );
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
         out.data[i] = (alpha * x + beta * y + gamma).clamp(0.0, 1.0);
@@ -148,7 +176,11 @@ pub fn add_weighted(a: &Image, alpha: f64, b: &Image, beta: f64, gamma: f64) -> 
 ///
 /// Panics if the images have different dimensions.
 pub fn bitwise_and(a: &Image, b: &Image) -> Image {
-    assert_eq!((a.w, a.h), (b.w, b.h), "bitwise_and: image dimensions must match");
+    assert_eq!(
+        (a.w, a.h),
+        (b.w, b.h),
+        "bitwise_and: image dimensions must match"
+    );
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
         out.data[i] = if *x > 0.5 && *y > 0.5 { 1.0 } else { 0.0 };
@@ -165,7 +197,11 @@ pub fn bitwise_and(a: &Image, b: &Image) -> Image {
 ///
 /// Panics if the images have different dimensions.
 pub fn bitwise_or(a: &Image, b: &Image) -> Image {
-    assert_eq!((a.w, a.h), (b.w, b.h), "bitwise_or: image dimensions must match");
+    assert_eq!(
+        (a.w, a.h),
+        (b.w, b.h),
+        "bitwise_or: image dimensions must match"
+    );
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
         out.data[i] = if *x > 0.5 || *y > 0.5 { 1.0 } else { 0.0 };
@@ -182,7 +218,11 @@ pub fn bitwise_or(a: &Image, b: &Image) -> Image {
 ///
 /// Panics if the images have different dimensions.
 pub fn bitwise_xor(a: &Image, b: &Image) -> Image {
-    assert_eq!((a.w, a.h), (b.w, b.h), "bitwise_xor: image dimensions must match");
+    assert_eq!(
+        (a.w, a.h),
+        (b.w, b.h),
+        "bitwise_xor: image dimensions must match"
+    );
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
         out.data[i] = if (*x > 0.5) == (*y > 0.5) { 0.0 } else { 1.0 };

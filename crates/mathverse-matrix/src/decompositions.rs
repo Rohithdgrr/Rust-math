@@ -174,14 +174,22 @@ impl Matrix {
             }
             // R <- H R
             for j in k..n {
-                let dotv: f64 = x.iter().enumerate().map(|(o, &vv)| vv * r.get(k + o, j)).sum();
+                let dotv: f64 = x
+                    .iter()
+                    .enumerate()
+                    .map(|(o, &vv)| vv * r.get(k + o, j))
+                    .sum();
                 for (o, &vv) in x.iter().enumerate() {
                     r.set(k + o, j, r.get(k + o, j) - 2.0 * vv * dotv);
                 }
             }
             // Q <- Q H
             for i in 0..m {
-                let dotv: f64 = x.iter().enumerate().map(|(o, &vv)| q.get(i, k + o) * vv).sum();
+                let dotv: f64 = x
+                    .iter()
+                    .enumerate()
+                    .map(|(o, &vv)| q.get(i, k + o) * vv)
+                    .sum();
                 for (o, &vv) in x.iter().enumerate() {
                     q.set(i, k + o, q.get(i, k + o) - 2.0 * dotv * vv);
                 }
@@ -273,7 +281,9 @@ impl Matrix {
                 }
             }
         }
-        let s: Vec<f64> = (0..n).map(|j| b.col(j).iter().map(|x| x * x).sum::<f64>().sqrt()).collect();
+        let s: Vec<f64> = (0..n)
+            .map(|j| b.col(j).iter().map(|x| x * x).sum::<f64>().sqrt())
+            .collect();
         let mut u = Matrix::zeros(m, n);
         for (j, &sj) in s.iter().enumerate() {
             if sj > 0.0 {
@@ -310,7 +320,9 @@ impl Matrix {
     /// sorted by descending eigenvalue.
     pub fn eigen_symmetric(&self) -> MathResult<(Vec<f64>, Matrix)> {
         if !self.is_symmetric(1e-12) {
-            return Err(MathError::InvalidArgument("eigen_symmetric requires a symmetric matrix"));
+            return Err(MathError::InvalidArgument(
+                "eigen_symmetric requires a symmetric matrix",
+            ));
         }
         let n = self.rows;
         let mut a = self.clone();
@@ -417,12 +429,19 @@ mod tests {
 
     #[test]
     fn qr_round_trip() {
-        for m in [&a(), &spd(), &Matrix::from_rows(&[&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0], &[7.0, 8.0, 10.0]]).unwrap()] {
+        for m in [
+            &a(),
+            &spd(),
+            &Matrix::from_rows(&[&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0], &[7.0, 8.0, 10.0]]).unwrap(),
+        ] {
             let qr = m.qr().unwrap();
             let back = qr.q.mul(&qr.r).unwrap();
             for i in 0..m.rows {
                 for j in 0..m.cols {
-                    assert!(rel(back.get(i, j), m.get(i, j)) < 1e-10, "round trip ({i},{j})");
+                    assert!(
+                        rel(back.get(i, j), m.get(i, j)) < 1e-10,
+                        "round trip ({i},{j})"
+                    );
                 }
             }
             // Q orthonormal: Qᵀ Q = I
@@ -447,12 +466,23 @@ mod tests {
 
     #[test]
     fn svd_round_trip() {
-        for m in [&a(), &spd(), &Matrix::from_rows(&[&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]]).unwrap()] {
+        for m in [
+            &a(),
+            &spd(),
+            &Matrix::from_rows(&[&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]]).unwrap(),
+        ] {
             let s = m.svd().unwrap();
-            let back = s.u.mul(&Matrix::diagonal(&s.s)).unwrap().mul(&s.vt).unwrap();
+            let back =
+                s.u.mul(&Matrix::diagonal(&s.s))
+                    .unwrap()
+                    .mul(&s.vt)
+                    .unwrap();
             for i in 0..m.rows {
                 for j in 0..m.cols {
-                    assert!(rel(back.get(i, j), m.get(i, j)) < 1e-10, "svd round trip ({i},{j})");
+                    assert!(
+                        rel(back.get(i, j), m.get(i, j)) < 1e-10,
+                        "svd round trip ({i},{j})"
+                    );
                 }
             }
             let utu = s.u.transpose().mul(&s.u).unwrap();
@@ -479,7 +509,11 @@ mod tests {
         assert!(rel(s.s[0], 1e8) < 1e-10);
         assert!(rel(s.s[1], 1.0) < 1e-10);
         assert!(rel(s.s[2], 1e-8) < 1e-10);
-        let back = s.u.mul(&Matrix::diagonal(&s.s)).unwrap().mul(&s.vt).unwrap();
+        let back =
+            s.u.mul(&Matrix::diagonal(&s.s))
+                .unwrap()
+                .mul(&s.vt)
+                .unwrap();
         assert!(rel(back.get(0, 0), 1e8) < 1e-10);
         assert!(rel(back.get(2, 2), 1e-8) < 1e-10);
     }

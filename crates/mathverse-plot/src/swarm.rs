@@ -137,12 +137,22 @@ pub fn render_swarm_plot(categories: &[SwarmCategory], config: &SwarmConfig) -> 
     let height = f64::from(config.plot_config.height);
 
     // Find global y range
-    let all_min = categories.iter().flat_map(|c| &c.values).fold(f64::INFINITY, |a, &b| a.min(b));
-    let all_max = categories.iter().flat_map(|c| &c.values).fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+    let all_min = categories
+        .iter()
+        .flat_map(|c| &c.values)
+        .fold(f64::INFINITY, |a, &b| a.min(b));
+    let all_max = categories
+        .iter()
+        .flat_map(|c| &c.values)
+        .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;
-    let y_range = if all_max - all_min > 0.0 { all_max - all_min } else { 1.0 };
+    let y_range = if all_max - all_min > 0.0 {
+        all_max - all_min
+    } else {
+        1.0
+    };
 
     let to_y = |v| padding + 30.0 + chart_height * (1.0 - (v - all_min) / y_range);
 

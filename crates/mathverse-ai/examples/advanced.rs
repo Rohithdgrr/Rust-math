@@ -1,4 +1,6 @@
-use mathverse_ai::{Tensor, softmax, mse};
+//! Demonstrates tensor creation, softmax, and MSE loss from `mathverse-ai`.
+
+use mathverse_ai::{Tensor, mse, softmax};
 
 fn main() {
     let logits = Tensor::new(&[1, 3], &[2.0, 1.0, 0.5]).unwrap();

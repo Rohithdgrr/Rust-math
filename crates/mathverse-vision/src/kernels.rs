@@ -29,7 +29,9 @@ pub fn gaussian_kernel(sigma: f64) -> [[f64; 3]; 3] {
         }
     }
     for row in &mut kernel {
-        for v in row { *v /= sum; }
+        for v in row {
+            *v /= sum;
+        }
     }
     kernel
 }
@@ -49,7 +51,9 @@ pub fn gaussian_kernel_5x5(sigma: f64) -> [[f64; 5]; 5] {
         }
     }
     for row in &mut kernel {
-        for v in row { *v /= sum; }
+        for v in row {
+            *v /= sum;
+        }
     }
     kernel
 }
@@ -69,7 +73,9 @@ pub fn gaussian_kernel_7x7(sigma: f64) -> [[f64; 7]; 7] {
         }
     }
     for row in &mut kernel {
-        for v in row { *v /= sum; }
+        for v in row {
+            *v /= sum;
+        }
     }
     kernel
 }
@@ -105,9 +111,15 @@ pub fn apply_gaussian_blur(img: &Image, sigma: f64) -> Result<Image, String> {
     let kernel = gaussian_kernel(sigma);
     // Flatten 3×3 kernel into [f64; 9]
     let flat: [f64; 9] = [
-        kernel[0][0], kernel[0][1], kernel[0][2],
-        kernel[1][0], kernel[1][1], kernel[1][2],
-        kernel[2][0], kernel[2][1], kernel[2][2],
+        kernel[0][0],
+        kernel[0][1],
+        kernel[0][2],
+        kernel[1][0],
+        kernel[1][1],
+        kernel[1][2],
+        kernel[2][0],
+        kernel[2][1],
+        kernel[2][2],
     ];
     Ok(img.convolve3(&flat))
 }
@@ -148,7 +160,9 @@ pub fn apply_sobel_components(img: &Image) -> Result<(Image, Image), String> {
             for ky in 0..3 {
                 let base = (y + ky - 1) * img.w + x - 1;
                 let src = &img.data[base..base + 3];
-                s += SOBEL_GX[ky * 3] * src[0] + SOBEL_GX[ky * 3 + 1] * src[1] + SOBEL_GX[ky * 3 + 2] * src[2];
+                s += SOBEL_GX[ky * 3] * src[0]
+                    + SOBEL_GX[ky * 3 + 1] * src[1]
+                    + SOBEL_GX[ky * 3 + 2] * src[2];
             }
             gx.data[y * img.w + x] = s;
 
@@ -157,7 +171,9 @@ pub fn apply_sobel_components(img: &Image) -> Result<(Image, Image), String> {
             for ky in 0..3 {
                 let base = (y + ky - 1) * img.w + x - 1;
                 let src = &img.data[base..base + 3];
-                s += SOBEL_GY[ky * 3] * src[0] + SOBEL_GY[ky * 3 + 1] * src[1] + SOBEL_GY[ky * 3 + 2] * src[2];
+                s += SOBEL_GY[ky * 3] * src[0]
+                    + SOBEL_GY[ky * 3 + 1] * src[1]
+                    + SOBEL_GY[ky * 3 + 2] * src[2];
             }
             gy.data[y * img.w + x] = s;
         }
@@ -179,7 +195,9 @@ pub fn apply_laplacian(img: &Image) -> Result<Image, String> {
             for ky in 0..3 {
                 let base = (y + ky - 1) * img.w + x - 1;
                 let src = &img.data[base..base + 3];
-                s += LAPLACIAN[ky * 3] * src[0] + LAPLACIAN[ky * 3 + 1] * src[1] + LAPLACIAN[ky * 3 + 2] * src[2];
+                s += LAPLACIAN[ky * 3] * src[0]
+                    + LAPLACIAN[ky * 3 + 1] * src[1]
+                    + LAPLACIAN[ky * 3 + 2] * src[2];
             }
             laplacian.data[y * img.w + x] = s;
         }

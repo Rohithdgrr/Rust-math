@@ -1,4 +1,4 @@
-﻿//! CSV and JSON I/O for [`crate::DataFrame`].
+//! CSV and JSON I/O for [`crate::DataFrame`].
 //!
 //! The `csv` feature provides RFC 4180-compliant reading and writing with
 //! per-column type inference. The `json` feature provides JSON serialization
@@ -107,7 +107,11 @@ pub fn read_csv_with_options(input: &str, options: &CsvReadOptions) -> DataFrame
     for (row_idx, record) in body.iter().enumerate() {
         if record.len() != ncols {
             return Err(DataFrameError::ParseError {
-                value: format!("row {} has {} fields, expected {ncols}", row_idx + 1, record.len()),
+                value: format!(
+                    "row {} has {} fields, expected {ncols}",
+                    row_idx + 1,
+                    record.len()
+                ),
                 target: "csv",
             });
         }
@@ -157,7 +161,9 @@ pub fn write_csv_with_options(df: &DataFrame, options: &CsvWriteOptions) -> Stri
             if ci > 0 {
                 out.push(delim);
             }
-            let Ok(col) = df.column_by_index(ci) else { continue };
+            let Ok(col) = df.column_by_index(ci) else {
+                continue;
+            };
             if col.is_null(row) {
                 out.push_str(&options.null_value);
             } else {
@@ -182,7 +188,7 @@ pub fn write_csv_with_options(df: &DataFrame, options: &CsvWriteOptions) -> Stri
 
 #[cfg(feature = "std")]
 mod file_io {
-    use super::{DataFrameResult, DataFrame, DataFrameError, read_csv_from_str, to_csv_string};
+    use super::{read_csv_from_str, to_csv_string, DataFrame, DataFrameError, DataFrameResult};
 
     /// Reads a CSV file into a [`DataFrame`] (default options).
     ///
@@ -284,13 +290,16 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> AnyColumn {
     }
 
     // Integer inference.
-    if raw
-        .iter()
-        .all(|s| is_null(s) || s.parse::<i64>().is_ok())
-    {
+    if raw.iter().all(|s| is_null(s) || s.parse::<i64>().is_ok()) {
         let data: Vec<i64> = raw
             .iter()
-            .map(|s| if is_null(s) { 0 } else { s.parse().unwrap_or(0) })
+            .map(|s| {
+                if is_null(s) {
+                    0
+                } else {
+                    s.parse().unwrap_or(0)
+                }
+            })
             .collect();
         let mut series = Series::new(name, data);
         for (i, s) in raw.iter().enumerate() {
@@ -307,11 +316,19 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> AnyColumn {
         is_null(s)
             || ((s.contains('.') || s.contains('e') || s.contains('E') || s.contains('+'))
                 && s.parse::<f64>().is_ok())
-    }) && raw.iter().any(|s| !is_null(s) && (s.contains('.') || s.contains('e') || s.contains('E')))
+    }) && raw
+        .iter()
+        .any(|s| !is_null(s) && (s.contains('.') || s.contains('e') || s.contains('E')))
     {
         let data: Vec<f64> = raw
             .iter()
-            .map(|s| if is_null(s) { 0.0 } else { s.parse().unwrap_or(f64::NAN) })
+            .map(|s| {
+                if is_null(s) {
+                    0.0
+                } else {
+                    s.parse().unwrap_or(f64::NAN)
+                }
+            })
             .collect();
         let mut series = Series::new(name, data);
         for (i, s) in raw.iter().enumerate() {
@@ -333,7 +350,13 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> AnyColumn {
     if raw.iter().all(|s| is_null(s) || bool_map(s).is_some()) {
         let data: Vec<bool> = raw
             .iter()
-            .map(|s| if is_null(s) { false } else { bool_map(s).unwrap_or(false) })
+            .map(|s| {
+                if is_null(s) {
+                    false
+                } else {
+                    bool_map(s).unwrap_or(false)
+                }
+            })
             .collect();
         let mut series = Series::new(name, data);
         for (i, s) in raw.iter().enumerate() {
@@ -347,7 +370,13 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> AnyColumn {
     // Fallback: strings.
     let data: Vec<String> = raw
         .iter()
-        .map(|s| if is_null(s) { String::new() } else { s.to_string() })
+        .map(|s| {
+            if is_null(s) {
+                String::new()
+            } else {
+                s.to_string()
+            }
+        })
         .collect();
     let mut series = Series::new(name, data);
     for (i, s) in raw.iter().enumerate() {
@@ -432,8 +461,11 @@ mod tests {
     fn roundtrip_with_special_chars() {
         let mut df = DataFrame::new();
         df.add_column("a", vec![1, 2]).unwrap();
-        df.add_column("b", vec![String::from("x,y"), String::from("he said \"hi\"")])
-            .unwrap();
+        df.add_column(
+            "b",
+            vec![String::from("x,y"), String::from("he said \"hi\"")],
+        )
+        .unwrap();
         let csv = to_csv_string(&df);
         let back = read_csv_from_str(&csv).unwrap();
         assert_eq!(back.nrows(), 2);

@@ -11,7 +11,7 @@ impl Pseudoinverse {
     pub fn compute(m: &Matrix, tolerance: f64) -> MathResult<Matrix> {
         let svd = m.svd()?;
         let sigma_max = svd.s[0];
-        
+
         // Compute Σ⁺ (reciprocal of non-zero singular values)
         let mut sigma_plus = vec![0.0; svd.s.len()];
         for (i, &s) in svd.s.iter().enumerate() {
@@ -19,12 +19,12 @@ impl Pseudoinverse {
                 sigma_plus[i] = 1.0 / s;
             }
         }
-        
+
         // A⁺ = V Σ⁺ Uᵀ
         let sigma_plus_mat = Matrix::diagonal(&sigma_plus);
         let v_sigma = svd.vt.transpose().mul(&sigma_plus_mat)?;
         let pinv = v_sigma.mul(&svd.u.transpose())?;
-        
+
         Ok(pinv)
     }
 
@@ -45,41 +45,43 @@ impl Pseudoinverse {
     }
 
     /// Least squares solution using pseudoinverse: x = A⁺ b.
-    pub fn least_squares(m: &Matrix, b: &mathverse_vector::Vector) -> MathResult<mathverse_vector::Vector> {
+    pub fn least_squares(
+        m: &Matrix,
+        b: &mathverse_vector::Vector,
+    ) -> MathResult<mathverse_vector::Vector> {
         let pinv = Self::compute(m, 1e-10)?;
         pinv.mul_vec(b)
     }
 
     /// Minimum norm solution for underdetermined system.
-    pub fn minimum_norm(m: &Matrix, b: &mathverse_vector::Vector) -> MathResult<mathverse_vector::Vector> {
+    pub fn minimum_norm(
+        m: &Matrix,
+        b: &mathverse_vector::Vector,
+    ) -> MathResult<mathverse_vector::Vector> {
         let pinv = Self::compute(m, 1e-10)?;
         pinv.mul_vec(b)
     }
 
     /// Check if pseudoinverse satisfies Moore-Penrose conditions.
-    pub fn verify_conditions(
-        m: &Matrix,
-        pinv: &Matrix,
-        tolerance: f64,
-    ) -> MathResult<bool> {
+    pub fn verify_conditions(m: &Matrix, pinv: &Matrix, tolerance: f64) -> MathResult<bool> {
         // Condition 1: A A⁺ A = A
         let a_pinv_a = m.mul(pinv)?.mul(m)?;
         let cond1 = Self::matrices_equal(m, &a_pinv_a, tolerance);
-        
+
         // Condition 2: A⁺ A A⁺ = A⁺
         let pinv_a_pinv = pinv.mul(m)?.mul(pinv)?;
         let cond2 = Self::matrices_equal(pinv, &pinv_a_pinv, tolerance);
-        
+
         // Condition 3: (A A⁺)ᵀ = A A⁺
         let a_pinv = m.mul(pinv)?;
         let a_pinv_t = a_pinv.transpose();
         let cond3 = Self::matrices_equal(&a_pinv, &a_pinv_t, tolerance);
-        
+
         // Condition 4: (A⁺ A)ᵀ = A⁺ A
         let pinv_a = pinv.mul(m)?;
         let pinv_a_t = pinv_a.transpose();
         let cond4 = Self::matrices_equal(&pinv_a, &pinv_a_t, tolerance);
-        
+
         Ok(cond1 && cond2 && cond3 && cond4)
     }
 
@@ -87,7 +89,7 @@ impl Pseudoinverse {
         if a.rows != b.rows || a.cols != b.cols {
             return false;
         }
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 if (a.get(i, j) - b.get(i, j)).abs() > tolerance {
@@ -95,7 +97,7 @@ impl Pseudoinverse {
                 }
             }
         }
-        
+
         true
     }
 
@@ -106,20 +108,20 @@ impl Pseudoinverse {
         max_iterations: usize,
     ) -> MathResult<Matrix> {
         let mut pinv = Self::compute(m, tolerance)?;
-        
+
         for _ in 0..max_iterations {
             let residual = m.mul(&pinv)?;
             let identity = Matrix::identity(residual.rows.min(residual.cols));
             let error = residual.sub(&identity)?;
-            
+
             if crate::norms::MatrixNorms::frobenius(&error) < tolerance {
                 break;
             }
-            
+
             let correction = Self::compute(&error, tolerance)?;
             pinv = pinv.sub(&correction)?;
         }
-        
+
         Ok(pinv)
     }
 
@@ -136,10 +138,7 @@ pub struct PseudoinverseApplications;
 
 impl PseudoinverseApplications {
     /// Solve linear system Ax = b (least squares for overdetermined).
-    pub fn solve(
-        m: &Matrix,
-        b: &mathverse_vector::Vector,
-    ) -> MathResult<mathverse_vector::Vector> {
+    pub fn solve(m: &Matrix, b: &mathverse_vector::Vector) -> MathResult<mathverse_vector::Vector> {
         Pseudoinverse::least_squares(m, b)
     }
 
@@ -188,11 +187,11 @@ impl PseudoinverseApplications {
         let ata = m.transpose().mul(m)?;
         let n = ata.rows;
         let mut regularized = ata.clone();
-        
+
         for i in 0..n {
             regularized.set(i, i, regularized.get(i, i) + lambda);
         }
-        
+
         let inv = regularized.inverse()?;
         let atb = m.transpose().mul_vec(b)?;
         inv.mul_vec(&atb)
@@ -202,15 +201,15 @@ impl PseudoinverseApplications {
     pub fn truncated_svd(m: &Matrix, k: usize) -> MathResult<Matrix> {
         let svd = m.svd()?;
         let k = k.min(svd.s.len());
-        
+
         // Truncate singular values
         let mut s_trunc = vec![0.0; k];
         s_trunc[..k].copy_from_slice(&svd.s[..k]);
-        
+
         // Truncate U and V
         let mut u_trunc = Matrix::zeros(m.rows, k);
         let mut v_trunc = Matrix::zeros(k, m.cols);
-        
+
         for j in 0..k {
             for i in 0..m.rows {
                 u_trunc.set(i, j, svd.u.get(i, j));
@@ -219,7 +218,7 @@ impl PseudoinverseApplications {
                 v_trunc.set(j, i, svd.vt.get(j, i));
             }
         }
-        
+
         // Compute pseudoinverse of truncated SVD
         let mut s_plus = vec![0.0; k];
         for i in 0..k {
@@ -227,7 +226,7 @@ impl PseudoinverseApplications {
                 s_plus[i] = 1.0 / s_trunc[i];
             }
         }
-        
+
         let s_plus_mat = Matrix::diagonal(&s_plus);
         let vt_s = s_plus_mat.mul(&v_trunc)?;
         u_trunc.transpose().mul(&vt_s)
@@ -251,7 +250,7 @@ mod tests {
         let pinv = Pseudoinverse::compute(&m, 1e-10).unwrap();
         let should_be_identity = m.mul(&pinv).unwrap();
         let _identity = Matrix::identity(2);
-        
+
         for i in 0..2 {
             for j in 0..2 {
                 let want = if i == j { 1.0 } else { 0.0 };

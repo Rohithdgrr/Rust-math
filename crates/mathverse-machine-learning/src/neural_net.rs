@@ -79,10 +79,56 @@ impl NeuralNet {
         activations
     }
 
+    /// Forward pass for a single sample, returning the per-layer activations
+    /// (the input itself is the first entry).
+    fn forward_one(&self, xi: &[f64]) -> Vec<Vec<f64>> {
+        let mut activations = vec![xi.to_vec()];
+
+        for layer in &self.layers {
+            let current = activations
+                .last()
+                .expect("forward pass must have at least one activation");
+            match layer {
+                Layer::Linear { weights, bias } => {
+                    let n_out = weights.len();
+                    let mut z = vec![0.0; n_out];
+                    for j in 0..n_out {
+                        let mut sum = bias.get(j).copied().unwrap_or(0.0);
+                        for (k, &val) in current.iter().enumerate() {
+                            if k < weights[j].len() {
+                                sum += val * weights[j][k];
+                            }
+                        }
+                        z[j] = sum;
+                    }
+                    activations.push(z);
+                }
+                Layer::ReLU => {
+                    let activated: Vec<f64> = current.iter().map(|&v| v.max(0.0)).collect();
+                    activations.push(activated);
+                }
+                Layer::Sigmoid => {
+                    let activated: Vec<f64> =
+                        current.iter().map(|&v| 1.0 / (1.0 + (-v).exp())).collect();
+                    activations.push(activated);
+                }
+                Layer::Softmax => {
+                    let max_val = current.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+                    let exps: Vec<f64> = current.iter().map(|&v| (v - max_val).exp()).collect();
+                    let sum: f64 = exps.iter().sum();
+                    let activated: Vec<f64> = exps.iter().map(|&e| e / sum).collect();
+                    activations.push(activated);
+                }
+            }
+        }
+
+        activations
+    }
+
     /// Train the network with gradient descent for the given number of epochs.
     /// This implements proper backpropagation with the chain rule.
     ///
-    /// Gradients are clipped to a per-component magnitude of [`GRAD_CLIP`] and
+    /// Gradients are clipped to a per-component magnitude of ``GRAD_CLIP`` and
     /// training stops early as soon as any non-finite value appears, so a
     /// poorly conditioned learning rate degrades gracefully instead of
     /// poisoning the weights with `NaN`/infinities.
@@ -90,47 +136,14 @@ impl NeuralNet {
         for _ in 0..epochs {
             for (sample_idx, xi) in x.iter().enumerate() {
                 // Forward pass with cache
-                let mut activations = vec![xi.clone()];
-                
-                for layer in &self.layers {
-                    let current = activations.last().expect("forward pass must have at least one activation");
-                    match layer {
-                        Layer::Linear { weights, bias } => {
-                            let n_out = weights.len();
-                            let mut z = vec![0.0; n_out];
-                            for j in 0..n_out {
-                                let mut sum = bias.get(j).copied().unwrap_or(0.0);
-                                for (k, &val) in current.iter().enumerate() {
-                                    if k < weights[j].len() {
-                                        sum += val * weights[j][k];
-                                    }
-                                }
-                            z[j] = sum;
-                        }
-                        activations.push(z);
-                        }
-                        Layer::ReLU => {
-                            let activated: Vec<f64> = current.iter().map(|&v| v.max(0.0)).collect();
-                            activations.push(activated);
-                        }
-                        Layer::Sigmoid => {
-                            let activated: Vec<f64> = current.iter().map(|&v| 1.0 / (1.0 + (-v).exp())).collect();
-                            activations.push(activated);
-                        }
-                        Layer::Softmax => {
-                            let max_val = current.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-                            let exps: Vec<f64> = current.iter().map(|&v| (v - max_val).exp()).collect();
-                            let sum: f64 = exps.iter().sum();
-                            let activated: Vec<f64> = exps.iter().map(|&e| e / sum).collect();
-                            activations.push(activated);
-                        }
-                    }
-                }
-                
+                let activations = self.forward_one(xi);
+
                 // Backward pass
-                let output = activations.last().expect("forward pass must have at least one activation");
+                let output = activations
+                    .last()
+                    .expect("forward pass must have at least one activation");
                 let target = y[sample_idx];
-                
+
                 // Output error (MSE loss derivative: output - target),
                 // with divergence guards: stop on non-finite values and clip
                 // extreme gradients so one bad learning rate cannot destroy
@@ -145,7 +158,7 @@ impl NeuralNet {
                 if delta.iter().any(|&d| !d.is_finite()) {
                     return;
                 }
-                
+
                 // Backpropagate through layers in reverse
                 for layer_idx in (0..self.layers.len()).rev() {
                     let prev_activation = if layer_idx > 0 {
@@ -153,7 +166,7 @@ impl NeuralNet {
                     } else {
                         xi.clone()
                     };
-                    
+
                     // First: compute new delta using immutable borrow
                     let new_delta = match &self.layers[layer_idx] {
                         Layer::Linear { weights, .. } => {
@@ -175,27 +188,33 @@ impl NeuralNet {
                         }
                         Layer::ReLU => {
                             let z = &activations[layer_idx];
-                            let nd: Vec<f64> = delta.iter().zip(z.iter()).map(|(d, &z)| {
-                                if z > 0.0 { *d } else { 0.0 }
-                            }).collect();
+                            let nd: Vec<f64> = delta
+                                .iter()
+                                .zip(z.iter())
+                                .map(|(d, &z)| if z > 0.0 { *d } else { 0.0 })
+                                .collect();
                             Some(nd)
                         }
                         Layer::Sigmoid => {
                             let activation = &activations[layer_idx + 1];
-                            let nd: Vec<f64> = delta.iter().zip(activation.iter()).map(|(d, &a)| {
-                                d * a * (1.0 - a)
-                            }).collect();
+                            let nd: Vec<f64> = delta
+                                .iter()
+                                .zip(activation.iter())
+                                .map(|(d, &a)| d * a * (1.0 - a))
+                                .collect();
                             Some(nd)
                         }
                         Layer::Softmax => {
                             let activation = &activations[layer_idx + 1];
-                            let nd: Vec<f64> = delta.iter().zip(activation.iter()).map(|(d, &a)| {
-                                d * a * (1.0 - a)
-                            }).collect();
+                            let nd: Vec<f64> = delta
+                                .iter()
+                                .zip(activation.iter())
+                                .map(|(d, &a)| d * a * (1.0 - a))
+                                .collect();
                             Some(nd)
                         }
                     };
-                    
+
                     // Then: apply weight updates using mutable borrow
                     if let Layer::Linear { weights, bias } = &mut self.layers[layer_idx] {
                         for (j, w_row) in weights.iter_mut().enumerate() {
@@ -211,7 +230,7 @@ impl NeuralNet {
                             }
                         }
                     }
-                    
+
                     // Apply new delta
                     if let Some(nd) = new_delta {
                         delta = nd;
@@ -341,20 +360,31 @@ mod tests {
             },
             Layer::Sigmoid,
         ]);
-        
+
         // Get initial predictions
         let initial_preds = net.predict(&x);
-        let initial_loss: f64 = initial_preds.iter().zip(&y).map(|(p, t)| (p - t).powi(2)).sum();
-        
+        let initial_loss: f64 = initial_preds
+            .iter()
+            .zip(&y)
+            .map(|(p, t)| (p - t).powi(2))
+            .sum();
+
         // Train for a few epochs
         net.fit(&x, &y, 0.5, 100);
-        
+
         // Get final predictions
         let final_preds = net.predict(&x);
-        let final_loss: f64 = final_preds.iter().zip(&y).map(|(p, t)| (p - t).powi(2)).sum();
-        
+        let final_loss: f64 = final_preds
+            .iter()
+            .zip(&y)
+            .map(|(p, t)| (p - t).powi(2))
+            .sum();
+
         // Loss should decrease
-        assert!(final_loss < initial_loss, "Loss should decrease after training");
+        assert!(
+            final_loss < initial_loss,
+            "Loss should decrease after training"
+        );
     }
 
     #[test]
@@ -368,7 +398,7 @@ mod tests {
             },
             Layer::Softmax,
         ]);
-        
+
         let preds = net.predict(&x);
         // Should return the index of the maximum value (1.0 in this case since 2.0 > 1.0)
         assert_eq!(preds[0], 1.0);

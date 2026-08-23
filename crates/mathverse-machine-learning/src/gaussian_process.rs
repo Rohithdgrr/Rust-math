@@ -6,7 +6,7 @@ pub enum GpKernel {
         /// Length scale parameter.
         length: f64,
     },
-    /// Matérn 5/2 kernel.
+    /// MatÃ©rn 5/2 kernel.
     Matern52 {
         /// Length scale parameter.
         length: f64,
@@ -61,7 +61,6 @@ pub struct GaussianProcess {
 impl GaussianProcess {
     /// Fit the GP to training data, returning an error if the kernel matrix is singular.
     /// Uses Cholesky decomposition for numerical stability on symmetric positive definite matrices.
-    #[must_use]
     pub fn fit(
         x: &[Vec<f64>],
         y: &[f64],

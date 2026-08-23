@@ -26,9 +26,8 @@ fn sigmoid(x: f64) -> f64 {
 }
 
 /// Fit logistic regression via gradient descent with L2 regularization.
-/// `x`: \[n_samples × n_features\], `y`: \[n_samples\] binary labels (0 or 1).
+/// `x`: \[n_samples Ã— n_features\], `y`: \[n_samples\] binary labels (0 or 1).
 /// `c`: Inverse regularization strength (smaller = stronger regularization). Use `f64::INFINITY` for no regularization.
-#[must_use]
 pub fn fit(
     x: &[Vec<f64>],
     y: &[f64],
@@ -163,7 +162,6 @@ pub struct OvRResult {
 ///
 /// The integer class labels do not need to be 0/1; any distinct `f64` values
 /// work. Hyperparameter meaning matches [`fit`].
-#[must_use]
 pub fn fit_ovr(
     x: &[Vec<f64>],
     y: &[f64],
@@ -183,7 +181,10 @@ pub fn fit_ovr(
     }
     let mut models = Vec::with_capacity(classes.len());
     for &class in &classes {
-        let binary: Vec<f64> = y.iter().map(|&yi| if yi == class { 1.0 } else { 0.0 }).collect();
+        let binary: Vec<f64> = y
+            .iter()
+            .map(|&yi| if yi == class { 1.0 } else { 0.0 })
+            .collect();
         models.push(fit(x, &binary, lr, max_iters, tol, c)?);
     }
     Ok(OvRResult { models, classes })
@@ -198,7 +199,12 @@ pub fn predict_proba_ovr(x: &[Vec<f64>], model: &OvRResult) -> Vec<Vec<f64>> {
                 .models
                 .iter()
                 .map(|m| {
-                    let z = m.intercept + row.iter().zip(&m.coefficients).map(|(xi, ci)| xi * ci).sum::<f64>();
+                    let z = m.intercept
+                        + row
+                            .iter()
+                            .zip(&m.coefficients)
+                            .map(|(xi, ci)| xi * ci)
+                            .sum::<f64>();
                     sigmoid(z)
                 })
                 .collect();
@@ -305,9 +311,15 @@ mod tests {
     fn ovr_multiclass() {
         // Three well-separated clusters in 2D.
         let x: Vec<Vec<f64>> = vec![
-            vec![0.0, 0.0], vec![0.1, 0.0], vec![0.0, 0.1],
-            vec![5.0, 0.0], vec![5.1, 0.0], vec![5.0, 0.1],
-            vec![0.0, 5.0], vec![0.1, 5.0], vec![0.0, 5.1],
+            vec![0.0, 0.0],
+            vec![0.1, 0.0],
+            vec![0.0, 0.1],
+            vec![5.0, 0.0],
+            vec![5.1, 0.0],
+            vec![5.0, 0.1],
+            vec![0.0, 5.0],
+            vec![0.1, 5.0],
+            vec![0.0, 5.1],
         ];
         let y: Vec<f64> = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0];
         let model = fit_ovr(&x, &y, 0.5, 2000, 1e-8, 1.0).unwrap();

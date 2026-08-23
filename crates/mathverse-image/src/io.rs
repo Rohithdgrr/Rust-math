@@ -58,12 +58,9 @@ fn convert_to_grayimage(dyn_img: &DynamicImage) -> Result<GrayImage> {
     let (width, height) = gray_img.dimensions();
     let w = width as usize;
     let h = height as usize;
-    
-    let data: Vec<f64> = gray_img
-        .pixels()
-        .map(|p| f64::from(p[0]) / 255.0)
-        .collect();
-    
+
+    let data: Vec<f64> = gray_img.pixels().map(|p| f64::from(p[0]) / 255.0).collect();
+
     GrayImage::from_data(w, h, data)
 }
 
@@ -74,11 +71,14 @@ fn convert_from_grayimage(img: &GrayImage) -> Result<ImageBuffer<Luma<u8>, Vec<u
         .iter()
         .map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)
         .collect();
-    ImageBuffer::from_raw(img.w as u32, img.h as u32, pixels)
-        .ok_or_else(|| ImageError::InvalidImageData(format!(
+    ImageBuffer::from_raw(img.w as u32, img.h as u32, pixels).ok_or_else(|| {
+        ImageError::InvalidImageData(format!(
             "dimensions {}x{} do not match pixel buffer length {}",
-            img.w, img.h, img.data.len()
-        )))
+            img.w,
+            img.h,
+            img.data.len()
+        ))
+    })
 }
 
 /// Load from raw bytes (PNG, JPEG, etc.) and convert to grayscale.
@@ -116,12 +116,12 @@ mod tests {
             }
         }
 
-    let gray_img = convert_from_grayimage(&original).unwrap();
-    let converted = convert_to_grayimage(&DynamicImage::ImageLuma8(gray_img)).unwrap();
+        let gray_img = convert_from_grayimage(&original).unwrap();
+        let converted = convert_to_grayimage(&DynamicImage::ImageLuma8(gray_img)).unwrap();
 
         assert_eq!(original.w, converted.w);
         assert_eq!(original.h, converted.h);
-        
+
         for i in 0..original.data.len() {
             // Allow small rounding differences due to 8-bit conversion
             assert!((original.data[i] - converted.data[i]).abs() < 0.01);

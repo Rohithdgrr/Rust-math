@@ -42,7 +42,9 @@ pub fn sobel(img: &Image) -> (Image, Vec<f64>) {
             for ky in 0..3 {
                 let base = (y + ky - 1) * img.w + x - 1;
                 let src = &img.data[base..base + 3];
-                gx += SOBEL_GX[ky * 3] * src[0] + SOBEL_GX[ky * 3 + 1] * src[1] + SOBEL_GX[ky * 3 + 2] * src[2];
+                gx += SOBEL_GX[ky * 3] * src[0]
+                    + SOBEL_GX[ky * 3 + 1] * src[1]
+                    + SOBEL_GX[ky * 3 + 2] * src[2];
             }
 
             // Gy convolution
@@ -50,7 +52,9 @@ pub fn sobel(img: &Image) -> (Image, Vec<f64>) {
             for ky in 0..3 {
                 let base = (y + ky - 1) * img.w + x - 1;
                 let src = &img.data[base..base + 3];
-                gy += SOBEL_GY[ky * 3] * src[0] + SOBEL_GY[ky * 3 + 1] * src[1] + SOBEL_GY[ky * 3 + 2] * src[2];
+                gy += SOBEL_GY[ky * 3] * src[0]
+                    + SOBEL_GY[ky * 3 + 1] * src[1]
+                    + SOBEL_GY[ky * 3 + 2] * src[2];
             }
 
             magnitude.set(x, y, (gx * gx + gy * gy).sqrt());
@@ -144,13 +148,17 @@ pub fn canny(img: &Image, low_threshold: f64, high_threshold: f64) -> Image {
                     && result.get(x, y) < 1.0
                 {
                     // Check 4-neighbors for strong edges
-                    let has_strong_neighbor = [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)]
-                        .iter()
-                        .any(|(dx, dy)| {
-                            let (nx, ny) = (x as i64 + dx, y as i64 + dy);
-                            nx >= 0 && ny >= 0 && nx < img.w as i64 && ny < img.h as i64
-                                && result.get(nx as usize, ny as usize) >= 1.0
-                        });
+                    let has_strong_neighbor =
+                        [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)]
+                            .iter()
+                            .any(|(dx, dy)| {
+                                let (nx, ny) = (x as i64 + dx, y as i64 + dy);
+                                nx >= 0
+                                    && ny >= 0
+                                    && nx < img.w as i64
+                                    && ny < img.h as i64
+                                    && result.get(nx as usize, ny as usize) >= 1.0
+                            });
                     if has_strong_neighbor {
                         result.set(x, y, 1.0);
                         changed = true;
@@ -230,17 +238,28 @@ pub fn bounding_box(img: &Image) -> Option<(usize, usize, usize, usize)> {
         if v > 0.5 {
             let x = i % img.w;
             let y = i / img.w;
-            if min_x.is_none() || x < min_x.unwrap() { min_x = Some(x); }
-            if min_y.is_none() || y < min_y.unwrap() { min_y = Some(y); }
-            if max_x.is_none() || x > max_x.unwrap() { max_x = Some(x); }
-            if max_y.is_none() || y > max_y.unwrap() { max_y = Some(y); }
+            if min_x.is_none() || x < min_x.unwrap() {
+                min_x = Some(x);
+            }
+            if min_y.is_none() || y < min_y.unwrap() {
+                min_y = Some(y);
+            }
+            if max_x.is_none() || x > max_x.unwrap() {
+                max_x = Some(x);
+            }
+            if max_y.is_none() || y > max_y.unwrap() {
+                max_y = Some(y);
+            }
         }
     }
 
     match (min_x, min_y, max_x, max_y) {
-        (Some(_), Some(_), Some(_), Some(_)) => {
-            Some((min_x.unwrap(), min_y.unwrap(), max_x.unwrap(), max_y.unwrap()))
-        }
+        (Some(_), Some(_), Some(_), Some(_)) => Some((
+            min_x.unwrap(),
+            min_y.unwrap(),
+            max_x.unwrap(),
+            max_y.unwrap(),
+        )),
         _ => None,
     }
 }
@@ -379,8 +398,16 @@ mod tests {
                 img.set(x, y, 0.15 + 0.4 * ((x + y) as f64 / (w + h) as f64));
             }
         }
-        for y in 10..34 { for x in 10..34 { img.set(x, y, 0.95); } }
-        for y in 60..78 { for x in 60..84 { img.set(x, y, 0.55); } }
+        for y in 10..34 {
+            for x in 10..34 {
+                img.set(x, y, 0.95);
+            }
+        }
+        for y in 60..78 {
+            for x in 60..84 {
+                img.set(x, y, 0.55);
+            }
+        }
         let t0 = std::time::Instant::now();
         let edges = canny(&img, 0.15, 0.45);
         assert!(t0.elapsed().as_secs() < 5, "canny did not converge quickly");
@@ -447,8 +474,8 @@ mod tests {
         let eq = histogram_equalize(&img);
         assert!(eq.data.iter().all(|&v| (0.0..=1.0).contains(&v)));
         // The brightest input pixel should map to ~1.0.
-        let max_in = img.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-        let max_out = eq.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let max_in = img.data.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let max_out = eq.data.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let idx = img.data.iter().position(|&v| v == max_in).unwrap();
         assert!(max_out > 0.9, "max out {max_out}");
         assert!((eq.data[idx] - 1.0).abs() < 1e-9);

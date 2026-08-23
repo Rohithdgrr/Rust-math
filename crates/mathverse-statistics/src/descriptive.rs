@@ -868,7 +868,11 @@ pub struct RunningStats {
 impl RunningStats {
     /// Creates an empty accumulator.
     pub fn new() -> Self {
-        Self { n: 0, mean: 0.0, m2: 0.0 }
+        Self {
+            n: 0,
+            mean: 0.0,
+            m2: 0.0,
+        }
     }
 
     /// Adds a single observation.
@@ -1131,7 +1135,9 @@ mod tests {
 
     #[test]
     fn running_stats_merge_matches_single_pass() {
-        let all: Vec<f64> = (0..1000).map(|i| (f64::from(i) * 0.37).sin() * 100.0).collect();
+        let all: Vec<f64> = (0..1000)
+            .map(|i| (f64::from(i) * 0.37).sin() * 100.0)
+            .collect();
         let mut single = RunningStats::new();
         single.update_batch(&all);
 

@@ -234,7 +234,9 @@ pub fn power_sequence(n: u32, count: usize) -> Vec<f64> {
 /// Alternating sequence: `[1, -1, 1, -1, ...]` of length `n`.
 #[must_use]
 pub fn alternating(n: usize) -> Vec<f64> {
-    (0..n).map(|i| if i % 2 == 0 { 1.0 } else { -1.0 }).collect()
+    (0..n)
+        .map(|i| if i % 2 == 0 { 1.0 } else { -1.0 })
+        .collect()
 }
 
 /// Factorial of `n`.

@@ -80,10 +80,7 @@ impl ComplexPlaneConfig {
 }
 
 /// Generate an Argand diagram (scatter of complex points).
-pub fn render_argand(
-    points: &[Complex],
-    config: ComplexPlaneConfig,
-) -> PlotResult<String> {
+pub fn render_argand(points: &[Complex], config: ComplexPlaneConfig) -> PlotResult<String> {
     let (x_min, x_max) = config.x_range;
     let (y_min, y_max) = config.y_range;
 
@@ -112,10 +109,7 @@ pub fn render_argand(
 ///
 /// `f` is evaluated on a regular grid over the specified ranges;
 /// each cell is coloured by the function's modulus via the colormap.
-pub fn render_domain_coloring<F>(
-    f: F,
-    config: ComplexPlaneConfig,
-) -> PlotResult<String>
+pub fn render_domain_coloring<F>(f: F, config: ComplexPlaneConfig) -> PlotResult<String>
 where
     F: Fn(Complex) -> Complex,
 {

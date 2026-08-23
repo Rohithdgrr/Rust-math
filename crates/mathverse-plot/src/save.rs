@@ -20,8 +20,7 @@
 use std::path::{Path, PathBuf};
 
 /// Output format options.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OutputFormat {
     /// Scalable Vector Graphics.
     Svg,
@@ -78,15 +77,18 @@ pub struct FormatSet {
 }
 
 impl FormatSet {
-/// Create with PNG only (default).
-pub fn new() -> Self {
-Self::png()
-}
+    /// Create with PNG only (default).
+    pub fn new() -> Self {
+        Self::png()
+    }
 
-/// Create with specific formats. When no formats given, defaults to PNG.
-pub fn with(formats: Vec<OutputFormat>) -> Self {
-Self { formats, ..Self::default_set() }
-}
+    /// Create with specific formats. When no formats given, defaults to PNG.
+    pub fn with(formats: Vec<OutputFormat>) -> Self {
+        Self {
+            formats,
+            ..Self::default_set()
+        }
+    }
 
     /// PNG-only format set at 96 DPI.
     pub fn png() -> Self {
@@ -110,14 +112,12 @@ Self { formats, ..Self::default_set() }
 
     /// Print-optimized set (PDF + high-res PNG).
     pub fn print() -> Self {
-        Self::with(vec![OutputFormat::Pdf, OutputFormat::Png])
-            .with_dpi(300)
+        Self::with(vec![OutputFormat::Pdf, OutputFormat::Png]).with_dpi(300)
     }
 
     /// Presentation set (SVG + PNG at 150 DPI).
     pub fn presentation() -> Self {
-        Self::with(vec![OutputFormat::Svg, OutputFormat::Png])
-            .with_dpi(150)
+        Self::with(vec![OutputFormat::Svg, OutputFormat::Png]).with_dpi(150)
     }
 
     /// Screen set (SVG only).
@@ -160,7 +160,6 @@ Self { formats, ..Self::default_set() }
         self.scale
     }
 }
-
 
 impl Default for FormatSet {
     fn default() -> Self {
@@ -367,7 +366,12 @@ impl PlotSaver {
     /// Raster bytes for the current scene (PNG or JPEG), used by both file
     /// export and notebook inline embedding. Requires the `png` feature.
     #[cfg(feature = "png")]
-    pub fn raster_bytes(&self, format: OutputFormat, dpi: u32, scale: f64) -> Result<Vec<u8>, String> {
+    pub fn raster_bytes(
+        &self,
+        format: OutputFormat,
+        dpi: u32,
+        scale: f64,
+    ) -> Result<Vec<u8>, String> {
         let pixmap = self.render_pixmap(dpi, scale)?;
         match format {
             OutputFormat::Jpeg => {
@@ -389,17 +393,19 @@ impl PlotSaver {
                         dst.copy_from_slice(&[rr, gg, bb, a]);
                     }
                 }
-                let img =
-                    image::RgbaImage::from_raw(w, h, rgba).ok_or("pixmap size mismatch")?;
+                let img = image::RgbaImage::from_raw(w, h, rgba).ok_or("pixmap size mismatch")?;
                 let rgb = image::DynamicImage::ImageRgba8(img).to_rgb8();
                 let mut out = std::io::Cursor::new(Vec::new());
-                let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, self.raster.quality);
-                encoder.encode(&rgb, w, h, image::ExtendedColorType::Rgb8).map_err(|e| format!("jpeg encode: {e}"))?;
+                let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(
+                    &mut out,
+                    self.raster.quality,
+                );
+                encoder
+                    .encode(&rgb, w, h, image::ExtendedColorType::Rgb8)
+                    .map_err(|e| format!("jpeg encode: {e}"))?;
                 Ok(out.into_inner())
             }
-            _ => pixmap
-                .encode_png()
-                .map_err(|e| format!("png encode: {e}")),
+            _ => pixmap.encode_png().map_err(|e| format!("png encode: {e}")),
         }
     }
 
@@ -453,7 +459,11 @@ impl PlotSaver {
             for y in 0..height as usize {
                 for x in 0..width as usize {
                     let i = (y * width as usize + x) * 4;
-                    if data[i] != bg[0] || data[i + 1] != bg[1] || data[i + 2] != bg[2] || data[i + 3] != bg[3] {
+                    if data[i] != bg[0]
+                        || data[i + 1] != bg[1]
+                        || data[i + 2] != bg[2]
+                        || data[i + 3] != bg[3]
+                    {
                         min_x = min_x.min(x);
                         max_x = max_x.max(x);
                         min_y = min_y.min(y);
@@ -468,15 +478,15 @@ impl PlotSaver {
                 let h = (max_y - min_y + 1) as u32;
                 let _rect = tiny_skia::IntRect::from_xywh(x0 as i32, y0 as i32, w, h)
                     .ok_or("bad crop rect")?;
-                let mut cropped = tiny_skia::Pixmap::new(w, h)
-                    .ok_or("crop pixmap alloc failed")?;
+                let mut cropped = tiny_skia::Pixmap::new(w, h).ok_or("crop pixmap alloc failed")?;
                 // Clone the source rows into the new pixmap manually.
                 let dst = cropped.data_mut();
                 for yy in 0..h as usize {
-                    let row_src =
-                        &data[(y0 as usize + yy) * width as usize * 4..(y0 as usize + yy + 1) * width as usize * 4];
+                    let row_src = &data[(y0 as usize + yy) * width as usize * 4
+                        ..(y0 as usize + yy + 1) * width as usize * 4];
                     let row_dst = &mut dst[yy * w as usize * 4..(yy + 1) * w as usize * 4];
-                    row_dst.copy_from_slice(&row_src[x0 as usize * 4..(x0 as usize + w as usize) * 4]);
+                    row_dst
+                        .copy_from_slice(&row_src[x0 as usize * 4..(x0 as usize + w as usize) * 4]);
                 }
                 pixmap = cropped;
             }
@@ -504,7 +514,12 @@ impl PlotSaver {
     }
 
     /// Export to a specific format.
-    fn export_format(&self, format: OutputFormat, path: &Path, formats: &FormatSet) -> ExportResult {
+    fn export_format(
+        &self,
+        format: OutputFormat,
+        path: &Path,
+        formats: &FormatSet,
+    ) -> ExportResult {
         #[cfg(not(feature = "png"))]
         let _ = formats;
         let content = match format {
@@ -515,22 +530,22 @@ impl PlotSaver {
                 {
                     match self.raster_bytes(format, formats.dpi(), formats.scale()) {
                         Ok(bytes) => match std::fs::write(path, &bytes) {
-                            Ok(()) => return ExportResult::success(
-                                format,
-                                path.to_path_buf(),
-                                bytes.len() as u64,
-                            ),
-                            Err(e) => return ExportResult::failed(
-                                format,
-                                path.to_path_buf(),
-                                e.to_string(),
-                            ),
+                            Ok(()) => {
+                                return ExportResult::success(
+                                    format,
+                                    path.to_path_buf(),
+                                    bytes.len() as u64,
+                                )
+                            }
+                            Err(e) => {
+                                return ExportResult::failed(
+                                    format,
+                                    path.to_path_buf(),
+                                    e.to_string(),
+                                )
+                            }
                         },
-                        Err(e) => return ExportResult::failed(
-                            format,
-                            path.to_path_buf(),
-                            e,
-                        ),
+                        Err(e) => return ExportResult::failed(format, path.to_path_buf(), e),
                     }
                 }
                 #[cfg(not(feature = "png"))]
@@ -547,22 +562,22 @@ impl PlotSaver {
                 {
                     match self.generate_pdf() {
                         Ok(bytes) => match std::fs::write(path, &bytes) {
-                            Ok(()) => return ExportResult::success(
-                                format,
-                                path.to_path_buf(),
-                                bytes.len() as u64,
-                            ),
-                            Err(e) => return ExportResult::failed(
-                                format,
-                                path.to_path_buf(),
-                                e.to_string(),
-                            ),
+                            Ok(()) => {
+                                return ExportResult::success(
+                                    format,
+                                    path.to_path_buf(),
+                                    bytes.len() as u64,
+                                )
+                            }
+                            Err(e) => {
+                                return ExportResult::failed(
+                                    format,
+                                    path.to_path_buf(),
+                                    e.to_string(),
+                                )
+                            }
                         },
-                        Err(e) => return ExportResult::failed(
-                            format,
-                            path.to_path_buf(),
-                            e,
-                        ),
+                        Err(e) => return ExportResult::failed(format, path.to_path_buf(), e),
                     }
                 }
                 #[cfg(not(feature = "pdf"))]
@@ -579,16 +594,8 @@ impl PlotSaver {
         };
 
         match std::fs::write(path, &content) {
-            Ok(()) => ExportResult::success(
-                format,
-                path.to_path_buf(),
-                content.len() as u64,
-            ),
-            Err(e) => ExportResult::failed(
-                format,
-                path.to_path_buf(),
-                e.to_string(),
-            ),
+            Ok(()) => ExportResult::success(format, path.to_path_buf(), content.len() as u64),
+            Err(e) => ExportResult::failed(format, path.to_path_buf(), e.to_string()),
         }
     }
 
@@ -738,7 +745,9 @@ impl PlotSaver {
             Ok(())
         } else {
             Err(std::io::Error::other(
-                result.error.unwrap_or_else(|| "PNG export failed".to_string()),
+                result
+                    .error
+                    .unwrap_or_else(|| "PNG export failed".to_string()),
             ))
         }
     }
@@ -752,9 +761,7 @@ impl PlotSaver {
 /// Parse `#rrggbb` (or `rrggbb`) into a tiny-skia color. Returns None for junk.
 #[cfg(feature = "png")]
 fn parse_hex_color(hex: &str) -> Option<tiny_skia::Color> {
-    hex_to_rgba(hex).map(|[r, g, b, a]| {
-        tiny_skia::Color::from_rgba8(r, g, b, a)
-    })
+    hex_to_rgba(hex).map(|[r, g, b, a]| tiny_skia::Color::from_rgba8(r, g, b, a))
 }
 
 /// Parse `#rrggbb` into `[r, g, b, 255]`.
@@ -773,8 +780,7 @@ fn hex_to_rgba(hex: &str) -> Option<[u8; 4]> {
 /// Minimal base64 encoder (RFC 4648) — avoids pulling a dep just for a data URI.
 #[cfg(feature = "png")]
 fn base64_encode(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8; 64] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for chunk in bytes.chunks(3) {
         let b0 = chunk[0];
@@ -810,22 +816,13 @@ fn escape_html(s: &str) -> String {
 }
 
 /// Convenience function to save a plot in all formats.
-pub fn save_plot(
-    svg_content: &str,
-    base_path: &str,
-    formats: &FormatSet,
-) -> Vec<ExportResult> {
+pub fn save_plot(svg_content: &str, base_path: &str, formats: &FormatSet) -> Vec<ExportResult> {
     PlotSaver::new(svg_content).save(base_path, formats)
 }
 
 /// Convenience function to save a plot as a single format.
-pub fn save_plot_as(
-    svg_content: &str,
-    path: &str,
-    format: OutputFormat,
-) -> ExportResult {
-    PlotSaver::new(svg_content)
-        .save_as(path, format, &FormatSet::new())
+pub fn save_plot_as(svg_content: &str, path: &str, format: OutputFormat) -> ExportResult {
+    PlotSaver::new(svg_content).save_as(path, format, &FormatSet::new())
 }
 
 #[cfg(test)]
@@ -988,7 +985,11 @@ mod tests {
         let saver = PlotSaver::new(svg).with_tight_bbox(true);
         let bytes = saver.raster_bytes(OutputFormat::Png, 96, 1.0).unwrap();
         let decoded = image::load_from_memory(&bytes).unwrap();
-        assert!(decoded.width() < 400, "tight bbox width {}", decoded.width());
+        assert!(
+            decoded.width() < 400,
+            "tight bbox width {}",
+            decoded.width()
+        );
         assert!(decoded.height() < 400);
     }
 }

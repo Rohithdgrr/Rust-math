@@ -2,8 +2,8 @@
 //!
 //! Run with: cargo run -p mathverse-calculus --example basic
 
-use mathverse_calculus::prelude::*;
 use core::f64::consts::PI;
+use mathverse_calculus::prelude::*;
 
 fn main() {
     println!("=== mathverse-calculus: Basic Examples ===\n");
@@ -37,23 +37,29 @@ fn main() {
         .steps(100)
         .solve()
         .unwrap();
-    println!("  dy/dt=y, y(0)=1 at t=1: {:.10} (expected: e = {:.10})",
-        sol.last().unwrap().1, 1.0_f64.exp());
+    println!(
+        "  dy/dt=y, y(0)=1 at t=1: {:.10} (expected: e = {:.10})",
+        sol.last().unwrap().1,
+        1.0_f64.exp()
+    );
 
     // Harmonic oscillator
-    let osc = runge_kutta_4_system(
-        &|_, y| vec![y[1], -y[0]],
-        0.0, &[1.0, 0.0], 2.0 * PI, 1000,
-    ).unwrap();
+    let osc =
+        runge_kutta_4_system(&|_, y| vec![y[1], -y[0]], 0.0, &[1.0, 0.0], 2.0 * PI, 1000).unwrap();
     let final_state = &osc.last().unwrap().1;
-    println!("  Harmonic oscillator after 2π: x={:.6}, v={:.6} (expected: 1.0, 0.0)",
-        final_state[0], final_state[1]);
+    println!(
+        "  Harmonic oscillator after 2π: x={:.6}, v={:.6} (expected: 1.0, 0.0)",
+        final_state[0], final_state[1]
+    );
 
     // --- Vector Calculus ---
     println!("\nVector Calculus:");
     let f = |x: &[f64]| x[0] * x[0] + x[1] * x[1];
     let grad = gradient(&f, &[3.0, 4.0]);
-    println!("  ∇(x²+y²) at (3,4): ({:.6}, {:.6}) (expected: 6, 8)", grad[0], grad[1]);
+    println!(
+        "  ∇(x²+y²) at (3,4): ({:.6}, {:.6}) (expected: 6, 8)",
+        grad[0], grad[1]
+    );
 
     let lap = laplacian(&f, &[1.0, 2.0]);
     println!("  ∇²(x²+y²) at (1,2): {lap:.6} (expected: 4)");

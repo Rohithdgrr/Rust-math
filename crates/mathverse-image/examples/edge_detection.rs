@@ -12,18 +12,18 @@ fn main() {
             img.set(x, y, if x < 32 { 0.0 } else { 1.0 });
         }
     }
-    
+
     println!("Test image: {}x{}", img.w, img.h);
-    
+
     // Compute Sobel gradients
     let (magnitude, _direction) = img.sobel();
     println!("Sobel magnitude mean: {:.3}", magnitude.mean());
     println!("Sobel magnitude max: {:.3}", magnitude.max_value());
-    
+
     // Apply Canny edge detection
     let edges = canny(&img, 1.5, 0.05, 0.15);
     println!("Canny edges mean: {:.3}", edges.mean());
-    
+
     // Count edge pixels
     let edge_count = edges.data.iter().filter(|v| **v > 0.5).count();
     println!("Edge pixels: {edge_count}");

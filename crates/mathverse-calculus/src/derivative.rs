@@ -99,14 +99,14 @@ pub fn nth_derivative(f: &dyn Fn(f64) -> f64, x: f64, n: usize) -> (f64, f64) {
 /// Second-order accurate central differences on interior,
 /// first-order forward/backward on boundaries.
 ///
-    /// ```
-    /// use mathverse_calculus::derivative::discrete_gradient;
-    /// let y = vec![1.0, 4.0, 9.0, 16.0]; // x² at x=1,2,3,4
-    /// let g = discrete_gradient(&y, 1.0);
-    /// assert!((g[0] - 3.0).abs() < 1e-10); // forward diff: (4-1)/1 = 3
-    /// assert!((g[1] - 4.0).abs() < 1e-10); // central diff: (9-1)/2 = 4
-    /// assert!((g[3] - 7.0).abs() < 1e-10); // backward diff: (16-9)/1 = 7
-    /// ```
+/// ```
+/// use mathverse_calculus::derivative::discrete_gradient;
+/// let y = vec![1.0, 4.0, 9.0, 16.0]; // x² at x=1,2,3,4
+/// let g = discrete_gradient(&y, 1.0);
+/// assert!((g[0] - 3.0).abs() < 1e-10); // forward diff: (4-1)/1 = 3
+/// assert!((g[1] - 4.0).abs() < 1e-10); // central diff: (9-1)/2 = 4
+/// assert!((g[3] - 7.0).abs() < 1e-10); // backward diff: (16-9)/1 = 7
+/// ```
 pub fn discrete_gradient(y: &[f64], dx: f64) -> Vec<f64> {
     let n = y.len();
     let mut grad = vec![0.0; n];

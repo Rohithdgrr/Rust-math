@@ -30,27 +30,27 @@ impl ConjugateGradient {
         if !a.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = a.rows;
         if b.len() != n {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut x = mathverse_vector::Vector::new(vec![0.0; n]);
         let mut r = b.clone();
         let mut p = r.clone();
         let mut rs_old = r.dot(&r);
-        
+
         for iteration in 0..max_iterations {
             let ap = a.mul_vec(&p)?;
             let alpha = rs_old / p.dot(&ap);
-            
+
             x = x.add(&p.scale(alpha));
             let r_new = r.sub(&ap.scale(alpha));
             let rs_new = r_new.dot(&r_new);
-            
+
             let residual_norm = rs_new.sqrt();
-            
+
             if residual_norm < tolerance {
                 return Ok(IterativeResult {
                     solution: x,
@@ -59,14 +59,14 @@ impl ConjugateGradient {
                     converged: true,
                 });
             }
-            
+
             let beta = rs_new / rs_old;
             p = r_new.add(&p.scale(beta));
-            
+
             r = r_new;
             rs_old = rs_new;
         }
-        
+
         Ok(IterativeResult {
             solution: x,
             iterations: max_iterations,
@@ -83,34 +83,40 @@ impl ConjugateGradient {
         tolerance: f64,
     ) -> MathResult<IterativeResult> {
         let n = a.rows;
-        
+
         // Diagonal preconditioner M = diag(A)
         let mut m_inv = vec![0.0; n];
         for i in 0..n {
             let diag = a.get(i, i);
             if diag.abs() < 1e-15 {
-                return Err(MathError::InvalidArgument("zero diagonal in preconditioner"));
+                return Err(MathError::InvalidArgument(
+                    "zero diagonal in preconditioner",
+                ));
             }
             m_inv[i] = 1.0 / diag;
         }
-        
+
         let mut x = mathverse_vector::Vector::new(vec![0.0; n]);
         let mut r = b.clone();
         let z = mathverse_vector::Vector::new(
-            r.data.iter().zip(m_inv.iter()).map(|(&r, &m)| r * m).collect()
+            r.data
+                .iter()
+                .zip(m_inv.iter())
+                .map(|(&r, &m)| r * m)
+                .collect(),
         );
         let mut p = z.clone();
         let mut rz_old = r.dot(&z);
-        
+
         for iteration in 0..max_iterations {
             let ap = a.mul_vec(&p)?;
             let alpha = rz_old / p.dot(&ap);
-            
+
             x = x.add(&p.scale(alpha));
             let r_new = r.sub(&ap.scale(alpha));
-            
+
             let residual_norm = r_new.data.iter().map(|&x| x * x).sum::<f64>().sqrt();
-            
+
             if residual_norm < tolerance {
                 return Ok(IterativeResult {
                     solution: x,
@@ -119,19 +125,24 @@ impl ConjugateGradient {
                     converged: true,
                 });
             }
-            
+
             let z_new = mathverse_vector::Vector::new(
-                r_new.data.iter().zip(m_inv.iter()).map(|(&r, &m)| r * m).collect()
+                r_new
+                    .data
+                    .iter()
+                    .zip(m_inv.iter())
+                    .map(|(&r, &m)| r * m)
+                    .collect(),
             );
             let rz_new = r_new.dot(&z_new);
-            
+
             let beta = rz_new / rz_old;
             p = z_new.add(&p.scale(beta));
-            
+
             r = r_new;
             rz_old = rz_new;
         }
-        
+
         Ok(IterativeResult {
             solution: x,
             iterations: max_iterations,
@@ -156,20 +167,20 @@ impl Gmres {
         if !a.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = a.rows;
         if b.len() != n {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut x = mathverse_vector::Vector::new(vec![0.0; n]);
         let mut total_iterations = 0;
-        
+
         for _ in 0..=(max_iterations / restart) {
             let ax = a.mul_vec(&x)?;
             let r = b.sub(&ax);
             let beta = r.data.iter().map(|x| x * x).sum::<f64>().sqrt();
-            
+
             if beta < tolerance {
                 return Ok(IterativeResult {
                     solution: x.clone(),
@@ -178,11 +189,11 @@ impl Gmres {
                     converged: true,
                 });
             }
-            
+
             // Arnoldi iteration (simplified)
             let mut q = vec![r.scale(1.0 / beta)];
             let mut h = vec![vec![0.0; restart + 1]; restart];
-            
+
             for k in 0..restart.min(n) {
                 let v = a.mul_vec(&q[k])?;
                 let mut v = v;
@@ -216,7 +227,7 @@ impl Gmres {
                         let qj_scaled = q[j].scale(yj);
                         x = x.add(&qj_scaled);
                     }
-                    
+
                     return Ok(IterativeResult {
                         solution: x,
                         iterations: total_iterations + k + 1,
@@ -225,38 +236,44 @@ impl Gmres {
                     });
                 }
             }
-            
+
             total_iterations += restart;
         }
-        
+
         Ok(IterativeResult {
             solution: x.clone(),
             iterations: total_iterations,
-            residual_norm: b.sub(&a.mul_vec(&x).unwrap()).data.iter().map(|x| x * x).sum::<f64>().sqrt(),
+            residual_norm: b
+                .sub(&a.mul_vec(&x).unwrap())
+                .data
+                .iter()
+                .map(|x| x * x)
+                .sum::<f64>()
+                .sqrt(),
             converged: false,
         })
     }
-    
+
     /// Solve least squares problem min ||beta*e1 - H*y|| using Givens rotations.
     fn solve_least_squares(h: &[Vec<f64>], k: usize, beta: f64) -> Vec<f64> {
         if k == 0 {
             return vec![];
         }
-        
+
         // Build (k+1) x k Hessenberg matrix and apply Givens rotations
         let mut g = vec![0.0; k + 1];
         g[0] = beta;
-        
+
         // Apply Givens rotations to reduce H to upper triangular
         let mut cosines = vec![0.0; k];
         let mut sines = vec![0.0; k];
-        
+
         for i in 0..k {
             // Givens rotation to zero out h[i+1][i]
             let a = h[i][i];
             let b = h[i + 1][i];
             let r = (a * a + b * b).sqrt();
-            
+
             if r < 1e-15 {
                 cosines[i] = 1.0;
                 sines[i] = 0.0;
@@ -264,14 +281,14 @@ impl Gmres {
                 cosines[i] = a / r;
                 sines[i] = b / r;
             }
-            
+
             // Apply rotation to g
             let g_i = cosines[i] * g[i] + sines[i] * g[i + 1];
             let g_i1 = -sines[i] * g[i] + cosines[i] * g[i + 1];
             g[i] = g_i;
             g[i + 1] = g_i1;
         }
-        
+
         // Back substitution on upper triangular system (first k rows of g)
         let mut y = vec![0.0; k];
         for i in (0..k).rev() {
@@ -286,7 +303,7 @@ impl Gmres {
                 y[i] = sum / h_ii;
             }
         }
-        
+
         y
     }
 }
@@ -301,43 +318,43 @@ impl Jacobi {
         b: &mathverse_vector::Vector,
         max_iterations: usize,
         tolerance: f64,
-        omega: f64,  // Relaxation parameter
+        omega: f64, // Relaxation parameter
     ) -> MathResult<IterativeResult> {
         if !a.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = a.rows;
         if b.len() != n {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut x = mathverse_vector::Vector::new(vec![0.0; n]);
-        
+
         for iteration in 0..max_iterations {
             let mut x_new = vec![0.0; n];
             let mut max_diff: f64 = 0.0;
-            
+
             for i in 0..n {
                 let mut sum = b.get(i);
-                
+
                 for j in 0..n {
                     if i != j {
                         sum -= a.get(i, j) * x.get(j);
                     }
                 }
-                
+
                 let diag = a.get(i, i);
                 if diag.abs() < 1e-15 {
                     return Err(MathError::InvalidArgument("zero diagonal in Jacobi"));
                 }
-                
+
                 x_new[i] = (1.0 - omega) * x.get(i) + omega * sum / diag;
                 max_diff = max_diff.max((x_new[i] - x.get(i)).abs());
             }
-            
+
             x = mathverse_vector::Vector::new(x_new);
-            
+
             if max_diff < tolerance {
                 return Ok(IterativeResult {
                     solution: x,
@@ -347,11 +364,17 @@ impl Jacobi {
                 });
             }
         }
-        
+
         Ok(IterativeResult {
             solution: x.clone(),
             iterations: max_iterations,
-            residual_norm: b.sub(&a.mul_vec(&x).unwrap()).data.iter().map(|x| x * x).sum::<f64>().sqrt(),
+            residual_norm: b
+                .sub(&a.mul_vec(&x).unwrap())
+                .data
+                .iter()
+                .map(|x| x * x)
+                .sum::<f64>()
+                .sqrt(),
             converged: false,
         })
     }
@@ -367,41 +390,41 @@ impl GaussSeidel {
         b: &mathverse_vector::Vector,
         max_iterations: usize,
         tolerance: f64,
-        omega: f64,  // Relaxation parameter (SOR when omega != 1)
+        omega: f64, // Relaxation parameter (SOR when omega != 1)
     ) -> MathResult<IterativeResult> {
         if !a.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = a.rows;
         if b.len() != n {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut x = mathverse_vector::Vector::new(vec![0.0; n]);
-        
+
         for iteration in 0..max_iterations {
             let mut max_diff: f64 = 0.0;
-            
+
             for i in 0..n {
                 let mut sum = b.get(i);
-                
+
                 for j in 0..n {
                     if i != j {
                         sum -= a.get(i, j) * x.get(j);
                     }
                 }
-                
+
                 let diag = a.get(i, i);
                 if diag.abs() < 1e-15 {
                     return Err(MathError::InvalidArgument("zero diagonal in Gauss-Seidel"));
                 }
-                
+
                 let new_val = (1.0 - omega) * x.get(i) + omega * sum / diag;
                 max_diff = max_diff.max((new_val - x.get(i)).abs());
                 x.set(i, new_val);
             }
-            
+
             if max_diff < tolerance {
                 return Ok(IterativeResult {
                     solution: x,
@@ -411,11 +434,17 @@ impl GaussSeidel {
                 });
             }
         }
-        
+
         Ok(IterativeResult {
             solution: x.clone(),
             iterations: max_iterations,
-            residual_norm: b.sub(&a.mul_vec(&x).unwrap()).data.iter().map(|x| x * x).sum::<f64>().sqrt(),
+            residual_norm: b
+                .sub(&a.mul_vec(&x).unwrap())
+                .data
+                .iter()
+                .map(|x| x * x)
+                .sum::<f64>()
+                .sqrt(),
             converged: false,
         })
     }
@@ -446,13 +475,13 @@ impl IterativeUtils {
         for i in 0..m.rows {
             let diag = m.get(i, i).abs();
             let mut row_sum = 0.0;
-            
+
             for j in 0..m.cols {
                 if i != j {
                     row_sum += m.get(i, j).abs();
                 }
             }
-            
+
             if strict {
                 if diag <= row_sum {
                     return false;
@@ -461,7 +490,7 @@ impl IterativeUtils {
                 return false;
             }
         }
-        
+
         true
     }
 
@@ -473,18 +502,24 @@ impl IterativeUtils {
     /// Estimate spectral radius of iteration matrix.
     pub fn spectral_radius_estimate(m: &Matrix) -> MathResult<f64> {
         let (vals, _) = m.eigen_symmetric()?;
-        Ok(vals.iter().map(|&v| v.abs()).fold(f64::NEG_INFINITY, f64::max))
+        Ok(vals
+            .iter()
+            .map(|&v| v.abs())
+            .fold(f64::NEG_INFINITY, f64::max))
     }
 
     /// Compute optimal relaxation parameter for SOR.
     pub fn optimal_omega(m: &Matrix) -> MathResult<f64> {
         let (vals, _) = m.eigen_symmetric()?;
-        let rho = vals.iter().map(|&v| v.abs()).fold(f64::NEG_INFINITY, f64::max);
-        
+        let rho = vals
+            .iter()
+            .map(|&v| v.abs())
+            .fold(f64::NEG_INFINITY, f64::max);
+
         if rho >= 1.0 {
-            return Ok(1.0);  // No convergence guaranteed
+            return Ok(1.0); // No convergence guaranteed
         }
-        
+
         Ok(2.0 / (1.0 + (1.0 - rho * rho).sqrt()))
     }
 
@@ -493,18 +528,18 @@ impl IterativeUtils {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = m.rows;
         let mut l = Matrix::zeros(n, n);
-        
+
         for i in 0..n {
             for j in 0..=i {
                 let mut sum = m.get(i, j);
-                
+
                 for k in 0..j {
                     sum -= l.get(i, k) * l.get(j, k);
                 }
-                
+
                 if i == j {
                     if sum <= 0.0 {
                         return Err(MathError::InvalidArgument("matrix not positive definite"));
@@ -515,7 +550,7 @@ impl IterativeUtils {
                 }
             }
         }
-        
+
         Ok(l)
     }
 
@@ -524,16 +559,16 @@ impl IterativeUtils {
         let n = m.rows;
         let d = Matrix::diagonal(&(0..n).map(|i| m.get(i, i)).collect::<Vec<_>>());
         let d_inv = d.inverse()?;
-        
+
         let mut l = Matrix::zeros(n, n);
         for i in 0..n {
             for j in 0..i {
                 l.set(i, j, m.get(i, j));
             }
         }
-        
+
         let u = l.transpose();
-        
+
         let d_inv_omega = d_inv.scale(2.0 - omega);
         let i_minus_omega_l = Matrix::identity(n).sub(&l.scale(omega))?;
         let i_minus_omega_u = Matrix::identity(n).sub(&u.scale(omega))?;
@@ -551,12 +586,12 @@ mod tests {
     fn test_conjugate_gradient() {
         let a = Matrix::from_rows(&[&[4.0, 1.0], &[1.0, 3.0]]).unwrap();
         let b = mathverse_vector::Vector::new(vec![1.0, 2.0]);
-        
+
         let result = ConjugateGradient::solve(&a, &b, 100, 1e-10).unwrap();
-        
+
         assert!(result.converged);
         assert!(result.iterations < 10);
-        
+
         // Verify solution
         let ax = a.mul_vec(&result.solution).unwrap();
         assert!((ax.get(0) - 1.0).abs() < 1e-8);
@@ -567,9 +602,9 @@ mod tests {
     fn test_jacobi() {
         let a = Matrix::from_rows(&[&[4.0, 1.0], &[1.0, 3.0]]).unwrap();
         let b = mathverse_vector::Vector::new(vec![1.0, 2.0]);
-        
+
         let result = Jacobi::solve(&a, &b, 100, 1e-10, 1.0).unwrap();
-        
+
         assert!(result.converged);
     }
 
@@ -577,9 +612,9 @@ mod tests {
     fn test_gauss_seidel() {
         let a = Matrix::from_rows(&[&[4.0, 1.0], &[1.0, 3.0]]).unwrap();
         let b = mathverse_vector::Vector::new(vec![1.0, 2.0]);
-        
+
         let result = GaussSeidel::solve(&a, &b, 100, 1e-10, 1.0).unwrap();
-        
+
         assert!(result.converged);
     }
 
@@ -587,7 +622,7 @@ mod tests {
     fn test_diagonal_dominance() {
         let dd = Matrix::from_rows(&[&[5.0, 1.0], &[1.0, 4.0]]).unwrap();
         assert!(IterativeUtils::is_diagonally_dominant(&dd, true));
-        
+
         let not_dd = Matrix::from_rows(&[&[1.0, 2.0], &[2.0, 1.0]]).unwrap();
         assert!(!IterativeUtils::is_diagonally_dominant(&not_dd, true));
     }

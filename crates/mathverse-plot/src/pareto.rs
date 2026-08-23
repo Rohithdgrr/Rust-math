@@ -78,7 +78,11 @@ pub fn render_pareto(bars: &[ParetoBar], config: &ParetoConfig) -> PlotResult<St
 
     // Sort by value descending
     let mut sorted: Vec<&ParetoBar> = bars.iter().collect();
-    sorted.sort_by(|a, b| b.value.partial_cmp(&a.value).unwrap_or(std::cmp::Ordering::Equal));
+    sorted.sort_by(|a, b| {
+        b.value
+            .partial_cmp(&a.value)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     let total: f64 = sorted.iter().map(|b| b.value).sum();
     let max_value = sorted[0].value;
@@ -201,7 +205,8 @@ pub fn render_pareto(bars: &[ParetoBar], config: &ParetoConfig) -> PlotResult<St
         svg.push('\n');
         svg.push_str(&format!(
             r#"  <text x="{}" y="{}" font-size="10" fill="red">80%</text>"#,
-            width - padding + 5.0, y_80
+            width - padding + 5.0,
+            y_80
         ));
         svg.push('\n');
     }

@@ -1,5 +1,8 @@
-//! Signal detection: envelope follower, threshold crossing, peak detection.
+﻿//! Signal detection: envelope follower, threshold crossing, peak detection.
 
+/// Compute an envelope follower with fixed attack (0.1) and release (0.01)
+/// coefficients.
+#[must_use]
 pub fn envelope(x: &[f64]) -> Vec<f64> {
     let mut env = Vec::with_capacity(x.len());
     let mut state = 0.0;
@@ -14,22 +17,34 @@ pub fn envelope(x: &[f64]) -> Vec<f64> {
     env
 }
 
+/// Detect onsets by comparing energy in windows before and after each frame.
+///
+/// Returns the sample indices of detected onsets, one per `hop`-sized step.
+#[must_use]
 pub fn onset_detection(x: &[f64], hop: usize) -> Vec<usize> {
     let mut onsets = Vec::new();
     for i in hop..x.len() - hop {
         let left: f64 = (i - hop..i).map(|j| x[j].abs()).sum();
         let right: f64 = (i..i + hop).map(|j| x[j].abs()).sum();
-        if right > 1.2 * left && right > 0.1 { onsets.push(i); }
+        if right > 1.2 * left && right > 0.1 {
+            onsets.push(i);
+        }
     }
     onsets
 }
 
+/// Compute the fraction of adjacent sample pairs with opposite sign.
+#[must_use]
 pub fn zero_crossing_rate(x: &[f64]) -> f64 {
-    if x.len() < 2 { return 0.0; }
+    if x.len() < 2 {
+        return 0.0;
+    }
     let crosses = x.windows(2).filter(|w| w[0] * w[1] < 0.0).count();
     crosses as f64 / (x.len() - 1) as f64
 }
 
+/// Compute the spectral centroid (weighted mean frequency) of magnitude bins.
+#[must_use]
 pub fn spectral_centroid(magnitudes: &[f64], sample_rate: f64) -> f64 {
     let n = magnitudes.len();
     let mut weighted_sum = 0.0;
@@ -39,24 +54,46 @@ pub fn spectral_centroid(magnitudes: &[f64], sample_rate: f64) -> f64 {
         weighted_sum += freq * m;
         total += m;
     }
-    if total == 0.0 { 0.0 } else { weighted_sum / total }
+    if total == 0.0 {
+        0.0
+    } else {
+        weighted_sum / total
+    }
 }
 
+/// Find the bin index below which `threshold` (fraction of total energy) of the
+/// spectrum is contained.
+#[must_use]
 pub fn spectral_rolloff(magnitudes: &[f64], threshold: f64) -> usize {
     let total: f64 = magnitudes.iter().sum();
     let mut cumsum = 0.0;
     for (i, &m) in magnitudes.iter().enumerate() {
         cumsum += m;
-        if cumsum >= threshold * total { return i; }
+        if cumsum >= threshold * total {
+            return i;
+        }
     }
     magnitudes.len() - 1
 }
 
+/// Compute the dynamic range in dB between the maximum sample and the minimum
+/// positive sample.
+#[must_use]
 pub fn dynamic_range(x: &[f64]) -> f64 {
-    if x.is_empty() { return 0.0; }
+    if x.is_empty() {
+        return 0.0;
+    }
     let max = x.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    let min = x.iter().copied().filter(|v| *v > 0.0).fold(f64::INFINITY, f64::min);
-    if !min.is_finite() || min <= 0.0 { f64::INFINITY } else { 20.0 * (max / min).log10() }
+    let min = x
+        .iter()
+        .copied()
+        .filter(|v| *v > 0.0)
+        .fold(f64::INFINITY, f64::min);
+    if !min.is_finite() || min <= 0.0 {
+        f64::INFINITY
+    } else {
+        20.0 * (max / min).log10()
+    }
 }
 
 #[cfg(test)]

@@ -15,7 +15,13 @@ pub fn euler(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f64) -> 
 }
 
 /// Classical fourth-order Runge-Kutta integration of `y' = f(t, y)`.
-pub fn runge_kutta4(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f64) -> Vec<(f64, f64)> {
+pub fn runge_kutta4(
+    f: impl Fn(f64, f64) -> f64,
+    y0: f64,
+    t0: f64,
+    tf: f64,
+    h: f64,
+) -> Vec<(f64, f64)> {
     assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let mut result = vec![(t0, y0)];
     let (mut t, mut y) = (t0, y0);
@@ -33,14 +39,22 @@ pub fn runge_kutta4(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f
 }
 
 /// Euler's method for the system `y' = f(t, y)` with `y ∈ R^n`.
-pub fn euler_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, tf: f64, h: f64) -> Vec<(f64, Vec<f64>)> {
+pub fn euler_system(
+    f: &impl Fn(f64, &[f64]) -> Vec<f64>,
+    y0: &[f64],
+    t0: f64,
+    tf: f64,
+    h: f64,
+) -> Vec<(f64, Vec<f64>)> {
     assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let mut result = vec![(t0, y0.to_vec())];
     let (mut t, mut y) = (t0, y0.to_vec());
     while t < tf - 1e-15 {
         let step = h.min(tf - t);
         let dy = f(t, &y);
-        for i in 0..y.len() { y[i] += step * dy[i]; }
+        for i in 0..y.len() {
+            y[i] += step * dy[i];
+        }
         t += step;
         result.push((t, y.clone()));
     }
@@ -48,7 +62,13 @@ pub fn euler_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, t
 }
 
 /// Classical fourth-order Runge-Kutta integration of the system `y' = f(t, y)`.
-pub fn rk4_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, tf: f64, h: f64) -> Vec<(f64, Vec<f64>)> {
+pub fn rk4_system(
+    f: &impl Fn(f64, &[f64]) -> Vec<f64>,
+    y0: &[f64],
+    t0: f64,
+    tf: f64,
+    h: f64,
+) -> Vec<(f64, Vec<f64>)> {
     assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let n = y0.len();
     let mut result = vec![(t0, y0.to_vec())];
@@ -56,14 +76,22 @@ pub fn rk4_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, tf:
     while t < tf - 1e-15 {
         let step = h.min(tf - t);
         let k1 = f(t, &y);
-        let y2: Vec<f64> = y.iter().zip(&k1).map(|(yi, ki)| yi + step * ki / 2.0).collect();
+        let y2: Vec<f64> = y
+            .iter()
+            .zip(&k1)
+            .map(|(yi, ki)| yi + step * ki / 2.0)
+            .collect();
         let k2 = f(t + step / 2.0, &y2);
-        let y3: Vec<f64> = y.iter().zip(&k2).map(|(yi, ki)| yi + step * ki / 2.0).collect();
+        let y3: Vec<f64> = y
+            .iter()
+            .zip(&k2)
+            .map(|(yi, ki)| yi + step * ki / 2.0)
+            .collect();
         let k3 = f(t + step / 2.0, &y3);
         let y4: Vec<f64> = y.iter().zip(&k3).map(|(yi, ki)| yi + step * ki).collect();
         let k4 = f(t + step, &y4);
         for i in 0..n {
-            y[i] += step * (k1[i] + 2.0*k2[i] + 2.0*k3[i] + k4[i]) / 6.0;
+            y[i] += step * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]) / 6.0;
         }
         t += step;
         result.push((t, y.clone()));

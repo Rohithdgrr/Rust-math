@@ -28,7 +28,7 @@ impl Fundamental {
     }
 }
 
-fn solve_nxn(a: &Vec<Vec<f64>>, b: &Vec<f64>) -> Option<Vec<f64>> {
+fn solve_nxn(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     let n = a.len();
     let mut sys: Vec<Vec<f64>> = (0..n)
         .map(|i| {
@@ -74,8 +74,12 @@ fn smallest_eigenvector(a: &[Vec<f64>], n: usize) -> Option<Vec<f64>> {
             }
         }
         let norm: f64 = w.iter().map(|x| x * x).sum::<f64>().sqrt();
-        if norm < 1e-30 { return None; }
-        for i in 0..n { v[i] = w[i] / norm; }
+        if norm < 1e-30 {
+            return None;
+        }
+        for i in 0..n {
+            v[i] = w[i] / norm;
+        }
     }
     let shift = 0.001;
     let mut b = v.clone();
@@ -88,7 +92,9 @@ fn smallest_eigenvector(a: &[Vec<f64>], n: usize) -> Option<Vec<f64>> {
         }
         let x = solve_nxn(&m, &b)?;
         let norm: f64 = x.iter().map(|t| t * t).sum::<f64>().sqrt();
-        if norm < 1e-30 { return None; }
+        if norm < 1e-30 {
+            return None;
+        }
         b = x.iter().map(|t| t / norm).collect();
     }
     Some(b)
@@ -127,17 +133,14 @@ mod tests {
 
     #[test]
     fn epipolar_constraint() {
-        let _f = Fundamental([
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, -1.0],
-            [0.0, 1.0, 0.0],
-        ]);
-        let a: Vec<(f64, f64)> = (0..8).map(|i| (i as f64 * 0.5, (i * i) as f64 * 0.1)).collect();
+        let a: Vec<(f64, f64)> = (0..8)
+            .map(|i| (f64::from(i) * 0.5, f64::from(i * i) * 0.1))
+            .collect();
         let b: Vec<(f64, f64)> = a.iter().map(|(x, y)| (*x, y + 1.0)).collect();
         let fhat = fundamental(&a, &b).unwrap();
         for ((x, y), (xp, yp)) in a.iter().zip(&b) {
             let d = fhat.sampson_distance(*x, *y, *xp, *yp);
-            assert!(d < 1e-4, "sampson {}", d);
+            assert!(d < 1e-4, "sampson {d}");
         }
     }
 

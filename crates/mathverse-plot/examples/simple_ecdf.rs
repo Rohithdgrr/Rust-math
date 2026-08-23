@@ -13,16 +13,15 @@ fn main() -> mathverse_plot::PlotResult<()> {
         })
         .collect();
 
-    let mut cfg = EcdfConfig::new()
-        .with_confidence(0.95);
+    let mut cfg = EcdfConfig::new().with_confidence(0.95);
     cfg.color = Color::rgb(0, 100, 200);
     cfg.plot_config.title = "ECDF with 95% CI".into();
     cfg.plot_config.width = 600;
     cfg.plot_config.height = 400;
 
     let svg = render_ecdf(&values, &cfg)?;
-PlotSaver::new(&svg).save_png("ecdf.png")?;
-println!("wrote ecdf.png");
+    PlotSaver::new(&svg).save_png("ecdf.png")?;
+    println!("wrote ecdf.png");
 
     Ok(())
 }

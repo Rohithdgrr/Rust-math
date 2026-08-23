@@ -1,11 +1,12 @@
 //! Categorical axis example with string labels.
 
-use mathverse_plot::{CategoryMap, DataPoint, DataSeries, PlotConfig, SvgPlot};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{CategoryMap, DataPoint, DataSeries, PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create categorical data
-    let categories = CategoryMap::from_labels(vec!["Apple", "Banana", "Cherry", "Date", "Elderberry"]);
+    let categories =
+        CategoryMap::from_labels(vec!["Apple", "Banana", "Cherry", "Date", "Elderberry"]);
 
     // Data: fruit sales
     let sales = [45.0, 32.0, 58.0, 21.0, 39.0];

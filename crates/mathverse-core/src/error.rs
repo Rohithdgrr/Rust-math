@@ -67,9 +67,7 @@ impl MathError {
         match self {
             Self::Domain => "input is outside the function domain",
             Self::DivisionByZero => "division by zero",
-            Self::InvalidArgument(m)
-            | Self::NotConverged(m)
-            | Self::NumericalFailure(m) => m,
+            Self::InvalidArgument(m) | Self::NotConverged(m) | Self::NumericalFailure(m) => m,
             Self::DimensionMismatch => "dimension mismatch",
             Self::Overflow => "numeric overflow",
             Self::Underflow => "numeric underflow",
@@ -143,11 +141,11 @@ mod tests {
 
     #[test]
     fn msg_method() {
-        assert_eq!(MathError::Domain.msg(), "input is outside the function domain");
         assert_eq!(
-            MathError::InvalidArgument("test").msg(),
-            "test"
+            MathError::Domain.msg(),
+            "input is outside the function domain"
         );
+        assert_eq!(MathError::InvalidArgument("test").msg(), "test");
         assert_eq!(MathError::Overflow.msg(), "numeric overflow");
     }
 

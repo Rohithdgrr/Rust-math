@@ -77,8 +77,8 @@ pub fn imwrite(path: impl AsRef<Path>, img: &Image) -> Result<(), String> {
         .iter()
         .map(|&v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)
         .collect::<Vec<_>>();
-    let gray: image::GrayImage =
-        image::ImageBuffer::from_raw(w, h, raw).ok_or_else(|| "imwrite: invalid dimensions".to_string())?;
+    let gray: image::GrayImage = image::ImageBuffer::from_raw(w, h, raw)
+        .ok_or_else(|| "imwrite: invalid dimensions".to_string())?;
     gray.save(path).map_err(|e| format!("imwrite failed: {e}"))
 }
 
@@ -105,9 +105,10 @@ pub fn imwrite_color(path: impl AsRef<Path>, img: &Image) -> Result<(), String> 
         .iter()
         .map(|&v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)
         .collect::<Vec<_>>();
-    let rgb: image::RgbImage =
-        image::ImageBuffer::from_raw(w, h, raw).ok_or_else(|| "imwrite_color: invalid dimensions".to_string())?;
-    rgb.save(path).map_err(|e| format!("imwrite_color failed: {e}"))
+    let rgb: image::RgbImage = image::ImageBuffer::from_raw(w, h, raw)
+        .ok_or_else(|| "imwrite_color: invalid dimensions".to_string())?;
+    rgb.save(path)
+        .map_err(|e| format!("imwrite_color failed: {e}"))
 }
 
 /// Resizes an image to `new_w × new_h` using bilinear interpolation.
@@ -131,8 +132,8 @@ pub fn resize(img: &Image, new_w: usize, new_h: usize) -> Result<Image, String> 
         .iter()
         .map(|&v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)
         .collect::<Vec<_>>();
-    let gray: image::GrayImage =
-        image::ImageBuffer::from_raw(w, h, raw).ok_or_else(|| "resize: invalid dimensions".to_string())?;
+    let gray: image::GrayImage = image::ImageBuffer::from_raw(w, h, raw)
+        .ok_or_else(|| "resize: invalid dimensions".to_string())?;
     let scaled = image::imageops::resize(&gray, new_w as u32, new_h as u32, FilterType::Triangle);
     let data = scaled
         .as_raw()

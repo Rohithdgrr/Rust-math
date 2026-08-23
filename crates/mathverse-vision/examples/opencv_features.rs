@@ -1,12 +1,12 @@
 //! OpenCV-style camera viewer with advanced features
-//! 
+//!
 //! This example demonstrates a complete OpenCV-like interface with:
 //! - Live camera feed
 //! - Multiple processing modes
 //! - Drawing overlays
 //! - Real-time feature detection
 //! - Mouse interaction (future)
-//! 
+//!
 //! Controls:
 //! - ESC/Q: Quit
 //! - 1: Original view
@@ -25,12 +25,12 @@
 //! - S: Save screenshot
 
 use mathverse_vision::{
-    Image,
     camera::SystemCamera,
-    ops::{canny, sobel, laplacian, histogram, bounding_box},
-    features::harris,
-    threshold::{binary, adaptive},
     drawing::{circle, rectangle},
+    features::harris,
+    ops::{bounding_box, canny, histogram, laplacian, sobel},
+    threshold::{adaptive, binary},
+    Image,
 };
 use minifb::{Key, Window, WindowOptions};
 
@@ -73,26 +73,29 @@ impl AppState {
             frame_times: Vec::new(),
         }
     }
-    
+
     fn update_fps(&mut self) {
         let now = std::time::Instant::now();
         self.frame_times.push(now);
-        
+
         // Keep only last 30 frames for FPS calculation
         if self.frame_times.len() > 30 {
             self.frame_times.remove(0);
         }
     }
-    
+
     fn get_fps(&self) -> f64 {
         if self.frame_times.len() < 2 {
             return 0.0;
         }
-        
-        let duration = self.frame_times.last().unwrap()
+
+        let duration = self
+            .frame_times
+            .last()
+            .unwrap()
             .duration_since(*self.frame_times.first().unwrap());
         let seconds = duration.as_secs_f64();
-        
+
         if seconds > 0.0 {
             (self.frame_times.len() - 1) as f64 / seconds
         } else {
@@ -104,71 +107,72 @@ impl AppState {
 fn main() -> Result<(), String> {
     println!("=== MathVerse Vision - OpenCV Features Demo ===\n");
     println!("Initializing camera...");
-    
+
     let mut cam = SystemCamera::new(0)?;
-    
+
     let mut window = Window::new(
         "MathVerse Vision - OpenCV Features (Press H for help)",
         WIDTH,
         HEIGHT,
         WindowOptions::default(),
-    ).map_err(|e| format!("Failed to create window: {e}"))?;
-    
+    )
+    .map_err(|e| format!("Failed to create window: {e}"))?;
+
     window.set_target_fps(30);
-    
+
     let mut state = AppState::new();
-    
+
     print_help();
-    
+
     // Main processing loop
     while window.is_open() && !window.is_key_down(Key::Escape) {
         // Handle keyboard input
         handle_input(&window, &mut state);
-        
+
         if window.is_key_pressed(Key::Q, minifb::KeyRepeat::No) {
             break;
         }
-        
+
         // Capture or use frozen frame
-        let frame = if state.frozen && state.frozen_frame.is_some() {
-            state.frozen_frame.as_ref().unwrap().clone()
+        let frame = if let Some(frozen) = state.frozen_frame.as_ref() {
+            frozen.clone()
         } else {
             let (success, frame) = cam.read()?;
             if !success {
                 println!("Failed to capture frame");
                 continue;
             }
-            
+
             // Store frozen frame if just frozen
             if state.frozen && state.frozen_frame.is_none() {
                 state.frozen_frame = Some(frame.clone());
             }
-            
+
             // Store for motion detection
             if state.mode == ViewMode::MotionDetection {
                 state.previous_frame = Some(frame.clone());
             }
-            
+
             frame
         };
-        
+
         // Process frame based on mode
         let mut processed = process_frame(&frame, &state);
-        
+
         // Draw overlays
         draw_overlays(&mut processed, &state, &frame);
-        
+
         // Convert to display buffer
         let buffer = grayscale_to_rgb_buffer(&processed);
-        
+
         // Update window
         window
             .update_with_buffer(&buffer, WIDTH, HEIGHT)
             .map_err(|e| format!("Window update failed: {e}"))?;
-        
+
         state.update_fps();
     }
-    
+
     println!("\nCamera closed.");
     Ok(())
 }
@@ -215,7 +219,7 @@ fn handle_input(window: &Window, state: &mut AppState) {
         state.mode = ViewMode::Histogram;
         println!("Mode: Histogram View");
     }
-    
+
     // Toggle options
     if window.is_key_pressed(Key::F, minifb::KeyRepeat::No) {
         state.show_fps = !state.show_fps;
@@ -223,7 +227,10 @@ fn handle_input(window: &Window, state: &mut AppState) {
     }
     if window.is_key_pressed(Key::I, minifb::KeyRepeat::No) {
         state.show_info = !state.show_info;
-        println!("Info overlay: {}", if state.show_info { "ON" } else { "OFF" });
+        println!(
+            "Info overlay: {}",
+            if state.show_info { "ON" } else { "OFF" }
+        );
     }
     if window.is_key_pressed(Key::Space, minifb::KeyRepeat::No) {
         state.frozen = !state.frozen;
@@ -245,19 +252,16 @@ fn handle_input(window: &Window, state: &mut AppState) {
 fn process_frame(frame: &Image, state: &AppState) -> Image {
     match state.mode {
         ViewMode::Original => frame.clone(),
-        
-        ViewMode::EdgeCanny => {
-            
-            canny(frame, 0.1, 0.3)
-        },
-        
+
+        ViewMode::EdgeCanny => canny(frame, 0.1, 0.3),
+
         ViewMode::CornerHarris => {
             let corners = harris(frame, 1.0, 0.04);
-            
+
             // Find strong corners and draw markers
             let mut display = frame.clone();
             let threshold = 0.01; // Adjust for sensitivity
-            
+
             for y in 10..frame.h - 10 {
                 for x in 10..frame.w - 10 {
                     let idx = y * frame.w + x;
@@ -267,32 +271,26 @@ fn process_frame(frame: &Image, state: &AppState) -> Image {
                     }
                 }
             }
-            
+
             display
-        },
-        
-        ViewMode::GaussianBlur => {
-            frame.gaussian_blur(5, 2.0)
-        },
-        
+        }
+
+        ViewMode::GaussianBlur => frame.gaussian_blur(5, 2.0),
+
         ViewMode::SobelGradient => {
             let (mag, _) = sobel(frame);
             normalize_image(&mag)
-        },
-        
+        }
+
         ViewMode::Laplacian => {
             let lap = laplacian(frame);
             normalize_image(&lap)
-        },
-        
-        ViewMode::ThresholdBinary => {
-            binary(frame, 0.5, 1.0)
-        },
-        
-        ViewMode::ThresholdAdaptive => {
-            adaptive(frame, 15, 0.05)
-        },
-        
+        }
+
+        ViewMode::ThresholdBinary => binary(frame, 0.5, 1.0),
+
+        ViewMode::ThresholdAdaptive => adaptive(frame, 15, 0.05),
+
         ViewMode::MotionDetection => {
             if let Some(ref prev) = state.previous_frame {
                 // Compute frame difference
@@ -300,25 +298,23 @@ fn process_frame(frame: &Image, state: &AppState) -> Image {
                 for i in 0..frame.data.len() {
                     diff.data[i] = (frame.data[i] - prev.data[i]).abs();
                 }
-                
+
                 // Threshold to detect motion
                 let motion = binary(&diff, 0.1, 1.0);
-                
+
                 // Find bounding box of motion
                 let mut display = frame.clone();
                 if let Some((x0, y0, x1, y1)) = bounding_box(&motion) {
                     rectangle(&mut display, (x0, y0), (x1, y1), 1.0, 2);
                 }
-                
+
                 display
             } else {
                 frame.clone()
             }
-        },
-        
-        ViewMode::Histogram => {
-            draw_histogram(frame)
-        },
+        }
+
+        ViewMode::Histogram => draw_histogram(frame),
     }
 }
 
@@ -337,7 +333,7 @@ fn draw_overlays(img: &mut Image, state: &AppState, _original: &Image) {
             }
         }
     }
-    
+
     // Draw mode indicator (top-right corner)
     if state.show_info {
         let mode_num = state.mode as usize;
@@ -351,7 +347,7 @@ fn draw_overlays(img: &mut Image, state: &AppState, _original: &Image) {
             }
         }
     }
-    
+
     // Draw frozen indicator
     if state.frozen {
         // Draw pause symbol (two vertical bars) in bottom-left
@@ -372,21 +368,21 @@ fn draw_overlays(img: &mut Image, state: &AppState, _original: &Image) {
 
 fn draw_histogram(img: &Image) -> Image {
     let hist = histogram(img);
-    
+
     // Create histogram visualization
     let hist_width = WIDTH;
     let hist_height = HEIGHT;
     let mut hist_img = Image::new(hist_width, hist_height);
-    
+
     // Find max bin count for normalization
     let max_count = *hist.iter().max().unwrap_or(&1);
-    
+
     // Draw histogram bars
     let bin_width = hist_width / 256;
     for (i, &count) in hist.iter().enumerate() {
         let bar_height = (count as f64 / max_count as f64 * (hist_height as f64 * 0.8)) as usize;
         let x = i * bin_width;
-        
+
         // Draw vertical bar
         for dy in 0..bar_height {
             let y = hist_height - 1 - dy;
@@ -397,40 +393,44 @@ fn draw_histogram(img: &Image) -> Image {
             }
         }
     }
-    
+
     hist_img
 }
 
 fn grayscale_to_rgb_buffer(img: &Image) -> Vec<u32> {
     let mut buffer = vec![0u32; img.w * img.h];
-    
+
     for (i, &val) in img.data.iter().enumerate() {
         let byte = (val.clamp(0.0, 1.0) * 255.0) as u8;
         buffer[i] = (u32::from(byte) << 16) | (u32::from(byte) << 8) | u32::from(byte);
     }
-    
+
     buffer
 }
 
 fn normalize_image(img: &Image) -> Image {
     let mut min_val = f64::INFINITY;
     let mut max_val = f64::NEG_INFINITY;
-    
+
     for &val in &img.data {
-        if val < min_val { min_val = val; }
-        if val > max_val { max_val = val; }
+        if val < min_val {
+            min_val = val;
+        }
+        if val > max_val {
+            max_val = val;
+        }
     }
-    
+
     let range = max_val - min_val;
     if range < 1e-10 {
         return img.clone();
     }
-    
+
     let mut out = Image::new(img.w, img.h);
     for (i, &val) in img.data.iter().enumerate() {
         out.data[i] = (val - min_val) / range;
     }
-    
+
     out
 }
 

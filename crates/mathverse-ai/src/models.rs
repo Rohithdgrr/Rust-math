@@ -1,7 +1,7 @@
 //! Sequential model container: chains layers + activations for forward pass.
 
+use crate::layers::{Dropout, LayerNorm, Linear};
 use crate::tensor::Tensor;
-use crate::layers::{Linear, LayerNorm, Dropout};
 use mathverse_core::error::MathResult;
 
 /// Activation type enum.
@@ -15,7 +15,7 @@ pub enum Activation {
     Tanh,
     /// Gaussian Error Linear Unit (tanh approximation).
     GELU,
-    /// Swish / SiLU.
+    /// Swish / `SiLU`.
     Swish,
     /// Softmax along a given `axis`.
     Softmax {
@@ -52,27 +52,35 @@ impl Default for Sequential {
 
 impl Sequential {
     /// Create an empty sequential model.
-    pub fn new() -> Self { Self { layers: Vec::new() } }
+    #[must_use]
+    pub fn new() -> Self {
+        Self { layers: Vec::new() }
+    }
 
     /// Append a [`Linear`] layer.
+    #[must_use]
     pub fn add_linear(mut self, in_f: usize, out_f: usize) -> Self {
         self.layers.push(Layer::Linear(Linear::new(in_f, out_f)));
         self
     }
 
     /// Append a [`LayerNorm`] layer.
+    #[must_use]
     pub fn add_layer_norm(mut self, normalized_shape: usize) -> Self {
-        self.layers.push(Layer::LayerNorm(LayerNorm::new(normalized_shape, 1e-5)));
+        self.layers
+            .push(Layer::LayerNorm(LayerNorm::new(normalized_shape, 1e-5)));
         self
     }
 
     /// Append a [`Dropout`] layer.
+    #[must_use]
     pub fn add_dropout(mut self, p: f64) -> Self {
         self.layers.push(Layer::Dropout(Dropout::new(p)));
         self
     }
 
     /// Append an activation.
+    #[must_use]
     pub fn add_activation(mut self, act: Activation) -> Self {
         self.layers.push(Layer::Activation(act));
         self
@@ -103,12 +111,16 @@ impl Sequential {
     }
 
     /// Total number of parameters.
+    #[must_use]
     pub fn num_params(&self) -> usize {
-        self.layers.iter().map(|l| match l {
-            Layer::Linear(l) => l.num_params(),
-            Layer::LayerNorm(l) => l.normalized_shape * 2,
-            _ => 0,
-        }).sum()
+        self.layers
+            .iter()
+            .map(|l| match l {
+                Layer::Linear(l) => l.num_params(),
+                Layer::LayerNorm(l) => l.normalized_shape * 2,
+                _ => 0,
+            })
+            .sum()
     }
 }
 
@@ -124,6 +136,7 @@ pub struct MLP {
 
 impl MLP {
     /// Create a new MLP.
+    #[must_use]
     pub fn new(input_size: usize, hidden_sizes: &[usize], output_size: usize) -> Self {
         let mut hidden_layers = Vec::new();
         let mut prev = input_size;
@@ -131,7 +144,11 @@ impl MLP {
             hidden_layers.push(Linear::new(prev, h));
             prev = h;
         }
-        Self { hidden_layers, output_layer: Linear::new(prev, output_size), activation: Activation::ReLU }
+        Self {
+            hidden_layers,
+            output_layer: Linear::new(prev, output_size),
+            activation: Activation::ReLU,
+        }
     }
 
     /// Forward pass through all layers.
@@ -176,9 +193,12 @@ pub struct TransformerBlock {
 
 impl TransformerBlock {
     /// Create a transformer block with random-initialized parameters.
+    #[must_use]
     pub fn new(d_model: usize, num_heads: usize, d_ff: usize) -> Self {
-        assert!(d_model % num_heads == 0, "TransformerBlock: d_model ({d_model}) must be divisible by num_heads ({num_heads})");
-        let _d_k = d_model / num_heads;
+        assert!(
+            d_model.is_multiple_of(num_heads),
+            "TransformerBlock: d_model ({d_model}) must be divisible by num_heads ({num_heads})"
+        );
         Self {
             attn_wq: Tensor::randn(&[d_model, d_model]).mul_scalar((2.0 / d_model as f64).sqrt()),
             attn_wk: Tensor::randn(&[d_model, d_model]).mul_scalar((2.0 / d_model as f64).sqrt()),
@@ -198,8 +218,13 @@ impl TransformerBlock {
         // Self-attention with residual
         let normed = self.ln1.forward(x)?;
         let attn_out = crate::attention::multi_head_attention(
-            &normed, &self.attn_wq, &self.attn_wk, &self.attn_wv, &self.attn_wo,
-            self.num_heads, mask,
+            &normed,
+            &self.attn_wq,
+            &self.attn_wk,
+            &self.attn_wv,
+            &self.attn_wo,
+            self.num_heads,
+            mask,
         )?;
         let h = x.add(&attn_out)?;
 
@@ -244,4 +269,3 @@ mod tests {
         assert_eq!(out.shape, vec![2, 8, 16]);
     }
 }
-

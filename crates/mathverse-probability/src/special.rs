@@ -202,8 +202,31 @@ pub(crate) fn adaptive_simpson(
             return left + right + delta / 15.0;
         }
         let tol_half = 0.5 * tol;
-        step(f, a, m, fa, flm, fm, left, tol_half, depth + 1, max_eval, evals)
-            + step(f, m, b, fm, frm, fb, right, tol_half, depth + 1, max_eval, evals)
+        step(
+            f,
+            a,
+            m,
+            fa,
+            flm,
+            fm,
+            left,
+            tol_half,
+            depth + 1,
+            max_eval,
+            evals,
+        ) + step(
+            f,
+            m,
+            b,
+            fm,
+            frm,
+            fb,
+            right,
+            tol_half,
+            depth + 1,
+            max_eval,
+            evals,
+        )
     }
 
     if b <= a {

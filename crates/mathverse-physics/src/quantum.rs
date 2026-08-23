@@ -4,8 +4,7 @@ use crate::constants::{E, H, H_BAR, M_E};
 
 /// Bohr radius: a₀ = 4πε₀ħ² / (mₑ e²) ≈ 5.29177210903 × 10⁻¹¹ m.
 pub fn bohr_radius() -> f64 {
-    4.0 * std::f64::consts::PI * crate::constants::EPSILON_0 * H_BAR.powi(2)
-        / (M_E * E.powi(2))
+    4.0 * std::f64::consts::PI * crate::constants::EPSILON_0 * H_BAR.powi(2) / (M_E * E.powi(2))
 }
 
 /// Hydrogen energy levels (non-relativistic Bohr model with reduced mass
@@ -88,11 +87,7 @@ mod tests {
 
     #[test]
     fn test_photon_energy() {
-        assert_relative_eq!(
-            photon_energy_freq(5.0e14),
-            H * 5.0e14,
-            epsilon = 1e-50
-        );
+        assert_relative_eq!(photon_energy_freq(5.0e14), H * 5.0e14, epsilon = 1e-50);
         assert!(photon_energy_wavelength(0.0).is_none());
     }
 }

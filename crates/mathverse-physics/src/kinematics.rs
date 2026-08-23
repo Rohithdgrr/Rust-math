@@ -16,10 +16,10 @@
 //
 //! #![allow(unused_imports)] // re-exports pull in all submodules
 
-use mathverse_units::si::Meter;
-use mathverse_units::dimensions::{LengthDim, VelocityDim, AccelerationDim};
+use mathverse_units::dimensions::{AccelerationDim, LengthDim, VelocityDim};
 use mathverse_units::quantity::Quantity;
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, Div};
+use mathverse_units::si::Meter;
+use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
 /// Position in meters.
 ///
@@ -340,7 +340,10 @@ impl Add<f64> for Acceleration {
 
 impl Add<mathverse_units::quantity::Quantity<AccelerationDim, Meter>> for Acceleration {
     type Output = Self;
-    fn add(self, other: mathverse_units::quantity::Quantity<AccelerationDim, Meter>) -> Self::Output {
+    fn add(
+        self,
+        other: mathverse_units::quantity::Quantity<AccelerationDim, Meter>,
+    ) -> Self::Output {
         Acceleration::new(self.0.value + other.value)
     }
 }
@@ -361,7 +364,10 @@ impl Sub<f64> for Acceleration {
 
 impl Sub<mathverse_units::quantity::Quantity<AccelerationDim, Meter>> for Acceleration {
     type Output = Self;
-    fn sub(self, other: mathverse_units::quantity::Quantity<AccelerationDim, Meter>) -> Self::Output {
+    fn sub(
+        self,
+        other: mathverse_units::quantity::Quantity<AccelerationDim, Meter>,
+    ) -> Self::Output {
         Acceleration::new(self.0.value - other.value)
     }
 }
@@ -456,11 +462,7 @@ pub fn displacement_with_acceleration(
 /// // v = v0 + at = 10 + 2*5 = 20
 /// assert_eq!(vel.value(), 20.0);
 /// ```
-pub fn final_velocity_with_acceleration(
-    vel0: Velocity,
-    acc: Acceleration,
-    t: f64,
-) -> Velocity {
+pub fn final_velocity_with_acceleration(vel0: Velocity, acc: Acceleration, t: f64) -> Velocity {
     Velocity::new(vel0.0.value + acc.0.value * t)
 }
 
@@ -482,10 +484,7 @@ pub fn final_velocity_with_acceleration(
 /// // d = v*t = 5*3 = 15
 /// assert_eq!(pos.value(), 15.0);
 /// ```
-pub fn displacement_constant_velocity(
-    vel: Velocity,
-    t: f64,
-) -> Position {
+pub fn displacement_constant_velocity(vel: Velocity, t: f64) -> Position {
     Position::new(vel.0.value * t)
 }
 
@@ -507,10 +506,7 @@ pub fn displacement_constant_velocity(
 /// // 0 = v0² + 2ad → d = -v0²/(2a) = -100/(2·(-2)) = 25
 /// assert_eq!(pos.value(), 25.0);
 /// ```
-pub fn stopping_distance(
-    initial_velocity: Velocity,
-    acceleration: Acceleration,
-) -> Position {
+pub fn stopping_distance(initial_velocity: Velocity, acceleration: Acceleration) -> Position {
     // d = -v² / (2a)  (from v² = v0² + 2ad with v = 0; positive for braking a < 0)
     if acceleration.0.value == 0.0 {
         // If acceleration is zero, stopping distance is undefined (vehicle never stops)
@@ -524,13 +520,22 @@ pub fn stopping_distance(
 }
 
 /// Alias for time in seconds.
-pub type Time = mathverse_units::quantity::Quantity<mathverse_units::dimensions::TimeDim, mathverse_units::si::Second>;
+pub type Time = mathverse_units::quantity::Quantity<
+    mathverse_units::dimensions::TimeDim,
+    mathverse_units::si::Second,
+>;
 
 /// Alias for velocity quantity with VelocityDim dimension.
-pub type VelocityQuant = mathverse_units::quantity::Quantity<mathverse_units::dimensions::VelocityDim, mathverse_units::si::Meter>;
+pub type VelocityQuant = mathverse_units::quantity::Quantity<
+    mathverse_units::dimensions::VelocityDim,
+    mathverse_units::si::Meter,
+>;
 
 /// Alias for acceleration quantity with AccelerationDim dimension.
-pub type AccelerationQuant = mathverse_units::quantity::Quantity<mathverse_units::dimensions::AccelerationDim, mathverse_units::si::Meter>;
+pub type AccelerationQuant = mathverse_units::quantity::Quantity<
+    mathverse_units::dimensions::AccelerationDim,
+    mathverse_units::si::Meter,
+>;
 
 #[cfg(test)]
 mod tests {
@@ -597,11 +602,8 @@ mod tests {
 
     #[test]
     fn test_final_velocity_with_acceleration() {
-        let vel = final_velocity_with_acceleration(
-            Velocity::new(10.0),
-            Acceleration::new(2.0),
-            5.0,
-        );
+        let vel =
+            final_velocity_with_acceleration(Velocity::new(10.0), Acceleration::new(2.0), 5.0);
         // v = v0 + at = 10 + 2*5 = 20
         assert_relative_eq!(vel.value(), 20.0, epsilon = 1e-6);
     }
@@ -629,11 +631,8 @@ mod tests {
     #[test]
     fn test_kinematics_law() {
         // v = v0 + at is dimensionally consistent
-        let vel = final_velocity_with_acceleration(
-            Velocity::new(0.0),
-            Acceleration::new(9.81),
-            1.0,
-        );
+        let vel =
+            final_velocity_with_acceleration(Velocity::new(0.0), Acceleration::new(9.81), 1.0);
         assert_relative_eq!(vel.value(), 9.81, epsilon = 1e-6);
     }
 }

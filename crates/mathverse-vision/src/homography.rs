@@ -9,7 +9,10 @@ impl Homography {
     pub fn apply(&self, x: f64, y: f64) -> (f64, f64) {
         let h = &self.0;
         let w = h[6] * x + h[7] * y + h[8];
-        ((h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w)
+        (
+            (h[0] * x + h[1] * y + h[2]) / w,
+            (h[3] * x + h[4] * y + h[5]) / w,
+        )
     }
 }
 
@@ -78,9 +81,7 @@ fn smallest_eigenvector(a: &[[f64; 9]; 9]) -> Option<[f64; 9]> {
                 m[i][j] = a[i][j] - if i == j { shift } else { 0.0 };
             }
         }
-        let Some(mut x) = solve_9x9(&m, &b) else {
-            return None;
-        };
+        let mut x = solve_9x9(&m, &b)?;
         let norm: f64 = x.iter().map(|t| t * t).sum::<f64>().sqrt();
         if norm < 1e-30 {
             return None;
@@ -154,8 +155,11 @@ mod tests {
         let mut dst = Vec::new();
         for i in 0..3i32 {
             for j in 0..2i32 {
-                src.push((i as f64, j as f64));
-                dst.push((2.0 * i as f64 + 0.3 * j as f64 + 1.0, j as f64 - 0.1 * i as f64 - 2.0));
+                src.push((f64::from(i), f64::from(j)));
+                dst.push((
+                    2.0 * f64::from(i) + 0.3 * f64::from(j) + 1.0,
+                    f64::from(j) - 0.1 * f64::from(i) - 2.0,
+                ));
             }
         }
         let h = homography_dlt(&src, &dst).unwrap();
@@ -168,6 +172,6 @@ mod tests {
             })
             .sum::<f64>()
             .sqrt();
-        assert!(err < 1e-3, "reprojection error: {}", err);
+        assert!(err < 1e-3, "reprojection error: {err}");
     }
 }

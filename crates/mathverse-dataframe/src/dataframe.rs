@@ -1,4 +1,4 @@
-﻿use alloc::format;
+use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt;
@@ -88,7 +88,9 @@ impl DataFrame {
     /// Returns the number of rows.
     #[must_use]
     pub fn nrows(&self) -> usize {
-        self.columns.first().map_or(0, super::column::AnyColumn::len)
+        self.columns
+            .first()
+            .map_or(0, super::column::AnyColumn::len)
     }
 
     /// Returns the number of columns.
@@ -157,12 +159,12 @@ impl DataFrame {
     /// Returns a typed reference to a column's series.
     pub fn column_as<T: 'static>(&self, name: &str) -> DataFrameResult<&Series<T>> {
         let col = self.column(name)?;
-        col.as_any().downcast_ref::<Series<T>>().ok_or_else(|| {
-            DataFrameError::TypeMismatch {
+        col.as_any()
+            .downcast_ref::<Series<T>>()
+            .ok_or_else(|| DataFrameError::TypeMismatch {
                 expected: "the requested type",
                 actual: col.dtype().name(),
-            }
-        })
+            })
     }
 
     /// Adds a new column from a `Vec<T>`.
@@ -189,7 +191,8 @@ impl DataFrame {
             });
         }
 
-        self.schema.add_field(crate::schema::Field::new(name, col.dtype()))?;
+        self.schema
+            .add_field(crate::schema::Field::new(name, col.dtype()))?;
         let col_len = col.len();
         let is_first = self.columns.is_empty();
         self.columns.push(col);
@@ -328,7 +331,13 @@ impl DataFrame {
                     AnyColumn::Float32(s) => f64::from(s.data()[ci]),
                     AnyColumn::Int64(s) => s.data()[ci] as f64,
                     AnyColumn::Int32(s) => f64::from(s.data()[ci]),
-                    AnyColumn::Bool(s) => if s.data()[ci] { 1.0 } else { 0.0 },
+                    AnyColumn::Bool(s) => {
+                        if s.data()[ci] {
+                            1.0
+                        } else {
+                            0.0
+                        }
+                    }
                     AnyColumn::Date(s) | AnyColumn::DateTime(s) | AnyColumn::Duration(s) => {
                         s.data()[ci] as f64
                     }
@@ -446,9 +455,7 @@ impl DataFrame {
     /// Returns a new `DataFrame` with null values in the specified column dropped.
     pub fn drop_nulls(&self, column_name: &str) -> DataFrameResult<Self> {
         let col = self.column(column_name)?;
-        let positions: Vec<usize> = (0..col.len())
-            .filter(|&i| !col.is_null(i))
-            .collect();
+        let positions: Vec<usize> = (0..col.len()).filter(|&i| !col.is_null(i)).collect();
         self.select_rows(&positions)
     }
 
@@ -458,7 +465,10 @@ impl DataFrame {
     ///
     /// Returns an error if the column is not found or not f64.
     pub fn fill_nulls(&mut self, column_name: &str, fill_value: f64) -> DataFrameResult<()> {
-        let col = self.columns.iter_mut().find(|c| c.name() == column_name)
+        let col = self
+            .columns
+            .iter_mut()
+            .find(|c| c.name() == column_name)
             .ok_or_else(|| DataFrameError::ColumnNotFound(column_name.to_string()))?;
 
         match col {
@@ -487,7 +497,10 @@ impl DataFrame {
     ///
     /// Returns an error if the column is not found or the type is unsupported.
     pub fn forward_fill(&mut self, column_name: &str) -> DataFrameResult<()> {
-        let col = self.columns.iter_mut().find(|c| c.name() == column_name)
+        let col = self
+            .columns
+            .iter_mut()
+            .find(|c| c.name() == column_name)
             .ok_or_else(|| DataFrameError::ColumnNotFound(column_name.to_string()))?;
 
         match col {
@@ -750,7 +763,9 @@ impl DataFrame {
         let mut indices: Vec<usize> = (0..nrows).collect();
         let mut state = seed;
         for i in (1..nrows).rev() {
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let j = (state as usize) % (i + 1);
             indices.swap(i, j);
         }
@@ -758,11 +773,21 @@ impl DataFrame {
         indices.sort_unstable();
         let mut result = Self::new();
         for col in &self.columns {
-            let gathered = crate::ops::join::gather(col, &indices.iter().map(|&i| (Some(i), Some(0))).collect::<Vec<_>>(), true);
+            let gathered = crate::ops::join::gather(
+                col,
+                &indices
+                    .iter()
+                    .map(|&i| (Some(i), Some(0)))
+                    .collect::<Vec<_>>(),
+                true,
+            );
             result.add_any_column(gathered)?;
         }
         result.index = Index::labels(
-            indices.iter().map(|&i| alloc::format!("sample_{i}")).collect(),
+            indices
+                .iter()
+                .map(|&i| alloc::format!("sample_{i}"))
+                .collect(),
         );
         Ok(result)
     }
@@ -831,7 +856,8 @@ impl DataFrame {
     /// Result is a square `DataFrame` with column names as both row and column labels.
     pub fn corr(&self) -> DataFrameResult<Self> {
         let names: Vec<&str> = self.column_names();
-        let numeric: Vec<&str> = names.iter()
+        let numeric: Vec<&str> = names
+            .iter()
             .filter(|&&n| self.column(n).is_ok_and(|c| c.dtype().is_numeric()))
             .copied()
             .collect();
@@ -839,9 +865,9 @@ impl DataFrame {
         let mut matrix = vec![vec![0.0f64; n]; n];
 
         for i in 0..n {
-                let _vi = self.column(numeric[i])?.valid_f64()?;
-                for j in i..n {
-                    let _vj = self.column(numeric[j])?.valid_f64()?;
+            let _vi = self.column(numeric[i])?.valid_f64()?;
+            for j in i..n {
+                let _vj = self.column(numeric[j])?.valid_f64()?;
                 // Align on non-null positions.
                 let col_i = self.column(numeric[i])?;
                 let col_j = self.column(numeric[j])?;
@@ -894,7 +920,8 @@ impl DataFrame {
     /// Returns the covariance matrix for all numeric columns.
     pub fn cov(&self) -> DataFrameResult<Self> {
         let names: Vec<&str> = self.column_names();
-        let numeric: Vec<&str> = names.iter()
+        let numeric: Vec<&str> = names
+            .iter()
             .filter(|&&n| self.column(n).is_ok_and(|c| c.dtype().is_numeric()))
             .copied()
             .collect();
@@ -921,9 +948,12 @@ impl DataFrame {
                 }
                 let mean_i = xi.iter().sum::<f64>() / len;
                 let mean_j = xj.iter().sum::<f64>() / len;
-                let cov: f64 = xi.iter().zip(xj.iter())
+                let cov: f64 = xi
+                    .iter()
+                    .zip(xj.iter())
                     .map(|(&a, &b)| (a - mean_i) * (b - mean_j))
-                    .sum::<f64>() / (len - 1.0);
+                    .sum::<f64>()
+                    / (len - 1.0);
                 matrix[i][j] = cov;
                 matrix[j][i] = cov;
             }
@@ -965,10 +995,15 @@ impl DataFrame {
         }
         // Add one Bool column per unique value.
         for val in &order {
-            let flags: Vec<bool> = (0..self.nrows()).map(|i| {
-                if col.is_null(i) { false }
-                else { col.get_str(i).unwrap_or_default() == val.as_str() }
-            }).collect();
+            let flags: Vec<bool> = (0..self.nrows())
+                .map(|i| {
+                    if col.is_null(i) {
+                        false
+                    } else {
+                        col.get_str(i).unwrap_or_default() == val.as_str()
+                    }
+                })
+                .collect();
             let cname = alloc::format!("{column_name}_{val}");
             result.add_column(&cname, flags)?;
         }
@@ -993,14 +1028,19 @@ impl DataFrame {
         let max = vals.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let width = (max - min) / bins as f64;
         let s = col.to_f64()?;
-        let bin_indices: Vec<i64> = s.data().iter().enumerate().map(|(i, &v)| {
-            if s.is_null(i) || width == 0.0 {
-                0
-            } else {
-                let idx = ((v - min) / width).floor() as i64;
-                idx.min((bins as i64) - 1).max(0)
-            }
-        }).collect();
+        let bin_indices: Vec<i64> = s
+            .data()
+            .iter()
+            .enumerate()
+            .map(|(i, &v)| {
+                if s.is_null(i) || width == 0.0 {
+                    0
+                } else {
+                    let idx = ((v - min) / width).floor() as i64;
+                    idx.min((bins as i64) - 1).max(0)
+                }
+            })
+            .collect();
         Ok(AnyColumn::Int64(Series::new(column_name, bin_indices)))
     }
 
@@ -1039,7 +1079,10 @@ impl DataFrame {
         match method {
             "forward" => self.forward_fill(column_name)?,
             "backward" => {
-                let col = self.columns.iter_mut().find(|c| c.name() == column_name)
+                let col = self
+                    .columns
+                    .iter_mut()
+                    .find(|c| c.name() == column_name)
                     .ok_or_else(|| DataFrameError::ColumnNotFound(column_name.to_string()))?;
                 match col {
                     AnyColumn::Float64(s) => {
@@ -1077,7 +1120,10 @@ impl DataFrame {
                 }
             }
             "linear" => {
-                let col = self.columns.iter_mut().find(|c| c.name() == column_name)
+                let col = self
+                    .columns
+                    .iter_mut()
+                    .find(|c| c.name() == column_name)
                     .ok_or_else(|| DataFrameError::ColumnNotFound(column_name.to_string()))?;
                 match col {
                     AnyColumn::Float64(s) => {
@@ -1138,7 +1184,9 @@ impl DataFrame {
     /// Returns a `DataFrame` with rows for each stat: count, mean, std, min,
     /// then each custom quantile, then max.
     pub fn describe_with_quantiles(&self, quantiles: &[f64]) -> DataFrameResult<Self> {
-        let numeric_cols: Vec<&str> = self.column_names().iter()
+        let numeric_cols: Vec<&str> = self
+            .column_names()
+            .iter()
             .filter(|&&n| self.column(n).is_ok_and(|c| c.dtype().is_numeric()))
             .copied()
             .collect();
@@ -1154,11 +1202,17 @@ impl DataFrame {
             let vals = self.column(col_name)?.valid_f64()?;
             let n = vals.len();
             let count = n as f64;
-            let mean = if n > 0 { vals.iter().sum::<f64>() / count } else { 0.0 };
+            let mean = if n > 0 {
+                vals.iter().sum::<f64>() / count
+            } else {
+                0.0
+            };
             let std = if n > 1 {
                 let var = vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
                 var.sqrt()
-            } else { 0.0 };
+            } else {
+                0.0
+            };
             let mut sorted = vals.clone();
             sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
             let min = sorted.first().copied().unwrap_or(0.0);
@@ -1193,7 +1247,9 @@ impl DataFrame {
             let col = self.column(name)?;
             match col {
                 AnyColumn::Date(_) | AnyColumn::DateTime(_) => {}
-                _ => { result.add_any_column(col.clone())?; }
+                _ => {
+                    result.add_any_column(col.clone())?;
+                }
             }
         }
         for name in self.column_names() {
@@ -1202,26 +1258,27 @@ impl DataFrame {
                 AnyColumn::Date(s) => {
                     let ts: Vec<i64> = s.data().to_vec();
                     for &part in parts {
-                        let extracted: Vec<i64> = ts.iter().map(|&days| {
-                            match part {
-                                "year" => {
-                                    // Rough epoch-based year.
-                                    1970 + (days / 365)
+                        let extracted: Vec<i64> = ts
+                            .iter()
+                            .map(|&days| {
+                                match part {
+                                    "year" => {
+                                        // Rough epoch-based year.
+                                        1970 + (days / 365)
+                                    }
+                                    "month" => {
+                                        // Rough month from day-of-year.
+                                        ((days % 365) / 30 + 1).min(12)
+                                    }
+                                    "day" => days % 30 + 1,
+                                    "dow" => {
+                                        // Day of week (0=Mon).
+                                        ((days % 7) + 7) % 7
+                                    }
+                                    _ => 0,
                                 }
-                                "month" => {
-                                    // Rough month from day-of-year.
-                                    ((days % 365) / 30 + 1).min(12)
-                                }
-                                "day" => {
-                                    days % 30 + 1
-                                }
-                                "dow" => {
-                                    // Day of week (0=Mon).
-                                    ((days % 7) + 7) % 7
-                                }
-                                _ => 0,
-                            }
-                        }).collect();
+                            })
+                            .collect();
                         let cname = alloc::format!("{name}_{part}");
                         result.add_column(&cname, extracted)?;
                     }
@@ -1229,17 +1286,20 @@ impl DataFrame {
                 AnyColumn::DateTime(s) => {
                     let ts: Vec<i64> = s.data().to_vec(); // microseconds
                     for &part in parts {
-                        let extracted: Vec<i64> = ts.iter().map(|&us| {
-                            let secs = us / 1_000_000;
-                            match part {
-                                "year" => 1970 + (secs / 31_557_600),
-                                "month" => ((secs % 31_557_600) / 2_592_000 + 1).min(12),
-                                "day" => (secs % 2_592_000) / 86400 + 1,
-                                "hour" => (secs % 86400) / 3600,
-                                "dow" => (secs / 86400 % 7 + 7) % 7,
-                                _ => 0,
-                            }
-                        }).collect();
+                        let extracted: Vec<i64> = ts
+                            .iter()
+                            .map(|&us| {
+                                let secs = us / 1_000_000;
+                                match part {
+                                    "year" => 1970 + (secs / 31_557_600),
+                                    "month" => ((secs % 31_557_600) / 2_592_000 + 1).min(12),
+                                    "day" => (secs % 2_592_000) / 86400 + 1,
+                                    "hour" => (secs % 86400) / 3600,
+                                    "dow" => (secs / 86400 % 7 + 7) % 7,
+                                    _ => 0,
+                                }
+                            })
+                            .collect();
                         let cname = alloc::format!("{name}_{part}");
                         result.add_column(&cname, extracted)?;
                     }
@@ -1258,10 +1318,7 @@ impl DataFrame {
         let n = self.ncols();
         if other.nrows() != n {
             return Err(DataFrameError::DimensionMismatch {
-                message: alloc::format!(
-                    "dot: left cols ({}) != right rows ({})",
-                    n, other.nrows()
-                ),
+                message: alloc::format!("dot: left cols ({}) != right rows ({})", n, other.nrows()),
             });
         }
         let p = other.ncols();
@@ -1327,9 +1384,8 @@ impl DataFrame {
 
             if col.dtype().is_numeric() {
                 let vals = col.valid_f64()?;
-                let uniq: alloc::collections::BTreeSet<u64> = vals.iter()
-                    .map(|v| v.to_bits())
-                    .collect();
+                let uniq: alloc::collections::BTreeSet<u64> =
+                    vals.iter().map(|v| v.to_bits()).collect();
                 unique_counts.push(uniq.len() as f64);
                 if vals.is_empty() {
                     mins.push(0.0);
@@ -1347,7 +1403,9 @@ impl DataFrame {
                     let skew = if std > 0.0 && vals.len() > 2 {
                         vals.iter().map(|v| ((v - mean) / std).powi(3)).sum::<f64>()
                             / vals.len() as f64
-                    } else { 0.0 };
+                    } else {
+                        0.0
+                    };
                     mins.push(min);
                     maxs.push(max);
                     means.push(mean);
@@ -1395,7 +1453,9 @@ impl DataFrame {
         let mut indices: Vec<usize> = (0..nrows).collect();
         let mut state = seed;
         for i in (1..nrows).rev() {
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let j = (state as usize) % (i + 1);
             indices.swap(i, j);
         }
@@ -1408,13 +1468,19 @@ impl DataFrame {
         for col in &self.columns {
             let train_gathered = crate::ops::join::gather(
                 col,
-                &train_indices.iter().map(|&i| (Some(i), Some(0))).collect::<Vec<_>>(),
+                &train_indices
+                    .iter()
+                    .map(|&i| (Some(i), Some(0)))
+                    .collect::<Vec<_>>(),
                 true,
             );
             train.add_any_column(train_gathered)?;
             let test_gathered = crate::ops::join::gather(
                 col,
-                &test_indices.iter().map(|&i| (Some(i), Some(0))).collect::<Vec<_>>(),
+                &test_indices
+                    .iter()
+                    .map(|&i| (Some(i), Some(0)))
+                    .collect::<Vec<_>>(),
                 true,
             );
             test.add_any_column(test_gathered)?;
@@ -1584,8 +1650,11 @@ mod tests {
     #[test]
     fn sort_by() {
         let mut df = DataFrame::new();
-        df.add_column("name", vec![String::from("c"), String::from("a"), String::from("b")])
-            .unwrap();
+        df.add_column(
+            "name",
+            vec![String::from("c"), String::from("a"), String::from("b")],
+        )
+        .unwrap();
         df.add_column("val", vec![3, 1, 2]).unwrap();
 
         let sorted = df.sort_by("val", true).unwrap();

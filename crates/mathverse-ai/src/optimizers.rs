@@ -1,4 +1,4 @@
-//! Stateful optimizers: SGD (with momentum + weight decay), Adam, AdamW,
+//! Stateful optimizers: SGD (with momentum + weight decay), Adam, `AdamW`,
 //! and learning rate schedulers.
 
 /// SGD with momentum and optional weight decay.
@@ -15,13 +15,24 @@ pub struct Sgd {
 
 impl Sgd {
     /// Create a new SGD optimizer.
+    #[must_use]
     pub fn new(lr: f64, momentum: f64, weight_decay: f64) -> Self {
-        Self { lr, momentum, weight_decay, velocity: Vec::new(), initialized: false }
+        Self {
+            lr,
+            momentum,
+            weight_decay,
+            velocity: Vec::new(),
+            initialized: false,
+        }
     }
 
     /// Perform one optimization step. `params` and `grads` must have same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        assert_eq!(params.len(), grads.len(), "Sgd: params/grads length mismatch");
+        assert_eq!(
+            params.len(),
+            grads.len(),
+            "Sgd: params/grads length mismatch"
+        );
         if !self.initialized {
             self.velocity = vec![0.0; params.len()];
             self.initialized = true;
@@ -29,10 +40,10 @@ impl Sgd {
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             let mut grad = *g;
             if self.weight_decay > 0.0 {
-                grad += self.weight_decay * *p;
+                grad = self.weight_decay.mul_add(*p, grad);
             }
-            self.velocity[i] = self.momentum * self.velocity[i] + grad;
-            *p -= self.lr * self.velocity[i];
+            self.velocity[i] = self.momentum.mul_add(self.velocity[i], grad);
+            *p = self.lr.mul_add(-self.velocity[i], *p);
         }
     }
 }
@@ -57,13 +68,28 @@ pub struct Adam {
 
 impl Adam {
     /// Create a new Adam optimizer.
+    #[must_use]
     pub fn new(lr: f64, beta1: f64, beta2: f64, eps: f64, weight_decay: f64) -> Self {
-        Self { lr, beta1, beta2, eps, weight_decay, m: Vec::new(), v: Vec::new(), t: 0, initialized: false }
+        Self {
+            lr,
+            beta1,
+            beta2,
+            eps,
+            weight_decay,
+            m: Vec::new(),
+            v: Vec::new(),
+            t: 0,
+            initialized: false,
+        }
     }
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        assert_eq!(params.len(), grads.len(), "Adam: params/grads length mismatch");
+        assert_eq!(
+            params.len(),
+            grads.len(),
+            "Adam: params/grads length mismatch"
+        );
         if !self.initialized {
             self.m = vec![0.0; params.len()];
             self.v = vec![0.0; params.len()];
@@ -75,10 +101,10 @@ impl Adam {
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             let mut grad = *g;
             if self.weight_decay > 0.0 {
-                grad += self.weight_decay * *p;
+                grad = self.weight_decay.mul_add(*p, grad);
             }
-            self.m[i] = self.beta1 * self.m[i] + (1.0 - self.beta1) * grad;
-            self.v[i] = self.beta2 * self.v[i] + (1.0 - self.beta2) * grad * grad;
+            self.m[i] = (1.0 - self.beta1).mul_add(grad, self.beta1 * self.m[i]);
+            self.v[i] = ((1.0 - self.beta2) * grad).mul_add(grad, self.beta2 * self.v[i]);
             let m_hat = self.m[i] / bc1;
             let v_hat = self.v[i] / bc2;
             *p -= self.lr * m_hat / (v_hat.sqrt() + self.eps);
@@ -86,10 +112,14 @@ impl Adam {
     }
 
     /// Zero moment buffers in place (keeps allocations).
-    pub fn zero_grad(&mut self) { self.t = 0; self.m.iter_mut().for_each(|x| *x = 0.0); self.v.iter_mut().for_each(|x| *x = 0.0); }
+    pub fn zero_grad(&mut self) {
+        self.t = 0;
+        self.m.iter_mut().for_each(|x| *x = 0.0);
+        self.v.iter_mut().for_each(|x| *x = 0.0);
+    }
 }
 
-/// AdamW optimizer (decoupled weight decay).
+/// `AdamW` optimizer (decoupled weight decay).
 pub struct AdamW {
     /// Learning rate.
     pub lr: f64,
@@ -108,14 +138,29 @@ pub struct AdamW {
 }
 
 impl AdamW {
-    /// Create a new AdamW optimizer.
+    /// Create a new `AdamW` optimizer.
+    #[must_use]
     pub fn new(lr: f64, beta1: f64, beta2: f64, eps: f64, weight_decay: f64) -> Self {
-        Self { lr, beta1, beta2, eps, weight_decay, m: Vec::new(), v: Vec::new(), t: 0, initialized: false }
+        Self {
+            lr,
+            beta1,
+            beta2,
+            eps,
+            weight_decay,
+            m: Vec::new(),
+            v: Vec::new(),
+            t: 0,
+            initialized: false,
+        }
     }
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        assert_eq!(params.len(), grads.len(), "AdamW: params/grads length mismatch");
+        assert_eq!(
+            params.len(),
+            grads.len(),
+            "AdamW: params/grads length mismatch"
+        );
         if !self.initialized {
             self.m = vec![0.0; params.len()];
             self.v = vec![0.0; params.len()];
@@ -127,10 +172,10 @@ impl AdamW {
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             // Decoupled weight decay: decay applied directly to params, not via grad
             if self.weight_decay > 0.0 {
-                *p *= 1.0 - self.lr * self.weight_decay;
+                *p *= self.lr.mul_add(-self.weight_decay, 1.0);
             }
-            self.m[i] = self.beta1 * self.m[i] + (1.0 - self.beta1) * *g;
-            self.v[i] = self.beta2 * self.v[i] + (1.0 - self.beta2) * *g * *g;
+            self.m[i] = (1.0 - self.beta1).mul_add(*g, self.beta1 * self.m[i]);
+            self.v[i] = ((1.0 - self.beta2) * *g).mul_add(*g, self.beta2 * self.v[i]);
             let m_hat = self.m[i] / bc1;
             let v_hat = self.v[i] / bc2;
             *p -= self.lr * m_hat / (v_hat.sqrt() + self.eps);
@@ -138,7 +183,11 @@ impl AdamW {
     }
 
     /// Zero moment buffers in place (keeps allocations).
-    pub fn zero_grad(&mut self) { self.t = 0; self.m.iter_mut().for_each(|x| *x = 0.0); self.v.iter_mut().for_each(|x| *x = 0.0); }
+    pub fn zero_grad(&mut self) {
+        self.t = 0;
+        self.m.iter_mut().for_each(|x| *x = 0.0);
+        self.v.iter_mut().for_each(|x| *x = 0.0);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -182,11 +231,16 @@ pub struct LrScheduler {
 
 impl LrScheduler {
     /// Create a new scheduler.
+    #[must_use]
     pub fn new(schedule: Schedule) -> Self {
-        Self { schedule, step_count: 0 }
+        Self {
+            schedule,
+            step_count: 0,
+        }
     }
 
     /// Get current learning rate.
+    #[must_use]
     pub fn get_lr(&self) -> f64 {
         match &self.schedule {
             Schedule::Constant => 1.0,
@@ -195,9 +249,16 @@ impl LrScheduler {
             }
             Schedule::CosineAnnealing { t_max, eta_min } => {
                 let t = (self.step_count % t_max) as f64;
-                eta_min + 0.5 * (1.0 - eta_min) * (1.0 + (std::f64::consts::PI * t / *t_max as f64).cos())
+                eta_min
+                    + 0.5
+                        * (1.0 - eta_min)
+                        * (1.0 + (std::f64::consts::PI * t / *t_max as f64).cos())
             }
-            Schedule::LinearWarmup { warmup_steps, base_lr, target_lr } => {
+            Schedule::LinearWarmup {
+                warmup_steps,
+                base_lr,
+                target_lr,
+            } => {
                 if self.step_count < *warmup_steps {
                     base_lr + (target_lr - base_lr) * self.step_count as f64 / *warmup_steps as f64
                 } else {
@@ -208,14 +269,16 @@ impl LrScheduler {
     }
 
     /// Advance the schedule by one step.
-    pub fn step(&mut self) { self.step_count += 1; }
+    pub fn step(&mut self) {
+        self.step_count += 1;
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Additional optimizers
 // ---------------------------------------------------------------------------
 
-/// RMSprop optimizer.
+/// `RMSprop` optimizer.
 pub struct RMSprop {
     /// Learning rate.
     pub lr: f64,
@@ -233,14 +296,28 @@ pub struct RMSprop {
 }
 
 impl RMSprop {
-    /// Create a new RMSprop optimizer.
+    /// Create a new `RMSprop` optimizer.
+    #[must_use]
     pub fn new(lr: f64, alpha: f64, eps: f64, weight_decay: f64, momentum: f64) -> Self {
-        Self { lr, alpha, eps, weight_decay, momentum, avg_sq: Vec::new(), velocity: Vec::new(), initialized: false }
+        Self {
+            lr,
+            alpha,
+            eps,
+            weight_decay,
+            momentum,
+            avg_sq: Vec::new(),
+            velocity: Vec::new(),
+            initialized: false,
+        }
     }
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        assert_eq!(params.len(), grads.len(), "RMSprop: params/grads length mismatch");
+        assert_eq!(
+            params.len(),
+            grads.len(),
+            "RMSprop: params/grads length mismatch"
+        );
         if !self.initialized {
             self.avg_sq = vec![0.0; params.len()];
             self.velocity = vec![0.0; params.len()];
@@ -248,18 +325,25 @@ impl RMSprop {
         }
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             let mut grad = *g;
-            if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
-            self.avg_sq[i] = self.alpha * self.avg_sq[i] + (1.0 - self.alpha) * grad * grad;
-            self.velocity[i] = self.momentum * self.velocity[i] + grad / (self.avg_sq[i].sqrt() + self.eps);
-            *p -= self.lr * self.velocity[i];
+            if self.weight_decay > 0.0 {
+                grad = self.weight_decay.mul_add(*p, grad);
+            }
+            self.avg_sq[i] = ((1.0 - self.alpha) * grad).mul_add(grad, self.alpha * self.avg_sq[i]);
+            self.velocity[i] = self
+                .momentum
+                .mul_add(self.velocity[i], grad / (self.avg_sq[i].sqrt() + self.eps));
+            *p = self.lr.mul_add(-self.velocity[i], *p);
         }
     }
 
     /// Reset running averages and momentum state.
-    pub fn zero_grad(&mut self) { self.avg_sq.iter_mut().for_each(|x| *x = 0.0); self.velocity.iter_mut().for_each(|x| *x = 0.0); }
+    pub fn zero_grad(&mut self) {
+        self.avg_sq.iter_mut().for_each(|x| *x = 0.0);
+        self.velocity.iter_mut().for_each(|x| *x = 0.0);
+    }
 }
 
-/// Lion optimizer (EvoLved Sign Momentum).
+/// Lion optimizer (`EvoLved` Sign Momentum).
 pub struct Lion {
     /// Learning rate.
     pub lr: f64,
@@ -275,30 +359,44 @@ pub struct Lion {
 
 impl Lion {
     /// Create a new Lion optimizer.
+    #[must_use]
     pub fn new(lr: f64, beta1: f64, beta2: f64, weight_decay: f64) -> Self {
-        Self { lr, beta1, beta2, weight_decay, m: Vec::new(), initialized: false }
+        Self {
+            lr,
+            beta1,
+            beta2,
+            weight_decay,
+            m: Vec::new(),
+            initialized: false,
+        }
     }
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        assert_eq!(params.len(), grads.len(), "Lion: params/grads length mismatch");
+        assert_eq!(
+            params.len(),
+            grads.len(),
+            "Lion: params/grads length mismatch"
+        );
         if !self.initialized {
             self.m = vec![0.0; params.len()];
             self.initialized = true;
         }
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
-            let update = self.m[i] * self.beta1 + *g * (1.0 - self.beta1);
+            let update = (*g).mul_add(1.0 - self.beta1, self.m[i] * self.beta1);
             let sign = update.signum();
-            *p -= self.lr * (*p * self.weight_decay + sign);
-            self.m[i] = self.m[i] * self.beta2 + *g * (1.0 - self.beta2);
+            *p = self.lr.mul_add(-(*p).mul_add(self.weight_decay, sign), *p);
+            self.m[i] = (*g).mul_add(1.0 - self.beta2, self.m[i] * self.beta2);
         }
     }
 
     /// Reset internal momentum state.
-    pub fn zero_grad(&mut self) { self.m.iter_mut().for_each(|x| *x = 0.0); }
+    pub fn zero_grad(&mut self) {
+        self.m.iter_mut().for_each(|x| *x = 0.0);
+    }
 }
 
-/// AdaGrad optimizer.
+/// `AdaGrad` optimizer.
 pub struct AdaGrad {
     /// Learning rate.
     pub lr: f64,
@@ -311,31 +409,46 @@ pub struct AdaGrad {
 }
 
 impl AdaGrad {
-    /// Create a new AdaGrad optimizer.
+    /// Create a new `AdaGrad` optimizer.
+    #[must_use]
     pub fn new(lr: f64, eps: f64, weight_decay: f64) -> Self {
-        Self { lr, eps, weight_decay, sum_sq: Vec::new(), initialized: false }
+        Self {
+            lr,
+            eps,
+            weight_decay,
+            sum_sq: Vec::new(),
+            initialized: false,
+        }
     }
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        assert_eq!(params.len(), grads.len(), "AdaGrad: params/grads length mismatch");
+        assert_eq!(
+            params.len(),
+            grads.len(),
+            "AdaGrad: params/grads length mismatch"
+        );
         if !self.initialized {
             self.sum_sq = vec![0.0; params.len()];
             self.initialized = true;
         }
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             let mut grad = *g;
-            if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
-            self.sum_sq[i] += grad * grad;
+            if self.weight_decay > 0.0 {
+                grad = self.weight_decay.mul_add(*p, grad);
+            }
+            self.sum_sq[i] = grad.mul_add(grad, self.sum_sq[i]);
             *p -= self.lr * grad / (self.sum_sq[i].sqrt() + self.eps);
         }
     }
 
     /// Reset accumulated squared gradients.
-    pub fn zero_grad(&mut self) { self.sum_sq.iter_mut().for_each(|x| *x = 0.0); }
+    pub fn zero_grad(&mut self) {
+        self.sum_sq.iter_mut().for_each(|x| *x = 0.0);
+    }
 }
 
-/// AdaDelta optimizer.
+/// `AdaDelta` optimizer.
 pub struct AdaDelta {
     /// Learning rate.
     pub lr: f64,
@@ -351,14 +464,27 @@ pub struct AdaDelta {
 }
 
 impl AdaDelta {
-    /// Create a new AdaDelta optimizer.
+    /// Create a new `AdaDelta` optimizer.
+    #[must_use]
     pub fn new(lr: f64, rho: f64, eps: f64, weight_decay: f64) -> Self {
-        Self { lr, rho, eps, weight_decay, avg_sq: Vec::new(), avg_dx: Vec::new(), initialized: false }
+        Self {
+            lr,
+            rho,
+            eps,
+            weight_decay,
+            avg_sq: Vec::new(),
+            avg_dx: Vec::new(),
+            initialized: false,
+        }
     }
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        assert_eq!(params.len(), grads.len(), "AdaDelta: params/grads length mismatch");
+        assert_eq!(
+            params.len(),
+            grads.len(),
+            "AdaDelta: params/grads length mismatch"
+        );
         if !self.initialized {
             self.avg_sq = vec![0.0; params.len()];
             self.avg_dx = vec![0.0; params.len()];
@@ -366,16 +492,21 @@ impl AdaDelta {
         }
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             let mut grad = *g;
-            if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
-            self.avg_sq[i] = self.rho * self.avg_sq[i] + (1.0 - self.rho) * grad * grad;
+            if self.weight_decay > 0.0 {
+                grad = self.weight_decay.mul_add(*p, grad);
+            }
+            self.avg_sq[i] = ((1.0 - self.rho) * grad).mul_add(grad, self.rho * self.avg_sq[i]);
             let dx = (self.avg_dx[i] + self.eps).sqrt() / (self.avg_sq[i] + self.eps).sqrt() * grad;
-            self.avg_dx[i] = self.rho * self.avg_dx[i] + (1.0 - self.rho) * dx * dx;
-            *p -= self.lr * dx;
+            self.avg_dx[i] = ((1.0 - self.rho) * dx).mul_add(dx, self.rho * self.avg_dx[i]);
+            *p = self.lr.mul_add(-dx, *p);
         }
     }
 
     /// Reset running averages.
-    pub fn zero_grad(&mut self) { self.avg_sq.iter_mut().for_each(|x| *x = 0.0); self.avg_dx.iter_mut().for_each(|x| *x = 0.0); }
+    pub fn zero_grad(&mut self) {
+        self.avg_sq.iter_mut().for_each(|x| *x = 0.0);
+        self.avg_dx.iter_mut().for_each(|x| *x = 0.0);
+    }
 }
 
 /// Nadam optimizer (Nesterov-accelerated Adam).
@@ -398,13 +529,28 @@ pub struct Nadam {
 
 impl Nadam {
     /// Create a new Nadam optimizer.
+    #[must_use]
     pub fn new(lr: f64, beta1: f64, beta2: f64, eps: f64, weight_decay: f64) -> Self {
-        Self { lr, beta1, beta2, eps, weight_decay, m: Vec::new(), v: Vec::new(), t: 0, initialized: false }
+        Self {
+            lr,
+            beta1,
+            beta2,
+            eps,
+            weight_decay,
+            m: Vec::new(),
+            v: Vec::new(),
+            t: 0,
+            initialized: false,
+        }
     }
 
     /// Perform one optimization step. `params` and `grads` must have the same length.
     pub fn step(&mut self, params: &mut [f64], grads: &[f64]) {
-        assert_eq!(params.len(), grads.len(), "Nadam: params/grads length mismatch");
+        assert_eq!(
+            params.len(),
+            grads.len(),
+            "Nadam: params/grads length mismatch"
+        );
         if !self.initialized {
             self.m = vec![0.0; params.len()];
             self.v = vec![0.0; params.len()];
@@ -416,18 +562,26 @@ impl Nadam {
         let bc1_next = 1.0 - self.beta1.powi(self.t + 1);
         for (i, (p, g)) in params.iter_mut().zip(grads).enumerate() {
             let mut grad = *g;
-            if self.weight_decay > 0.0 { grad += self.weight_decay * *p; }
-            self.m[i] = self.beta1 * self.m[i] + (1.0 - self.beta1) * grad;
-            self.v[i] = self.beta2 * self.v[i] + (1.0 - self.beta2) * grad * grad;
+            if self.weight_decay > 0.0 {
+                grad = self.weight_decay.mul_add(*p, grad);
+            }
+            self.m[i] = (1.0 - self.beta1).mul_add(grad, self.beta1 * self.m[i]);
+            self.v[i] = ((1.0 - self.beta2) * grad).mul_add(grad, self.beta2 * self.v[i]);
             let m_hat = self.m[i] / bc1;
             let v_hat = self.v[i] / bc2;
-            let m_nesterov = self.beta1 * m_hat + (1.0 - self.beta1) * grad / bc1_next;
+            let m_nesterov = self
+                .beta1
+                .mul_add(m_hat, (1.0 - self.beta1) * grad / bc1_next);
             *p -= self.lr * m_nesterov / (v_hat.sqrt() + self.eps);
         }
     }
 
     /// Zero moment buffers in place (keeps allocations).
-    pub fn zero_grad(&mut self) { self.t = 0; self.m.iter_mut().for_each(|x| *x = 0.0); self.v.iter_mut().for_each(|x| *x = 0.0); }
+    pub fn zero_grad(&mut self) {
+        self.t = 0;
+        self.m.iter_mut().for_each(|x| *x = 0.0);
+        self.v.iter_mut().for_each(|x| *x = 0.0);
+    }
 }
 
 #[cfg(test)]
@@ -488,21 +642,35 @@ mod tests {
 
     #[test]
     fn step_decay_test() {
-        let mut s = LrScheduler::new(Schedule::StepDecay { step_size: 10, gamma: 0.5 });
+        let mut s = LrScheduler::new(Schedule::StepDecay {
+            step_size: 10,
+            gamma: 0.5,
+        });
         assert!((s.get_lr() - 1.0).abs() < E);
-        for _ in 0..10 { s.step(); }
+        for _ in 0..10 {
+            s.step();
+        }
         assert!((s.get_lr() - 0.5).abs() < E);
-        for _ in 0..10 { s.step(); }
+        for _ in 0..10 {
+            s.step();
+        }
         assert!((s.get_lr() - 0.25).abs() < E);
     }
 
     #[test]
     fn cosine_annealing_test() {
-        let mut s = LrScheduler::new(Schedule::CosineAnnealing { t_max: 100, eta_min: 0.0 });
-        for _ in 0..50 { s.step(); }
+        let mut s = LrScheduler::new(Schedule::CosineAnnealing {
+            t_max: 100,
+            eta_min: 0.0,
+        });
+        for _ in 0..50 {
+            s.step();
+        }
         let lr_mid = s.get_lr();
         assert!((lr_mid - 0.5).abs() < 0.01);
-        for _ in 0..49 { s.step(); }
+        for _ in 0..49 {
+            s.step();
+        }
         let lr_end = s.get_lr();
         assert!(lr_end < 0.01); // near eta_min at end of cycle
     }
@@ -510,11 +678,17 @@ mod tests {
     #[test]
     fn linear_warmup_test() {
         let mut s = LrScheduler::new(Schedule::LinearWarmup {
-            warmup_steps: 100, base_lr: 0.0, target_lr: 1.0,
+            warmup_steps: 100,
+            base_lr: 0.0,
+            target_lr: 1.0,
         });
-        for _ in 0..50 { s.step(); }
+        for _ in 0..50 {
+            s.step();
+        }
         assert!((s.get_lr() - 0.5).abs() < E);
-        for _ in 0..50 { s.step(); }
+        for _ in 0..50 {
+            s.step();
+        }
         assert!((s.get_lr() - 1.0).abs() < E);
     }
 
@@ -545,9 +719,14 @@ mod tests {
 
     #[test]
     fn lr_scheduler_step_decay_test() {
-        let mut s = LrScheduler::new(Schedule::StepDecay { step_size: 50, gamma: 0.1 });
+        let mut s = LrScheduler::new(Schedule::StepDecay {
+            step_size: 50,
+            gamma: 0.1,
+        });
         assert!((s.get_lr() - 1.0).abs() < E);
-        for _ in 0..200 { s.step(); }
+        for _ in 0..200 {
+            s.step();
+        }
         // After 200 steps: 200/50 = 4 decays → 0.1^4 = 0.0001
         assert!((s.get_lr() - 0.0001).abs() < 0.001);
     }

@@ -1,9 +1,9 @@
 //! Box plot example: Tukey box plots for three sample groups.
 
 use mathverse_plot::common::PlotConfig;
+use mathverse_plot::save::PlotSaver;
 use mathverse_plot::style::Color;
 use mathverse_plot::SvgPlot;
-use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let mut plot = SvgPlot::new(

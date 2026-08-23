@@ -1,10 +1,8 @@
 //! Inset axes (zoom panel) example.
 
-use mathverse_plot::{
-    DataPoint, DataSeries, InsetAxes, InsetConfig, PlotConfig, SvgPlot,
-};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
+use mathverse_plot::{DataPoint, DataSeries, InsetAxes, InsetConfig, PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create data with interesting detail

@@ -28,8 +28,8 @@
 
 extern crate alloc;
 
-pub mod vec_view;
 pub mod mat_view;
+pub mod vec_view;
 
-pub use vec_view::VecView;
 pub use mat_view::MatView;
+pub use vec_view::VecView;

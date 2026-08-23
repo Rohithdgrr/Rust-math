@@ -1,5 +1,7 @@
 //! Verify PNG export paths.
-use mathverse_plot::{PlotConfig, SvgPlot, DataPoint, DataSeries, PlotSaver, OutputFormat, FormatSet, viridis, Scale};
+use mathverse_plot::{
+    viridis, DataPoint, DataSeries, FormatSet, OutputFormat, PlotConfig, PlotSaver, Scale, SvgPlot,
+};
 
 fn main() {
     std::fs::create_dir_all("target/verify_png").unwrap();
@@ -14,7 +16,11 @@ fn main() {
         let mut plot = SvgPlot::new(config);
         let xs: Vec<f64> = (0..50).map(|i| f64::from(i) * 0.2).collect();
         let ys: Vec<f64> = xs.iter().map(|x| x.sin()).collect();
-        let pts: Vec<DataPoint> = xs.iter().zip(ys.iter()).map(|(x, y)| DataPoint::new(*x, *y)).collect();
+        let pts: Vec<DataPoint> = xs
+            .iter()
+            .zip(ys.iter())
+            .map(|(x, y)| DataPoint::new(*x, *y))
+            .collect();
         plot.add_series(DataSeries::new("sin(x)".to_string(), pts));
         let svg = plot.generate();
         let r = PlotSaver::new(&svg).save_as(
@@ -23,7 +29,9 @@ fn main() {
             &FormatSet::png(),
         );
         println!("titled_line: {:?}", r.success);
-        PlotSaver::new(&svg).save_png("target/verify_png/titled_line.png").unwrap();
+        PlotSaver::new(&svg)
+            .save_png("target/verify_png/titled_line.png")
+            .unwrap();
     }
 
     // 2. Heatmap via resvg path
@@ -46,7 +54,9 @@ fn main() {
             &FormatSet::png(),
         );
         println!("heatmap: {:?}", r.success);
-        PlotSaver::new(&svg).save_png("target/verify_png/heatmap.png").unwrap();
+        PlotSaver::new(&svg)
+            .save_png("target/verify_png/heatmap.png")
+            .unwrap();
     }
 
     // 3. Log scale via resvg path
@@ -58,7 +68,11 @@ fn main() {
         let mut plot = SvgPlot::new(config);
         let xs: Vec<f64> = (1..=100).map(f64::from).collect();
         let ys: Vec<f64> = xs.iter().map(|x| x * x).collect();
-        let pts: Vec<DataPoint> = xs.iter().zip(ys.iter()).map(|(x, y)| DataPoint::new(*x, *y)).collect();
+        let pts: Vec<DataPoint> = xs
+            .iter()
+            .zip(ys.iter())
+            .map(|(x, y)| DataPoint::new(*x, *y))
+            .collect();
         plot.add_series(DataSeries::new("x^2".to_string(), pts));
         let svg = plot.generate();
         let r = PlotSaver::new(&svg).save_as(
@@ -67,6 +81,8 @@ fn main() {
             &FormatSet::png(),
         );
         println!("log: {:?}", r.success);
-        PlotSaver::new(&svg).save_png("target/verify_png/log.png").unwrap();
+        PlotSaver::new(&svg)
+            .save_png("target/verify_png/log.png")
+            .unwrap();
     }
 }

@@ -106,8 +106,7 @@ fn line_plot_regression() {
     let svg = line_plot_svg("regression", "x", "y", "series");
     let hash = fnv1a(&svg);
     assert_eq!(
-        hash,
-        0xf7e4_d60f_b3fa_1002,
+        hash, 0xf7e4_d60f_b3fa_1002,
         "line plot SVG changed (hash {hash:#x}) — update after intentional change"
     );
 }
@@ -123,8 +122,7 @@ fn styled_boxplot_regression() {
     let svg = mathverse_plot::render_styled_boxplot(&data, &labels, &cfg).unwrap();
     let hash = fnv1a(&svg);
     assert_eq!(
-        hash,
-        0x16a0_02b0_b6c6_3555,
+        hash, 0x16a0_02b0_b6c6_3555,
         "styled boxplot SVG changed (hash {hash:#x}) — update after intentional change"
     );
 }
@@ -149,8 +147,7 @@ fn contourf_regression() {
     let svg = mathverse_plot::contour::render_contour(&grid, (0.0, 1.0), (0.0, 1.0), &cfg).unwrap();
     let hash = fnv1a(&svg);
     assert_eq!(
-        hash,
-        0x2725_43f2_ea04_8bcb,
+        hash, 0x2725_43f2_ea04_8bcb,
         "contour SVG changed (hash {hash:#x}) — update after intentional change"
     );
 }

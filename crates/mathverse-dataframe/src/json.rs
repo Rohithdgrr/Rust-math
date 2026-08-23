@@ -49,7 +49,9 @@ pub fn to_json_string(df: &DataFrame) -> String {
             }
             out.push_str(&json_escape(name));
             out.push(':');
-            let Ok(col) = df.column_by_index(ci) else { continue };
+            let Ok(col) = df.column_by_index(ci) else {
+                continue;
+            };
             if col.is_null(row) {
                 out.push_str("null");
                 continue;
@@ -131,7 +133,7 @@ pub fn from_json_str(input: &str) -> DataFrameResult<DataFrame> {
 
 #[cfg(feature = "std")]
 mod file_io {
-    use super::{DataFrameResult, DataFrame, DataFrameError, from_json_str, to_json_string};
+    use super::{from_json_str, to_json_string, DataFrame, DataFrameError, DataFrameResult};
 
     /// Reads a JSON file into a [`DataFrame`].
     ///
@@ -204,7 +206,10 @@ fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> AnyColumn {
     }
 
     // All integers → Int64.
-    if raw.iter().all(|c| matches!(c, None | Some(JsonScalar::Int(_)))) {
+    if raw
+        .iter()
+        .all(|c| matches!(c, None | Some(JsonScalar::Int(_))))
+    {
         let data: Vec<i64> = raw
             .iter()
             .map(|c| match c {
@@ -222,7 +227,10 @@ fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> AnyColumn {
     }
 
     // All numeric → Float64.
-    if raw.iter().all(|c| matches!(c, None | Some(JsonScalar::Int(_) | JsonScalar::Float(_)))) {
+    if raw
+        .iter()
+        .all(|c| matches!(c, None | Some(JsonScalar::Int(_) | JsonScalar::Float(_))))
+    {
         let data: Vec<f64> = raw
             .iter()
             .map(|c| match c {
@@ -241,7 +249,10 @@ fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> AnyColumn {
     }
 
     // All bool → Bool.
-    if raw.iter().all(|c| matches!(c, None | Some(JsonScalar::Bool(_)))) {
+    if raw
+        .iter()
+        .all(|c| matches!(c, None | Some(JsonScalar::Bool(_))))
+    {
         let data: Vec<bool> = raw
             .iter()
             .map(|c| matches!(c, Some(JsonScalar::Bool(true))))
@@ -372,33 +383,31 @@ impl Parser<'_> {
             match self.next() {
                 None => return Err(self.err("unterminated string")),
                 Some(b'"') => return Ok(out),
-                Some(b'\\') => {
-                    match self.next() {
-                        Some(b'"') => out.push('"'),
-                        Some(b'\\') => out.push('\\'),
-                        Some(b'/') => out.push('/'),
-                        Some(b'b') => out.push('\u{0008}'),
-                        Some(b'f') => out.push('\u{000C}'),
-                        Some(b'n') => out.push('\n'),
-                        Some(b'r') => out.push('\r'),
-                        Some(b't') => out.push('\t'),
-                        Some(b'u') => {
-                            let mut code = 0u32;
-                            for _ in 0..4 {
-                                match self.next().and_then(|b| (b as char).to_digit(16)) {
-                                    Some(d) => code = code * 16 + d,
-                                    None => return Err(self.err("invalid \\u escape")),
-                                }
-                            }
-                            if let Some(c) = char::from_u32(code) {
-                                out.push(c);
-                            } else {
-                                return Err(self.err("invalid unicode escape"));
+                Some(b'\\') => match self.next() {
+                    Some(b'"') => out.push('"'),
+                    Some(b'\\') => out.push('\\'),
+                    Some(b'/') => out.push('/'),
+                    Some(b'b') => out.push('\u{0008}'),
+                    Some(b'f') => out.push('\u{000C}'),
+                    Some(b'n') => out.push('\n'),
+                    Some(b'r') => out.push('\r'),
+                    Some(b't') => out.push('\t'),
+                    Some(b'u') => {
+                        let mut code = 0u32;
+                        for _ in 0..4 {
+                            match self.next().and_then(|b| (b as char).to_digit(16)) {
+                                Some(d) => code = code * 16 + d,
+                                None => return Err(self.err("invalid \\u escape")),
                             }
                         }
-                        _ => return Err(self.err("invalid escape")),
+                        if let Some(c) = char::from_u32(code) {
+                            out.push(c);
+                        } else {
+                            return Err(self.err("invalid unicode escape"));
+                        }
                     }
-                }
+                    _ => return Err(self.err("invalid escape")),
+                },
                 Some(b) => {
                     // Reject raw control characters (RFC 8259 §8.2).
                     if b < 0x20 {
@@ -424,7 +433,10 @@ impl Parser<'_> {
 
     fn parse_number(&mut self) -> DataFrameResult<Value> {
         let start = self.pos;
-        while matches!(self.peek(), Some(b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9')) {
+        while matches!(
+            self.peek(),
+            Some(b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9')
+        ) {
             self.pos += 1;
         }
         let text = core::str::from_utf8(&self.bytes[start..self.pos])
@@ -547,7 +559,8 @@ mod tests {
     #[test]
     fn roundtrip_mixed_types() {
         let mut df = DataFrame::new();
-        df.add_column("name", vec![String::from("Alice"), String::from("Bob")]).unwrap();
+        df.add_column("name", vec![String::from("Alice"), String::from("Bob")])
+            .unwrap();
         df.add_column("age", vec![25, 30]).unwrap();
         df.add_column("score", vec![88.5, 92.3]).unwrap();
         df.add_column("active", vec![true, false]).unwrap();

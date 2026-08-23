@@ -10,8 +10,13 @@ use mathverse_core::error::{MathError, MathResult};
 
 /// Accuracy: fraction of correct predictions.
 pub fn accuracy(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
-    if pred.numel() != target.numel() { return Err(MathError::DimensionMismatch); }
-    let correct = pred.data.iter().zip(&target.data)
+    if pred.numel() != target.numel() {
+        return Err(MathError::DimensionMismatch);
+    }
+    let correct = pred
+        .data
+        .iter()
+        .zip(&target.data)
         .filter(|(p, t)| (*p - *t).abs() < 1e-9)
         .count();
     Ok(correct as f64 / pred.numel() as f64)
@@ -47,24 +52,43 @@ pub fn recall(pred: &Tensor, target: &Tensor, num_classes: usize) -> MathResult<
 pub fn f1(pred: &Tensor, target: &Tensor, num_classes: usize) -> MathResult<Vec<f64>> {
     let p = precision(pred, target, num_classes)?;
     let r = recall(pred, target, num_classes)?;
-    Ok(p.iter().zip(&r).map(|(p, r)| {
-        if p + r > 0.0 { 2.0 * p * r / (p + r) } else { 0.0 }
-    }).collect())
+    Ok(p.iter()
+        .zip(&r)
+        .map(|(p, r)| {
+            if p + r > 0.0 {
+                2.0 * p * r / (p + r)
+            } else {
+                0.0
+            }
+        })
+        .collect())
 }
 
-/// Confusion matrix [num_classes × num_classes].
+/// Confusion matrix [`num_classes` × `num_classes`].
 ///
 /// # Errors
 ///
 /// Returns `MathError::OutOfRange` if any prediction or target label is
 /// outside `[0, num_classes)`.
-pub fn confusion_matrix(pred: &Tensor, target: &Tensor, num_classes: usize) -> MathResult<Vec<Vec<f64>>> {
-    if pred.numel() != target.numel() { return Err(MathError::DimensionMismatch); }
+pub fn confusion_matrix(
+    pred: &Tensor,
+    target: &Tensor,
+    num_classes: usize,
+) -> MathResult<Vec<Vec<f64>>> {
+    if pred.numel() != target.numel() {
+        return Err(MathError::DimensionMismatch);
+    }
     let mut cm = vec![vec![0.0f64; num_classes]; num_classes];
     for (p, t) in pred.data.iter().zip(&target.data) {
         let pi = *p as usize;
         let ti = *t as usize;
-        if pi >= num_classes || ti >= num_classes || *p < 0.0 || *t < 0.0 || (*p - pi as f64).abs() > 1e-9 || (*t - ti as f64).abs() > 1e-9 {
+        if pi >= num_classes
+            || ti >= num_classes
+            || *p < 0.0
+            || *t < 0.0
+            || (*p - pi as f64).abs() > 1e-9
+            || (*t - ti as f64).abs() > 1e-9
+        {
             return Err(MathError::OutOfRange);
         }
         cm[ti][pi] += 1.0;
@@ -72,13 +96,22 @@ pub fn confusion_matrix(pred: &Tensor, target: &Tensor, num_classes: usize) -> M
     Ok(cm)
 }
 
-/// ROC AUC via trapezoidal integration.
+/// ROC AUC via trapezoidal integration with tie handling.
 /// `scores`: prediction scores (higher = more positive).
 /// `labels`: binary labels (0 or 1).
+///
+/// Samples sharing a score are consumed as one group, so constant scores
+/// yield the no-discrimination value 0.5. For tie-free scores this is
+/// numerically identical to the per-sample walk.
 pub fn roc_auc(scores: &Tensor, labels: &Tensor) -> MathResult<f64> {
-    if scores.numel() != labels.numel() { return Err(MathError::DimensionMismatch); }
+    if scores.numel() != labels.numel() {
+        return Err(MathError::DimensionMismatch);
+    }
     let n = scores.numel();
-    let mut pairs: Vec<(f64, f64)> = scores.data.iter().zip(&labels.data)
+    let mut pairs: Vec<(f64, f64)> = scores
+        .data
+        .iter()
+        .zip(&labels.data)
         .map(|(&s, &l)| (s, l))
         .collect();
     // Sort by score descending (highest first)
@@ -86,7 +119,9 @@ pub fn roc_auc(scores: &Tensor, labels: &Tensor) -> MathResult<f64> {
 
     let total_pos: f64 = labels.data.iter().sum();
     let total_neg = n as f64 - total_pos;
-    if total_pos == 0.0 || total_neg == 0.0 { return Ok(0.5); }
+    if total_pos == 0.0 || total_neg == 0.0 {
+        return Ok(0.5);
+    }
 
     let mut tp = 0.0f64;
     let mut fp = 0.0f64;
@@ -94,11 +129,21 @@ pub fn roc_auc(scores: &Tensor, labels: &Tensor) -> MathResult<f64> {
     let mut prev_tpr = 0.0f64;
     let mut auc = 0.0;
 
-    for &(_, l) in &pairs {
-        if l > 0.5 { tp += 1.0; } else { fp += 1.0; }
+    let mut i = 0;
+    while i < n {
+        // Consume all samples tied at this score as a single group.
+        let score = pairs[i].0;
+        while i < n && pairs[i].0 == score {
+            if pairs[i].1 > 0.5 {
+                tp += 1.0;
+            } else {
+                fp += 1.0;
+            }
+            i += 1;
+        }
         let tpr = tp / total_pos;
         let fpr = fp / total_neg;
-        auc += 0.5 * (prev_tpr + tpr) * (fpr - prev_fpr);
+        auc = (0.5 * (prev_tpr + tpr)).mul_add(fpr - prev_fpr, auc);
         prev_fpr = fpr;
         prev_tpr = tpr;
     }
@@ -109,13 +154,20 @@ pub fn roc_auc(scores: &Tensor, labels: &Tensor) -> MathResult<f64> {
 // Regression metrics
 // ---------------------------------------------------------------------------
 
-/// R² (coefficient of determination): 1 - SS_res / SS_tot.
+/// R² (coefficient of determination): 1 - `SS_res` / `SS_tot`.
 pub fn r_squared(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
     let n = pred.numel() as f64;
     let mean: f64 = target.data.iter().sum::<f64>() / n;
     let ss_tot: f64 = target.data.iter().map(|t| (t - mean).powi(2)).sum();
-    let ss_res: f64 = pred.data.iter().zip(&target.data).map(|(p, t)| (p - t).powi(2)).sum();
-    if ss_tot == 0.0 { return Ok(1.0); }
+    let ss_res: f64 = pred
+        .data
+        .iter()
+        .zip(&target.data)
+        .map(|(p, t)| (p - t).powi(2))
+        .sum();
+    if ss_tot == 0.0 {
+        return Ok(1.0);
+    }
     Ok(1.0 - ss_res / ss_tot)
 }
 
@@ -123,11 +175,23 @@ pub fn r_squared(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
 pub fn explained_variance(pred: &Tensor, target: &Tensor) -> MathResult<f64> {
     let n = pred.numel() as f64;
     let mean_t: f64 = target.data.iter().sum::<f64>() / n;
-    let var_t: f64 = target.data.iter().map(|t| (t - mean_t).powi(2)).sum::<f64>() / n;
-    let diffs: Vec<f64> = pred.data.iter().zip(&target.data).map(|(p, t)| t - p).collect();
+    let var_t: f64 = target
+        .data
+        .iter()
+        .map(|t| (t - mean_t).powi(2))
+        .sum::<f64>()
+        / n;
+    let diffs: Vec<f64> = pred
+        .data
+        .iter()
+        .zip(&target.data)
+        .map(|(p, t)| t - p)
+        .collect();
     let mean_d: f64 = diffs.iter().sum::<f64>() / n;
     let var_d: f64 = diffs.iter().map(|d| (d - mean_d).powi(2)).sum::<f64>() / n;
-    if var_t == 0.0 { return Ok(1.0); }
+    if var_t == 0.0 {
+        return Ok(1.0);
+    }
     Ok(1.0 - var_d / var_t)
 }
 
@@ -222,11 +286,12 @@ mod tests {
         assert!((accuracy(&pred, &target).unwrap() - 1.0).abs() < E);
     }
 
-#[test]
+    #[test]
     fn roc_auc_random_test() {
         // Identical scores for all examples → AUC = 0.5 (no ranking ability)
         let scores = Tensor::new(&[10], &[0.5; 10]).unwrap();
-        let labels = Tensor::new(&[10], &[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]).unwrap();
+        let labels =
+            Tensor::new(&[10], &[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]).unwrap();
         let auc = roc_auc(&scores, &labels).unwrap();
         // With constant scores, AUC should be 0.5
         assert!((auc - 0.5).abs() < 0.1);
@@ -242,11 +307,3 @@ mod tests {
         assert!(r2 < 1.0);
     }
 }
-
-
-
-
-
-
-
-

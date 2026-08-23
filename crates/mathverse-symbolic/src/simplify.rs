@@ -1,12 +1,12 @@
-//! Expression simplification
+﻿//! Expression simplification
 
 use crate::expr::Expr;
 
 /// Simplify an expression by applying algebraic rules
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to simplify
-/// 
+///
 /// # Returns
 /// Simplified expression
 pub fn simplify(expr: &Expr) -> Expr {
@@ -58,13 +58,13 @@ fn simplify_add(a: &Expr, b: &Expr) -> Expr {
         (Expr::Constant(0.0), _) => b.clone(),
         (_, Expr::Constant(0.0)) => a.clone(),
         // x + (-y) = x - y
-        (x, Expr::Neg(y)) => x.clone().sub((**y).clone()),
-        (Expr::Neg(x), y) => y.clone().sub((**x).clone()),
+        (x, Expr::Neg(y)) => x.clone() - (**y).clone(),
+        (Expr::Neg(x), y) => y.clone() - (**x).clone(),
         // Constant folding
         (Expr::Constant(c1), Expr::Constant(c2)) => Expr::c(c1 + c2),
         // x + x = 2x
-        _ if a == b => Expr::c(2.0).mul(a.clone()),
-        _ => a.clone().add(b.clone()),
+        _ if a == b => Expr::c(2.0) * a.clone(),
+        _ => a.clone() + b.clone(),
     }
 }
 
@@ -74,14 +74,14 @@ fn simplify_sub(a: &Expr, b: &Expr) -> Expr {
         // x - 0 = x
         (_, Expr::Constant(0.0)) => a.clone(),
         // 0 - x = -x
-        (Expr::Constant(0.0), _) => b.clone().neg(),
+        (Expr::Constant(0.0), _) => -b.clone(),
         // x - x = 0
         _ if a == b => Expr::c(0.0),
         // Constant folding
         (Expr::Constant(c1), Expr::Constant(c2)) => Expr::c(c1 - c2),
         // x - (-y) = x + y
-        (_, Expr::Neg(y)) => a.clone().add((**y).clone()),
-        _ => a.clone().sub(b.clone()),
+        (_, Expr::Neg(y)) => a.clone() + (**y).clone(),
+        _ => a.clone() - b.clone(),
     }
 }
 
@@ -94,13 +94,13 @@ fn simplify_mul(a: &Expr, b: &Expr) -> Expr {
         (Expr::Constant(1.0), _) => b.clone(),
         (_, Expr::Constant(1.0)) => a.clone(),
         // -1 * x = -x
-        (Expr::Constant(-1.0), _) => b.clone().neg(),
-        (_, Expr::Constant(-1.0)) => a.clone().neg(),
+        (Expr::Constant(-1.0), _) => -b.clone(),
+        (_, Expr::Constant(-1.0)) => -a.clone(),
         // Constant folding
         (Expr::Constant(c1), Expr::Constant(c2)) => Expr::c(c1 * c2),
         // x * x = x^2
         _ if a == b => a.clone().pow(Expr::c(2.0)),
-        _ => a.clone().mul(b.clone()),
+        _ => a.clone() * b.clone(),
     }
 }
 
@@ -114,10 +114,10 @@ fn simplify_div(a: &Expr, b: &Expr) -> Expr {
         // x / x = 1
         _ if a == b => Expr::c(1.0),
         // x / -1 = -x
-        (_, Expr::Constant(-1.0)) => a.clone().neg(),
+        (_, Expr::Constant(-1.0)) => -a.clone(),
         // Constant folding
         (Expr::Constant(c1), Expr::Constant(c2)) if *c2 != 0.0 => Expr::c(c1 / c2),
-        _ => a.clone().div(b.clone()),
+        _ => a.clone() / b.clone(),
     }
 }
 
@@ -145,26 +145,26 @@ fn simplify_neg(a: &Expr) -> Expr {
         Expr::Neg(inner) => (**inner).clone(),
         // -(c) = -c
         Expr::Constant(c) => Expr::c(-c),
-        _ => a.clone().neg(),
+        _ => -a.clone(),
     }
 }
 
 /// Expand an expression (distribute multiplication over addition)
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to expand
-/// 
+///
 /// # Returns
 /// Expanded expression
 pub fn expand(expr: &Expr) -> Expr {
     match expr {
         Expr::Constant(_) | Expr::Variable(_) => expr.clone(),
-        Expr::Add(a, b) => expand(a).add(expand(b)),
-        Expr::Sub(a, b) => expand(a).sub(expand(b)),
+        Expr::Add(a, b) => expand(a) + expand(b),
+        Expr::Sub(a, b) => expand(a) - expand(b),
         Expr::Mul(a, b) => expand_mul(a, b),
-        Expr::Div(a, b) => expand(a).div(expand(b)),
+        Expr::Div(a, b) => expand(a) / expand(b),
         Expr::Pow(a, b) => expand(a).pow(expand(b)),
-        Expr::Neg(a) => expand(a).neg(),
+        Expr::Neg(a) => -expand(a),
         Expr::Ln(a) => expand(a).ln(),
         Expr::Exp(a) => expand(a).exp(),
         Expr::Sin(a) => expand(a).sin(),
@@ -181,28 +181,20 @@ fn expand_mul(a: &Expr, b: &Expr) -> Expr {
 
     match (&a_exp, &b_exp) {
         // Distribute: (x + y) * z = x*z + y*z
-        (Expr::Add(a1, a2), _) => {
-            expand_mul(a1, b).add(expand_mul(a2, b))
-        }
-        (_, Expr::Add(b1, b2)) => {
-            expand_mul(&a_exp, b1).add(expand_mul(&a_exp, b2))
-        }
+        (Expr::Add(a1, a2), _) => expand_mul(a1, b) + expand_mul(a2, b),
+        (_, Expr::Add(b1, b2)) => expand_mul(&a_exp, b1) + expand_mul(&a_exp, b2),
         // Distribute: (x - y) * z = x*z - y*z
-        (Expr::Sub(a1, a2), _) => {
-            expand_mul(a1, b).sub(expand_mul(a2, b))
-        }
-        (_, Expr::Sub(b1, b2)) => {
-            expand_mul(&a_exp, b1).sub(expand_mul(&a_exp, b2))
-        }
-        _ => a_exp.mul(b_exp),
+        (Expr::Sub(a1, a2), _) => expand_mul(a1, b) - expand_mul(a2, b),
+        (_, Expr::Sub(b1, b2)) => expand_mul(&a_exp, b1) - expand_mul(&a_exp, b2),
+        _ => a_exp * b_exp,
     }
 }
 
 /// Factor an expression (reverse of expand)
-/// 
+///
 /// # Arguments
 /// * `expr` - The expression to factor
-/// 
+///
 /// # Returns
 /// Factored expression
 pub fn factor(expr: &Expr) -> Expr {
@@ -219,18 +211,18 @@ fn factor_add(a: &Expr, b: &Expr) -> Expr {
     // Check if both terms have a common factor
     if let (Expr::Mul(a1, a2), Expr::Mul(b1, b2)) = (a, b) {
         if a1 == b1 {
-            (**a1).clone().mul((**a2).clone().add((**b2).clone()))
+            (**a1).clone() * ((**a2).clone() + (**b2).clone())
         } else if a1 == b2 {
-            (**a1).clone().mul((**a2).clone().add((**b1).clone()))
+            (**a1).clone() * ((**a2).clone() + (**b1).clone())
         } else if a2 == b1 {
-            (**a2).clone().mul((**a1).clone().add((**b2).clone()))
+            (**a2).clone() * ((**a1).clone() + (**b2).clone())
         } else if a2 == b2 {
-            (**a2).clone().mul((**a1).clone().add((**b1).clone()))
+            (**a2).clone() * ((**a1).clone() + (**b1).clone())
         } else {
-            a.clone().add(b.clone())
+            a.clone() + b.clone()
         }
     } else {
-        a.clone().add(b.clone())
+        a.clone() + b.clone()
     }
 }
 
@@ -238,18 +230,18 @@ fn factor_add(a: &Expr, b: &Expr) -> Expr {
 fn factor_sub(a: &Expr, b: &Expr) -> Expr {
     if let (Expr::Mul(a1, a2), Expr::Mul(b1, b2)) = (a, b) {
         if a1 == b1 {
-            (**a1).clone().mul((**a2).clone().sub((**b2).clone()))
+            (**a1).clone() * ((**a2).clone() - (**b2).clone())
         } else if a1 == b2 {
-            (**a1).clone().mul((**a2).clone().sub((**b1).clone()))
+            (**a1).clone() * ((**a2).clone() - (**b1).clone())
         } else if a2 == b1 {
-            (**a2).clone().mul((**a1).clone().sub((**b2).clone()))
+            (**a2).clone() * ((**a1).clone() - (**b2).clone())
         } else if a2 == b2 {
-            (**a2).clone().mul((**a1).clone().sub((**b1).clone()))
+            (**a2).clone() * ((**a1).clone() - (**b1).clone())
         } else {
-            a.clone().sub(b.clone())
+            a.clone() - b.clone()
         }
     } else {
-        a.clone().sub(b.clone())
+        a.clone() - b.clone()
     }
 }
 
@@ -259,21 +251,21 @@ mod tests {
 
     #[test]
     fn test_simplify_add_zero() {
-        let expr = Expr::c(0.0).add(Expr::v("x"));
+        let expr = Expr::c(0.0) + Expr::v("x");
         let simplified = simplify(&expr);
         assert_eq!(simplified, Expr::v("x"));
     }
 
     #[test]
     fn test_simplify_mul_zero() {
-        let expr = Expr::c(0.0).mul(Expr::v("x"));
+        let expr = Expr::c(0.0) * Expr::v("x");
         let simplified = simplify(&expr);
         assert_eq!(simplified, Expr::c(0.0));
     }
 
     #[test]
     fn test_simplify_mul_one() {
-        let expr = Expr::c(1.0).mul(Expr::v("x"));
+        let expr = Expr::c(1.0) * Expr::v("x");
         let simplified = simplify(&expr);
         assert_eq!(simplified, Expr::v("x"));
     }
@@ -287,17 +279,17 @@ mod tests {
 
     #[test]
     fn test_simplify_neg_neg() {
-        let expr = Expr::v("x").neg().neg();
+        let expr = -(-Expr::v("x"));
         let simplified = simplify(&expr);
         assert_eq!(simplified, Expr::v("x"));
     }
 
     #[test]
     fn test_expand() {
-        let expr = Expr::v("x").add(Expr::v("y")).mul(Expr::v("z"));
+        let expr = (Expr::v("x") + Expr::v("y")) * Expr::v("z");
         let expanded = expand(&expr);
         // (x + y) * z = x*z + y*z
-        let expected = Expr::v("x").mul(Expr::v("z")).add(Expr::v("y").mul(Expr::v("z")));
+        let expected = (Expr::v("x") * Expr::v("z")) + (Expr::v("y") * Expr::v("z"));
         assert_eq!(expanded, expected);
     }
 }

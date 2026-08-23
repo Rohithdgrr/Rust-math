@@ -151,7 +151,11 @@ pub fn ldexp(x: f64, e: i32) -> f64 {
         return r;
     }
     if new_exp >= 0x7FF {
-        return if bits >> 63 == 1 { f64::NEG_INFINITY } else { f64::INFINITY };
+        return if bits >> 63 == 1 {
+            f64::NEG_INFINITY
+        } else {
+            f64::INFINITY
+        };
     }
     bits = (bits & !(0x7FFu64 << 52)) | ((new_exp as u64) << 52);
     f64::from_bits(bits)

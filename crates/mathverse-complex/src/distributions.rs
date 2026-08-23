@@ -10,14 +10,14 @@
 //! | Function | Description |
 //! |----------|-------------|
 //! | [`complex_gaussian_pdf`] | Probability density of circular complex Gaussian |
-//! | [`complex_uniform_disk_sample`] | Sample uniformly from the unit disk |
-//! | [`complex_gaussian_sample`] | Sample from circular complex Gaussian N(0, σ²I) |
-//! | [`wishart_sample`] | Sample from complex Wishart distribution W(n, p, Σ) |
+//! | ``complex_uniform_disk_sample`` | Sample uniformly from the unit disk |
+//! | ``complex_gaussian_sample`` | Sample from circular complex Gaussian N(0, σ²I) |
+//! | ``wishart_sample`` | Sample from complex Wishart distribution W(n, p, Σ) |
 //! | [`wishart_mean`] | Expected value of Wishart distribution |
 //! | [`complex_normality_test`] | Jarque-Bera test for circular normality |
 
-use crate::Complex;
 use crate::matrix::ComplexMatrix;
+use crate::Complex;
 #[cfg(feature = "rand")]
 use mathverse_core::error::{MathError, MathResult};
 
@@ -61,11 +61,7 @@ pub fn complex_uniform_disk_sample(rng: &mut impl rand::Rng) -> Complex {
 /// Both real and imaginary parts are independent `N(Re(μ), σ²)` and
 /// `N(Im(μ), σ²)`.
 #[cfg(feature = "rand")]
-pub fn complex_gaussian_sample(
-    rng: &mut impl rand::Rng,
-    mu: Complex,
-    sigma: f64,
-) -> Complex {
+pub fn complex_gaussian_sample(rng: &mut impl rand::Rng, mu: Complex, sigma: f64) -> Complex {
     let re: f64 = rng.sample(rand_distr::StandardNormal);
     let im: f64 = rng.sample(rand_distr::StandardNormal);
     Complex::new(mu.re + sigma * re, mu.im + sigma * im)
@@ -276,14 +272,8 @@ mod tests {
 
         let var_re: f64 = samples.iter().map(|z| z.re * z.re).sum::<f64>() / 2000.0;
         let var_im: f64 = samples.iter().map(|z| z.im * z.im).sum::<f64>() / 2000.0;
-        assert!(
-            (var_re - sigma * sigma).abs() < 0.5,
-            "Var re: {var_re}"
-        );
-        assert!(
-            (var_im - sigma * sigma).abs() < 0.5,
-            "Var im: {var_im}"
-        );
+        assert!((var_re - sigma * sigma).abs() < 0.5, "Var re: {var_re}");
+        assert!((var_im - sigma * sigma).abs() < 0.5, "Var im: {var_im}");
     }
 
     #[cfg(feature = "rand")]

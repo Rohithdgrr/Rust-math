@@ -39,7 +39,11 @@ pub struct MarimekkoColumn {
 
 impl MarimekkoColumn {
     /// Create a new column.
-    pub fn new(label: impl Into<String>, width_weight: f64, segments: Vec<MarimekkoSegment>) -> Self {
+    pub fn new(
+        label: impl Into<String>,
+        width_weight: f64,
+        segments: Vec<MarimekkoSegment>,
+    ) -> Self {
         Self {
             label: label.into(),
             width_weight,

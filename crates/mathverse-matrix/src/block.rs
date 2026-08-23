@@ -22,38 +22,42 @@ impl BlockMatrix {
     /// Create block matrix from list of blocks.
     pub fn new(blocks: Vec<Matrix>, block_rows: usize, block_cols: usize) -> MathResult<Self> {
         if blocks.len() != block_rows * block_cols {
-            return Err(MathError::InvalidArgument("block count doesn't match block dimensions"));
+            return Err(MathError::InvalidArgument(
+                "block count doesn't match block dimensions",
+            ));
         }
-        
+
         // Check block dimensions are consistent
         let mut row_sizes = Vec::new();
         let mut col_sizes = Vec::new();
-        
+
         for i in 0..block_rows {
             let first_block = &blocks[i * block_cols];
             row_sizes.push(first_block.rows);
         }
-        
+
         for j in 0..block_cols {
             let first_block = &blocks[j];
             col_sizes.push(first_block.cols);
         }
-        
+
         for (idx, block) in blocks.iter().enumerate() {
             let i = idx / block_cols;
             let j = idx % block_cols;
-            
+
             if block.rows != row_sizes[i] {
                 return Err(MathError::InvalidArgument("inconsistent block row sizes"));
             }
             if block.cols != col_sizes[j] {
-                return Err(MathError::InvalidArgument("inconsistent block column sizes"));
+                return Err(MathError::InvalidArgument(
+                    "inconsistent block column sizes",
+                ));
             }
         }
-        
+
         let total_rows: usize = row_sizes.iter().sum();
         let total_cols: usize = col_sizes.iter().sum();
-        
+
         Ok(BlockMatrix {
             rows: total_rows,
             cols: total_cols,
@@ -73,7 +77,7 @@ impl BlockMatrix {
         if block_i >= self.block_rows || block_j >= self.block_cols {
             return Err(MathError::InvalidArgument("block index out of bounds"));
         }
-        
+
         let idx = block_i * self.block_cols + block_j;
         self.blocks[idx] = block;
         Ok(())
@@ -82,24 +86,24 @@ impl BlockMatrix {
     /// Convert to full matrix.
     pub fn to_full(&self) -> Matrix {
         let mut result = Matrix::zeros(self.rows, self.cols);
-        
+
         let mut row_offset = 0;
         for i in 0..self.block_rows {
             let mut col_offset = 0;
             for j in 0..self.block_cols {
                 let block = self.get_block(i, j);
-                
+
                 for bi in 0..block.rows {
                     for bj in 0..block.cols {
                         result.set(row_offset + bi, col_offset + bj, block.get(bi, bj));
                     }
                 }
-                
+
                 col_offset += block.cols;
             }
             row_offset += self.get_block(i, 0).rows;
         }
-        
+
         result
     }
 
@@ -108,25 +112,25 @@ impl BlockMatrix {
         let block_rows = row_sizes.len();
         let block_cols = col_sizes.len();
         let mut blocks = Vec::new();
-        
+
         let mut row_offset = 0;
         for &row_size in row_sizes {
             let mut col_offset = 0;
             for &col_size in col_sizes {
                 let mut block = Matrix::zeros(row_size, col_size);
-                
+
                 for bi in 0..row_size {
                     for bj in 0..col_size {
                         block.set(bi, bj, m.get(row_offset + bi, col_offset + bj));
                     }
                 }
-                
+
                 blocks.push(block);
                 col_offset += col_size;
             }
             row_offset += row_size;
         }
-        
+
         Self::new(blocks, block_rows, block_cols)
     }
 
@@ -135,16 +139,16 @@ impl BlockMatrix {
         if self.block_rows != other.block_rows || self.block_cols != other.block_cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut new_blocks = Vec::new();
-        
+
         for i in 0..self.block_rows {
             for j in 0..self.block_cols {
                 let sum = self.get_block(i, j).add(other.get_block(i, j))?;
                 new_blocks.push(sum);
             }
         }
-        
+
         Self::new(new_blocks, self.block_rows, self.block_cols)
     }
 
@@ -153,38 +157,35 @@ impl BlockMatrix {
         if self.block_cols != other.block_rows {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut new_blocks = Vec::new();
-        
+
         for i in 0..self.block_rows {
             for j in 0..other.block_cols {
-                let mut sum = Matrix::zeros(
-                    self.get_block(i, 0).rows,
-                    other.get_block(0, j).cols,
-                );
-                
+                let mut sum = Matrix::zeros(self.get_block(i, 0).rows, other.get_block(0, j).cols);
+
                 for k in 0..self.block_cols {
                     let product = self.get_block(i, k).mul(other.get_block(k, j))?;
                     sum = sum.add(&product)?;
                 }
-                
+
                 new_blocks.push(sum);
             }
         }
-        
+
         Self::new(new_blocks, self.block_rows, other.block_cols)
     }
 
     /// Block matrix transpose.
     pub fn transpose(&self) -> BlockMatrix {
         let mut new_blocks = Vec::new();
-        
+
         for j in 0..self.block_cols {
             for i in 0..self.block_rows {
                 new_blocks.push(self.get_block(i, j).transpose());
             }
         }
-        
+
         BlockMatrix {
             rows: self.cols,
             cols: self.rows,
@@ -203,7 +204,7 @@ impl BlockOperations {
     pub fn diagonal(blocks: &[Matrix]) -> MathResult<BlockMatrix> {
         let n = blocks.len();
         let mut full_blocks = Vec::new();
-        
+
         for i in 0..n {
             for j in 0..n {
                 if i == j {
@@ -215,7 +216,7 @@ impl BlockOperations {
                 }
             }
         }
-        
+
         BlockMatrix::new(full_blocks, n, n)
     }
 
@@ -223,7 +224,7 @@ impl BlockOperations {
     pub fn triangular(blocks: &[Matrix], upper: bool) -> MathResult<BlockMatrix> {
         let n = blocks.len();
         let mut full_blocks = Vec::new();
-        
+
         for i in 0..n {
             for j in 0..n {
                 if (upper && j >= i) || (!upper && j <= i) {
@@ -235,20 +236,26 @@ impl BlockOperations {
                 }
             }
         }
-        
+
         BlockMatrix::new(full_blocks, n, n)
     }
 
     /// Extract block from full matrix.
-    pub fn extract_block(m: &Matrix, row_start: usize, col_start: usize, rows: usize, cols: usize) -> Matrix {
+    pub fn extract_block(
+        m: &Matrix,
+        row_start: usize,
+        col_start: usize,
+        rows: usize,
+        cols: usize,
+    ) -> Matrix {
         let mut block = Matrix::zeros(rows, cols);
-        
+
         for i in 0..rows {
             for j in 0..cols {
                 block.set(i, j, m.get(row_start + i, col_start + j));
             }
         }
-        
+
         block
     }
 
@@ -267,11 +274,11 @@ impl BlockOperations {
 
         let mut l = BlockOperations::diagonal(&vec![Matrix::identity(m.get_block(0, 0).rows); n])?;
         let mut u = m.clone();
-        
+
         for k in 0..n {
             let u_kk = u.get_block(k, k);
             let inv_u_kk = u_kk.inverse()?;
-            
+
             for i in (k + 1)..n {
                 let u_ik = u.get_block(i, k);
                 let l_ik = u_ik.mul(&inv_u_kk)?;
@@ -286,15 +293,21 @@ impl BlockOperations {
                 }
             }
         }
-        
+
         Ok((l, u))
     }
 
     /// Block Cholesky decomposition.
     pub fn block_cholesky(m: &BlockMatrix) -> MathResult<BlockMatrix> {
         let n = m.block_rows;
-        let mut l = BlockOperations::diagonal(&vec![Matrix::zeros(m.get_block(0, 0).rows, m.get_block(0, 0).cols); n])?;
-        
+        let mut l = BlockOperations::diagonal(&vec![
+            Matrix::zeros(
+                m.get_block(0, 0).rows,
+                m.get_block(0, 0).cols
+            );
+            n
+        ])?;
+
         for j in 0..n {
             // L_jj = Cholesky(A_jj - sum(L_jk L_jk^T))
             let mut sum = m.get_block(j, j).clone();
@@ -304,7 +317,7 @@ impl BlockOperations {
                 let product = l_jk.mul(&l_jk_t)?;
                 sum = sum.sub(&product)?;
             }
-            
+
             let l_jj = sum.cholesky()?;
             l.set_block(j, j, l_jj.clone())?;
 
@@ -325,7 +338,7 @@ impl BlockOperations {
                 l.set_block(i, j, l_ij)?;
             }
         }
-        
+
         Ok(l)
     }
 
@@ -335,7 +348,7 @@ impl BlockOperations {
         let b = m.get_block(block_i, block_j);
         let c = m.get_block(block_j, block_i);
         let d = m.get_block(block_j, block_j);
-        
+
         let a_inv = a.inverse()?;
         let a_inv_b = a_inv.mul(b)?;
         let c_a_inv_b = c.mul(&a_inv_b)?;
@@ -368,16 +381,18 @@ impl BlockUtils {
         if m.block_rows != m.block_cols {
             return false;
         }
-        
+
         for i in 0..m.block_rows {
             for j in 0..m.block_cols {
                 let block_ij = m.get_block(i, j);
                 let block_ji = m.get_block(j, i);
                 let block_ji_t = block_ji.transpose();
-                
-                let diff = block_ij.sub(&block_ji_t).unwrap_or_else(|_| Matrix::zeros(1, 1));
+
+                let diff = block_ij
+                    .sub(&block_ji_t)
+                    .unwrap_or_else(|_| Matrix::zeros(1, 1));
                 let norm = crate::norms::MatrixNorms::frobenius(&diff);
-                
+
                 if norm > tolerance {
                     return false;
                 }
@@ -387,15 +402,19 @@ impl BlockUtils {
     }
 
     /// Permute blocks.
-    pub fn permute_blocks(m: &BlockMatrix, row_perm: &[usize], col_perm: &[usize]) -> MathResult<BlockMatrix> {
+    pub fn permute_blocks(
+        m: &BlockMatrix,
+        row_perm: &[usize],
+        col_perm: &[usize],
+    ) -> MathResult<BlockMatrix> {
         let mut new_blocks = Vec::new();
-        
+
         for &i in row_perm {
             for &j in col_perm {
                 new_blocks.push(m.get_block(i, j).clone());
             }
         }
-        
+
         BlockMatrix::new(new_blocks, row_perm.len(), col_perm.len())
     }
 
@@ -410,10 +429,10 @@ impl BlockUtils {
                 }
                 cols += block.cols;
             }
-            
+
             let mut result = Matrix::zeros(rows, cols);
             let mut col_offset = 0;
-            
+
             for block in blocks {
                 for i in 0..rows {
                     for j in 0..block.cols {
@@ -422,7 +441,7 @@ impl BlockUtils {
                 }
                 col_offset += block.cols;
             }
-            
+
             Ok(result)
         } else if direction == "vertical" {
             let cols = blocks[0].cols;
@@ -433,10 +452,10 @@ impl BlockUtils {
                 }
                 rows += block.rows;
             }
-            
+
             let mut result = Matrix::zeros(rows, cols);
             let mut row_offset = 0;
-            
+
             for block in blocks {
                 for i in 0..block.rows {
                     for j in 0..cols {
@@ -445,10 +464,12 @@ impl BlockUtils {
                 }
                 row_offset += block.rows;
             }
-            
+
             Ok(result)
         } else {
-            Err(MathError::InvalidArgument("invalid direction, use 'horizontal' or 'vertical'"))
+            Err(MathError::InvalidArgument(
+                "invalid direction, use 'horizontal' or 'vertical'",
+            ))
         }
     }
 }
@@ -463,10 +484,10 @@ mod tests {
         let b = Matrix::from_rows(&[&[5.0], &[6.0]]).unwrap();
         let c = Matrix::from_rows(&[&[7.0, 8.0]]).unwrap();
         let d = Matrix::from_rows(&[&[9.0]]).unwrap();
-        
+
         let blocks = vec![a.clone(), b.clone(), c.clone(), d.clone()];
         let block_mat = BlockMatrix::new(blocks, 2, 2).unwrap();
-        
+
         assert_eq!(block_mat.rows, 3);
         assert_eq!(block_mat.cols, 3);
     }
@@ -477,11 +498,11 @@ mod tests {
         let b = Matrix::from_rows(&[&[5.0], &[6.0]]).unwrap();
         let c = Matrix::from_rows(&[&[7.0, 8.0]]).unwrap();
         let d = Matrix::from_rows(&[&[9.0]]).unwrap();
-        
+
         let blocks = vec![a, b, c, d];
         let block_mat = BlockMatrix::new(blocks, 2, 2).unwrap();
         let full = block_mat.to_full();
-        
+
         assert_eq!(full.rows, 3);
         assert_eq!(full.cols, 3);
         assert!((full.get(0, 0) - 1.0).abs() < 1e-10);
@@ -492,10 +513,10 @@ mod tests {
     fn test_block_diagonal() {
         let a = Matrix::from_rows(&[&[1.0, 0.0], &[0.0, 1.0]]).unwrap();
         let b = Matrix::from_rows(&[&[2.0]]).unwrap();
-        
+
         let block_diag = BlockOperations::diagonal(&[a, b]).unwrap();
         let full = block_diag.to_full();
-        
+
         assert!((full.get(0, 0) - 1.0).abs() < 1e-10);
         assert!((full.get(2, 2) - 2.0).abs() < 1e-10);
         assert!((full.get(0, 2) - 0.0).abs() < 1e-10);
@@ -505,7 +526,7 @@ mod tests {
     fn test_extract_block() {
         let m = Matrix::from_rows(&[&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0], &[7.0, 8.0, 9.0]]).unwrap();
         let block = BlockOperations::extract_block(&m, 0, 0, 2, 2);
-        
+
         assert_eq!(block.rows, 2);
         assert_eq!(block.cols, 2);
         assert!((block.get(0, 0) - 1.0).abs() < 1e-10);
@@ -516,9 +537,9 @@ mod tests {
     fn test_merge_blocks_horizontal() {
         let a = Matrix::from_rows(&[&[1.0], &[2.0]]).unwrap();
         let b = Matrix::from_rows(&[&[3.0], &[4.0]]).unwrap();
-        
+
         let merged = BlockUtils::merge_blocks(&[a, b], "horizontal").unwrap();
-        
+
         assert_eq!(merged.rows, 2);
         assert_eq!(merged.cols, 2);
         assert!((merged.get(0, 0) - 1.0).abs() < 1e-10);

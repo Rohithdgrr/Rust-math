@@ -1,10 +1,10 @@
 //! Risk management calculations
 
 /// Calculate variance
-/// 
+///
 /// # Arguments
 /// * `values` - Slice of values
-/// 
+///
 /// # Returns
 /// Variance
 pub fn variance(values: &[f64]) -> f64 {
@@ -18,10 +18,10 @@ pub fn variance(values: &[f64]) -> f64 {
 }
 
 /// Calculate standard deviation
-/// 
+///
 /// # Arguments
 /// * `values` - Slice of values
-/// 
+///
 /// # Returns
 /// Standard deviation
 pub fn standard_deviation(values: &[f64]) -> f64 {
@@ -29,10 +29,10 @@ pub fn standard_deviation(values: &[f64]) -> f64 {
 }
 
 /// Calculate sample variance
-/// 
+///
 /// # Arguments
 /// * `values` - Slice of values
-/// 
+///
 /// # Returns
 /// Sample variance
 pub fn sample_variance(values: &[f64]) -> f64 {
@@ -41,15 +41,16 @@ pub fn sample_variance(values: &[f64]) -> f64 {
     }
 
     let mean = values.iter().sum::<f64>() / values.len() as f64;
-    let variance = values.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (values.len() - 1) as f64;
+    let variance =
+        values.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (values.len() - 1) as f64;
     variance
 }
 
 /// Calculate sample standard deviation
-/// 
+///
 /// # Arguments
 /// * `values` - Slice of values
-/// 
+///
 /// # Returns
 /// Sample standard deviation
 pub fn sample_standard_deviation(values: &[f64]) -> f64 {
@@ -57,11 +58,11 @@ pub fn sample_standard_deviation(values: &[f64]) -> f64 {
 }
 
 /// Calculate covariance
-/// 
+///
 /// # Arguments
 /// * `x` - First slice of values
 /// * `y` - Second slice of values (must be same length as x)
-/// 
+///
 /// # Returns
 /// Covariance
 pub fn covariance(x: &[f64], y: &[f64]) -> f64 {
@@ -72,20 +73,22 @@ pub fn covariance(x: &[f64], y: &[f64]) -> f64 {
     let mean_x = x.iter().sum::<f64>() / x.len() as f64;
     let mean_y = y.iter().sum::<f64>() / y.len() as f64;
 
-    let cov: f64 = x.iter()
+    let cov: f64 = x
+        .iter()
         .zip(y.iter())
         .map(|(&xi, &yi)| (xi - mean_x) * (yi - mean_y))
-        .sum::<f64>() / x.len() as f64;
+        .sum::<f64>()
+        / x.len() as f64;
 
     cov
 }
 
 /// Calculate correlation coefficient
-/// 
+///
 /// # Arguments
 /// * `x` - First slice of values
 /// * `y` - Second slice of values (must be same length as x)
-/// 
+///
 /// # Returns
 /// Correlation coefficient (-1 to 1)
 pub fn correlation(x: &[f64], y: &[f64]) -> f64 {
@@ -105,13 +108,13 @@ pub fn correlation(x: &[f64], y: &[f64]) -> f64 {
 }
 
 /// Calculate Value at Risk (VaR) - parametric method
-/// 
+///
 /// # Arguments
 /// * `portfolio_value` - Portfolio value
 /// * `mean_return` - Mean return (as decimal)
 /// * `std_dev` - Standard deviation of returns (as decimal)
 /// * `confidence_level` - Confidence level (e.g., 0.95 for 95%)
-/// 
+///
 /// # Returns
 /// Value at Risk (absolute amount), or `NaN` if the confidence level is
 /// outside the open interval (0, 1) (the quantile is undefined).
@@ -132,27 +135,45 @@ pub fn value_at_risk(
 /// Absolute error is < 1.2e-9 for all `p` in `(0, 1)`. Returns `NaN` when
 /// `p` is outside the open interval `(0, 1)` (the quantile is undefined).
 fn inverse_normal_cdf(p: f64) -> f64 {
+    const P_LOW: f64 = 0.024_25;
+    const P_HIGH: f64 = 1.0 - P_LOW;
+
     if !(0.0..1.0).contains(&p) {
         return f64::NAN;
     }
 
-    let a = [-3.969683028665376e+01, 2.209460984245205e+02,
-             -2.759285104469687e+02, 1.383_577_518_672_69e2,
-             -3.066479806614716e+01, 2.506628277459239e+00];
+    let a = [
+        -3.969_683_028_665_376e+01,
+        2.209_460_984_245_205e+02,
+        -2.759_285_104_469_687e+02,
+        1.383_577_518_672_69e2,
+        -3.066_479_806_614_716e+01,
+        2.506_628_277_459_239e+00,
+    ];
 
-    let b = [-5.447609879822406e+01, 1.615858368580409e+02,
-             -1.556989798598866e+02, 6.680131188771972e+01,
-             -1.328068155288572e+01];
+    let b = [
+        -5.447_609_879_822_406e+01,
+        1.615_858_368_580_409e+02,
+        -1.556_989_798_598_866e+02,
+        6.680_131_188_771_972e+01,
+        -1.328_068_155_288_572e+01,
+    ];
 
-    let c = [-7.784894002430293e-03, -3.223964580411365e-01,
-             -2.400758277161838e+00, -2.549732539343734e+00,
-              4.374664141464968e+00, 2.938163982698783e+00];
+    let c = [
+        -7.784_894_002_430_293e-03,
+        -3.223_964_580_411_365e-01,
+        -2.400_758_277_161_838e+00,
+        -2.549_732_539_343_734e+00,
+        4.374_664_141_464_968e+00,
+        2.938_163_982_698_783e+00,
+    ];
 
-    let d = [7.784695709041462e-03, 3.224671290700398e-01,
-             2.445134137142996e+00, 3.754408661907416e+00];
-
-    const P_LOW: f64 = 0.024_25;
-    const P_HIGH: f64 = 1.0 - P_LOW;
+    let d = [
+        7.784_695_709_041_462e-03,
+        3.224_671_290_700_398e-01,
+        2.445_134_137_142_996e+00,
+        3.754_408_661_907_416e+00,
+    ];
 
     if p < P_LOW {
         // Lower tail: q = √(−2·ln p).
@@ -178,13 +199,13 @@ fn inverse_normal_cdf(p: f64) -> f64 {
 }
 
 /// Calculate Conditional Value at Risk (CVaR) / Expected Shortfall
-/// 
+///
 /// # Arguments
 /// * `portfolio_value` - Portfolio value
 /// * `mean_return` - Mean return (as decimal)
 /// * `std_dev` - Standard deviation of returns (as decimal)
 /// * `confidence_level` - Confidence level (e.g., 0.95 for 95%)
-/// 
+///
 /// # Returns
 /// Conditional Value at Risk (absolute amount), or `NaN` if the confidence
 /// level is outside the open interval (0, 1) (the quantile is undefined).
@@ -201,11 +222,11 @@ pub fn conditional_var(
 }
 
 /// Calculate downside deviation
-/// 
+///
 /// # Arguments
 /// * `returns` - Slice of returns (as decimals)
 /// * `minimum_acceptable_return` - Minimum acceptable return (as decimal)
-/// 
+///
 /// # Returns
 /// Downside deviation
 pub fn downside_deviation(returns: &[f64], minimum_acceptable_return: f64) -> f64 {
@@ -255,7 +276,7 @@ mod tests {
 
     #[test]
     fn test_inverse_normal_cdf_known_quantiles() {
-        // Φ⁻¹(0.5) = 0, Φ⁻¹(0.95) ≈ 1.644854, Φ⁻¹(0.01) ≈ −2.326348
+        // Φ⁻¹(0.5) = 0, Φ⁻¹(0.95) ≈ 1.644_854, Φ⁻¹(0.01) ≈ −2.326_348
         assert!((inverse_normal_cdf(0.5)).abs() < 1e-9);
         assert!((inverse_normal_cdf(0.95) - 1.644_853_626_951_472_2).abs() < 1e-8);
         assert!((inverse_normal_cdf(0.01) + 2.326_347_874_040_991_6).abs() < 1e-8);
@@ -272,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_value_at_risk_matches_hand_calc() {
-        // VaR = PV·|μ − z·σ| with z = Φ⁻¹(0.95) ≈ 1.644854
+        // VaR = PV·|μ − z·σ| with z = Φ⁻¹(0.95) ≈ 1.644_854
         let var = value_at_risk(1_000_000.0, 0.0, 0.1, 0.95);
         let expected = 1_000_000.0 * 1.644_853_626_951_472_2 * 0.1;
         assert!((var - expected).abs() < 5.0, "var={var}");

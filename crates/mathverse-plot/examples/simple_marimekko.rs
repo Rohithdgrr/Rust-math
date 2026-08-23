@@ -1,8 +1,10 @@
 //! Marimekko chart example: Market segments by company size.
 
-use mathverse_plot::marimekko::{render_marimekko, MarimekkoColumn, MarimekkoConfig, MarimekkoSegment};
-use mathverse_plot::style::Color;
+use mathverse_plot::marimekko::{
+    render_marimekko, MarimekkoColumn, MarimekkoConfig, MarimekkoSegment,
+};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let columns = vec![

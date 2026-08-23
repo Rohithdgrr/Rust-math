@@ -12,15 +12,15 @@ impl HadamardProduct {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = Matrix::zeros(a.rows, a.cols);
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 result.set(i, j, a.get(i, j) * b.get(i, j));
             }
         }
-        
+
         Ok(result)
     }
 
@@ -34,12 +34,12 @@ impl HadamardProduct {
         if n == 0 {
             return Ok(Matrix::ones(m.rows, m.cols));
         }
-        
+
         let mut result = m.clone();
         for _ in 1..n {
             result = Self::compute(&result, m)?;
         }
-        
+
         Ok(result)
     }
 
@@ -48,36 +48,40 @@ impl HadamardProduct {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = Matrix::zeros(a.rows, a.cols);
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 let denom = b.get(i, j);
                 if denom.abs() < 1e-15 {
-                    return Err(MathError::InvalidArgument("division by zero in Hadamard division"));
+                    return Err(MathError::InvalidArgument(
+                        "division by zero in Hadamard division",
+                    ));
                 }
                 result.set(i, j, a.get(i, j) / denom);
             }
         }
-        
+
         Ok(result)
     }
 
     /// Hadamard square root: √A (element-wise).
     pub fn sqrt(m: &Matrix) -> MathResult<Matrix> {
         let mut result = Matrix::zeros(m.rows, m.cols);
-        
+
         for i in 0..m.rows {
             for j in 0..m.cols {
                 let val = m.get(i, j);
                 if val < 0.0 {
-                    return Err(MathError::InvalidArgument("negative value in Hadamard sqrt"));
+                    return Err(MathError::InvalidArgument(
+                        "negative value in Hadamard sqrt",
+                    ));
                 }
                 result.set(i, j, val.sqrt());
             }
         }
-        
+
         Ok(result)
     }
 
@@ -86,15 +90,15 @@ impl HadamardProduct {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = Matrix::zeros(a.rows, a.cols);
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 result.set(i, j, if a.get(i, j) > b.get(i, j) { 1.0 } else { 0.0 });
             }
         }
-        
+
         Ok(result)
     }
 
@@ -103,15 +107,15 @@ impl HadamardProduct {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = Matrix::zeros(a.rows, a.cols);
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 result.set(i, j, if a.get(i, j) < b.get(i, j) { 1.0 } else { 0.0 });
             }
         }
-        
+
         Ok(result)
     }
 
@@ -120,15 +124,23 @@ impl HadamardProduct {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = Matrix::zeros(a.rows, a.cols);
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
-                result.set(i, j, if (a.get(i, j) - b.get(i, j)).abs() < tolerance { 1.0 } else { 0.0 });
+                result.set(
+                    i,
+                    j,
+                    if (a.get(i, j) - b.get(i, j)).abs() < tolerance {
+                        1.0
+                    } else {
+                        0.0
+                    },
+                );
             }
         }
-        
+
         Ok(result)
     }
 }
@@ -152,15 +164,15 @@ impl ElementWiseOps {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = Matrix::zeros(a.rows, a.cols);
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 result.set(i, j, a.get(i, j).max(b.get(i, j)));
             }
         }
-        
+
         Ok(result)
     }
 
@@ -169,15 +181,15 @@ impl ElementWiseOps {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = Matrix::zeros(a.rows, a.cols);
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 result.set(i, j, a.get(i, j).min(b.get(i, j)));
             }
         }
-        
+
         Ok(result)
     }
 
@@ -195,9 +207,9 @@ impl ElementWiseOps {
         if a.rows != b.rows || a.cols != b.cols {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut result = Matrix::zeros(a.rows, a.cols);
-        
+
         for i in 0..a.rows {
             for j in 0..a.cols {
                 let denom = b.get(i, j);
@@ -207,7 +219,7 @@ impl ElementWiseOps {
                 result.set(i, j, a.get(i, j) % denom);
             }
         }
-        
+
         Ok(result)
     }
 
@@ -216,7 +228,11 @@ impl ElementWiseOps {
         Matrix {
             rows: m.rows,
             cols: m.cols,
-            data: m.data.iter().map(|&x| x.max(min_val).min(max_val)).collect(),
+            data: m
+                .data
+                .iter()
+                .map(|&x| x.max(min_val).min(max_val))
+                .collect(),
         }
     }
 
@@ -232,7 +248,7 @@ impl ElementWiseOps {
     /// Element-wise reciprocal: 1./A.
     pub fn reciprocal(m: &Matrix) -> MathResult<Matrix> {
         let mut result = Matrix::zeros(m.rows, m.cols);
-        
+
         for i in 0..m.rows {
             for j in 0..m.cols {
                 let val = m.get(i, j);
@@ -242,7 +258,7 @@ impl ElementWiseOps {
                 result.set(i, j, 1.0 / val);
             }
         }
-        
+
         Ok(result)
     }
 
@@ -292,9 +308,9 @@ mod tests {
     fn test_hadamard_product() {
         let a = Matrix::from_rows(&[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
         let b = Matrix::from_rows(&[&[2.0, 3.0], &[4.0, 5.0]]).unwrap();
-        
+
         let hadamard = HadamardProduct::compute(&a, &b).unwrap();
-        
+
         assert!((hadamard.get(0, 0) - 2.0).abs() < 1e-10);
         assert!((hadamard.get(0, 1) - 6.0).abs() < 1e-10);
         assert!((hadamard.get(1, 0) - 12.0).abs() < 1e-10);
@@ -305,7 +321,7 @@ mod tests {
     fn test_hadamard_power() {
         let m = Matrix::from_rows(&[&[2.0, 3.0]]).unwrap();
         let power = HadamardProduct::power(&m, 3).unwrap();
-        
+
         assert!((power.get(0, 0) - 8.0).abs() < 1e-10);
         assert!((power.get(0, 1) - 27.0).abs() < 1e-10);
     }
@@ -314,9 +330,9 @@ mod tests {
     fn test_elementwise_max() {
         let a = Matrix::from_rows(&[&[1.0, 5.0], &[3.0, 2.0]]).unwrap();
         let b = Matrix::from_rows(&[&[2.0, 3.0], &[4.0, 5.0]]).unwrap();
-        
+
         let max = ElementWiseOps::max(&a, &b).unwrap();
-        
+
         assert!((max.get(0, 0) - 2.0).abs() < 1e-10);
         assert!((max.get(0, 1) - 5.0).abs() < 1e-10);
     }
@@ -325,7 +341,7 @@ mod tests {
     fn test_elementwise_pow() {
         let m = Matrix::from_rows(&[&[2.0, 3.0]]).unwrap();
         let pow = ElementWiseOps::pow(&m, 2.0);
-        
+
         assert!((pow.get(0, 0) - 4.0).abs() < 1e-10);
         assert!((pow.get(0, 1) - 9.0).abs() < 1e-10);
     }
@@ -334,7 +350,7 @@ mod tests {
     fn test_clip() {
         let m = Matrix::from_rows(&[&[-5.0, 10.0], &[3.0, 15.0]]).unwrap();
         let clipped = ElementWiseOps::clip(&m, 0.0, 10.0);
-        
+
         assert!((clipped.get(0, 0) - 0.0).abs() < 1e-10);
         assert!((clipped.get(0, 1) - 10.0).abs() < 1e-10);
         assert!((clipped.get(1, 1) - 10.0).abs() < 1e-10);

@@ -103,8 +103,14 @@ pub fn render_boxen_plot(data: &[BoxenData], config: &BoxenConfig) -> PlotResult
     }
 
     // Find global y range
-    let all_min = data.iter().flat_map(|d| &d.values).fold(f64::INFINITY, |a, &b| a.min(b));
-    let all_max = data.iter().flat_map(|d| &d.values).fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+    let all_min = data
+        .iter()
+        .flat_map(|d| &d.values)
+        .fold(f64::INFINITY, |a, &b| a.min(b));
+    let all_max = data
+        .iter()
+        .flat_map(|d| &d.values)
+        .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;
@@ -203,7 +209,9 @@ pub fn render_boxen_plot(data: &[BoxenData], config: &BoxenConfig) -> PlotResult
 
         // Whiskers (min to max)
         let min_val = sorted[0];
-        let max_val = *sorted.last().ok_or_else(|| PlotError::InvalidData("empty data".into()))?;
+        let max_val = *sorted
+            .last()
+            .ok_or_else(|| PlotError::InvalidData("empty data".into()))?;
         svg.push_str("  <line x1=\"");
         svg.push_str(&cx.to_string());
         svg.push_str("\" y1=\"");

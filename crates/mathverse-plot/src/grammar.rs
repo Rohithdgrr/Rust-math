@@ -484,7 +484,9 @@ impl Plot {
                 DataSeries {
                     name,
                     points,
-                    style: PlotStyle::default().with_line_color(color).with_marker_color(color),
+                    style: PlotStyle::default()
+                        .with_line_color(color)
+                        .with_marker_color(color),
                 }
             })
             .collect()

@@ -8,8 +8,8 @@ use mathverse_signal::spectrum::{periodogram, welch_psd};
 use mathverse_transforms::fft::fft_real;
 
 use crate::common::PlotConfig;
-use crate::heatmap::Colormap;
 use crate::error::{PlotError, PlotResult};
+use crate::heatmap::Colormap;
 use crate::svg::SvgPlot;
 
 /// Spectrogram rendering mode.
@@ -110,7 +110,9 @@ pub fn compute_spectrogram(
 
     let sr = config.sample_rate;
     if sr <= 0.0 {
-        return Err(PlotError::InvalidData("sample_rate must be positive".into()));
+        return Err(PlotError::InvalidData(
+            "sample_rate must be positive".into(),
+        ));
     }
 
     let (freqs, times, grid) = match config.mode {
@@ -163,7 +165,10 @@ pub fn compute_spectrogram(
             let spectrum = fft_real(&padded);
             let df = sr / n_fft as f64;
             let freqs: Vec<f64> = (0..n_fft).map(|k| k as f64 * df).collect();
-            let magnitudes: Vec<f64> = spectrum.iter().map(mathverse_complex::Complex::norm).collect();
+            let magnitudes: Vec<f64> = spectrum
+                .iter()
+                .map(mathverse_complex::Complex::norm)
+                .collect();
             let times = vec![0.0];
             (freqs, times, vec![magnitudes])
         }
@@ -181,10 +186,7 @@ fn next_power_of_two(n: usize) -> usize {
 }
 
 /// Render a spectrogram as an SVG string.
-pub fn render_spectrogram_svg(
-    signal: &[f64],
-    config: SpectrogramConfig,
-) -> PlotResult<String> {
+pub fn render_spectrogram_svg(signal: &[f64], config: SpectrogramConfig) -> PlotResult<String> {
     let (_, _, magnitudes) = compute_spectrogram(signal, &config)?;
 
     let mut plot = SvgPlot::new(config.plot_config);
@@ -215,7 +217,10 @@ mod tests {
     fn welch_spectrogram_produces_grid() {
         let sr = 1000.0;
         let t: Vec<f64> = (0..1000).map(|i| f64::from(i) / sr).collect();
-        let signal: Vec<f64> = t.iter().map(|&t| (2.0 * core::f64::consts::PI * 50.0 * t).sin()).collect();
+        let signal: Vec<f64> = t
+            .iter()
+            .map(|&t| (2.0 * core::f64::consts::PI * 50.0 * t).sin())
+            .collect();
 
         let config = SpectrogramConfig::new(sr)
             .with_mode(SpectrogramMode::Welch)
@@ -259,7 +264,10 @@ mod tests {
     fn render_spectrogram_svg_contains_svg_tag() {
         let sr = 1000.0;
         let t: Vec<f64> = (0..500).map(|i| f64::from(i) / sr).collect();
-        let signal: Vec<f64> = t.iter().map(|&t| (2.0 * core::f64::consts::PI * 50.0 * t).sin()).collect();
+        let signal: Vec<f64> = t
+            .iter()
+            .map(|&t| (2.0 * core::f64::consts::PI * 50.0 * t).sin())
+            .collect();
 
         let config = SpectrogramConfig::new(sr);
         let svg = render_spectrogram_svg(&signal, config).unwrap();

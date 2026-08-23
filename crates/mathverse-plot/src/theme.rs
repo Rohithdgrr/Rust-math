@@ -3,8 +3,7 @@
 use crate::style::Color;
 
 /// Predefined plot themes.
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Theme {
     /// Clean minimal style.
     #[default]
@@ -29,7 +28,6 @@ pub enum Theme {
     /// grey grid, white axes, blue(ish) tick labels, default tab10 colors.
     Matplotlib,
 }
-
 
 /// Complete theme configuration.
 #[allow(clippy::struct_excessive_bools)]
@@ -120,15 +118,30 @@ pub struct SpineVisibility {
 
 impl SpineVisibility {
     pub fn all() -> Self {
-        Self { top: true, right: true, bottom: true, left: true }
+        Self {
+            top: true,
+            right: true,
+            bottom: true,
+            left: true,
+        }
     }
 
     pub fn none() -> Self {
-        Self { top: false, right: false, bottom: false, left: false }
+        Self {
+            top: false,
+            right: false,
+            bottom: false,
+            left: false,
+        }
     }
 
     pub fn bottom_left() -> Self {
-        Self { top: false, right: false, bottom: true, left: true }
+        Self {
+            top: false,
+            right: false,
+            bottom: true,
+            left: true,
+        }
     }
 }
 
@@ -153,7 +166,10 @@ pub struct ColorPalette {
 impl ColorPalette {
     /// Create a new palette.
     pub fn new(name: impl Into<String>, colors: Vec<Color>) -> Self {
-        Self { name: name.into(), colors }
+        Self {
+            name: name.into(),
+            colors,
+        }
     }
 
     /// Get color by index (cycles).
@@ -172,89 +188,116 @@ impl Default for ColorPalette {
 impl ColorPalette {
     #[must_use]
     pub fn matplotlib() -> Self {
-        Self::new("default", vec![
-            Color::BLUE, Color::ORANGE, Color::GREEN, Color::RED,
-            Color::PURPLE, Color::BROWN, Color::Named("pink"), Color::GRAY,
-        ])
+        Self::new(
+            "default",
+            vec![
+                Color::BLUE,
+                Color::ORANGE,
+                Color::GREEN,
+                Color::RED,
+                Color::PURPLE,
+                Color::BROWN,
+                Color::Named("pink"),
+                Color::GRAY,
+            ],
+        )
     }
 
     /// Seaborn deep palette.
     pub fn seaborn_deep() -> Self {
-        Self::new("seaborn_deep", vec![
-            Color::rgb(0, 114, 178),   // Blue
-            Color::rgb(230, 159, 0),    // Orange
-            Color::rgb(86, 180, 233),   // Sky blue
-            Color::rgb(0, 158, 115),    // Bluish green
-            Color::rgb(240, 228, 66),   // Yellow
-            Color::rgb(213, 94, 0),     // Vermillion
-            Color::rgb(204, 121, 167),  // Reddish purple
-        ])
+        Self::new(
+            "seaborn_deep",
+            vec![
+                Color::rgb(0, 114, 178),   // Blue
+                Color::rgb(230, 159, 0),   // Orange
+                Color::rgb(86, 180, 233),  // Sky blue
+                Color::rgb(0, 158, 115),   // Bluish green
+                Color::rgb(240, 228, 66),  // Yellow
+                Color::rgb(213, 94, 0),    // Vermillion
+                Color::rgb(204, 121, 167), // Reddish purple
+            ],
+        )
     }
 
     /// Viridis palette.
     pub fn viridis() -> Self {
-        Self::new("viridis", vec![
-            Color::rgb(68, 1, 84),
-            Color::rgb(72, 35, 116),
-            Color::rgb(64, 67, 135),
-            Color::rgb(52, 94, 141),
-            Color::rgb(33, 145, 140),
-            Color::rgb(94, 201, 98),
-            Color::rgb(253, 231, 37),
-        ])
+        Self::new(
+            "viridis",
+            vec![
+                Color::rgb(68, 1, 84),
+                Color::rgb(72, 35, 116),
+                Color::rgb(64, 67, 135),
+                Color::rgb(52, 94, 141),
+                Color::rgb(33, 145, 140),
+                Color::rgb(94, 201, 98),
+                Color::rgb(253, 231, 37),
+            ],
+        )
     }
 
     /// Pastel palette.
     pub fn pastel() -> Self {
-        Self::new("pastel", vec![
-            Color::rgb(179, 205, 227),
-            Color::rgb(253, 205, 227),
-            Color::rgb(203, 213, 232),
-            Color::rgb(179, 222, 105),
-            Color::rgb(252, 205, 229),
-            Color::rgb(217, 217, 217),
-            Color::rgb(255, 255, 178),
-        ])
+        Self::new(
+            "pastel",
+            vec![
+                Color::rgb(179, 205, 227),
+                Color::rgb(253, 205, 227),
+                Color::rgb(203, 213, 232),
+                Color::rgb(179, 222, 105),
+                Color::rgb(252, 205, 229),
+                Color::rgb(217, 217, 217),
+                Color::rgb(255, 255, 178),
+            ],
+        )
     }
 
     /// Set1 (qualitative).
     pub fn set1() -> Self {
-        Self::new("set1", vec![
-            Color::rgb(228, 26, 28),
-            Color::rgb(55, 126, 184),
-            Color::rgb(77, 175, 74),
-            Color::rgb(255, 127, 0),
-            Color::rgb(152, 78, 163),
-            Color::rgb(255, 255, 51),
-            Color::rgb(166, 86, 40),
-            Color::rgb(247, 129, 191),
-        ])
+        Self::new(
+            "set1",
+            vec![
+                Color::rgb(228, 26, 28),
+                Color::rgb(55, 126, 184),
+                Color::rgb(77, 175, 74),
+                Color::rgb(255, 127, 0),
+                Color::rgb(152, 78, 163),
+                Color::rgb(255, 255, 51),
+                Color::rgb(166, 86, 40),
+                Color::rgb(247, 129, 191),
+            ],
+        )
     }
 
     /// Dark2 (qualitative).
     pub fn dark2() -> Self {
-        Self::new("dark2", vec![
-            Color::rgb(27, 158, 119),
-            Color::rgb(217, 95, 2),
-            Color::rgb(117, 112, 179),
-            Color::rgb(231, 41, 138),
-            Color::rgb(102, 166, 30),
-            Color::rgb(230, 171, 2),
-            Color::rgb(166, 118, 29),
-            Color::rgb(102, 102, 102),
-        ])
+        Self::new(
+            "dark2",
+            vec![
+                Color::rgb(27, 158, 119),
+                Color::rgb(217, 95, 2),
+                Color::rgb(117, 112, 179),
+                Color::rgb(231, 41, 138),
+                Color::rgb(102, 166, 30),
+                Color::rgb(230, 171, 2),
+                Color::rgb(166, 118, 29),
+                Color::rgb(102, 102, 102),
+            ],
+        )
     }
 
     /// Colorblind-friendly palette.
     pub fn colorblind() -> Self {
-        Self::new("colorblind", vec![
-            Color::rgb(0, 114, 178),
-            Color::rgb(230, 159, 0),
-            Color::rgb(86, 180, 233),
-            Color::rgb(0, 158, 115),
-            Color::rgb(240, 228, 66),
-            Color::rgb(213, 94, 0),
-        ])
+        Self::new(
+            "colorblind",
+            vec![
+                Color::rgb(0, 114, 178),
+                Color::rgb(230, 159, 0),
+                Color::rgb(86, 180, 233),
+                Color::rgb(0, 158, 115),
+                Color::rgb(240, 228, 66),
+                Color::rgb(213, 94, 0),
+            ],
+        )
     }
 }
 
@@ -276,9 +319,9 @@ impl ThemeConfig {
             Theme::Classic => Self::classic(),
             Theme::Academic => Self::academic(),
             Theme::Presentation => Self::presentation(),
-        Theme::Blueprint => Self::blueprint(),
-        Theme::Matplotlib => Self::matplotlib(),
-    }
+            Theme::Blueprint => Self::blueprint(),
+            Theme::Matplotlib => Self::matplotlib(),
+        }
     }
 
     /// Minimal theme.
@@ -395,15 +438,18 @@ impl ThemeConfig {
             show_border: true,
             show_ticks: true,
             show_spine: SpineVisibility::all(),
-            palette: ColorPalette::new("dark", vec![
-                Color::rgb(114, 158, 206),
-                Color::rgb(255, 127, 14),
-                Color::rgb(103, 191, 92),
-                Color::rgb(227, 119, 194),
-                Color::rgb(255, 215, 0),
-                Color::rgb(148, 103, 189),
-                Color::rgb(140, 86, 75),
-            ]),
+            palette: ColorPalette::new(
+                "dark",
+                vec![
+                    Color::rgb(114, 158, 206),
+                    Color::rgb(255, 127, 14),
+                    Color::rgb(103, 191, 92),
+                    Color::rgb(227, 119, 194),
+                    Color::rgb(255, 215, 0),
+                    Color::rgb(148, 103, 189),
+                    Color::rgb(140, 86, 75),
+                ],
+            ),
             figure_facecolor: Color::rgb(30, 30, 30),
             axes_facecolor: Color::rgb(40, 40, 40),
             axes_edgecolor: Color::rgb(100, 100, 100),
@@ -434,13 +480,16 @@ impl ThemeConfig {
             show_border: true,
             show_ticks: true,
             show_spine: SpineVisibility::all(),
-            palette: ColorPalette::new("high_contrast", vec![
-                Color::BLACK,
-                Color::rgb(200, 0, 0),
-                Color::rgb(0, 100, 0),
-                Color::rgb(0, 0, 200),
-                Color::rgb(200, 150, 0),
-            ]),
+            palette: ColorPalette::new(
+                "high_contrast",
+                vec![
+                    Color::BLACK,
+                    Color::rgb(200, 0, 0),
+                    Color::rgb(0, 100, 0),
+                    Color::rgb(0, 0, 200),
+                    Color::rgb(200, 150, 0),
+                ],
+            ),
             figure_facecolor: Color::WHITE,
             axes_facecolor: Color::WHITE,
             axes_edgecolor: Color::BLACK,
@@ -502,11 +551,14 @@ impl ThemeConfig {
             show_border: true,
             show_ticks: true,
             show_spine: SpineVisibility::bottom_left(),
-            palette: ColorPalette::new("academic", vec![
-                Color::BLACK,
-                Color::rgb(100, 100, 100),
-                Color::rgb(150, 150, 150),
-            ]),
+            palette: ColorPalette::new(
+                "academic",
+                vec![
+                    Color::BLACK,
+                    Color::rgb(100, 100, 100),
+                    Color::rgb(150, 150, 150),
+                ],
+            ),
             figure_facecolor: Color::WHITE,
             axes_facecolor: Color::WHITE,
             axes_edgecolor: Color::BLACK,
@@ -550,90 +602,93 @@ impl ThemeConfig {
     /// Blueprint theme.
     pub fn blueprint() -> Self {
         Self {
-        theme: Theme::Blueprint,
-        background_color: Color::rgb(0, 40, 80),
-        plot_background: Color::rgb(0, 50, 100),
-        text_color: Color::rgb(200, 220, 255),
-        axis_color: Color::rgb(100, 150, 200),
-        grid_color: Color::rgb(50, 100, 150),
-        grid_style: LineStyle::Solid,
-        font_family: "Consolas, monospace".into(),
-        title_size: 16.0,
-        label_size: 12.0,
-        tick_size: 10.0,
-        legend_size: 11.0,
-        line_width: 2.0,
-        border_width: 1.0,
-        show_grid: true,
-        show_border: true,
-        show_ticks: true,
-        show_spine: SpineVisibility::all(),
-        palette: ColorPalette::new("blueprint", vec![
-            Color::rgb(100, 200, 255),
-            Color::rgb(255, 200, 100),
-            Color::rgb(100, 255, 150),
-            Color::rgb(255, 150, 200),
-        ]),
-        figure_facecolor: Color::rgb(0, 40, 80),
-        axes_facecolor: Color::rgb(0, 50, 100),
-        axes_edgecolor: Color::rgb(100, 150, 200),
-        xgrid: true,
-        ygrid: true,
-        grid_axis: GridAxis::Both,
+            theme: Theme::Blueprint,
+            background_color: Color::rgb(0, 40, 80),
+            plot_background: Color::rgb(0, 50, 100),
+            text_color: Color::rgb(200, 220, 255),
+            axis_color: Color::rgb(100, 150, 200),
+            grid_color: Color::rgb(50, 100, 150),
+            grid_style: LineStyle::Solid,
+            font_family: "Consolas, monospace".into(),
+            title_size: 16.0,
+            label_size: 12.0,
+            tick_size: 10.0,
+            legend_size: 11.0,
+            line_width: 2.0,
+            border_width: 1.0,
+            show_grid: true,
+            show_border: true,
+            show_ticks: true,
+            show_spine: SpineVisibility::all(),
+            palette: ColorPalette::new(
+                "blueprint",
+                vec![
+                    Color::rgb(100, 200, 255),
+                    Color::rgb(255, 200, 100),
+                    Color::rgb(100, 255, 150),
+                    Color::rgb(255, 150, 200),
+                ],
+            ),
+            figure_facecolor: Color::rgb(0, 40, 80),
+            axes_facecolor: Color::rgb(0, 50, 100),
+            axes_edgecolor: Color::rgb(100, 150, 200),
+            xgrid: true,
+            ygrid: true,
+            grid_axis: GridAxis::Both,
+        }
     }
-}
 
-/// Matplotlib default style.
-///
-/// Closely mirrors `matplotlib.pyplot.rcParams` from matplotlib ≤ 3.x:
-/// - tweak the default colormap away from pure `#1f77b4` blue
-/// - set a slightly darker grid so it reads on white
-/// - `seaborn-deep`-style qualitative palette (same 8-color cycle as the default
-///   `tab10` table, which matplotlib ships from 2.0 onward)
-pub fn matplotlib() -> Self {
-    Self {
-        theme: Theme::Matplotlib,
-        background_color: Color::WHITE,
-        plot_background: Color::WHITE,
-        text_color: Color::rgb(60, 60, 60),
-        axis_color: Color::rgb(120, 120, 120),
-        grid_color: Color::rgb(210, 210, 210),
-        grid_style: LineStyle::Solid,
-        font_family: "DejaVu Sans, Arial, sans-serif".into(),
-        title_size: 16.0,
-        label_size: 13.0,
-        tick_size: 10.0,
-        legend_size: 10.5,
-        line_width: 1.5,
-        border_width: 0.8,
-        show_grid: true,
-        show_border: true,
-        show_ticks: true,
-        show_spine: SpineVisibility::all(),
-        palette: ColorPalette::new(
-            "matplotlib",
-            vec![
-                // tab10 — the default matplotlib qualitative colors
-                Color::rgb(31, 119, 180),
-                Color::rgb(255, 127, 14),
-                Color::rgb(44, 160, 44),
-                Color::rgb(214, 39, 40),
-                Color::rgb(148, 103, 189),
-                Color::rgb(140, 86, 75),
-                Color::rgb(227, 119, 194),
-                Color::rgb(127, 127, 127),
-                Color::rgb(188, 189, 34),
-                Color::rgb(23, 190, 207),
-            ],
-        ),
-        figure_facecolor: Color::WHITE,
-        axes_facecolor: Color::WHITE,
-        axes_edgecolor: Color::rgb(120, 120, 120),
-        xgrid: false,
-        ygrid: true,
-        grid_axis: GridAxis::Y,
+    /// Matplotlib default style.
+    ///
+    /// Closely mirrors `matplotlib.pyplot.rcParams` from matplotlib ≤ 3.x:
+    /// - tweak the default colormap away from pure `#1f77b4` blue
+    /// - set a slightly darker grid so it reads on white
+    /// - `seaborn-deep`-style qualitative palette (same 8-color cycle as the default
+    ///   `tab10` table, which matplotlib ships from 2.0 onward)
+    pub fn matplotlib() -> Self {
+        Self {
+            theme: Theme::Matplotlib,
+            background_color: Color::WHITE,
+            plot_background: Color::WHITE,
+            text_color: Color::rgb(60, 60, 60),
+            axis_color: Color::rgb(120, 120, 120),
+            grid_color: Color::rgb(210, 210, 210),
+            grid_style: LineStyle::Solid,
+            font_family: "DejaVu Sans, Arial, sans-serif".into(),
+            title_size: 16.0,
+            label_size: 13.0,
+            tick_size: 10.0,
+            legend_size: 10.5,
+            line_width: 1.5,
+            border_width: 0.8,
+            show_grid: true,
+            show_border: true,
+            show_ticks: true,
+            show_spine: SpineVisibility::all(),
+            palette: ColorPalette::new(
+                "matplotlib",
+                vec![
+                    // tab10 — the default matplotlib qualitative colors
+                    Color::rgb(31, 119, 180),
+                    Color::rgb(255, 127, 14),
+                    Color::rgb(44, 160, 44),
+                    Color::rgb(214, 39, 40),
+                    Color::rgb(148, 103, 189),
+                    Color::rgb(140, 86, 75),
+                    Color::rgb(227, 119, 194),
+                    Color::rgb(127, 127, 127),
+                    Color::rgb(188, 189, 34),
+                    Color::rgb(23, 190, 207),
+                ],
+            ),
+            figure_facecolor: Color::WHITE,
+            axes_facecolor: Color::WHITE,
+            axes_edgecolor: Color::rgb(120, 120, 120),
+            xgrid: false,
+            ygrid: true,
+            grid_axis: GridAxis::Y,
+        }
     }
-}
 
     /// Apply theme to SVG header.
     pub fn svg_header(&self, _width: u32, _height: u32) -> String {
@@ -722,9 +777,9 @@ mod tests {
         let _ = ThemeConfig::classic();
         let _ = ThemeConfig::academic();
         let _ = ThemeConfig::presentation();
-    let _ = ThemeConfig::blueprint();
-    let _ = ThemeConfig::matplotlib();
-}
+        let _ = ThemeConfig::blueprint();
+        let _ = ThemeConfig::matplotlib();
+    }
 
     #[test]
     fn palette_colors() {

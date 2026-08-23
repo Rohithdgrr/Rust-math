@@ -153,10 +153,16 @@ impl TickFormatter for FuncFormatter {
 }
 
 /// Ticks at a fixed step, formatted by a custom function (convenience combo).
-pub fn ticks_at(step: f64, formatter: impl Fn(f64) -> String + Send + Sync + 'static) -> (Box<dyn TickLocator>, Box<dyn TickFormatter>) {
+pub fn ticks_at(
+    step: f64,
+    formatter: impl Fn(f64) -> String + Send + Sync + 'static,
+) -> (Box<dyn TickLocator>, Box<dyn TickFormatter>) {
     match MultipleLocator::new(step) {
         Some(m) => (Box::new(m), Box::new(FuncFormatter::new(formatter))),
-        None => (Box::new(MaxNLocator::new()), Box::new(FuncFormatter::new(formatter))),
+        None => (
+            Box::new(MaxNLocator::new()),
+            Box::new(FuncFormatter::new(formatter)),
+        ),
     }
 }
 

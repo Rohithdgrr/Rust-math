@@ -6,7 +6,10 @@
 
 use std::f64::consts::PI;
 
-use mathverse_plot::{ThemeConfig, PlotConfig, SvgPlot, DataPoint, DataSeries, PlotStyle, Color, MarkerStyle, SmoothConfig, smooth_points};
+use mathverse_plot::{
+    smooth_points, Color, DataPoint, DataSeries, MarkerStyle, PlotConfig, PlotStyle, SmoothConfig,
+    SvgPlot, ThemeConfig,
+};
 
 #[allow(clippy::too_many_lines)]
 fn main() {
@@ -19,8 +22,7 @@ fn main() {
 
     macro_rules! save {
         ($name:expr, $plot:expr) => {
-            std::fs::write(format!("{out}/{}.svg", $name), $plot.generate())
-                .expect("write svg");
+            std::fs::write(format!("{out}/{}.svg", $name), $plot.generate()).expect("write svg");
         };
     }
 
@@ -48,10 +50,20 @@ fn main() {
             .with_dimensions(900, 500);
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let temp: Vec<DataPoint> = (0..24)
-            .map(|i| DataPoint::new(f64::from(i), 20.0 + 10.0 * ((f64::from(i) - 6.0) * PI / 12.0).cos()))
+            .map(|i| {
+                DataPoint::new(
+                    f64::from(i),
+                    20.0 + 10.0 * ((f64::from(i) - 6.0) * PI / 12.0).cos(),
+                )
+            })
             .collect();
         let humid: Vec<DataPoint> = (0..24)
-            .map(|i| DataPoint::new(f64::from(i), 60.0 + 20.0 * ((f64::from(i) - 12.0) * PI / 12.0).sin()))
+            .map(|i| {
+                DataPoint::new(
+                    f64::from(i),
+                    60.0 + 20.0 * ((f64::from(i) - 12.0) * PI / 12.0).sin(),
+                )
+            })
             .collect();
         plot.add_series(DataSeries::new("Temperature °C", temp));
         plot.add_series(DataSeries::new("Humidity %", humid));

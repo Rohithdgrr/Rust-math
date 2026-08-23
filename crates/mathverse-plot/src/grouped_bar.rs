@@ -195,7 +195,9 @@ pub fn render_grouped_bar(
             svg.push('\n');
             svg.push_str(&format!(
                 r#"  <text x="{}" y="{}" font-size="11" dominant-baseline="middle">{}</text>"#,
-                legend_x + 16.0, ly + 6.0, s.label
+                legend_x + 16.0,
+                ly + 6.0,
+                s.label
             ));
             svg.push('\n');
         }

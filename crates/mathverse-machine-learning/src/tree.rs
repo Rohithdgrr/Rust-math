@@ -291,17 +291,17 @@ mod tests {
         tree.fit(&x, &y);
         let classes = vec![0.0, 1.0];
         let probas = tree.predict_proba(&x, &classes);
-        
+
         // Check that probabilities sum to 1 for each sample
         for proba in &probas {
             let sum: f64 = proba.iter().sum();
             assert!((sum - 1.0).abs() < 1e-10);
         }
-        
+
         // First two samples should be class 0 with high probability
         assert!(probas[0][0] > 0.5);
         assert!(probas[1][0] > 0.5);
-        
+
         // Last two samples should be class 1 with high probability
         assert!(probas[2][1] > 0.5);
         assert!(probas[3][1] > 0.5);

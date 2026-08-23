@@ -254,7 +254,10 @@ impl AxisConfig {
         let rotation = if self.tick_rotation == 0.0 {
             String::new()
         } else {
-            format!(" transform=\"rotate({}, {}, {})\"", self.tick_rotation, x, y)
+            format!(
+                " transform=\"rotate({}, {}, {})\"",
+                self.tick_rotation, x, y
+            )
         };
 
         format!(

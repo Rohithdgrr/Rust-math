@@ -78,7 +78,11 @@ impl NullBitmap {
     /// Panics if `index >= self.len`.
     #[must_use]
     pub fn is_null(&self, index: usize) -> bool {
-        assert!(index < self.len, "index {index} out of bounds for length {}", self.len);
+        assert!(
+            index < self.len,
+            "index {index} out of bounds for length {}",
+            self.len
+        );
         let byte_idx = index / 8;
         let bit_idx = index % 8;
         (self.bits[byte_idx] >> bit_idx) & 1 == 1
@@ -100,7 +104,11 @@ impl NullBitmap {
     ///
     /// Panics if `index >= self.len`.
     pub fn set_null(&mut self, index: usize) {
-        assert!(index < self.len, "index {index} out of bounds for length {}", self.len);
+        assert!(
+            index < self.len,
+            "index {index} out of bounds for length {}",
+            self.len
+        );
         let byte_idx = index / 8;
         let bit_idx = index % 8;
         self.bits[byte_idx] |= 1 << bit_idx;
@@ -112,7 +120,11 @@ impl NullBitmap {
     ///
     /// Panics if `index >= self.len`.
     pub fn set_valid(&mut self, index: usize) {
-        assert!(index < self.len, "index {index} out of bounds for length {}", self.len);
+        assert!(
+            index < self.len,
+            "index {index} out of bounds for length {}",
+            self.len
+        );
         let byte_idx = index / 8;
         let bit_idx = index % 8;
         self.bits[byte_idx] &= !(1 << bit_idx);

@@ -124,8 +124,7 @@ impl SVM {
         let mut f_cache: Vec<f64> = vec![self.bias; n];
 
         for _ in 0..self.max_iters {
-            let mut num_changed =
-                self.smo_pass(x, y, &mut f_cache, false);
+            let mut num_changed = self.smo_pass(x, y, &mut f_cache, false);
             if num_changed == 0 {
                 num_changed = self.smo_pass(x, y, &mut f_cache, true);
                 if num_changed == 0 {
@@ -226,9 +225,8 @@ impl SVM {
         }
 
         let k_ij = self.kernel.compute(&x[i], &x[j]);
-        let eta = 2.0 * k_ij
-            - self.kernel.compute(&x[i], &x[i])
-            - self.kernel.compute(&x[j], &x[j]);
+        let eta =
+            2.0 * k_ij - self.kernel.compute(&x[i], &x[i]) - self.kernel.compute(&x[j], &x[j]);
         if eta >= 0.0 {
             return false;
         }
@@ -344,9 +342,9 @@ mod tests {
         let n = 200;
         let x: Vec<Vec<f64>> = (0..n)
             .map(|t| {
-                let s = (t as f64 * 12.9898).fract() * 43758.545_3;
+                let s = (t as f64 * 12.9898).fract() * 43758.5453;
                 let u = s.fract();
-                let s2 = ((t as f64 + 0.5) * 78.233).fract() * 12345.678_9;
+                let s2 = ((t as f64 + 0.5) * 78.233).fract() * 12345.6789;
                 let v = s2.fract();
                 if t % 2 == 0 {
                     vec![u, v]
@@ -355,7 +353,9 @@ mod tests {
                 }
             })
             .collect();
-        let y: Vec<f64> = (0..n).map(|t| if t % 2 == 0 { 1.0 } else { -1.0 }).collect();
+        let y: Vec<f64> = (0..n)
+            .map(|t| if t % 2 == 0 { 1.0 } else { -1.0 })
+            .collect();
 
         let start = std::time::Instant::now();
         let mut svm = SVM::linear(1.0);

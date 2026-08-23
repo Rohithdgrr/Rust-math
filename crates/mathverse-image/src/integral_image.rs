@@ -39,9 +39,7 @@ impl IntegralImage {
     pub fn sum_region(&self, x0: usize, y0: usize, x1: usize, y1: usize) -> f64 {
         assert!(x0 <= x1 && y0 <= y1);
         assert!(x1 <= self.w && y1 <= self.h);
-        self.data[y1 * self.w + x1]
-            - self.data[y1 * self.w + x0]
-            - self.data[y0 * self.w + x1]
+        self.data[y1 * self.w + x1] - self.data[y1 * self.w + x0] - self.data[y0 * self.w + x1]
             + self.data[y0 * self.w + x0]
     }
 }
@@ -76,12 +74,15 @@ mod tests {
 
     #[test]
     fn test_integral_sum_region() {
-        let img = GrayImage::from_data(4, 4, vec![
-            1.0, 2.0, 3.0, 4.0,
-            5.0, 6.0, 7.0, 8.0,
-            9.0, 10.0, 11.0, 12.0,
-            13.0, 14.0, 15.0, 16.0,
-        ]).unwrap();
+        let img = GrayImage::from_data(
+            4,
+            4,
+            vec![
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0,
+                16.0,
+            ],
+        )
+        .unwrap();
         let ii = IntegralImage::from_image(&img);
         // sum of rows [1,3) × cols [1,3) = 6+7+10+11 = 34
         assert_relative_eq!(ii.sum_region(1, 1, 3, 3), 34.0, epsilon = 1e-9);

@@ -213,7 +213,8 @@ pub fn render_waterfall(bars: &[WaterfallBar], config: &WaterfallConfig) -> Plot
 
         // Connector line
         if config.show_connectors && i > 0 {
-            let prev_x = start_x + (i - 1) as f64 * (config.bar_width + bar_spacing) + config.bar_width;
+            let prev_x =
+                start_x + (i - 1) as f64 * (config.bar_width + bar_spacing) + config.bar_width;
             svg.push_str(&format!(
                 r#"  <line x1="{prev_x}" y1="{prev_top_y}" x2="{x}" y2="{prev_top_y}" stroke="gray" stroke-dasharray="3" stroke-width="1"/>"#,
             ));

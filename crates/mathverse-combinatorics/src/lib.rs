@@ -14,18 +14,18 @@
 //! exact combinatorial counting within the `u64` range.
 
 pub mod counting;
-pub mod sequences;
+pub mod factorials;
+pub mod inclusion_exclusion;
 pub mod partitions;
+pub mod sequences;
 pub mod stirling;
 pub mod subsets;
-pub mod inclusion_exclusion;
-pub mod factorials;
 
 pub use counting::*;
-pub use sequences::*;
-pub use partitions::*;
-pub use stirling::*;
 pub use factorials::*;
+pub use partitions::*;
+pub use sequences::*;
+pub use stirling::*;
 
 #[cfg(test)]
 mod tests {

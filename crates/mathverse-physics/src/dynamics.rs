@@ -20,11 +20,13 @@
 //
 //! #![allow(unused_imports)] // re-exports pull in all submodules
 
-use mathverse_units::quantity::Quantity;
-use mathverse_units::si::{Meter, Kilogram, Newton, Joule, Watt};
-use mathverse_units::dimensions::{LengthDim, MassDim, ForceDim, EnergyDim, PowerDim, AccelerationDim};
 pub use crate::{Position, Time, Velocity};
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, Div};
+use mathverse_units::dimensions::{
+    AccelerationDim, EnergyDim, ForceDim, LengthDim, MassDim, PowerDim,
+};
+use mathverse_units::quantity::Quantity;
+use mathverse_units::si::{Joule, Kilogram, Meter, Newton, Watt};
+use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
 /// Force in newtons.
 ///
@@ -102,11 +104,7 @@ impl Force {
     /// let work = force.work_over(displacement, 0.0);
     /// assert_eq!(work.value(), 30.0);
     /// ```
-    pub fn work_over(
-        &self,
-        displacement: Position,
-        angle: f64,
-    ) -> Work {
+    pub fn work_over(&self, displacement: Position, angle: f64) -> Work {
         // W = F · d · cos(θ)
         let work_val = self.0.value * displacement.0.value * angle.cos();
         Work::new(work_val)
@@ -270,10 +268,7 @@ impl Work {
     /// let work = Work::from_force_displacement(force, displacement);
     /// assert_eq!(work.value(), 30.0);
     /// ```
-    pub fn from_force_displacement(
-        force: Force,
-        displacement: Position,
-    ) -> Self {
+    pub fn from_force_displacement(force: Force, displacement: Position) -> Self {
         // W = F · d (assuming force parallel to displacement, cos(θ) = 1)
         let w = force.0.value * displacement.0.value;
         Self::new(w)
@@ -300,11 +295,7 @@ impl Work {
     /// let work = Work::from_force_displacement_angle(force, displacement, 0.0);
     /// assert_eq!(work.value(), 30.0);
     /// ```
-    pub fn from_force_displacement_angle(
-        force: Force,
-        displacement: Position,
-        theta: f64,
-    ) -> Self {
+    pub fn from_force_displacement_angle(force: Force, displacement: Position, theta: f64) -> Self {
         // W = F · d · cos(θ)
         let w = force.0.value * displacement.0.value * theta.cos();
         Self::new(w)
@@ -329,10 +320,7 @@ impl Work {
     /// let final_ke = Work::from_kinetic_energy_change(initial, net);
     /// assert_eq!(final_ke.value(), 50.0);
     /// ```
-    pub fn from_kinetic_energy_change(
-        initial_kinetic_energy: Work,
-        net_work: Work,
-    ) -> Self {
+    pub fn from_kinetic_energy_change(initial_kinetic_energy: Work, net_work: Work) -> Self {
         // W_net = ΔKE = KE_final - KE_initial
         // KE_final = KE_initial + W_net
         let final_val = initial_kinetic_energy.0.value + net_work.0.value;
@@ -385,10 +373,7 @@ impl Work {
     /// let work = Power::work_from_time(power, 10.0.s());
     /// assert_eq!(work.value(), 100.0);
     /// ```
-    pub fn work_from_time(
-        power: Power,
-        time: Time,
-    ) -> Self {
+    pub fn work_from_time(power: Power, time: Time) -> Self {
         // W = P · t
         let w = power.0.value * time.value;
         Self::new(w)
@@ -413,10 +398,7 @@ impl Work {
     /// let energy = Power::energy_from_time(power, 10.0.s());
     /// assert_eq!(energy.value(), 100.0);
     /// ```
-    pub fn energy_from_time(
-        power: Power,
-        time: Time,
-    ) -> Work {
+    pub fn energy_from_time(power: Power, time: Time) -> Work {
         // E = P · t (energy has same dimension as work)
         let e = power.0.value * time.value;
         Work::new(e)
@@ -554,10 +536,7 @@ impl Power {
     /// let power = Power::from_work_time(work, time);
     /// assert_eq!(power.value(), 10.0);
     /// ```
-    pub fn from_work_time(
-        work: Work,
-        time: Time,
-    ) -> Self {
+    pub fn from_work_time(work: Work, time: Time) -> Self {
         // P = W / t
         let p = work.0.value / time.value;
         Self::new(p)
@@ -583,10 +562,7 @@ impl Power {
     /// let work = Power::work_from_time(power, time);
     /// assert_eq!(work.value(), 100.0);
     /// ```
-    pub fn work_from_time(
-        power: Power,
-        time: Time,
-    ) -> Self {
+    pub fn work_from_time(power: Power, time: Time) -> Self {
         // W = P · t
         let w = power.0.value * time.value;
         Self::new(w)
@@ -612,10 +588,7 @@ impl Power {
     /// let energy = Power::energy_from_time(power, time);
     /// assert_eq!(energy.value(), 100.0);
     /// ```
-    pub fn energy_from_time(
-        power: Power,
-        time: Time,
-    ) -> Work {
+    pub fn energy_from_time(power: Power, time: Time) -> Work {
         // E = P · t (energy has same dimension as work)
         let e = power.0.value * time.value;
         Work::new(e)
@@ -706,10 +679,16 @@ impl SubAssign for Power {
 }
 
 /// Alias for mass quantity with MassDim dimension.
-pub type MassQuant = mathverse_units::quantity::Quantity<mathverse_units::dimensions::MassDim, mathverse_units::si::Kilogram>;
+pub type MassQuant = mathverse_units::quantity::Quantity<
+    mathverse_units::dimensions::MassDim,
+    mathverse_units::si::Kilogram,
+>;
 
 /// Alias for time quantity with TimeDim dimension.
-pub type TimeQuant = mathverse_units::quantity::Quantity<mathverse_units::dimensions::TimeDim, mathverse_units::si::Second>;
+pub type TimeQuant = mathverse_units::quantity::Quantity<
+    mathverse_units::dimensions::TimeDim,
+    mathverse_units::si::Second,
+>;
 
 /// Compute force from mass and acceleration: F = m · a
 ///
@@ -757,11 +736,7 @@ pub fn compute_force(
 /// let work = compute_work(force, displacement, 0.0);
 /// assert_eq!(work.value(), 30.0);
 /// ```
-pub fn compute_work(
-    force: Force,
-    displacement: Position,
-    theta: f64,
-) -> Work {
+pub fn compute_work(force: Force, displacement: Position, theta: f64) -> Work {
     force.work_over(displacement, theta)
 }
 
@@ -785,10 +760,7 @@ pub fn compute_work(
 /// let power = compute_power(work, time);
 /// assert_eq!(power.value(), 10.0);
 /// ```
-pub fn compute_power(
-    work: Work,
-    time: Time,
-) -> Power {
+pub fn compute_power(work: Work, time: Time) -> Power {
     Power::from_work_time(work, time)
 }
 
@@ -811,10 +783,7 @@ pub fn compute_power(
 /// let work = compute_work_from_power(power, 10.0.s());
 /// assert_eq!(work.value(), 100.0);
 /// ```
-pub fn compute_work_from_power(
-    power: Power,
-    time: Time,
-) -> Work {
+pub fn compute_work_from_power(power: Power, time: Time) -> Work {
     // W = P · t
     Work::new(power.0.value * time.value)
 }
@@ -918,18 +887,21 @@ pub fn compute_momentum(
 /// let impulse = compute_impulse(Force::new(10.0), 5.0.s());
 /// assert_eq!(impulse, 50.0);
 /// ```
-pub fn compute_impulse(
-    force: Force,
-    dt: Time,
-) -> f64 {
+pub fn compute_impulse(force: Force, dt: Time) -> f64 {
     force.0.value * dt.value
 }
 
 /// Alias for position quantity with LengthDim dimension.
-pub type PositionQuant = mathverse_units::quantity::Quantity<mathverse_units::dimensions::LengthDim, mathverse_units::si::Meter>;
+pub type PositionQuant = mathverse_units::quantity::Quantity<
+    mathverse_units::dimensions::LengthDim,
+    mathverse_units::si::Meter,
+>;
 
 /// Alias for velocity quantity with VelocityDim dimension.
-pub type VelocityQuant = mathverse_units::quantity::Quantity<mathverse_units::dimensions::VelocityDim, mathverse_units::si::Meter>;
+pub type VelocityQuant = mathverse_units::quantity::Quantity<
+    mathverse_units::dimensions::VelocityDim,
+    mathverse_units::si::Meter,
+>;
 
 /// Compute force from mass and acceleration: F = m · a
 ///
@@ -955,11 +927,7 @@ pub fn compute_force_generic(
 ///
 /// # Returns
 /// Work (Work)
-pub fn compute_work_generic(
-    force: Force,
-    displacement: Position,
-    theta: f64,
-) -> Work {
+pub fn compute_work_generic(force: Force, displacement: Position, theta: f64) -> Work {
     force.work_over(displacement, theta)
 }
 
@@ -971,10 +939,7 @@ pub fn compute_work_generic(
 ///
 /// # Returns
 /// Power (Power)
-pub fn compute_power_generic(
-    work: Work,
-    time: Time,
-) -> Power {
+pub fn compute_power_generic(work: Work, time: Time) -> Power {
     Power::from_work_time(work, time)
 }
 
@@ -986,10 +951,7 @@ pub fn compute_power_generic(
 ///
 /// # Returns
 /// Work (Work)
-pub fn compute_work_from_power_generic(
-    power: Power,
-    time: Time,
-) -> Work {
+pub fn compute_work_from_power_generic(power: Power, time: Time) -> Work {
     // W = P · t
     Work::new(power.0.value * time.value)
 }
@@ -1038,9 +1000,6 @@ pub fn compute_potential_energy_gravitational_generic(
 ///
 /// # Returns
 /// Impulse value (f64, kg·m/s)
-pub fn compute_impulse_generic(
-    force: Force,
-    dt: Time,
-) -> f64 {
+pub fn compute_impulse_generic(force: Force, dt: Time) -> f64 {
     force.0.value * dt.value
 }

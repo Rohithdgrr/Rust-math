@@ -17,12 +17,12 @@
 //
 //! #![allow(unused_imports)] // re-exports pull in all submodules
 
-use mathverse_units::quantity::Quantity;
-use mathverse_units::si::{Radian, Newton, Kilogram, Joule};
-use mathverse_units::dimensions::{AngleDim, EnergyDim};
 use crate::Force;
-use crate::Work;
 use crate::Power;
+use crate::Work;
+use mathverse_units::dimensions::{AngleDim, EnergyDim};
+use mathverse_units::quantity::Quantity;
+use mathverse_units::si::{Joule, Kilogram, Newton, Radian};
 
 /// Angle in radians.
 ///
@@ -208,21 +208,17 @@ impl Torque {
     /// # Returns
     /// Torque (Torque)
     ///
-/// # Example
-///
-/// ```
-/// use mathverse_physics::rotational::Torque;
-/// use mathverse_physics::dynamics::Force;
-/// use mathverse_units::si::Meter;
-///
-/// let torque = Torque::from_force_at_distance(1.0, Force::new(10.0), std::f64::consts::PI / 2.0);
-/// assert_eq!(torque.value(), 10.0);
-/// ```
-    pub fn from_force_at_distance(
-        distance: f64,
-        force: Force,
-        angle: f64,
-    ) -> Self {
+    /// # Example
+    ///
+    /// ```
+    /// use mathverse_physics::rotational::Torque;
+    /// use mathverse_physics::dynamics::Force;
+    /// use mathverse_units::si::Meter;
+    ///
+    /// let torque = Torque::from_force_at_distance(1.0, Force::new(10.0), std::f64::consts::PI / 2.0);
+    /// assert_eq!(torque.value(), 10.0);
+    /// ```
+    pub fn from_force_at_distance(distance: f64, force: Force, angle: f64) -> Self {
         // τ = r · F · sin(θ)
         let t = distance * force.0.value * angle.sin();
         Self::new(t)
@@ -422,11 +418,7 @@ impl MomentOfInertia {
     }
 
     /// Compute torque from force and distance: τ = r · F · sin(θ)
-    pub fn from_force_and_distance(
-        distance: f64,
-        force: Force,
-        angle: f64,
-    ) -> Self {
+    pub fn from_force_and_distance(distance: f64, force: Force, angle: f64) -> Self {
         // τ = r · F · sin(θ)
         let t = distance * force.0.value * angle.sin();
         Self::new(t)
@@ -608,10 +600,7 @@ pub fn compute_rotational_kinetic_energy(
 /// let work = compute_work_by_torque(Torque::new(10.0), Angle::new(0.5));
 /// assert_eq!(work.value(), 5.0); // W = τ · θ = 10 · 0.5
 /// ```
-pub fn compute_work_by_torque(
-    torque: Torque,
-    angle: Angle,
-) -> Work {
+pub fn compute_work_by_torque(torque: Torque, angle: Angle) -> Work {
     // W = τ · θ (for constant torque, θ in radians)
     let w = torque.0.value * angle.0.value;
     Work::new(w)
@@ -634,10 +623,7 @@ pub fn compute_work_by_torque(
 /// let power = compute_power_from_torque(Torque::new(10.0), AngularVelocity::new(3.0));
 /// assert_eq!(power.value(), 30.0); // P = τ · ω = 10 · 3
 /// ```
-pub fn compute_power_from_torque(
-    torque: Torque,
-    angular_velocity: AngularVelocity,
-) -> Power {
+pub fn compute_power_from_torque(torque: Torque, angular_velocity: AngularVelocity) -> Power {
     // P = τ · ω
     let p = torque.0.value * angular_velocity.0.value;
     Power::new(p)

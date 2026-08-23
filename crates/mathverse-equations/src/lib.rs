@@ -11,13 +11,13 @@
 //! - **Matrix equations**: `Ax = b` solvers
 //! - **Dynamical systems**: fixed-point iteration and cobweb analysis
 
-pub mod polynomial;
-pub mod linear_system;
-pub mod nonlinear;
 pub mod differential;
-pub mod optimization;
-pub mod matrix_eq;
 pub mod dynamical;
+pub mod linear_system;
+pub mod matrix_eq;
+pub mod nonlinear;
+pub mod optimization;
+pub mod polynomial;
 
 /// Solves a linear system `Ax = b` using Gaussian elimination with partial pivoting.
 ///

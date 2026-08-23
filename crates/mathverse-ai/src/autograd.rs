@@ -76,14 +76,18 @@ enum BackwardOp {
 
 enum GraphEntry {
     Tensor(Tensor),
-    Op { tensor: Tensor, inputs: Vec<usize>, op: BackwardOp },
+    Op {
+        tensor: Tensor,
+        inputs: Vec<usize>,
+        op: BackwardOp,
+    },
 }
 
 impl GraphEntry {
     fn tensor(&self) -> &Tensor {
         match self {
-            GraphEntry::Tensor(t) => t,
-            GraphEntry::Op { tensor, .. } => tensor,
+            Self::Tensor(t) => t,
+            Self::Op { tensor, .. } => tensor,
         }
     }
 }
@@ -105,14 +109,23 @@ pub struct ComputationGraph {
     inner: Rc<RefCell<GraphData>>,
 }
 
+impl Default for ComputationGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ComputationGraph {
     /// Create an empty computation graph.
+    #[must_use]
     pub fn new() -> Self {
         Self {
-            inner: Rc::new(RefCell::new(GraphData { entries: Vec::new(), grads: Vec::new() })),
+            inner: Rc::new(RefCell::new(GraphData {
+                entries: Vec::new(),
+                grads: Vec::new(),
+            })),
         }
     }
-
     /// Register a leaf variable (a node with no inputs).
     ///
     /// Returns a [`GradTensor`] handle bound to this graph.
@@ -124,7 +137,10 @@ impl ComputationGraph {
             d.grads.push(None);
             node
         };
-        GradTensor { graph: self.clone(), node }
+        GradTensor {
+            graph: self.clone(),
+            node,
+        }
     }
 
     /// Register a leaf variable from data + shape.
@@ -169,11 +185,17 @@ impl ComputationGraph {
     }
 
     /// Fallible backward pass seeding the loss gradient with `scale`.
+    // One cohesive gradient-dispatch routine; splitting it would scatter the
+    // per-operation backward rules across helpers without aiding clarity.
+    #[allow(clippy::too_many_lines)]
     pub fn try_backward_scaled(&self, loss: &GradTensor, scale: f64) -> MathResult<()> {
         let mut data = self.inner.borrow_mut();
 
         let n = data.entries.len();
-        assert!(loss.node < n, "backward: loss node does not belong to this graph");
+        assert!(
+            loss.node < n,
+            "backward: loss node does not belong to this graph"
+        );
         let mut grads: Vec<Option<Tensor>> = vec![None; n];
 
         // Seed: d(loss)/d(loss) = scale, shaped like the loss itself so that
@@ -191,8 +213,7 @@ impl ComputationGraph {
                 GraphEntry::Tensor(_) => continue,
                 GraphEntry::Op { inputs, op, .. } => (inputs.clone(), *op),
             };
-            let input =
-                |id: usize| -> Tensor { data.entries[id].tensor().clone() };
+            let input = |id: usize| -> Tensor { data.entries[id].tensor().clone() };
 
             let input_grads = match op {
                 BackwardOp::Add => vec![
@@ -206,10 +227,10 @@ impl ComputationGraph {
                 BackwardOp::Mul => {
                     let a = input(input_ids[0]);
                     let b = input(input_ids[1]);
-                    let b_expanded = b.broadcast_to(&grad_out.shape()).map_err(|_| {
+                    let b_expanded = b.broadcast_to(grad_out.shape()).map_err(|_| {
                         autograd_error("autograd mul: cannot broadcast operand b to grad shape")
                     })?;
-                    let a_expanded = a.broadcast_to(&grad_out.shape()).map_err(|_| {
+                    let a_expanded = a.broadcast_to(grad_out.shape()).map_err(|_| {
                         autograd_error("autograd mul: cannot broadcast operand a to grad shape")
                     })?;
                     let grad_a = grad_out
@@ -226,10 +247,10 @@ impl ComputationGraph {
                 BackwardOp::Div => {
                     let a = input(input_ids[0]);
                     let b = input(input_ids[1]);
-                    let b_expanded = b.broadcast_to(&grad_out.shape()).map_err(|_| {
+                    let b_expanded = b.broadcast_to(grad_out.shape()).map_err(|_| {
                         autograd_error("autograd div: cannot broadcast operand b to grad shape")
                     })?;
-                    let a_expanded = a.broadcast_to(&grad_out.shape()).map_err(|_| {
+                    let a_expanded = a.broadcast_to(grad_out.shape()).map_err(|_| {
                         autograd_error("autograd div: cannot broadcast operand a to grad shape")
                     })?;
                     let inv_b = Tensor::ones(b_expanded.shape())
@@ -285,9 +306,11 @@ impl ComputationGraph {
                     let sig = sigmoid(&input_t);
                     let ones = Tensor::ones(sig.shape());
                     let grad_activation = sig
-                        .mul(&ones.sub(&sig).map_err(|_| {
-                            autograd_error("autograd sigmoid: 1−σ failed")
-                        })?)
+                        .mul(
+                            &ones
+                                .sub(&sig)
+                                .map_err(|_| autograd_error("autograd sigmoid: 1−σ failed"))?,
+                        )
                         .map_err(|_| autograd_error("autograd sigmoid: σ(1−σ) failed"))?;
                     let gated = grad_out
                         .mul(&grad_activation)
@@ -346,6 +369,7 @@ impl ComputationGraph {
     ///
     /// Returns `None` before a backward pass or if `g` belongs to a different
     /// graph. The gradient tensor is cloned out of the graph.
+    #[must_use]
     pub fn grad_of(&self, g: &GradTensor) -> Option<Tensor> {
         if !Rc::ptr_eq(&g.graph.inner, &self.inner) {
             return None;
@@ -370,11 +394,13 @@ impl ComputationGraph {
     }
 
     /// Number of nodes recorded in the graph.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.inner.borrow().entries.len()
     }
 
     /// True if no nodes are recorded.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -414,7 +440,10 @@ fn sum_keepdim(t: &Tensor, axis: usize) -> Result<Tensor, MathError> {
         }
     }
 
-    Ok(Tensor { shape: out_shape, data: out_data })
+    Ok(Tensor {
+        shape: out_shape,
+        data: out_data,
+    })
 }
 
 fn reduce_broadcast_grad(grad: &Tensor, target_shape: &[usize]) -> Result<Tensor, MathError> {
@@ -464,12 +493,14 @@ pub struct GradTensor {
 
 impl GradTensor {
     /// The graph-internal node id of this handle.
+    #[must_use]
     pub fn node_id(&self) -> usize {
         self.node
     }
 
     /// Clone of the forward-pass value recorded for this node, or `None` if
     /// the owning graph has been cleared.
+    #[must_use]
     pub fn value(&self) -> Option<Tensor> {
         let d = self.graph.inner.borrow();
         d.entries.get(self.node).map(|e| e.tensor().clone())
@@ -480,14 +511,20 @@ impl GradTensor {
     /// # Panics
     ///
     /// Panics if the operands belong to different graphs or shapes differ.
-    pub fn add(&self, other: &GradTensor) -> GradTensor {
+    #[must_use]
+    pub fn add(&self, other: &Self) -> Self {
         assert_same_graph(self, other);
         let a = self.graph.node_value(self.node);
         let b = other.graph.node_value(other.node);
         assert_shape!(a, b);
         let out = a.add(&b).expect("shape checked by assert_shape!");
-        let node = self.graph.push_op(out, vec![self.node, other.node], BackwardOp::Add);
-        GradTensor { graph: self.graph.clone(), node }
+        let node = self
+            .graph
+            .push_op(out, vec![self.node, other.node], BackwardOp::Add);
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// Subtract two tracked tensors.
@@ -495,14 +532,20 @@ impl GradTensor {
     /// # Panics
     ///
     /// Panics if the operands belong to different graphs or shapes differ.
-    pub fn sub(&self, other: &GradTensor) -> GradTensor {
+    #[must_use]
+    pub fn sub(&self, other: &Self) -> Self {
         assert_same_graph(self, other);
         let a = self.graph.node_value(self.node);
         let b = other.graph.node_value(other.node);
         assert_shape!(a, b);
         let out = a.sub(&b).expect("shape checked by assert_shape!");
-        let node = self.graph.push_op(out, vec![self.node, other.node], BackwardOp::Sub);
-        GradTensor { graph: self.graph.clone(), node }
+        let node = self
+            .graph
+            .push_op(out, vec![self.node, other.node], BackwardOp::Sub);
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// Multiply two tracked tensors.
@@ -510,14 +553,20 @@ impl GradTensor {
     /// # Panics
     ///
     /// Panics if the operands belong to different graphs or shapes differ.
-    pub fn mul(&self, other: &GradTensor) -> GradTensor {
+    #[must_use]
+    pub fn mul(&self, other: &Self) -> Self {
         assert_same_graph(self, other);
         let a = self.graph.node_value(self.node);
         let b = other.graph.node_value(other.node);
         assert_shape!(a, b);
         let out = a.mul(&b).expect("shape checked by assert_shape!");
-        let node = self.graph.push_op(out, vec![self.node, other.node], BackwardOp::Mul);
-        GradTensor { graph: self.graph.clone(), node }
+        let node = self
+            .graph
+            .push_op(out, vec![self.node, other.node], BackwardOp::Mul);
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// Divide two tracked tensors.
@@ -525,38 +574,58 @@ impl GradTensor {
     /// # Panics
     ///
     /// Panics if the operands belong to different graphs or shapes differ.
-    pub fn div(&self, other: &GradTensor) -> GradTensor {
+    #[must_use]
+    pub fn div(&self, other: &Self) -> Self {
         assert_same_graph(self, other);
         let a = self.graph.node_value(self.node);
         let b = other.graph.node_value(other.node);
         assert_shape!(a, b);
         let out = a.div(&b).expect("shape checked by assert_shape!");
-        let node = self.graph.push_op(out, vec![self.node, other.node], BackwardOp::Div);
-        GradTensor { graph: self.graph.clone(), node }
+        let node = self
+            .graph
+            .push_op(out, vec![self.node, other.node], BackwardOp::Div);
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// Negate the tracked tensor.
-    pub fn neg(&self) -> GradTensor {
+    #[must_use]
+    pub fn neg(&self) -> Self {
         let a = self.graph.node_value(self.node);
         let out = a.neg();
         let node = self.graph.push_op(out, vec![self.node], BackwardOp::Neg);
-        GradTensor { graph: self.graph.clone(), node }
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// Sigmoid activation on the tracked tensor.
-    pub fn sigmoid(&self) -> GradTensor {
+    #[must_use]
+    pub fn sigmoid(&self) -> Self {
         let a = self.graph.node_value(self.node);
         let out = sigmoid(&a);
-        let node = self.graph.push_op(out, vec![self.node], BackwardOp::Sigmoid);
-        GradTensor { graph: self.graph.clone(), node }
+        let node = self
+            .graph
+            .push_op(out, vec![self.node], BackwardOp::Sigmoid);
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// Tanh activation on the tracked tensor.
-    pub fn tanh(&self) -> GradTensor {
+    #[must_use]
+    pub fn tanh(&self) -> Self {
         let a = self.graph.node_value(self.node);
         let out = tanh(&a);
         let node = self.graph.push_op(out, vec![self.node], BackwardOp::Tanh);
-        GradTensor { graph: self.graph.clone(), node }
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// Matrix multiply two tracked tensors.
@@ -565,31 +634,45 @@ impl GradTensor {
     ///
     /// Panics if inner dimensions do not match (`a.shape[1] != b.shape[0]`)
     /// or the operands belong to different graphs.
-    pub fn matmul(&self, other: &GradTensor) -> GradTensor {
+    #[must_use]
+    pub fn matmul(&self, other: &Self) -> Self {
         assert_same_graph(self, other);
         let a = self.graph.node_value(self.node);
         let b = other.graph.node_value(other.node);
         assert_matmul!(a, b);
         let out = a.matmul(&b).expect("dims checked by assert_matmul!");
-        let node = self.graph.push_op(out, vec![self.node, other.node], BackwardOp::Matmul);
-        GradTensor { graph: self.graph.clone(), node }
+        let node = self
+            .graph
+            .push_op(out, vec![self.node, other.node], BackwardOp::Matmul);
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
-    /// ReLU activation on the tracked tensor.
-    pub fn relu(&self) -> GradTensor {
+    /// `ReLU` activation on the tracked tensor.
+    #[must_use]
+    pub fn relu(&self) -> Self {
         let a = self.graph.node_value(self.node);
         let out = relu(&a);
         let node = self.graph.push_op(out, vec![self.node], BackwardOp::ReLU);
-        GradTensor { graph: self.graph.clone(), node }
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// Sum all elements in the tracked tensor into a scalar node.
-    pub fn sum(&self) -> GradTensor {
+    #[must_use]
+    pub fn sum(&self) -> Self {
         let a = self.graph.node_value(self.node);
         let val = a.sum();
         let out = Tensor::scalar(val);
         let node = self.graph.push_op(out, vec![self.node], BackwardOp::Sum);
-        GradTensor { graph: self.graph.clone(), node }
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 
     /// MSE loss against a tracked target.
@@ -597,7 +680,8 @@ impl GradTensor {
     /// # Panics
     ///
     /// Panics if the operand shapes differ or belong to different graphs.
-    pub fn mse_loss(&self, target: &GradTensor) -> GradTensor {
+    #[must_use]
+    pub fn mse_loss(&self, target: &Self) -> Self {
         assert_same_graph(self, target);
         let pred = self.graph.node_value(self.node);
         let tgt = target.graph.node_value(target.node);
@@ -607,7 +691,10 @@ impl GradTensor {
         let node = self
             .graph
             .push_op(out, vec![self.node, target.node], BackwardOp::MseLoss);
-        GradTensor { graph: self.graph.clone(), node }
+        Self {
+            graph: self.graph.clone(),
+            node,
+        }
     }
 }
 
@@ -669,7 +756,12 @@ mod tests {
         g.backward(&loss);
         let grad = g.grad_of(&a).unwrap();
         assert!((grad.get_flat(0) - 0.25).abs() < E);
-        assert!((grad.get_flat(1) - (0.8807970779778823 * (1.0 - 0.8807970779778823))).abs() < 1e-8);
+        assert!(
+            0.8807970779778823f64
+                .mul_add(-(1.0 - 0.8807970779778823), grad.get_flat(1))
+                .abs()
+                < 1e-8
+        );
     }
 
     #[test]
@@ -682,7 +774,7 @@ mod tests {
         let grad = g.grad_of(&a).unwrap();
         let tanh_val: f64 = 0.7615941559557649;
         assert!((grad.get_flat(0) - 1.0).abs() < E);
-        assert!((grad.get_flat(1) - (1.0 - tanh_val.powi(2))).abs() < 1e-8);
+        assert!((grad.get_flat(1) - tanh_val.mul_add(-tanh_val, 1.0)).abs() < 1e-8);
     }
 
     #[test]
@@ -759,7 +851,10 @@ mod tests {
     #[test]
     fn try_variable_rejects_bad_shape() {
         let mut g = ComputationGraph::new();
-        assert!(g.try_variable_from_data(&[2, 2], vec![1.0, 2.0, 3.0]).is_err());
+        assert!(
+            g.try_variable_from_data(&[2, 2], vec![1.0, 2.0, 3.0])
+                .is_err()
+        );
         assert!(g.try_variable_from_data(&[2], vec![1.0, 2.0]).is_ok());
     }
 

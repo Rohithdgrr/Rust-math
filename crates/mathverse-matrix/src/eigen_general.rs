@@ -24,43 +24,47 @@ impl GeneralEigen {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let n = m.rows;
-        
+
         // First reduce to Hessenberg form, accumulating Q
         let mut h = Self::hessenberg(m);
         let mut q = Self::hessenberg_q(m);
-        
+
         // QR iteration with shifts
         for _ in 0..100 {
             // Wilkinson shift
             let submatrix = Self::extract_submatrix(&h, n - 2, n - 2, 2, 2);
             let trace = submatrix.get(0, 0) + submatrix.get(1, 1);
-            let det = submatrix.get(0, 0) * submatrix.get(1, 1) - submatrix.get(0, 1) * submatrix.get(1, 0);
+            let det = submatrix.get(0, 0) * submatrix.get(1, 1)
+                - submatrix.get(0, 1) * submatrix.get(1, 0);
             let discriminant = trace * trace - 4.0 * det;
             let shift = if discriminant >= 0.0 {
                 f64::midpoint(trace, discriminant.sqrt())
             } else {
                 trace / 2.0
             };
-            
+
             let shifted = h.sub(&Matrix::identity(n).scale(shift))?;
             let qr_result = shifted.qr()?;
-            h = qr_result.r.mul(&qr_result.q)?.add(&Matrix::identity(n).scale(shift))?;
+            h = qr_result
+                .r
+                .mul(&qr_result.q)?
+                .add(&Matrix::identity(n).scale(shift))?;
             q = q.mul(&qr_result.q)?;
-            
+
             // Check for convergence
             if Self::is_upper_triangular(&h, 1e-10) {
                 break;
             }
         }
-        
+
         // Extract eigenvalues from diagonal
         let eigenvalues: Vec<f64> = (0..n).map(|i| h.get(i, i)).collect();
-        
+
         // Compute eigenvectors
         let eigenvectors = Self::compute_eigenvectors(m, &eigenvalues)?;
-        
+
         Ok(GeneralEigenDecomposition {
             eigenvalues,
             eigenvectors,
@@ -72,26 +76,27 @@ impl GeneralEigen {
     fn hessenberg(m: &Matrix) -> Matrix {
         let n = m.rows;
         let mut h = m.clone();
-        
+
         for k in 0..(n - 2) {
             let mut x: Vec<f64> = (k + 1..n).map(|i| h.get(i, k)).collect();
             let norm_x = x.iter().map(|v| v * v).sum::<f64>().sqrt();
-            
+
             if norm_x < 1e-15 {
                 continue;
             }
-            
+
             let alpha = if x[0] >= 0.0 { -norm_x } else { norm_x };
             x[0] -= alpha;
             let vn = x.iter().map(|w| w * w).sum::<f64>().sqrt();
-            
+
             if vn > 1e-15 {
                 for w in &mut x {
                     *w /= vn;
                 }
-                
+
                 for j in k..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| vv * h.get(k + 1 + o, j))
                         .sum();
@@ -99,9 +104,10 @@ impl GeneralEigen {
                         h.set(k + 1 + o, j, h.get(k + 1 + o, j) - 2.0 * vv * dot);
                     }
                 }
-                
+
                 for i in 0..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| h.get(i, k + 1 + o) * vv)
                         .sum();
@@ -111,7 +117,7 @@ impl GeneralEigen {
                 }
             }
         }
-        
+
         h
     }
 
@@ -120,27 +126,28 @@ impl GeneralEigen {
         let n = m.rows;
         let mut h = m.clone();
         let mut q = Matrix::identity(n);
-        
+
         for k in 0..(n - 2) {
             let mut x: Vec<f64> = (k + 1..n).map(|i| h.get(i, k)).collect();
             let norm_x = x.iter().map(|v| v * v).sum::<f64>().sqrt();
-            
+
             if norm_x < 1e-15 {
                 continue;
             }
-            
+
             let alpha = if x[0] >= 0.0 { -norm_x } else { norm_x };
             x[0] -= alpha;
             let vn = x.iter().map(|w| w * w).sum::<f64>().sqrt();
-            
+
             if vn > 1e-15 {
                 for w in &mut x {
                     *w /= vn;
                 }
-                
+
                 // Apply to h rows
                 for j in k..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| vv * h.get(k + 1 + o, j))
                         .sum();
@@ -148,10 +155,11 @@ impl GeneralEigen {
                         h.set(k + 1 + o, j, h.get(k + 1 + o, j) - 2.0 * vv * dot);
                     }
                 }
-                
+
                 // Apply to h columns
                 for i in 0..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| h.get(i, k + 1 + o) * vv)
                         .sum();
@@ -159,10 +167,11 @@ impl GeneralEigen {
                         h.set(i, k + 1 + o, h.get(i, k + 1 + o) - 2.0 * dot * vv);
                     }
                 }
-                
+
                 // Accumulate Q: Q = Q * P_k
                 for i in 0..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| q.get(i, k + 1 + o) * vv)
                         .sum();
@@ -172,7 +181,7 @@ impl GeneralEigen {
                 }
             }
         }
-        
+
         q
     }
 
@@ -201,32 +210,32 @@ impl GeneralEigen {
     fn compute_eigenvectors(m: &Matrix, eigenvalues: &[f64]) -> MathResult<Matrix> {
         let n = m.rows;
         let mut eigenvectors = Matrix::zeros(n, n);
-        
+
         for (j, &lambda) in eigenvalues.iter().enumerate() {
             // Solve (A - lambda*I) * v = 0 using inverse iteration
             let shifted = m.sub(&Matrix::identity(n).scale(lambda + 1e-12))?;
-            
+
             // Start with random vector
             let mut v = vec![1.0; n];
-            
+
             for _ in 0..10 {
                 // Solve (A - lambda*I) * v_new = v
                 let v_vec = mathverse_vector::Vector::new(v.clone());
                 let v_new = shifted.solve(&v_vec)?;
                 v = v_new.data;
-                
+
                 // Normalize
                 let norm: f64 = v.iter().map(|x| x * x).sum::<f64>().sqrt();
                 if norm > 0.0 {
                     v = v.iter().map(|x| x / norm).collect();
                 }
             }
-            
+
             for i in 0..n {
                 eigenvectors.set(i, j, v[i]);
             }
         }
-        
+
         Ok(eigenvectors)
     }
 
@@ -234,7 +243,7 @@ impl GeneralEigen {
     pub fn left_eigenvectors(m: &Matrix) -> MathResult<GeneralEigenDecomposition> {
         let decomp = Self::compute(m)?;
         let left = Self::compute_eigenvectors(&m.transpose(), &decomp.eigenvalues)?;
-        
+
         Ok(GeneralEigenDecomposition {
             eigenvalues: decomp.eigenvalues,
             eigenvectors: decomp.eigenvectors,
@@ -246,7 +255,7 @@ impl GeneralEigen {
     pub fn is_diagonalizable(m: &Matrix, tolerance: f64) -> MathResult<bool> {
         let decomp = Self::compute(m)?;
         let n = m.rows;
-        
+
         // Check if eigenvectors are linearly independent
         let rank = crate::rank::MatrixRank::compute(&decomp.eigenvectors, tolerance)?;
         Ok(rank == n)
@@ -255,7 +264,7 @@ impl GeneralEigen {
     /// Jordan canonical form (simplified - returns eigenvalue decomposition if diagonalizable).
     pub fn jordan_form(m: &Matrix) -> MathResult<(Matrix, Matrix)> {
         let decomp = Self::compute(m)?;
-        
+
         if Self::is_diagonalizable(m, 1e-10)? {
             let jordan = Matrix::diagonal(&decomp.eigenvalues);
             Ok((jordan, decomp.eigenvectors))
@@ -280,12 +289,13 @@ impl EigenvalueSensitivity {
     ) -> f64 {
         let x_norm: f64 = eigenvector.iter().map(|x| x * x).sum::<f64>().sqrt();
         let y_norm: f64 = left_eigenvector.iter().map(|y| y * y).sum::<f64>().sqrt();
-        
-        let dot: f64 = eigenvector.iter()
+
+        let dot: f64 = eigenvector
+            .iter()
             .zip(left_eigenvector.iter())
             .map(|(x, y)| x * y)
             .sum();
-        
+
         if dot.abs() > 1e-15 {
             x_norm * y_norm / dot.abs()
         } else {
@@ -302,14 +312,19 @@ impl EigenvalueSensitivity {
     /// Spectral abscissa (maximum real part of eigenvalues).
     pub fn spectral_abscissa(m: &Matrix) -> MathResult<f64> {
         let decomp = GeneralEigen::compute(m)?;
-        Ok(decomp.eigenvalues.iter().copied()
+        Ok(decomp
+            .eigenvalues
+            .iter()
+            .copied()
             .fold(f64::NEG_INFINITY, f64::max))
     }
 
     /// Spectral radius (maximum absolute value of eigenvalues).
     pub fn spectral_radius(m: &Matrix) -> MathResult<f64> {
         let decomp = GeneralEigen::compute(m)?;
-        Ok(decomp.eigenvalues.iter()
+        Ok(decomp
+            .eigenvalues
+            .iter()
             .map(|&lambda| lambda.abs())
             .fold(f64::NEG_INFINITY, f64::max))
     }
@@ -323,10 +338,12 @@ mod tests {
     fn test_general_eigen_symmetric() {
         let m = Matrix::from_rows(&[&[2.0, 1.0], &[1.0, 2.0]]).unwrap();
         let decomp = GeneralEigen::compute(&m).unwrap();
-        
+
         assert_eq!(decomp.eigenvalues.len(), 2);
         // Should be approximately 3 and 1
-        assert!((decomp.eigenvalues[0] - 3.0).abs() < 0.1 || (decomp.eigenvalues[1] - 3.0).abs() < 0.1);
+        assert!(
+            (decomp.eigenvalues[0] - 3.0).abs() < 0.1 || (decomp.eigenvalues[1] - 3.0).abs() < 0.1
+        );
     }
 
     #[test]

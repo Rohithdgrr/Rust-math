@@ -2,7 +2,10 @@
 //!
 //! This example demonstrates loading and saving images.
 
-use mathverse_image::{io::{load, save}, GrayImage};
+use mathverse_image::{
+    io::{load, save},
+    GrayImage,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a test image
@@ -13,19 +16,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             img.set(x, y, value);
         }
     }
-    
+
     // Save the image
     save(&img, "test_output.png")?;
     println!("Saved image to test_output.png");
-    
+
     // Load the image back
     let loaded = load("test_output.png")?;
     println!("Loaded image: {}x{}", loaded.w, loaded.h);
-    
+
     // Verify the dimensions match
     assert_eq!(img.w, loaded.w);
     assert_eq!(img.h, loaded.h);
     println!("Image dimensions match!");
-    
+
     Ok(())
 }

@@ -146,8 +146,14 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
     }
 
     // Find global bounds
-    let all_min = data.iter().flat_map(|d| &d.values).fold(f64::INFINITY, |a, &b| a.min(b));
-    let all_max = data.iter().flat_map(|d| &d.values).fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+    let all_min = data
+        .iter()
+        .flat_map(|d| &d.values)
+        .fold(f64::INFINITY, |a, &b| a.min(b));
+    let all_max = data
+        .iter()
+        .flat_map(|d| &d.values)
+        .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
     let range = if all_max - all_min > 0.0 {
         all_max - all_min
     } else {
@@ -204,7 +210,10 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
 
         // Compute KDE
         let density = kde(&d.values, bw, config.num_points);
-        let max_density = density.iter().map(|(_, d)| d).fold(0.0_f64, |a, &b| a.max(b));
+        let max_density = density
+            .iter()
+            .map(|(_, d)| d)
+            .fold(0.0_f64, |a, &b| a.max(b));
 
         if max_density == 0.0 {
             continue;
@@ -222,9 +231,8 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
                 right_path.push_str(&format!(" {x},{y}"));
             } else {
                 right_path.push_str(&format!(" L {x},{y}"));
-    }
-}
-
+            }
+        }
 
         // Left side (mirrored)
         for (val, dens) in density.iter().rev() {
@@ -291,7 +299,8 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
                 .fold(f64::NEG_INFINITY, f64::max);
             svg.push_str(&format!(
                 r#"  <line x1="{center_x}" y1="{}" x2="{center_x}" y2="{}" stroke="black"/>"#,
-                to_y(whisker_high), to_y(whisker_low)
+                to_y(whisker_high),
+                to_y(whisker_low)
             ));
             svg.push('\n');
         }
@@ -299,7 +308,8 @@ pub fn render_violin_plot(data: &[ViolinData], config: &ViolinConfig) -> PlotRes
         // Label
         svg.push_str(&format!(
             r#"  <text x="{center_x}" y="{}" text-anchor="middle" font-size="11">{}</text>"#,
-            height - padding + 15.0, crate::common::xml_escape(&d.label)
+            height - padding + 15.0,
+            crate::common::xml_escape(&d.label)
         ));
         svg.push('\n');
     }

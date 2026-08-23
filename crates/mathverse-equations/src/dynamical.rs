@@ -5,7 +5,9 @@ pub fn fixed_point(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -
     let mut x = x0;
     for _ in 0..max_iter {
         let x_new = g(x);
-        if (x_new - x).abs() < tol { return Some(x_new); }
+        if (x_new - x).abs() < tol {
+            return Some(x_new);
+        }
         x = x_new;
     }
     Some(x)
@@ -37,12 +39,19 @@ pub fn cobweb(g: impl Fn(f64) -> f64, x0: f64, n: usize) -> Vec<(f64, f64)> {
 
 /// Estimates the Lyapunov exponent of a 1-D map over `n` iterations using
 /// the derivative `df`. Returns `-∞` if the derivative vanishes.
-pub fn lyapunov_exponent(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f64, n: usize) -> f64 {
+pub fn lyapunov_exponent(
+    f: impl Fn(f64) -> f64,
+    df: impl Fn(f64) -> f64,
+    x0: f64,
+    n: usize,
+) -> f64 {
     let mut x = x0;
     let mut sum = 0.0;
     for _ in 0..n {
         let d = df(x).abs();
-        if d < 1e-30 { return f64::NEG_INFINITY; }
+        if d < 1e-30 {
+            return f64::NEG_INFINITY;
+        }
         sum += d.ln();
         x = f(x);
     }
@@ -51,11 +60,18 @@ pub fn lyapunov_exponent(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f6
 
 /// Iterates until successive iterates differ by less than `tol`.
 /// Returns `None` if no fixed point is found within `max_iter` iterations.
-pub fn iterate_to_fixed_point(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -> Option<f64> {
+pub fn iterate_to_fixed_point(
+    g: impl Fn(f64) -> f64,
+    x0: f64,
+    tol: f64,
+    max_iter: usize,
+) -> Option<f64> {
     let mut x = x0;
     for _ in 0..max_iter {
         let x_new = g(x);
-        if (x_new - x).abs() < tol { return Some(x_new); }
+        if (x_new - x).abs() < tol {
+            return Some(x_new);
+        }
         x = x_new;
     }
     None
@@ -77,11 +93,15 @@ pub fn orbit(g: impl Fn(f64) -> f64, x0: f64, n: usize) -> Vec<f64> {
 /// with `g^p(x) ≈ x` after a transient. Returns `None` if no period is found.
 pub fn period(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_period: usize) -> Option<usize> {
     let mut x = x0;
-    for _ in 0..100 { x = g(x); } // transient
+    for _ in 0..100 {
+        x = g(x);
+    } // transient
     let y = x;
     for p in 1..=max_period {
         x = g(x);
-        if (x - y).abs() < tol { return Some(p); }
+        if (x - y).abs() < tol {
+            return Some(p);
+        }
     }
     None
 }

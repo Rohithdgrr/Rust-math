@@ -3,9 +3,8 @@
 //! This example demonstrates temperature unit conversions.
 
 use mathverse_units::conversions::{
-    celsius_to_kelvin, kelvin_to_celsius,
-    fahrenheit_to_celsius, celsius_to_fahrenheit,
-    fahrenheit_to_kelvin, kelvin_to_fahrenheit
+    celsius_to_fahrenheit, celsius_to_kelvin, fahrenheit_to_celsius, fahrenheit_to_kelvin,
+    kelvin_to_celsius, kelvin_to_fahrenheit,
 };
 
 fn main() {

@@ -22,22 +22,22 @@ impl SchurDecompositionImpl {
         if !m.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        
+
         let mut h = Self::hessenberg(m);
         let mut q = Self::hessenberg_q(m);
-        
+
         // QR iteration
         for _ in 0..100 {
             let qr_result = h.qr()?;
             h = qr_result.r.mul(&qr_result.q)?;
             q = q.mul(&qr_result.q)?;
-            
+
             // Check for convergence
             if Self::is_upper_triangular(&h, 1e-10) {
                 break;
             }
         }
-        
+
         Ok(SchurDecomposition { q, t: h })
     }
 
@@ -45,28 +45,29 @@ impl SchurDecompositionImpl {
     fn hessenberg(m: &Matrix) -> Matrix {
         let n = m.rows;
         let mut h = m.clone();
-        
+
         for k in 0..(n - 2) {
             // Householder reflection
             let mut x: Vec<f64> = (k + 1..n).map(|i| h.get(i, k)).collect();
             let norm_x = x.iter().map(|v| v * v).sum::<f64>().sqrt();
-            
+
             if norm_x < 1e-15 {
                 continue;
             }
-            
+
             let alpha = if x[0] >= 0.0 { -norm_x } else { norm_x };
             x[0] -= alpha;
             let vn = x.iter().map(|w| w * w).sum::<f64>().sqrt();
-            
+
             if vn > 1e-15 {
                 for w in &mut x {
                     *w /= vn;
                 }
-                
+
                 // Apply Householder to rows
                 for j in k..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| vv * h.get(k + 1 + o, j))
                         .sum();
@@ -74,10 +75,11 @@ impl SchurDecompositionImpl {
                         h.set(k + 1 + o, j, h.get(k + 1 + o, j) - 2.0 * vv * dot);
                     }
                 }
-                
+
                 // Apply Householder to columns
                 for i in 0..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| h.get(i, k + 1 + o) * vv)
                         .sum();
@@ -87,7 +89,7 @@ impl SchurDecompositionImpl {
                 }
             }
         }
-        
+
         h
     }
 
@@ -96,27 +98,28 @@ impl SchurDecompositionImpl {
         let n = m.rows;
         let mut h = m.clone();
         let mut q = Matrix::identity(n);
-        
+
         for k in 0..(n - 2) {
             let mut x: Vec<f64> = (k + 1..n).map(|i| h.get(i, k)).collect();
             let norm_x = x.iter().map(|v| v * v).sum::<f64>().sqrt();
-            
+
             if norm_x < 1e-15 {
                 continue;
             }
-            
+
             let alpha = if x[0] >= 0.0 { -norm_x } else { norm_x };
             x[0] -= alpha;
             let vn = x.iter().map(|w| w * w).sum::<f64>().sqrt();
-            
+
             if vn > 1e-15 {
                 for w in &mut x {
                     *w /= vn;
                 }
-                
+
                 // Apply Householder to rows of h
                 for j in k..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| vv * h.get(k + 1 + o, j))
                         .sum();
@@ -124,10 +127,11 @@ impl SchurDecompositionImpl {
                         h.set(k + 1 + o, j, h.get(k + 1 + o, j) - 2.0 * vv * dot);
                     }
                 }
-                
+
                 // Apply Householder to columns of h
                 for i in 0..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| h.get(i, k + 1 + o) * vv)
                         .sum();
@@ -135,10 +139,11 @@ impl SchurDecompositionImpl {
                         h.set(i, k + 1 + o, h.get(i, k + 1 + o) - 2.0 * dot * vv);
                     }
                 }
-                
+
                 // Accumulate Q: Q = Q * P_k
                 for i in 0..n {
-                    let dot: f64 = x.iter()
+                    let dot: f64 = x
+                        .iter()
                         .enumerate()
                         .map(|(o, &vv)| q.get(i, k + 1 + o) * vv)
                         .sum();
@@ -148,7 +153,7 @@ impl SchurDecompositionImpl {
                 }
             }
         }
-        
+
         q
     }
 
@@ -178,7 +183,7 @@ impl SchurDecompositionImpl {
     pub fn eigenvalues(schur: &SchurDecomposition) -> Vec<f64> {
         let n = schur.t.rows;
         let mut eigenvalues = Vec::new();
-        
+
         let mut i = 0;
         while i < n {
             if i + 1 < n && schur.t.get(i + 1, i).abs() > 1e-10 {
@@ -187,12 +192,12 @@ impl SchurDecompositionImpl {
                 let b = schur.t.get(i, i + 1);
                 let c = schur.t.get(i + 1, i);
                 let d = schur.t.get(i + 1, i + 1);
-                
+
                 // Eigenvalues of 2x2 block
                 let trace = a + d;
                 let det = a * d - b * c;
                 let discriminant = trace * trace - 4.0 * det;
-                
+
                 if discriminant >= 0.0 {
                     eigenvalues.push(f64::midpoint(trace, discriminant.sqrt()));
                     eigenvalues.push((trace - discriminant.sqrt()) / 2.0);
@@ -207,7 +212,7 @@ impl SchurDecompositionImpl {
                 i += 1;
             }
         }
-        
+
         eigenvalues
     }
 }
@@ -227,12 +232,12 @@ impl SchurApplications {
     fn exp_triangular(t: &Matrix) -> Matrix {
         let n = t.rows;
         let mut exp_t = Matrix::zeros(n, n);
-        
+
         // Diagonal elements
         for i in 0..n {
             exp_t.set(i, i, t.get(i, i).exp());
         }
-        
+
         // Upper triangular part via Parlett recurrence
         for j in 1..n {
             for i in (0..j).rev() {
@@ -256,7 +261,7 @@ impl SchurApplications {
                 }
             }
         }
-        
+
         exp_t
     }
 
@@ -271,12 +276,12 @@ impl SchurApplications {
     fn apply_function_triangular(t: &Matrix, f: &impl Fn(f64) -> f64) -> Matrix {
         let n = t.rows;
         let mut f_t = Matrix::zeros(n, n);
-        
+
         // Diagonal elements
         for i in 0..n {
             f_t.set(i, i, f(t.get(i, i)));
         }
-        
+
         // Upper triangular part via Parlett recurrence
         for j in 1..n {
             for i in (0..j).rev() {
@@ -288,8 +293,8 @@ impl SchurApplications {
                 let a_ii = t.get(i, i);
                 let a_jj = t.get(j, j);
                 if (a_ii - a_jj).abs() > 1e-15 {
-                    let val = (f(a_ii) - f(a_jj)) / (a_ii - a_jj) * t.get(i, j)
-                        + sum / (a_ii - a_jj);
+                    let val =
+                        (f(a_ii) - f(a_jj)) / (a_ii - a_jj) * t.get(i, j) + sum / (a_ii - a_jj);
                     f_t.set(i, j, val);
                 } else {
                     // Use numerical derivative for repeated eigenvalues
@@ -299,7 +304,7 @@ impl SchurApplications {
                 }
             }
         }
-        
+
         f_t
     }
 
@@ -307,12 +312,12 @@ impl SchurApplications {
     pub fn solve_sylvester(a: &Matrix, b: &Matrix, c: &Matrix) -> MathResult<Matrix> {
         let schur_a = SchurDecompositionImpl::compute(a)?;
         let schur_b = SchurDecompositionImpl::compute(&b.transpose())?;
-        
+
         let qta_c = schur_a.q.transpose().mul(c)?;
         let qta_c_qb = qta_c.mul(&schur_b.q)?;
-        
+
         let y = Self::solve_sylvester_triangular(&schur_a.t, &schur_b.t, &qta_c_qb)?;
-        
+
         schur_a.q.mul(&y)?.mul(&schur_b.q.transpose())
     }
 
@@ -321,28 +326,28 @@ impl SchurApplications {
         let m = a.rows;
         let n = b.cols;
         let mut x = Matrix::zeros(m, n);
-        
+
         for j in 0..n {
             for i in (0..m).rev() {
                 let mut sum = c.get(i, j);
-                
+
                 for k in (i + 1)..m {
                     sum -= a.get(i, k) * x.get(k, j);
                 }
-                
+
                 for k in (j + 1)..n {
                     sum -= x.get(i, k) * b.get(k, j);
                 }
-                
+
                 let denom = a.get(i, i) + b.get(j, j);
                 if denom.abs() < 1e-15 {
                     return Err(MathError::InvalidArgument("singular Sylvester equation"));
                 }
-                
+
                 x.set(i, j, sum / denom);
             }
         }
-        
+
         Ok(x)
     }
 }
@@ -355,10 +360,15 @@ mod tests {
     fn test_schur_decomposition() {
         let m = Matrix::from_rows(&[&[4.0, 1.0], &[1.0, 3.0]]).unwrap();
         let schur = SchurDecompositionImpl::compute(&m).unwrap();
-        
+
         // Verify A = Q T Q^T
-        let reconstructed = schur.q.mul(&schur.t).unwrap().mul(&schur.q.transpose()).unwrap();
-        
+        let reconstructed = schur
+            .q
+            .mul(&schur.t)
+            .unwrap()
+            .mul(&schur.q.transpose())
+            .unwrap();
+
         for i in 0..2 {
             for j in 0..2 {
                 assert!((reconstructed.get(i, j) - m.get(i, j)).abs() < 1e-10);
@@ -371,7 +381,7 @@ mod tests {
         let m = Matrix::from_rows(&[&[2.0, 1.0], &[1.0, 2.0]]).unwrap();
         let schur = SchurDecompositionImpl::compute(&m).unwrap();
         let eigenvalues = SchurDecompositionImpl::eigenvalues(&schur);
-        
+
         // Should be 3 and 1
         assert_eq!(eigenvalues.len(), 2);
         assert!((eigenvalues[0] - 3.0).abs() < 1e-10 || (eigenvalues[1] - 3.0).abs() < 1e-10);
@@ -381,7 +391,7 @@ mod tests {
     fn test_schur_exp() {
         let m = Matrix::identity(2);
         let exp_m = SchurApplications::exp(&m).unwrap();
-        
+
         let e = core::f64::consts::E;
         assert!((exp_m.get(0, 0) - e).abs() < 1e-10);
         assert!((exp_m.get(1, 1) - e).abs() < 1e-10);

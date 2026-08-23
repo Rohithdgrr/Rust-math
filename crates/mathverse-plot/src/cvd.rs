@@ -254,7 +254,11 @@ mod tests {
         // Red should appear different from original (255,0,0) to a protanope
         // The exact values depend on the simulation matrix
         let _ = (g, b);
-        assert_ne!((r, g, b), (255, 0, 0), "simulated color should differ from original");
+        assert_ne!(
+            (r, g, b),
+            (255, 0, 0),
+            "simulated color should differ from original"
+        );
     }
 
     #[test]

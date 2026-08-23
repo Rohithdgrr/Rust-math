@@ -115,9 +115,7 @@ impl<T> Series<T> {
             "index {pos} out of bounds for length {}",
             self.len()
         );
-        self.validity
-            .as_ref()
-            .is_some_and(|bm| bm.is_null(pos))
+        self.validity.as_ref().is_some_and(|bm| bm.is_null(pos))
     }
 
     /// Returns the number of null elements.
@@ -171,7 +169,11 @@ impl<T> Series<T> {
     /// Returns `true` if the series has no null values.
     #[must_use]
     pub fn has_no_nulls(&self) -> bool {
-        self.validity.is_none() || self.validity.as_ref().is_some_and(super::null::NullBitmap::all_valid_flag)
+        self.validity.is_none()
+            || self
+                .validity
+                .as_ref()
+                .is_some_and(super::null::NullBitmap::all_valid_flag)
     }
 
     /// Returns a new series with nulls removed (elements shifted left).
@@ -305,9 +307,7 @@ impl<T> Series<T> {
         if self.has_no_nulls() {
             (0..self.len()).collect()
         } else {
-            (0..self.len())
-                .filter(|&i| !self.is_null(i))
-                .collect()
+            (0..self.len()).filter(|&i| !self.is_null(i)).collect()
         }
     }
 

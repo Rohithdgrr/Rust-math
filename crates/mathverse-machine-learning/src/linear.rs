@@ -2,7 +2,6 @@
 
 use mathverse_core::error::{MathError, MathResult};
 
-
 /// Linear regression result.
 #[derive(Debug, Clone)]
 pub struct LinearResult {
@@ -12,13 +11,12 @@ pub struct LinearResult {
     pub intercept: f64,
     /// R-squared goodness-of-fit metric.
     pub r_squared: f64,
-    /// Residuals (actual − predicted) for each sample.
+    /// Residuals (actual âˆ’ predicted) for each sample.
     pub residuals: Vec<f64>,
 }
 
 /// Ordinary least squares linear regression.
-/// `x`: \[n_samples × n_features\], `y`: \[n_samples\].
-#[must_use]
+/// `x`: \[n_samples Ã— n_features\], `y`: \[n_samples\].
 pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<LinearResult> {
     let p = crate::validate::validate_xy(x, y)?;
     let n = y.len();
@@ -75,7 +73,6 @@ pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<LinearResult> {
 ///
 /// Returns an error if `x` is empty or any row does not match the number of
 /// coefficients.
-#[must_use]
 pub fn predict(x: &[Vec<f64>], coefficients: &[f64], intercept: f64) -> MathResult<Vec<f64>> {
     crate::validate::validate_x(x, coefficients.len())?;
     Ok(x.iter()
@@ -91,7 +88,6 @@ pub fn predict(x: &[Vec<f64>], coefficients: &[f64], intercept: f64) -> MathResu
 }
 
 /// Ridge regression (L2 penalty).
-#[must_use]
 pub fn fit_ridge(x: &[Vec<f64>], y: &[f64], alpha: f64) -> MathResult<LinearResult> {
     let p = crate::validate::validate_xy(x, y)?;
     if !alpha.is_finite() || alpha < 0.0 {
@@ -149,7 +145,6 @@ pub fn fit_ridge(x: &[Vec<f64>], y: &[f64], alpha: f64) -> MathResult<LinearResu
 }
 
 /// Lasso regression (L1 penalty) via coordinate descent.
-#[must_use]
 pub fn fit_lasso(
     x: &[Vec<f64>],
     y: &[f64],

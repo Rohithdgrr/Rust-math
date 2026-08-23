@@ -26,29 +26,38 @@ pub mod identities;
 pub mod laws;
 pub mod special;
 
-use mathverse_core::traits::{Real, Trig, Hyperbolic};
+use mathverse_core::traits::{Hyperbolic, Real, Trig};
 
 pub use batched::{
     accumulate_sine, map_cos, map_sin, map_sin_cos, sin_inplace, sum_cos, sum_sin, sum_sin_cos,
 };
-pub use conversions::{wrap_angle, wrap_angle_positive, wrap_angle_f64, rad_to_grad, grad_to_rad,
-    turns_to_radians, turns_to_radians_f64, radians_to_turns, radians_to_turns_f64,
-    angle_difference, angle_distance, unwrap_angles, polar_to_cartesian, cartesian_to_polar,
-    magnitude, phase, spherical_to_cartesian, cartesian_to_spherical, cylindrical_to_cartesian,
-    cartesian_to_cylindrical};
-pub use exact::{cos_exact_deg, cos_exact_radians, sin_exact_deg, sin_exact_radians, tan_exact_deg,
-    tan_exact_radians, ExactValue};
-pub use identities::{sin_cos, sin_double, cos_double, tan_double, sin_half, cos_half, tan_half,
-    sin_sum, sin_diff, cos_sum, cos_diff, tan_sum, tan_diff,
-    sin_sin_product, cos_cos_product, sin_cos_product,
-    sin_sum_to_product, sin_diff_to_product, cos_sum_to_product, cos_diff_to_product,
-    sin_squared, cos_squared, tan_squared};
-pub use laws::{law_of_sines_side, law_of_sines_angle, law_of_sines_angle_both, law_of_cosines_side, law_of_cosines_angle,
-    heron, triangle_area_sas, triangle_area_base_height, bearing, haversine_distance, haversine_distance_deg};
-pub use special::{sinc, sinc_unnorm, versine, coversine, vercosine, covercosine,
-    haversine, havercosine, hacoversine, hacovercosine, exsecant, excosecant,
-    gudermannian, gudermannian_inv, gudermannian_alt,
-    chebyshev_first, chebyshev_second, sin_power, cos_power};
+pub use conversions::{
+    angle_difference, angle_distance, cartesian_to_cylindrical, cartesian_to_polar,
+    cartesian_to_spherical, cylindrical_to_cartesian, grad_to_rad, magnitude, phase,
+    polar_to_cartesian, rad_to_grad, radians_to_turns, radians_to_turns_f64,
+    spherical_to_cartesian, turns_to_radians, turns_to_radians_f64, unwrap_angles, wrap_angle,
+    wrap_angle_f64, wrap_angle_positive,
+};
+pub use exact::{
+    cos_exact_deg, cos_exact_radians, sin_exact_deg, sin_exact_radians, tan_exact_deg,
+    tan_exact_radians, ExactValue,
+};
+pub use identities::{
+    cos_cos_product, cos_diff, cos_diff_to_product, cos_double, cos_half, cos_squared, cos_sum,
+    cos_sum_to_product, sin_cos, sin_cos_product, sin_diff, sin_diff_to_product, sin_double,
+    sin_half, sin_sin_product, sin_squared, sin_sum, sin_sum_to_product, tan_diff, tan_double,
+    tan_half, tan_squared, tan_sum,
+};
+pub use laws::{
+    bearing, haversine_distance, haversine_distance_deg, heron, law_of_cosines_angle,
+    law_of_cosines_side, law_of_sines_angle, law_of_sines_angle_both, law_of_sines_side,
+    triangle_area_base_height, triangle_area_sas,
+};
+pub use special::{
+    chebyshev_first, chebyshev_second, cos_power, covercosine, coversine, excosecant, exsecant,
+    gudermannian, gudermannian_alt, gudermannian_inv, hacovercosine, hacoversine, havercosine,
+    haversine, sin_power, sinc, sinc_unnorm, vercosine, versine,
+};
 
 pub use mathverse_core::ops::{deg_to_grad, deg_to_rad, grad_to_deg, rad_to_deg};
 
@@ -100,9 +109,9 @@ pub fn cospi<T: Real + Trig>(x: T) -> T {
     let n2 = (xf * 2.0).round();
     if (xf * 2.0 - n2).abs() < 1e-6 {
         match (n2 as i64).rem_euclid(4) {
-            0 => T::one(),       // integer, even
-            2 => -T::one(),      // integer, odd
-            _ => T::zero(),      // half-integer
+            0 => T::one(),  // integer, even
+            2 => -T::one(), // integer, odd
+            _ => T::zero(), // half-integer
         }
     } else {
         (x * T::from_f64(core::f64::consts::PI)).cos()
@@ -411,7 +420,10 @@ mod tests {
     #[test]
     fn pythagorean_identity() {
         for x in [-1.0f64, -0.5, 0.0, 0.5, 1.0, 2.0] {
-            assert!((sin(x).powi(2) + cos(x).powi(2) - 1.0).abs() < 1e-12, "x={x}");
+            assert!(
+                (sin(x).powi(2) + cos(x).powi(2) - 1.0).abs() < 1e-12,
+                "x={x}"
+            );
         }
     }
 

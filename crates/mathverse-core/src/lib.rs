@@ -1,7 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::approx_constant)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::cast_possible_truncation)]
@@ -15,7 +14,6 @@
 #![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::many_single_char_names)]
-
 
 //! Shared substrate for the `MathVerse` ecosystem.
 //!
@@ -74,5 +72,3 @@ fn mathverse_core(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(pi)?)?;
     Ok(())
 }
-
-

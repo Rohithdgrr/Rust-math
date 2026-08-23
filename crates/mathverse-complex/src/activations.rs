@@ -158,16 +158,8 @@ pub fn complex_elu(z: Complex, alpha: f64) -> Complex {
 /// Derivative of [`complex_elu`].
 pub fn complex_elu_grad(z: Complex, alpha: f64) -> Complex {
     Complex::new(
-        if z.re >= 0.0 {
-            1.0
-        } else {
-            alpha * z.re.exp()
-        },
-        if z.im >= 0.0 {
-            1.0
-        } else {
-            alpha * z.im.exp()
-        },
+        if z.re >= 0.0 { 1.0 } else { alpha * z.re.exp() },
+        if z.im >= 0.0 { 1.0 } else { alpha * z.im.exp() },
     )
 }
 
@@ -208,8 +200,14 @@ mod tests {
 
     #[test]
     fn relu_basic() {
-        assert_eq!(complex_relu(Complex::new(3.0, -2.0)), Complex::new(3.0, 0.0));
-        assert_eq!(complex_relu(Complex::new(-1.0, 4.0)), Complex::new(0.0, 4.0));
+        assert_eq!(
+            complex_relu(Complex::new(3.0, -2.0)),
+            Complex::new(3.0, 0.0)
+        );
+        assert_eq!(
+            complex_relu(Complex::new(-1.0, 4.0)),
+            Complex::new(0.0, 4.0)
+        );
         assert_eq!(complex_relu(Complex::zero()), Complex::zero());
     }
 
@@ -274,7 +272,11 @@ mod tests {
 
     #[test]
     fn softmax_sums_to_one() {
-        let vals = vec![Complex::new(1.0, 0.0), Complex::new(2.0, 1.0), Complex::new(0.5, -0.5)];
+        let vals = vec![
+            Complex::new(1.0, 0.0),
+            Complex::new(2.0, 1.0),
+            Complex::new(0.5, -0.5),
+        ];
         let s = complex_softmax(&vals);
         let total: Complex = s.iter().copied().fold(Complex::zero(), |a, b| a + b);
         assert!((total - Complex::one()).norm() < 1e-12);

@@ -83,12 +83,14 @@ pub fn render_pointplot(categories: &[PointCategory], config: &PointConfig) -> P
     let height = f64::from(config.plot_config.height);
 
     // Compute means
-    let means: Vec<f64> = categories.iter()
+    let means: Vec<f64> = categories
+        .iter()
         .map(|c| c.values.iter().sum::<f64>() / c.values.len() as f64)
         .collect();
 
     // Compute standard errors
-    let ses: Vec<f64> = categories.iter()
+    let ses: Vec<f64> = categories
+        .iter()
         .map(|c| {
             let n = c.values.len() as f64;
             let mean = c.values.iter().sum::<f64>() / n;
@@ -97,10 +99,14 @@ pub fn render_pointplot(categories: &[PointCategory], config: &PointConfig) -> P
         })
         .collect();
 
-    let all_min = means.iter().zip(ses.iter())
+    let all_min = means
+        .iter()
+        .zip(ses.iter())
         .map(|(&m, &s)| m - 2.0 * s)
         .fold(f64::INFINITY, f64::min);
-    let all_max = means.iter().zip(ses.iter())
+    let all_max = means
+        .iter()
+        .zip(ses.iter())
         .map(|(&m, &s)| m + 2.0 * s)
         .fold(f64::NEG_INFINITY, f64::max);
 

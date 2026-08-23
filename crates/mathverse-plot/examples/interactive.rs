@@ -7,8 +7,8 @@
 
 use mathverse_plot::common::{DataPoint, DataSeries, PlotConfig};
 use mathverse_plot::interactive::run;
-use mathverse_plot::PlotData;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::PlotData;
 
 fn main() -> eframe::Result<()> {
     let xs: Vec<f64> = (0..1000).map(|i| f64::from(i) * 0.01).collect();
@@ -31,7 +31,9 @@ fn main() -> eframe::Result<()> {
     svg.add_series(DataSeries::new("f", points.clone()));
 
     // Stash an SVG for comparison with the interactive scene.
-    PlotSaver::new(&svg.generate()).save_png("interactive_scene.png").ok();
+    PlotSaver::new(&svg.generate())
+        .save_png("interactive_scene.png")
+        .ok();
 
     let data: PlotData = svg.snapshot();
     run(data, "mathverse-plot interactive", 900.0, 600.0)

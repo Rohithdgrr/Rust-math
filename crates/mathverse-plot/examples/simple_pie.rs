@@ -1,8 +1,8 @@
 //! Pie chart example: Market share breakdown.
 
 use mathverse_plot::pie::{render_pie_chart, PieConfig, PieSlice};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let slices = vec![

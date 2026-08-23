@@ -4,11 +4,18 @@ use crate::tensor::Tensor;
 use mathverse_core::error::{MathError, MathResult};
 
 /// Flash (tiled) attention: computes attention in blocks for efficiency.
-/// `q`, `k`, `v`: [batch, seq_len, d_k/d_v]
-/// Returns output [batch, seq_len, d_v].
-pub fn flash_attention(q: &Tensor, k: &Tensor, v: &Tensor, block_size: usize) -> MathResult<Tensor> {
+/// `q`, `k`, `v`: [batch, `seq_len`, `d_k/d_v`]
+/// Returns output [batch, `seq_len`, `d_v`].
+pub fn flash_attention(
+    q: &Tensor,
+    k: &Tensor,
+    v: &Tensor,
+    block_size: usize,
+) -> MathResult<Tensor> {
     if q.shape.len() != 3 || k.shape.len() != 3 || v.shape.len() != 3 {
-        return Err(MathError::InvalidArgument("q, k, v must be 3-D [batch, seq, d]"));
+        return Err(MathError::InvalidArgument(
+            "q, k, v must be 3-D [batch, seq, d]",
+        ));
     }
     let batch = q.shape[0];
     let seq_q = q.shape[1];
@@ -37,8 +44,8 @@ pub fn flash_attention(q: &Tensor, k: &Tensor, v: &Tensor, block_size: usize) ->
                     for j in kj..kj_end {
                         let mut dot = 0.0;
                         for d in 0..d_k {
-                            dot += q.data[bi * seq_q * d_k + i * d_k + d]
-                                * k.data[bi * seq_kv * d_k + j * d_k + d];
+                            dot = q.data[bi * seq_q * d_k + i * d_k + d]
+                                .mul_add(k.data[bi * seq_kv * d_k + j * d_k + d], dot);
                         }
                         let s = dot * scale;
 
@@ -55,7 +62,8 @@ pub fn flash_attention(q: &Tensor, k: &Tensor, v: &Tensor, block_size: usize) ->
                         let p = (s - row_max[idx]).exp();
                         row_sum[idx] += p;
                         for d in 0..d_v {
-                            out[bi * seq_q * d_v + i * d_v + d] += p * v.data[bi * seq_kv * d_v + j * d_v + d];
+                            out[bi * seq_q * d_v + i * d_v + d] +=
+                                p * v.data[bi * seq_kv * d_v + j * d_v + d];
                         }
                     }
                 }
@@ -76,10 +84,11 @@ pub fn flash_attention(q: &Tensor, k: &Tensor, v: &Tensor, block_size: usize) ->
 }
 
 /// Grouped Query Attention (GQA): shares K, V heads across groups of Q heads.
-/// `q`: [batch, seq_q, num_heads * d_k]
-/// `k`, `v`: [batch, seq_kv, num_groups * d_k]
+///
+/// `q`: [batch, `seq_q`, `num_heads` * `d_k`]
+/// `k`, `v`: [batch, `seq_kv`, `num_groups` * `d_k`]
 /// `num_groups`: number of KV heads
-/// Returns output [batch, seq_q, num_heads * d_k].
+/// Returns output [batch, `seq_q`, `num_heads` * `d_k`].
 pub fn grouped_query_attention(
     q: &Tensor,
     k: &Tensor,
@@ -95,12 +104,16 @@ pub fn grouped_query_attention(
     let seq_kv = k.shape[1];
     let kv_dim = k.shape[2];
     if !kv_dim.is_multiple_of(num_groups) {
-        return Err(MathError::InvalidArgument("kv_dim must be divisible by num_groups"));
+        return Err(MathError::InvalidArgument(
+            "kv_dim must be divisible by num_groups",
+        ));
     }
     let d_k = kv_dim / num_groups;
     let num_heads = q_dim / d_k;
     if !q_dim.is_multiple_of(d_k) {
-        return Err(MathError::InvalidArgument("q_dim must be divisible by d_k (kv_dim/num_groups)"));
+        return Err(MathError::InvalidArgument(
+            "q_dim must be divisible by d_k (kv_dim/num_groups)",
+        ));
     }
 
     let scale = 1.0 / (d_k as f64).sqrt();
@@ -118,10 +131,12 @@ pub fn grouped_query_attention(
                     for d in 0..d_k {
                         let q_idx = bi * seq_q * q_dim + i * q_dim + h * d_k + d;
                         let k_idx = bi * seq_kv * kv_dim + j * kv_dim + g * d_k + d;
-                        dot += q.data[q_idx] * k.data[k_idx];
+                        dot = q.data[q_idx].mul_add(k.data[k_idx], dot);
                     }
                     scores[j] = dot * scale;
-                    if scores[j] > max_s { max_s = scores[j]; }
+                    if scores[j] > max_s {
+                        max_s = scores[j];
+                    }
                 }
                 let mut sum_exp = 0.0;
                 #[allow(clippy::needless_range_loop)]
@@ -133,9 +148,9 @@ pub fn grouped_query_attention(
                 for d in 0..d_k {
                     let mut val = 0.0;
                     #[allow(clippy::needless_range_loop)]
-                for j in 0..seq_kv {
+                    for j in 0..seq_kv {
                         let v_idx = bi * seq_kv * kv_dim + j * kv_dim + g * d_k + d;
-                        val += scores[j] * v.data[v_idx];
+                        val = scores[j].mul_add(v.data[v_idx], val);
                     }
                     let o_idx = bi * seq_q * q_dim + i * q_dim + h * d_k + d;
                     out[o_idx] = val * inv;
@@ -148,8 +163,8 @@ pub fn grouped_query_attention(
 }
 
 /// Cross-attention: Q from one source, K/V from another.
-/// `query`: [batch, seq_q, d_model], `key`, `value`: [batch, seq_kv, d_model]
-/// Returns output [batch, seq_q, d_model].
+/// `query`: [batch, `seq_q`, `d_model`], `key`, `value`: [batch, `seq_kv`, `d_model`]
+/// Returns output [batch, `seq_q`, `d_model`].
 pub fn cross_attention(
     query: &Tensor,
     key: &Tensor,
@@ -167,7 +182,7 @@ pub fn cross_attention(
         return Err(MathError::DimensionMismatch);
     }
 
-    let s = scale.unwrap_or(1.0 / (d_model as f64).sqrt());
+    let s = scale.unwrap_or_else(|| 1.0 / (d_model as f64).sqrt());
 
     // scores = Q @ K^T * scale
     let mut scores = vec![0.0; batch * seq_q * seq_kv];
@@ -176,8 +191,8 @@ pub fn cross_attention(
             for j in 0..seq_kv {
                 let mut dot = 0.0;
                 for d in 0..d_model {
-                    dot += query.data[bi * seq_q * d_model + i * d_model + d]
-                        * key.data[bi * seq_kv * d_model + j * d_model + d];
+                    dot = query.data[bi * seq_q * d_model + i * d_model + d]
+                        .mul_add(key.data[bi * seq_kv * d_model + j * d_model + d], dot);
                 }
                 scores[bi * seq_q * seq_kv + i * seq_kv + j] = dot * s;
             }
@@ -190,7 +205,9 @@ pub fn cross_attention(
             let start = bi * seq_q * seq_kv + i * seq_kv;
             let mut max_val = f64::NEG_INFINITY;
             for j in 0..seq_kv {
-                if scores[start + j] > max_val { max_val = scores[start + j]; }
+                if scores[start + j] > max_val {
+                    max_val = scores[start + j];
+                }
             }
             let mut sum = 0.0;
             for j in 0..seq_kv {
@@ -212,8 +229,8 @@ pub fn cross_attention(
                 let mut val = 0.0;
                 #[allow(clippy::needless_range_loop)]
                 for j in 0..seq_kv {
-                    val += scores[bi * seq_q * seq_kv + i * seq_kv + j]
-                        * value.data[bi * seq_kv * d_model + j * d_model + d];
+                    val = scores[bi * seq_q * seq_kv + i * seq_kv + j]
+                        .mul_add(value.data[bi * seq_kv * d_model + j * d_model + d], val);
                 }
                 out[bi * seq_q * d_model + i * d_model + d] = val;
             }
@@ -224,9 +241,9 @@ pub fn cross_attention(
 }
 
 /// Linear (kernel-based) attention: O(n) complexity.
-/// `q`, `k`, `v`: [batch, seq_len, d]
+/// `q`, `k`, `v`: [batch, `seq_len`, d]
 /// Uses elu(q)+1 as kernel feature map.
-/// Returns output [batch, seq_len, d_v].
+/// Returns output [batch, `seq_len`, `d_v`].
 pub fn linear_attention(q: &Tensor, k: &Tensor, v: &Tensor) -> MathResult<Tensor> {
     if q.shape.len() != 3 || k.shape.len() != 3 || v.shape.len() != 3 {
         return Err(MathError::InvalidArgument("inputs must be 3-D"));
@@ -241,8 +258,16 @@ pub fn linear_attention(q: &Tensor, k: &Tensor, v: &Tensor) -> MathResult<Tensor
     }
 
     // Feature maps: phi(x) = elu(x) + 1
-    let phi_q: Vec<f64> = q.data.iter().map(|&x| if x > 0.0 { x + 1.0 } else { x.exp() }).collect();
-    let phi_k: Vec<f64> = k.data.iter().map(|&x| if x > 0.0 { x + 1.0 } else { x.exp() }).collect();
+    let phi_q: Vec<f64> = q
+        .data
+        .iter()
+        .map(|&x| if x > 0.0 { x + 1.0 } else { x.exp() })
+        .collect();
+    let phi_k: Vec<f64> = k
+        .data
+        .iter()
+        .map(|&x| if x > 0.0 { x + 1.0 } else { x.exp() })
+        .collect();
 
     // S = K^T @ V: [batch, d_k, d_v]
     let mut s = vec![0.0; batch * d_k * d_v];
@@ -251,8 +276,8 @@ pub fn linear_attention(q: &Tensor, k: &Tensor, v: &Tensor) -> MathResult<Tensor
             for dv_i in 0..d_v {
                 let mut val = 0.0;
                 for t in 0..seq {
-                    val += phi_k[bi * seq * d_k + t * d_k + dk_i]
-                        * v.data[bi * seq * d_v + t * d_v + dv_i];
+                    val = phi_k[bi * seq * d_k + t * d_k + dk_i]
+                        .mul_add(v.data[bi * seq * d_v + t * d_v + dv_i], val);
                 }
                 s[bi * d_k * d_v + dk_i * d_v + dv_i] = val;
             }
@@ -280,8 +305,8 @@ pub fn linear_attention(q: &Tensor, k: &Tensor, v: &Tensor) -> MathResult<Tensor
                 let mut den = 0.0;
                 for dk_i in 0..d_k {
                     let qv = phi_q[bi * seq * d_q + t * d_q + dk_i];
-                    num += qv * s[bi * d_k * d_v + dk_i * d_v + dv_i];
-                    den += qv * z[bi * d_k + dk_i];
+                    num = qv.mul_add(s[bi * d_k * d_v + dk_i * d_v + dv_i], num);
+                    den = qv.mul_add(z[bi * d_k + dk_i], den);
                 }
                 let inv = 1.0 / den.max(f64::EPSILON);
                 out[bi * seq * d_v + t * d_v + dv_i] = num * inv;
@@ -300,9 +325,9 @@ mod tests {
     #[test]
     fn flash_attention_matches_standard() {
         // For small sequences, flash should give same results as standard
-        let q = Tensor::new(&[1, 3, 4], &(0..12).map(|i| i as f64).collect::<Vec<_>>()).unwrap();
-        let k = Tensor::new(&[1, 3, 4], &(12..24).map(|i| i as f64).collect::<Vec<_>>()).unwrap();
-        let v = Tensor::new(&[1, 3, 4], &(24..36).map(|i| i as f64).collect::<Vec<_>>()).unwrap();
+        let q = Tensor::new(&[1, 3, 4], &(0..12).map(f64::from).collect::<Vec<_>>()).unwrap();
+        let k = Tensor::new(&[1, 3, 4], &(12..24).map(f64::from).collect::<Vec<_>>()).unwrap();
+        let v = Tensor::new(&[1, 3, 4], &(24..36).map(f64::from).collect::<Vec<_>>()).unwrap();
         let out = flash_attention(&q, &k, &v, 2).unwrap();
         assert_eq!(out.shape, vec![1, 3, 4]);
         // Output should be finite and non-zero
@@ -338,16 +363,9 @@ mod tests {
     #[test]
     fn cross_attention_test() {
         let query = Tensor::new(&[1, 2, 3], &[1.0, 0.0, 0.0, 0.0, 1.0, 0.0]).unwrap();
-        let key = Tensor::new(&[1, 3, 3], &[
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        ]).unwrap();
-        let value = Tensor::new(&[1, 3, 3], &[
-            1.0, 2.0, 3.0,
-            4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0,
-        ]).unwrap();
+        let key = Tensor::new(&[1, 3, 3], &[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]).unwrap();
+        let value =
+            Tensor::new(&[1, 3, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]).unwrap();
         let out = cross_attention(&query, &key, &value, None).unwrap();
         assert_eq!(out.shape, vec![1, 2, 3]);
         // query[0]=[1,0,0] attends mostly to key[0]=[1,0,0] → value[0]=[1,2,3]
@@ -365,16 +383,3 @@ mod tests {
         assert!(out.data.iter().all(|&x| x.is_finite()));
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

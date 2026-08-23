@@ -16,17 +16,11 @@ use mathverse_core::error::{MathError, MathResult};
 /// # Errors
 /// [`MathError::DimensionMismatch`] if batch lengths differ or any
 /// inner dimensions are incompatible.
-pub fn batched_matmul(
-    a: &[ComplexMatrix],
-    b: &[ComplexMatrix],
-) -> MathResult<Vec<ComplexMatrix>> {
+pub fn batched_matmul(a: &[ComplexMatrix], b: &[ComplexMatrix]) -> MathResult<Vec<ComplexMatrix>> {
     if a.len() != b.len() {
         return Err(MathError::DimensionMismatch);
     }
-    a.iter()
-        .zip(b.iter())
-        .map(|(ai, bi)| ai.mul(bi))
-        .collect()
+    a.iter().zip(b.iter()).map(|(ai, bi)| ai.mul(bi)).collect()
 }
 
 /// Batched matrix addition: `C[i] = A[i] + B[i]`.
@@ -34,17 +28,11 @@ pub fn batched_matmul(
 /// # Errors
 /// [`MathError::DimensionMismatch`] if batch lengths differ or shapes
 /// are incompatible.
-pub fn batched_add(
-    a: &[ComplexMatrix],
-    b: &[ComplexMatrix],
-) -> MathResult<Vec<ComplexMatrix>> {
+pub fn batched_add(a: &[ComplexMatrix], b: &[ComplexMatrix]) -> MathResult<Vec<ComplexMatrix>> {
     if a.len() != b.len() {
         return Err(MathError::DimensionMismatch);
     }
-    a.iter()
-        .zip(b.iter())
-        .map(|(ai, bi)| ai.add(bi))
-        .collect()
+    a.iter().zip(b.iter()).map(|(ai, bi)| ai.add(bi)).collect()
 }
 
 /// Batched matrix scalar multiplication: `C[i] = s[i] · A[i]`.
@@ -62,17 +50,23 @@ pub fn batched_scale(a: &[ComplexMatrix], scalars: &[Complex]) -> MathResult<Vec
 ///
 /// Returns `None` if any matrix in the batch is singular.
 pub fn batched_inverse(a: &[ComplexMatrix]) -> Option<Vec<ComplexMatrix>> {
-    a.iter().map(super::matrix::ComplexMatrix::inverse).collect()
+    a.iter()
+        .map(super::matrix::ComplexMatrix::inverse)
+        .collect()
 }
 
 /// Batched matrix determinant.
 pub fn batched_determinant(a: &[ComplexMatrix]) -> Vec<Complex> {
-    a.iter().map(super::matrix::ComplexMatrix::determinant).collect()
+    a.iter()
+        .map(super::matrix::ComplexMatrix::determinant)
+        .collect()
 }
 
 /// Batched matrix transpose.
 pub fn batched_transpose(a: &[ComplexMatrix]) -> Vec<ComplexMatrix> {
-    a.iter().map(super::matrix::ComplexMatrix::transpose).collect()
+    a.iter()
+        .map(super::matrix::ComplexMatrix::transpose)
+        .collect()
 }
 
 /// Batched SVD: for each matrix, compute `(U, S, Vh)`.
@@ -107,10 +101,7 @@ pub fn stack(matrices: &[ComplexMatrix]) -> MathResult<Vec<ComplexMatrix>> {
 ///
 /// # Errors
 /// [`MathError::DimensionMismatch`] if batch lengths or column counts differ.
-pub fn concat_rows(
-    a: &[ComplexMatrix],
-    b: &[ComplexMatrix],
-) -> MathResult<Vec<ComplexMatrix>> {
+pub fn concat_rows(a: &[ComplexMatrix], b: &[ComplexMatrix]) -> MathResult<Vec<ComplexMatrix>> {
     if a.len() != b.len() {
         return Err(MathError::DimensionMismatch);
     }
@@ -137,9 +128,7 @@ pub fn concat_rows(
 }
 
 /// Split a batch into two halves along the row dimension.
-pub fn split_rows(
-    batch: &[ComplexMatrix],
-) -> MathResult<(Vec<ComplexMatrix>, Vec<ComplexMatrix>)> {
+pub fn split_rows(batch: &[ComplexMatrix]) -> MathResult<(Vec<ComplexMatrix>, Vec<ComplexMatrix>)> {
     let mut first = Vec::with_capacity(batch.len());
     let mut second = Vec::with_capacity(batch.len());
     for m in batch {
@@ -227,7 +216,11 @@ mod tests {
         let product = a.mul(&inv[0]).unwrap();
         for i in 0..2 {
             for j in 0..2 {
-                let expected = if i == j { Complex::one() } else { Complex::zero() };
+                let expected = if i == j {
+                    Complex::one()
+                } else {
+                    Complex::zero()
+                };
                 assert!((product.get(i, j) - expected).norm() < 1e-10);
             }
         }

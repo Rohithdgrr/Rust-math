@@ -302,7 +302,11 @@ fn pow10(n: i32) -> f64 {
     for _ in 0..n.unsigned_abs() {
         acc *= 10.0;
     }
-    if n < 0 { 1.0 / acc } else { acc }
+    if n < 0 {
+        1.0 / acc
+    } else {
+        acc
+    }
 }
 
 /// Round `x` to `n` significant figures.

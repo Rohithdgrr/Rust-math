@@ -8,8 +8,8 @@
 
 use mathverse_complex::Complex;
 use mathverse_transforms::{
-    dct1, dct2, dct3, dct4, dft, dst1, dst4, fft, goertzel_magnitude,
-    haar_dwt, haar_dwt_multi, haar_idwt_multi, idct2,
+    dct1, dct2, dct3, dct4, dft, dst1, dst4, fft, goertzel_magnitude, haar_dwt, haar_dwt_multi,
+    haar_idwt_multi, idct2,
 };
 
 fn c(re: f64) -> Complex {
@@ -42,7 +42,11 @@ fn fft_sinusoid_energy_in_correct_bins() {
         .collect();
     let spectrum = fft(&signal).unwrap();
     for (k, bin) in spectrum.iter().enumerate() {
-        let expected = if k == 1 || k == n - 1 { n as f64 / 2.0 } else { 0.0 };
+        let expected = if k == 1 || k == n - 1 {
+            n as f64 / 2.0
+        } else {
+            0.0
+        };
         assert!(
             (bin.norm() - expected).abs() < 1e-8,
             "bin {k}: got {}, expected {expected}",

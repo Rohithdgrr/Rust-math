@@ -3,7 +3,7 @@
 //! Polynomial equation solvers and discriminant/Vieta helpers.
 //!
 //! All solvers return **real** roots only. Polynomials are passed as
-//! coefficient slices **lowest-degree first** (matching [`Polynomial`](crate::Polynomial)).
+//! coefficient slices **lowest-degree first** (matching ``Polynomial``).
 //!
 //! ## Supported Degrees
 //!
@@ -79,10 +79,7 @@ pub fn solve_polynomial(p: &Polynomial) -> Vec<f64> {
     let c = p.coeffs();
     let n = c.len().saturating_sub(1);
     match n {
-        0 => vec![],
-        1 => solve_linear(c[1], c[0])
-            .into_iter()
-            .collect(),
+        1 => solve_linear(c[1], c[0]).into_iter().collect(),
         2 => solve_quadratic(c[2], c[1], c[0]),
         3 => solve_cubic(c[3], c[2], c[1], c[0]),
         4 => solve_quartic(c[4], c[3], c[2], c[1], c[0]),
@@ -172,9 +169,7 @@ pub fn solve_quadratic(a: f64, b: f64, c: f64) -> Vec<f64> {
 #[inline]
 #[must_use]
 pub fn cubic_discriminant(a: f64, b: f64, c: f64, d: f64) -> f64 {
-    18.0 * a * b * c * d
-        - 4.0 * b * b * b * d
-        + b * b * c * c
+    18.0 * a * b * c * d - 4.0 * b * b * b * d + b * b * c * c
         - 4.0 * a * c * c * c
         - 27.0 * a * a * d * d
 }
@@ -242,9 +237,7 @@ pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
 #[inline]
 #[must_use]
 pub fn quartic_discriminant(a: f64, b: f64, c: f64, d: f64, e: f64) -> f64 {
-    256.0 * a * a * a * e * e * e
-        - 192.0 * a * a * b * d * e * e
-        - 128.0 * a * a * c * c * e * e
+    256.0 * a * a * a * e * e * e - 192.0 * a * a * b * d * e * e - 128.0 * a * a * c * c * e * e
         + 144.0 * a * a * c * d * d * e
         - 27.0 * a * a * d * d * d * d
         + 144.0 * a * b * b * c * e * e
@@ -402,7 +395,7 @@ pub fn vieta_product(coeffs: &[f64]) -> f64 {
     if n == 0 {
         return 0.0;
     }
-    let sign = if n % 2 == 0 { 1.0 } else { -1.0 };
+    let sign = if n.is_multiple_of(2) { 1.0 } else { -1.0 };
     sign * coeffs[0] / coeffs[n]
 }
 
@@ -422,7 +415,7 @@ fn integer_divisors(n: u64) -> Vec<u64> {
     }
     let mut d: u64 = 1;
     while d.saturating_mul(d) <= n {
-        if n % d == 0 {
+        if n.is_multiple_of(d) {
             divs.push(d);
             let o = n / d;
             if o != d {

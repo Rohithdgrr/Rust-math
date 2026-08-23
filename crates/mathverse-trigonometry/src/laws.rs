@@ -24,7 +24,7 @@ pub fn law_of_sines_angle<T: Real + Trig>(a: T, b: T, angle_a: T) -> T {
 /// - primary_angle is always the acute solution (π/2 or less)
 /// - secondary_angle is Some(π - primary_angle) when two solutions exist
 /// - secondary_angle is None when only one solution exists
-/// 
+///
 /// The SSA case has two solutions when:
 /// - a < b (side opposite given angle is shorter than other side)
 /// - angle_a is acute (less than π/2)
@@ -40,16 +40,16 @@ pub fn law_of_sines_angle_both<T: Real + Trig>(a: T, b: T, angle_a: T) -> (T, Op
 
     // Primary angle (acute or right)
     let angle_b = sin_b.asin();
-    
+
     // Check for ambiguous case: two solutions exist when:
     // 1. sin_b < 1 (not a right triangle)
     // 2. a < b (side opposite given angle is shorter)
     // 3. angle_a is acute
-    let has_two_solutions = sin_b_f64.abs() < 1.0 
-        && a.to_f64() < b.to_f64() 
+    let has_two_solutions = sin_b_f64.abs() < 1.0
+        && a.to_f64() < b.to_f64()
         && angle_a.to_f64() < core::f64::consts::FRAC_PI_2
         && angle_a.to_f64() > 0.0;
-    
+
     if has_two_solutions {
         let pi = T::from_f64(core::f64::consts::PI);
         let secondary = pi - angle_b;
@@ -157,7 +157,7 @@ mod tests {
         let (angle, maybe_second) = law_of_sines_angle_both(2.0f64, 3.0_f64.sqrt(), FRAC_PI_2);
         assert!((angle - FRAC_PI_3).abs() < EPS);
         assert!(maybe_second.is_none());
-        
+
         // Test ambiguous SSA case (two solutions)
         // a=7, b=10, A=30°: two possible triangles exist
         let (angle, maybe_second) = law_of_sines_angle_both(7.0f64, 10.0f64, FRAC_PI_6);
@@ -165,12 +165,12 @@ mod tests {
         let second = maybe_second.unwrap();
         // The two angles should sum to π
         assert!((angle + second - core::f64::consts::PI).abs() < EPS);
-        
+
         // Test no solution case (impossible triangle)
         let (angle, maybe_second) = law_of_sines_angle_both(3.0f64, 10.0f64, FRAC_PI_6);
         assert!(angle.is_nan());
         assert!(maybe_second.is_none());
-        
+
         // Test case where a >= b (no ambiguity)
         let (angle, maybe_second) = law_of_sines_angle_both(10.0f64, 7.0f64, FRAC_PI_6);
         assert!(!angle.is_nan());

@@ -53,7 +53,11 @@ pub fn checked_div(a: f64, b: f64) -> Option<f64> {
 pub fn saturating_add(a: f64, b: f64) -> f64 {
     let result = a + b;
     if result.is_infinite() {
-        if (a + b) > 0.0 { f64::MAX } else { f64::MIN }
+        if (a + b) > 0.0 {
+            f64::MAX
+        } else {
+            f64::MIN
+        }
     } else {
         result
     }
@@ -64,7 +68,11 @@ pub fn saturating_add(a: f64, b: f64) -> f64 {
 pub fn saturating_sub(a: f64, b: f64) -> f64 {
     let result = a - b;
     if result.is_infinite() {
-        if (a - b) > 0.0 { f64::MAX } else { f64::MIN }
+        if (a - b) > 0.0 {
+            f64::MAX
+        } else {
+            f64::MIN
+        }
     } else {
         result
     }
@@ -75,7 +83,11 @@ pub fn saturating_sub(a: f64, b: f64) -> f64 {
 pub fn saturating_mul(a: f64, b: f64) -> f64 {
     let result = a * b;
     if result.is_infinite() {
-        if (a * b) > 0.0 { f64::MAX } else { f64::MIN }
+        if (a * b) > 0.0 {
+            f64::MAX
+        } else {
+            f64::MIN
+        }
     } else {
         result
     }
@@ -99,7 +111,9 @@ pub fn approx_eq_rel(a: f64, b: f64, rel_tol: f64) -> bool {
     // Exact equality is intentional: it short-circuits identical values
     // (including infinities) before computing the relative tolerance.
     #[allow(clippy::float_cmp)]
-    if a == b { return true; }
+    if a == b {
+        return true;
+    }
     let diff = (a - b).abs();
     let largest = a.abs().max(b.abs());
     diff / largest <= rel_tol
@@ -120,7 +134,11 @@ pub fn lerp(a: f64, b: f64, t: f64) -> f64 {
 /// Inverse linear interpolation: given `y` in `[lerp(a, b, 0), lerp(a, b, 1)]`, returns `t`.
 #[must_use]
 pub fn inverse_lerp(a: f64, b: f64, y: f64) -> f64 {
-    if (b - a).abs() < f64::EPSILON { 0.0 } else { (y - a) / (b - a) }
+    if (b - a).abs() < f64::EPSILON {
+        0.0
+    } else {
+        (y - a) / (b - a)
+    }
 }
 
 /// Remaps `x` from `[in_lo, in_hi]` to `[out_lo, out_hi]`.

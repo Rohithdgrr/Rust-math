@@ -93,19 +93,25 @@ impl MergeConfig {
     }
 
     fn effective_left_on(&self) -> DataFrameResult<&str> {
-        self.on.as_deref()
+        self.on
+            .as_deref()
             .or(self.left_on.as_deref())
-            .ok_or_else(|| DataFrameError::InvalidOperation(
-                "MergeConfig must have `on` or `left_on`".to_string()
-            ))
+            .ok_or_else(|| {
+                DataFrameError::InvalidOperation(
+                    "MergeConfig must have `on` or `left_on`".to_string(),
+                )
+            })
     }
 
     fn effective_right_on(&self) -> DataFrameResult<&str> {
-        self.on.as_deref()
+        self.on
+            .as_deref()
             .or(self.right_on.as_deref())
-            .ok_or_else(|| DataFrameError::InvalidOperation(
-                "MergeConfig must have `on` or `right_on`".to_string()
-            ))
+            .ok_or_else(|| {
+                DataFrameError::InvalidOperation(
+                    "MergeConfig must have `on` or `right_on`".to_string(),
+                )
+            })
     }
 }
 
@@ -282,7 +288,11 @@ impl DataFrame {
 /// left row exists, otherwise the right key (for unmatched right rows in
 /// right/outer joins). Falls back to the right key when the left key is
 /// itself null so valid right keys are not lost.
-fn gather_key(left: &AnyColumn, right: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)]) -> AnyColumn {
+fn gather_key(
+    left: &AnyColumn,
+    right: &AnyColumn,
+    pairs: &[(Option<usize>, Option<usize>)],
+) -> AnyColumn {
     let len = pairs.len();
     let mut nulls: Vec<bool> = Vec::with_capacity(len);
     let mut picks_left: Vec<Option<usize>> = Vec::with_capacity(len);
@@ -315,27 +325,51 @@ fn gather_key(left: &AnyColumn, right: &AnyColumn, pairs: &[(Option<usize>, Opti
     let validity = NullBitmap::from_bools(&nulls);
     match left {
         AnyColumn::Float64(s) => {
-            let r = if let AnyColumn::Float64(r) = right { Some(r) } else { None };
+            let r = if let AnyColumn::Float64(r) = right {
+                Some(r)
+            } else {
+                None
+            };
             AnyColumn::Float64(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Float32(s) => {
-            let r = if let AnyColumn::Float32(r) = right { Some(r) } else { None };
+            let r = if let AnyColumn::Float32(r) = right {
+                Some(r)
+            } else {
+                None
+            };
             AnyColumn::Float32(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Int64(s) => {
-            let r = if let AnyColumn::Int64(r) = right { Some(r) } else { None };
+            let r = if let AnyColumn::Int64(r) = right {
+                Some(r)
+            } else {
+                None
+            };
             AnyColumn::Int64(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Int32(s) => {
-            let r = if let AnyColumn::Int32(r) = right { Some(r) } else { None };
+            let r = if let AnyColumn::Int32(r) = right {
+                Some(r)
+            } else {
+                None
+            };
             AnyColumn::Int32(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Bool(s) => {
-            let r = if let AnyColumn::Bool(r) = right { Some(r) } else { None };
+            let r = if let AnyColumn::Bool(r) = right {
+                Some(r)
+            } else {
+                None
+            };
             AnyColumn::Bool(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Utf8(s) => {
-            let r = if let AnyColumn::Utf8(r) = right { Some(r) } else { None };
+            let r = if let AnyColumn::Utf8(r) = right {
+                Some(r)
+            } else {
+                None
+            };
             AnyColumn::Utf8(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         // Note: preserved legacy behavior of returning `Date` for all
@@ -375,7 +409,11 @@ fn gather_series<T: Clone + Default>(
 /// Gathers values from `col` according to the join pairs. When `from_left`
 /// is `true`, the `left` side of each pair selects the value; otherwise the
 /// `right` side does. Pairs whose selected side is `None` yield nulls.
-pub fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], from_left: bool) -> AnyColumn {
+pub fn gather(
+    col: &AnyColumn,
+    pairs: &[(Option<usize>, Option<usize>)],
+    from_left: bool,
+) -> AnyColumn {
     let len = pairs.len();
     let mut nulls: Vec<bool> = Vec::with_capacity(len);
     let pick: Vec<Option<usize>> = pairs
@@ -389,11 +427,17 @@ pub fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], from_le
 
     match col {
         AnyColumn::Float64(s) => {
-            let data: Vec<f64> = pick.iter().map(|&p| p.map_or(0.0, |i| s.data()[i])).collect();
+            let data: Vec<f64> = pick
+                .iter()
+                .map(|&p| p.map_or(0.0, |i| s.data()[i]))
+                .collect();
             AnyColumn::Float64(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Float32(s) => {
-            let data: Vec<f32> = pick.iter().map(|&p| p.map_or(0.0, |i| s.data()[i])).collect();
+            let data: Vec<f32> = pick
+                .iter()
+                .map(|&p| p.map_or(0.0, |i| s.data()[i]))
+                .collect();
             AnyColumn::Float32(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Int64(s) => {
@@ -405,7 +449,10 @@ pub fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], from_le
             AnyColumn::Int32(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Bool(s) => {
-            let data: Vec<bool> = pick.iter().map(|&p| p.is_some_and(|i| s.data()[i])).collect();
+            let data: Vec<bool> = pick
+                .iter()
+                .map(|&p| p.is_some_and(|i| s.data()[i]))
+                .collect();
             AnyColumn::Bool(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Utf8(s) => {
@@ -515,7 +562,11 @@ mod tests {
     fn left() -> DataFrame {
         let mut df = DataFrame::new();
         df.add_column("id", vec![1_i64, 2, 3]).unwrap();
-        df.add_column("name", vec![String::from("a"), String::from("b"), String::from("c")]).unwrap();
+        df.add_column(
+            "name",
+            vec![String::from("a"), String::from("b"), String::from("c")],
+        )
+        .unwrap();
         df
     }
 
@@ -555,7 +606,7 @@ mod tests {
         assert_eq!(merged.nrows(), 3);
         let names = merged.column("name").unwrap().as_utf8().unwrap();
         assert!(names.is_null(2)); // id=4 has no left match
-        // Key parity: unmatched right row (id=4) still shows its key value.
+                                   // Key parity: unmatched right row (id=4) still shows its key value.
         let ids = merged.column("id").unwrap().as_i64().unwrap();
         let mut sorted = ids.data().to_vec();
         sorted.sort_unstable();
@@ -616,7 +667,8 @@ mod tests {
         // Right frame shares the `name` column name; it must be suffixed.
         let mut r = DataFrame::new();
         r.add_column("id", vec![1_i64, 2]).unwrap();
-        r.add_column("name", vec![String::from("z"), String::from("y")]).unwrap();
+        r.add_column("name", vec![String::from("z"), String::from("y")])
+            .unwrap();
         let merged = left().merge(&r, "id", JoinType::Left).unwrap();
         assert!(merged.has_column("name"));
         assert!(merged.has_column("name_y"));
@@ -662,7 +714,10 @@ mod tests {
     #[test]
     fn merge_with_indicator() {
         let merged = left()
-            .merge_with(&right(), &MergeConfig::on("id", JoinType::Outer).with_indicator())
+            .merge_with(
+                &right(),
+                &MergeConfig::on("id", JoinType::Outer).with_indicator(),
+            )
             .unwrap();
         assert_eq!(merged.nrows(), 4);
         assert!(merged.has_column("_merge"));
@@ -677,9 +732,13 @@ mod tests {
     fn merge_with_custom_suffixes() {
         let mut r = DataFrame::new();
         r.add_column("id", vec![1_i64, 2]).unwrap();
-        r.add_column("name", vec![String::from("z"), String::from("y")]).unwrap();
+        r.add_column("name", vec![String::from("z"), String::from("y")])
+            .unwrap();
         let merged = left()
-            .merge_with(&r, &MergeConfig::on("id", JoinType::Left).with_suffixes("_L", "_R"))
+            .merge_with(
+                &r,
+                &MergeConfig::on("id", JoinType::Left).with_suffixes("_L", "_R"),
+            )
             .unwrap();
         assert!(merged.has_column("name"));
         assert!(merged.has_column("name_R"));

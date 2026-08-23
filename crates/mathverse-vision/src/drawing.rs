@@ -23,7 +23,13 @@ use crate::Image;
 /// let mut img = Image::new(10, 10);
 /// line(&mut img, (1, 1), (9, 9), 1.0, 1);
 /// ```
-pub fn line(img: &mut Image, start: (usize, usize), end: (usize, usize), color: f64, thickness: usize) {
+pub fn line(
+    img: &mut Image,
+    start: (usize, usize),
+    end: (usize, usize),
+    color: f64,
+    thickness: usize,
+) {
     let (x0, y0) = (start.0 as i32, start.1 as i32);
     let (x1, y1) = (end.0 as i32, end.1 as i32);
     // Bresenham's line algorithm, all octants.
@@ -86,14 +92,20 @@ pub fn line(img: &mut Image, start: (usize, usize), end: (usize, usize), color: 
 /// let mut img = Image::new(20, 20);
 /// rectangle(&mut img, (2, 2), (18, 18), 1.0, 2);
 /// ```
-pub fn rectangle(img: &mut Image, top_left: (usize, usize), bottom_right: (usize, usize), color: f64, thickness: usize) {
+pub fn rectangle(
+    img: &mut Image,
+    top_left: (usize, usize),
+    bottom_right: (usize, usize),
+    color: f64,
+    thickness: usize,
+) {
     let (x0, y0) = top_left;
     let (x1, y1) = bottom_right;
-    
+
     // Draw top and bottom edges
     line(img, (x0, y0), (x1, y0), color, thickness);
     line(img, (x0, y1), (x1, y1), color, thickness);
-    
+
     // Draw left and right edges
     line(img, (x0, y0), (x0, y1), color, thickness);
     line(img, (x1, y0), (x1, y1), color, thickness);
@@ -120,21 +132,27 @@ pub fn rectangle(img: &mut Image, top_left: (usize, usize), bottom_right: (usize
 /// let mut img = Image::new(20, 20);
 /// circle(&mut img, (10, 10), 8, 1.0, 2);
 /// ```
-pub fn circle(img: &mut Image, center: (usize, usize), radius: usize, color: f64, thickness: usize) {
+pub fn circle(
+    img: &mut Image,
+    center: (usize, usize),
+    radius: usize,
+    color: f64,
+    thickness: usize,
+) {
     let cx = center.0 as i32;
     let cy = center.1 as i32;
     let r = radius as i32;
-    
+
     // Midpoint circle algorithm
     let mut d = 1 - r;
     let mut ddx = 1;
     let mut ddy = -2 * r;
     let mut x = 0i32;
     let mut y = r;
-    
+
     // Draw initial octant
-    _draw_circle_octants(img, cx, cy, x, y, color, thickness);
-    
+    draw_circle_octants(img, cx, cy, x, y, color, thickness);
+
     while x < y {
         if d < 0 {
             d += ddx;
@@ -147,11 +165,19 @@ pub fn circle(img: &mut Image, center: (usize, usize), radius: usize, color: f64
             x += 1;
             y -= 1;
         }
-        _draw_circle_octants(img, cx, cy, x, y, color, thickness);
+        draw_circle_octants(img, cx, cy, x, y, color, thickness);
     }
 }
 
-fn _draw_circle_octants(img: &mut Image, cx: i32, cy: i32, x: i32, y: i32, color: f64, thickness: usize) {
+fn draw_circle_octants(
+    img: &mut Image,
+    cx: i32,
+    cy: i32,
+    x: i32,
+    y: i32,
+    color: f64,
+    thickness: usize,
+) {
     // All 8 octants
     draw_point_circle(img, cx + x, cy + y, color, thickness);
     draw_point_circle(img, cx - x, cy + y, color, thickness);
@@ -189,7 +215,12 @@ fn draw_point_circle(img: &mut Image, x: i32, y: i32, color: f64, thickness: usi
 ///
 /// The rectangle includes both corners. Equivalent to `cv2.rectangle` with
 /// `thickness = -1`.
-pub fn fill_rect(img: &mut Image, top_left: (usize, usize), bottom_right: (usize, usize), color: f64) {
+pub fn fill_rect(
+    img: &mut Image,
+    top_left: (usize, usize),
+    bottom_right: (usize, usize),
+    color: f64,
+) {
     let (x0, y0) = top_left;
     let (x1, y1) = bottom_right;
     for y in y0.min(y1)..=y0.max(y1) {
@@ -294,7 +325,13 @@ pub fn ellipse(
 /// Draws a filled ellipse by filling the sampled outline polygon.
 ///
 /// Equivalent to `cv2.ellipse` with `thickness = -1`.
-pub fn fill_ellipse(img: &mut Image, center: (usize, usize), axes: (usize, usize), angle_deg: f64, color: f64) {
+pub fn fill_ellipse(
+    img: &mut Image,
+    center: (usize, usize),
+    axes: (usize, usize),
+    angle_deg: f64,
+    color: f64,
+) {
     let (cx, cy) = (center.0 as f64, center.1 as f64);
     let (rx, ry) = (axes.0.max(1) as f64, axes.1.max(1) as f64);
     let a = angle_deg.to_radians();
@@ -319,7 +356,14 @@ pub fn fill_ellipse(img: &mut Image, center: (usize, usize), axes: (usize, usize
 /// characters are skipped. `scale` scales the glyph size (1 = 5×7 pixels),
 /// and `thickness > 1` renders bolder strokes. Pixels outside the image are
 /// clipped.
-pub fn put_text(img: &mut Image, text: &str, org: (usize, usize), scale: usize, color: f64, thickness: usize) {
+pub fn put_text(
+    img: &mut Image,
+    text: &str,
+    org: (usize, usize),
+    scale: usize,
+    color: f64,
+    thickness: usize,
+) {
     let scale = scale.max(1);
     let thickness = thickness.max(1);
     let glyph_w = 5 * scale;
@@ -350,7 +394,11 @@ pub fn put_text(img: &mut Image, text: &str, org: (usize, usize), scale: usize, 
                                     for tx in -(thickness as i64 / 2)..=(thickness as i64 / 2) {
                                         let bx = px + tx;
                                         let by = py + ty;
-                                        if bx >= 0 && by >= 0 && bx < img.w as i64 && by < img.h as i64 {
+                                        if bx >= 0
+                                            && by >= 0
+                                            && bx < img.w as i64
+                                            && by < img.h as i64
+                                        {
                                             img.data[by as usize * img.w + bx as usize] = color;
                                         }
                                     }
@@ -496,7 +544,7 @@ mod tests {
         assert_eq!(img.data[10 * 20 + 2], 1.0); // left
         assert_eq!(img.data[2 * 20 + 10], 1.0); // top
         assert_eq!(img.data[18 * 20 + 10], 1.0); // bottom
-        // The center is on the outline only for degenerate radii.
+                                                 // The center is on the outline only for degenerate radii.
         assert_eq!(img.data[10 * 20 + 10], 0.0);
     }
 
@@ -507,7 +555,7 @@ mod tests {
         assert_eq!(img.data[2 * 10 + 2], 1.0);
         assert_eq!(img.data[4 * 10 + 5], 1.0);
         assert_eq!(img.data[3 * 10 + 3], 1.0);
-        assert_eq!(img.data[0 * 10 + 0], 0.0);
+        assert_eq!(img.data[0], 0.0);
     }
 
     #[test]
@@ -515,8 +563,8 @@ mod tests {
         let mut img = Image::new(10, 10);
         let pts = [(1, 1), (8, 1), (8, 8)];
         polylines(&mut img, &pts, true, 1.0, 1);
-        assert_eq!(img.data[1 * 10 + 1], 1.0);
-        assert_eq!(img.data[1 * 10 + 5], 1.0); // top edge
+        assert_eq!(img.data[10 + 1], 1.0);
+        assert_eq!(img.data[10 + 5], 1.0); // top edge
         assert_eq!(img.data[8 * 10 + 8], 1.0); // closing edge
     }
 
@@ -528,7 +576,7 @@ mod tests {
         // Interior near the centroid should be filled.
         assert_eq!(img.data[4 * 10 + 5], 1.0);
         // Outside corners stay empty.
-        assert_eq!(img.data[0 * 10 + 0], 0.0);
+        assert_eq!(img.data[0], 0.0);
         assert_eq!(img.data[9 * 10 + 9], 0.0);
     }
 

@@ -13,7 +13,6 @@
 /// assert!((lagrange(&xs, &ys)(2.0) - 7.0).abs() < 1e-10);
 /// assert!((newton(&xs, &ys)(2.0) - 7.0).abs() < 1e-10);
 /// ```
-
 use crate::polynomial::Polynomial;
 
 /// Lagrange interpolation.
@@ -46,7 +45,7 @@ pub fn lagrange(xs: &[f64], ys: &[f64]) -> Polynomial {
             let basis_factor = Polynomial::from_coeffs(&[-xs[j], 1.0]);
             basis = basis * basis_factor * Polynomial::constant(1.0 / (xs[i] - xs[j]));
         }
-        result = result + basis * Polynomial::constant(ys[i]);
+        result += basis * Polynomial::constant(ys[i]);
     }
     result
 }
@@ -63,7 +62,11 @@ pub fn divided_differences(xs: &[f64], ys: &[f64]) -> Vec<f64> {
         for i in 0..n - j {
             let diff = dd[i + 1][j - 1] - dd[i][j - 1];
             let denom = xs[i + j] - xs[i];
-            dd[i].push(if denom.abs() < crate::TOL { 0.0 } else { diff / denom });
+            dd[i].push(if denom.abs() < crate::TOL {
+                0.0
+            } else {
+                diff / denom
+            });
         }
     }
     dd.remove(0)
@@ -91,7 +94,7 @@ pub fn newton(xs: &[f64], ys: &[f64]) -> Polynomial {
     let mut basis = Polynomial::constant(1.0);
     for i in 1..n {
         basis = basis * Polynomial::from_coeffs(&[-xs[i - 1], 1.0]);
-        result = result + basis.clone() * Polynomial::constant(dd[i]);
+        result += basis.clone() * Polynomial::constant(dd[i]);
     }
     result
 }
@@ -210,10 +213,7 @@ pub fn polyfit(
 /// Solve `A x = b` by Gaussian elimination with partial pivoting.
 ///
 /// Returns `MathError::InvalidArgument` when the matrix is singular.
-fn solve_linear_system(
-    a: &[Vec<f64>],
-    b: &[f64],
-) -> mathverse_core::error::MathResult<Vec<f64>> {
+fn solve_linear_system(a: &[Vec<f64>], b: &[f64]) -> mathverse_core::error::MathResult<Vec<f64>> {
     use mathverse_core::error::MathError;
 
     let n = a.len();
@@ -328,18 +328,29 @@ mod tests {
     #[test]
     fn polyfit_least_squares() {
         // Noisy line y = 2x + 1; a degree-1 fit recovers slope/intercept.
-        let xs: Vec<f64> = (0..20).map(|i| i as f64).collect();
-        let ys: Vec<f64> = xs.iter().map(|x| 2.0 * x + 1.0 + (x * 0.37).sin() * 1e-6).collect();
+        let xs: Vec<f64> = (0..20).map(f64::from).collect();
+        let ys: Vec<f64> = xs
+            .iter()
+            .map(|x| 2.0 * x + 1.0 + (x * 0.37).sin() * 1e-6)
+            .collect();
         let p = polyfit(&xs, &ys, 1).unwrap();
-        assert!((p.coeffs()[0] - 1.0).abs() < 1e-6, "intercept {}", p.coeffs()[0]);
-        assert!((p.coeffs()[1] - 2.0).abs() < 1e-6, "slope {}", p.coeffs()[1]);
+        assert!(
+            (p.coeffs()[0] - 1.0).abs() < 1e-6,
+            "intercept {}",
+            p.coeffs()[0]
+        );
+        assert!(
+            (p.coeffs()[1] - 2.0).abs() < 1e-6,
+            "slope {}",
+            p.coeffs()[1]
+        );
     }
 
     #[test]
     fn polyfit_errors() {
         assert!(polyfit(&[1.0, 2.0], &[3.0], 1).is_err()); // length mismatch
         assert!(polyfit(&[1.0], &[2.0], 2).is_err()); // too few points
-        // Duplicate x with underdetermined system → singular.
+                                                      // Duplicate x with underdetermined system → singular.
         assert!(polyfit(&[1.0, 1.0, 1.0], &[2.0, 2.0, 2.0], 2).is_err());
     }
 

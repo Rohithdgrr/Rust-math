@@ -124,10 +124,7 @@ pub fn cwt(signal: &[Complex], scales: &[f64], omega0: f64) -> Vec<Vec<Complex>>
 /// frequency for each scale: `f ≈ omega0 / (2π · scale · dt)`.
 pub fn cwt_frequencies(scales: &[f64], dt: f64, omega0: f64) -> Vec<f64> {
     let two_pi = 2.0 * core::f64::consts::PI;
-    scales
-        .iter()
-        .map(|&s| omega0 / (two_pi * s * dt))
-        .collect()
+    scales.iter().map(|&s| omega0 / (two_pi * s * dt)).collect()
 }
 
 /// Single-level DWT (Discrete Wavelet Transform) decomposition using
@@ -374,10 +371,7 @@ mod tests {
 
     #[test]
     fn scalogram_phase_range() {
-        let cwt_result = vec![vec![
-            Complex::new(1.0, 1.0),
-            Complex::new(-1.0, 0.0),
-        ]];
+        let cwt_result = vec![vec![Complex::new(1.0, 1.0), Complex::new(-1.0, 0.0)]];
         let phase = scalogram_phase(&cwt_result);
         assert!((phase[0][0] - core::f64::consts::FRAC_PI_4).abs() < EPS);
         assert!((phase[0][1] - core::f64::consts::PI).abs() < EPS);

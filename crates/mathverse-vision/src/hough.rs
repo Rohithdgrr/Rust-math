@@ -22,8 +22,12 @@ pub fn hough_lines(img: &Image, threshold: usize) -> Vec<(f64, f64)> {
     let mut acc = vec![0usize; theta_bins * rho_bins];
 
     // Precompute cos/sin tables.
-    let cos_t: Vec<f64> = (0..theta_bins).map(|t| (t as f64).to_radians().cos()).collect();
-    let sin_t: Vec<f64> = (0..theta_bins).map(|t| (t as f64).to_radians().sin()).collect();
+    let cos_t: Vec<f64> = (0..theta_bins)
+        .map(|t| (t as f64).to_radians().cos())
+        .collect();
+    let sin_t: Vec<f64> = (0..theta_bins)
+        .map(|t| (t as f64).to_radians().sin())
+        .collect();
 
     for y in 0..h {
         for x in 0..w {
@@ -48,7 +52,9 @@ pub fn hough_lines(img: &Image, threshold: usize) -> Vec<(f64, f64)> {
                 continue;
             }
             let is_max = (-1i64..=1).all(|dt| {
-                (-1i64..=1).all(|dr| acc[(t as i64 + dt) as usize * rho_bins + (r as i64 + dr) as usize] <= v)
+                (-1i64..=1).all(|dr| {
+                    acc[(t as i64 + dt) as usize * rho_bins + (r as i64 + dr) as usize] <= v
+                })
             });
             if is_max {
                 let rho = (r as i64 - diag as i64) as f64;
@@ -58,8 +64,11 @@ pub fn hough_lines(img: &Image, threshold: usize) -> Vec<(f64, f64)> {
         }
     }
     // Sort by vote strength, strongest first.
-    lines.sort_by(|a, b| b.0.cmp(&a.0));
-    lines.into_iter().map(|(_, rho, theta)| (rho, theta)).collect()
+    lines.sort_by_key(|l| std::cmp::Reverse(l.0));
+    lines
+        .into_iter()
+        .map(|(_, rho, theta)| (rho, theta))
+        .collect()
 }
 
 /// Detects circles in an edge image using the Hough transform.
@@ -76,7 +85,10 @@ pub fn hough_circles(
     threshold: usize,
 ) -> Vec<(f64, f64, f64)> {
     let (w, h) = (img.w, img.h);
-    assert!(min_radius >= 1 && max_radius >= min_radius, "invalid radius range");
+    assert!(
+        min_radius >= 1 && max_radius >= min_radius,
+        "invalid radius range"
+    );
     let mut centers: Vec<Vec<Vec<usize>>> = vec![vec![vec![0usize; w]; h]; max_radius + 1];
 
     let mut edge_pixels = Vec::new();
@@ -130,8 +142,11 @@ pub fn hough_circles(
         }
     }
     // Rank by vote strength, strongest first.
-    circles.sort_by(|a, b| b.0.cmp(&a.0));
-    circles.into_iter().map(|(_, x, y, r)| (x as f64, y as f64, r as f64)).collect()
+    circles.sort_by_key(|c| std::cmp::Reverse(c.0));
+    circles
+        .into_iter()
+        .map(|(_, x, y, r)| (x as f64, y as f64, r as f64))
+        .collect()
 }
 
 #[cfg(test)]
@@ -161,7 +176,7 @@ mod tests {
         // A clean single-pixel-wide circle of radius 8 centered at (15, 15),
         // generated parametrically so every edge pixel lies on the ideal ring.
         for deg in 0..360 {
-            let th = (deg as f64).to_radians();
+            let th = f64::from(deg).to_radians();
             let x = (15.0 + 8.0 * th.cos()).round() as i64;
             let y = (15.0 + 8.0 * th.sin()).round() as i64;
             img.data[y as usize * 30 + x as usize] = 1.0;

@@ -1,8 +1,8 @@
 //! Collision and intersection: point-in-polygon, segment-polygon, circle-polygon,
 //! polygon-polygon (SAT), convex hull, convexity test.
 
-use super::shapes2d::{Circle, Point2, Polygon};
 use super::primitives2d::LineSegment2;
+use super::shapes2d::{Circle, Point2, Polygon};
 
 // ---------------------------------------------------------------------------
 // Point in polygon
@@ -19,7 +19,8 @@ pub fn point_in_polygon(p: Point2, poly: &Polygon) -> bool {
         let yi_gt = pts[i].y > p.y;
         let yj_gt = pts[j].y > p.y;
         if yi_gt != yj_gt {
-            let x_intersect = (pts[j].x - pts[i].x) * (p.y - pts[i].y) / (pts[j].y - pts[i].y) + pts[i].x;
+            let x_intersect =
+                (pts[j].x - pts[i].x) * (p.y - pts[i].y) / (pts[j].y - pts[i].y) + pts[i].x;
             if p.x < x_intersect {
                 inside = !inside;
             }
@@ -40,14 +41,12 @@ pub fn winding_number(p: Point2, poly: &Polygon) -> i32 {
         let a = pts[i];
         let b = pts[(i + 1) % n];
         if a.y <= p.y {
-            if b.y > p.y
-                && cross_2d(a, b, p) > 0.0 {
-                    wn += 1;
-                }
-        } else if b.y <= p.y
-            && cross_2d(a, b, p) < 0.0 {
-                wn -= 1;
+            if b.y > p.y && cross_2d(a, b, p) > 0.0 {
+                wn += 1;
             }
+        } else if b.y <= p.y && cross_2d(a, b, p) < 0.0 {
+            wn -= 1;
+        }
     }
     wn
 }
@@ -87,10 +86,18 @@ pub fn segments_intersect(a: LineSegment2, b: LineSegment2) -> bool {
         return true;
     }
     // Collinear cases
-    if d1.abs() < 1e-10 && on_segment(a, b.a) { return true; }
-    if d2.abs() < 1e-10 && on_segment(a, b.b) { return true; }
-    if d3.abs() < 1e-10 && on_segment(b, a.a) { return true; }
-    if d4.abs() < 1e-10 && on_segment(b, a.b) { return true; }
+    if d1.abs() < 1e-10 && on_segment(a, b.a) {
+        return true;
+    }
+    if d2.abs() < 1e-10 && on_segment(a, b.b) {
+        return true;
+    }
+    if d3.abs() < 1e-10 && on_segment(b, a.a) {
+        return true;
+    }
+    if d4.abs() < 1e-10 && on_segment(b, a.b) {
+        return true;
+    }
     false
 }
 
@@ -131,8 +138,14 @@ pub fn circle_intersects_polygon(circ: Circle, poly: &Polygon) -> bool {
 /// Panics if either polygon is concave (SAT is only valid for convex polygons).
 #[must_use]
 pub fn polygons_intersect(poly_a: &Polygon, poly_b: &Polygon) -> bool {
-    assert!(is_convex(poly_a), "polygons_intersect requires convex polygons (SAT)");
-    assert!(is_convex(poly_b), "polygons_intersect requires convex polygons (SAT)");
+    assert!(
+        is_convex(poly_a),
+        "polygons_intersect requires convex polygons (SAT)"
+    );
+    assert!(
+        is_convex(poly_b),
+        "polygons_intersect requires convex polygons (SAT)"
+    );
     let axes_a = sat_axes(&poly_a.points);
     let axes_b = sat_axes(&poly_b.points);
     for axis in axes_a.iter().chain(axes_b.iter()) {
@@ -151,10 +164,7 @@ fn sat_axes(pts: &[Point2]) -> Vec<Point2> {
     let n = pts.len();
     let mut axes = Vec::with_capacity(n);
     for i in 0..n {
-        let edge = Point2::new(
-            pts[(i + 1) % n].x - pts[i].x,
-            pts[(i + 1) % n].y - pts[i].y,
-        );
+        let edge = Point2::new(pts[(i + 1) % n].x - pts[i].x, pts[(i + 1) % n].y - pts[i].y);
         // Perpendicular (normal)
         axes.push(Point2::new(-edge.y, edge.x));
     }
@@ -169,8 +179,12 @@ fn project_polygon(pts: &[Point2], axis: Point2) -> Option<(f64, f64)> {
     let mut max = min;
     for p in &pts[1..] {
         let proj = p.y.mul_add(axis.y, p.x * axis.x);
-        if proj < min { min = proj; }
-        if proj > max { max = proj; }
+        if proj < min {
+            min = proj;
+        }
+        if proj > max {
+            max = proj;
+        }
     }
     Some((min, max))
 }
@@ -187,7 +201,8 @@ pub fn convex_hull(points: &[Point2]) -> Vec<Point2> {
         return pts;
     }
     pts.sort_by(|a, b| {
-        a.x.partial_cmp(&b.x).unwrap_or(std::cmp::Ordering::Equal)
+        a.x.partial_cmp(&b.x)
+            .unwrap_or(std::cmp::Ordering::Equal)
             .then(a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal))
     });
     let mut lower: Vec<Point2> = Vec::new();
@@ -252,10 +267,12 @@ pub fn is_convex(poly: &Polygon) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::shapes2d::Polygon;
+    use super::*;
 
-    fn pt(x: f64, y: f64) -> Point2 { Point2::new(x, y) }
+    fn pt(x: f64, y: f64) -> Point2 {
+        Point2::new(x, y)
+    }
 
     fn square() -> Polygon {
         Polygon::new(vec![pt(0.0, 0.0), pt(2.0, 0.0), pt(2.0, 2.0), pt(0.0, 2.0)])
@@ -304,7 +321,13 @@ mod tests {
 
     #[test]
     fn convex_hull_test() {
-        let pts = vec![pt(0.0, 0.0), pt(1.0, 1.0), pt(2.0, 0.0), pt(1.0, -1.0), pt(1.0, 0.5)];
+        let pts = vec![
+            pt(0.0, 0.0),
+            pt(1.0, 1.0),
+            pt(2.0, 0.0),
+            pt(1.0, -1.0),
+            pt(1.0, 0.5),
+        ];
         let hull = convex_hull(&pts);
         assert_eq!(hull.len(), 4);
     }
@@ -312,7 +335,13 @@ mod tests {
     #[test]
     fn convexity_test() {
         assert!(is_convex(&square()));
-        let concave = Polygon::new(vec![pt(0.0, 0.0), pt(2.0, 0.0), pt(1.0, 0.5), pt(2.0, 2.0), pt(0.0, 2.0)]);
+        let concave = Polygon::new(vec![
+            pt(0.0, 0.0),
+            pt(2.0, 0.0),
+            pt(1.0, 0.5),
+            pt(2.0, 2.0),
+            pt(0.0, 2.0),
+        ]);
         assert!(!is_convex(&concave));
     }
 }

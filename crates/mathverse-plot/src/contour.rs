@@ -50,10 +50,7 @@ impl ContourConfig {
 }
 
 /// Compute contour lines using marching squares.
-fn marching_squares(
-    grid: &[Vec<f64>],
-    threshold: f64,
-) -> Vec<Vec<(f64, f64)>> {
+fn marching_squares(grid: &[Vec<f64>], threshold: f64) -> Vec<Vec<(f64, f64)>> {
     let rows = grid.len();
     if rows == 0 {
         return vec![];
@@ -138,19 +135,24 @@ pub fn render_contour(
     let cols = z_grid[0].len();
 
     // Find z range
-    let z_min = z_grid.iter().flat_map(|r| r.iter()).fold(f64::INFINITY, |a, &b| a.min(b));
-    let z_max = z_grid.iter().flat_map(|r| r.iter()).fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+    let z_min = z_grid
+        .iter()
+        .flat_map(|r| r.iter())
+        .fold(f64::INFINITY, |a, &b| a.min(b));
+    let z_max = z_grid
+        .iter()
+        .flat_map(|r| r.iter())
+        .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;
 
     let to_x = |x: f64| padding + (x - x_range.0) / (x_range.1 - x_range.0) * chart_width;
-    let to_y = |y: f64| padding + 30.0 + chart_height * (1.0 - (y - y_range.0) / (y_range.1 - y_range.0));
+    let to_y =
+        |y: f64| padding + 30.0 + chart_height * (1.0 - (y - y_range.0) / (y_range.1 - y_range.0));
 
     // Color map (viridis by default, matching matplotlib's contourf default)
-    let color_for_level = |t: f64| -> String {
-        crate::color::viridis(t.clamp(0.0, 1.0)).to_hex()
-    };
+    let color_for_level = |t: f64| -> String { crate::color::viridis(t.clamp(0.0, 1.0)).to_hex() };
 
     let mut svg = String::new();
     svg.push_str(&format!(
@@ -165,14 +167,18 @@ pub fn render_contour(
         // Filled contour: draw filled cells
         for j in 0..rows - 1 {
             for i in 0..cols - 1 {
-                let avg = (z_grid[j][i] + z_grid[j][i + 1] + z_grid[j + 1][i] + z_grid[j + 1][i + 1]) / 4.0;
+                let avg =
+                    (z_grid[j][i] + z_grid[j][i + 1] + z_grid[j + 1][i] + z_grid[j + 1][i + 1])
+                        / 4.0;
                 let t = (avg - z_min) / (z_max - z_min);
                 let color = color_for_level(t);
 
                 let x0 = to_x(x_range.0 + (x_range.1 - x_range.0) * i as f64 / (cols - 1) as f64);
                 let y0 = to_y(y_range.0 + (y_range.1 - y_range.0) * j as f64 / (rows - 1) as f64);
-                let x1 = to_x(x_range.0 + (x_range.1 - x_range.0) * (i + 1) as f64 / (cols - 1) as f64);
-                let y1 = to_y(y_range.0 + (y_range.1 - y_range.0) * (j + 1) as f64 / (rows - 1) as f64);
+                let x1 =
+                    to_x(x_range.0 + (x_range.1 - x_range.0) * (i + 1) as f64 / (cols - 1) as f64);
+                let y1 =
+                    to_y(y_range.0 + (y_range.1 - y_range.0) * (j + 1) as f64 / (rows - 1) as f64);
 
                 svg.push_str(&format!(
                     r#"  <rect x="{x0}" y="{y0}" width="{}" height="{}" fill="{color}" stroke="none"/>"#,
@@ -243,18 +249,26 @@ pub fn render_contour(
             let h1 = cb_h * (t1 - t0);
             svg.push_str(&format!(
                 r#"  <rect x="{}" y="{}" width="{}" height="{}" fill="{}"/>"#,
-                cb_x, y0, cb_w, h1, color_for_level(f64::midpoint(t0, t1))
+                cb_x,
+                y0,
+                cb_w,
+                h1,
+                color_for_level(f64::midpoint(t0, t1))
             ));
             svg.push('\n');
         }
         svg.push_str(&format!(
             r#"  <text x="{}" y="{}" font-size="10" text-anchor="middle">{:.2}</text>"#,
-            cb_x + cb_w / 2.0, cb_top + cb_h + 12.0, z_min
+            cb_x + cb_w / 2.0,
+            cb_top + cb_h + 12.0,
+            z_min
         ));
         svg.push('\n');
         svg.push_str(&format!(
             r#"  <text x="{}" y="{}" font-size="10" text-anchor="middle">{:.2}</text>"#,
-            cb_x + cb_w / 2.0, cb_top - 6.0, z_max
+            cb_x + cb_w / 2.0,
+            cb_top - 6.0,
+            z_max
         ));
         svg.push('\n');
     }
@@ -262,7 +276,8 @@ pub fn render_contour(
     // Axes labels
     svg.push_str(&format!(
         r#"  <text x="{}" y="{}" text-anchor="middle" font-size="11">x</text>"#,
-        width / 2.0, height - 5.0
+        width / 2.0,
+        height - 5.0
     ));
     svg.push('\n');
     svg.push_str(&format!(
@@ -291,7 +306,11 @@ mod tests {
     #[test]
     fn contour_plot_renders() {
         let grid: Vec<Vec<f64>> = (0..10)
-            .map(|j| (0..10).map(|i| (f64::from(i) * f64::from(i) + f64::from(j) * f64::from(j)) / 100.0).collect())
+            .map(|j| {
+                (0..10)
+                    .map(|i| (f64::from(i) * f64::from(i) + f64::from(j) * f64::from(j)) / 100.0)
+                    .collect()
+            })
             .collect();
         let config = ContourConfig::new();
         let svg = render_contour(&grid, (0.0, 1.0), (0.0, 1.0), &config).unwrap();

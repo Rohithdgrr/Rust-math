@@ -363,8 +363,7 @@ impl HierarchicalModel {
         }
 
         let likelihood = &self.likelihood;
-        let mut current_log_post =
-            self.hyperprior.log_pdf(&theta) + likelihood(data, &theta);
+        let mut current_log_post = self.hyperprior.log_pdf(&theta) + likelihood(data, &theta);
 
         let mut samples = Vec::with_capacity(n_samples);
         for i in 0..BURN_IN + n_samples {
@@ -426,7 +425,11 @@ impl EmpiricalBayes {
         simplex.push((initial.to_vec(), score(initial)));
         for i in 0..n {
             let mut v = initial.to_vec();
-            let step = if v[i].abs() > 1e-10 { 0.05 * v[i].abs() } else { 0.05 };
+            let step = if v[i].abs() > 1e-10 {
+                0.05 * v[i].abs()
+            } else {
+                0.05
+            };
             v[i] += step;
             let s = score(&v);
             simplex.push((v, s));
@@ -599,14 +602,11 @@ mod tests {
     #[test]
     fn test_hierarchical_model_posterior_mean() {
         let prior = BetaPrior::new(2.0, 2.0);
-        let model = HierarchicalModel::new(
-            Box::new(prior),
-            |data: &[f64], theta: &[f64]| {
-                let successes = data[0];
-                let trials = data[1];
-                theta[0].powf(successes) * (1.0 - theta[0]).powf(trials - successes)
-            },
-        );
+        let model = HierarchicalModel::new(Box::new(prior), |data: &[f64], theta: &[f64]| {
+            let successes = data[0];
+            let trials = data[1];
+            theta[0].powf(successes) * (1.0 - theta[0]).powf(trials - successes)
+        });
 
         let data = vec![5.0, 10.0];
         let mut rng = Rng::new(7);

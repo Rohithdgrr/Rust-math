@@ -905,7 +905,11 @@ mod tests {
 
     #[test]
     fn surface_mesh_triangles_and_wireframe() {
-        let grid = vec![vec![0.0, 0.0, 0.0], vec![0.0, 1.0, 0.0], vec![0.0, 0.0, 0.0]];
+        let grid = vec![
+            vec![0.0, 0.0, 0.0],
+            vec![0.0, 1.0, 0.0],
+            vec![0.0, 0.0, 0.0],
+        ];
         let mesh = SurfaceMesh::from_grid(grid, (0.0, 2.0), (0.0, 2.0)).unwrap();
         assert_eq!(mesh.dims(), (3, 3));
         // (rows-1)*(cols-1)*2 = 8 triangles.
@@ -940,7 +944,11 @@ mod tests {
 
     #[test]
     fn surface_html_renders() {
-        let grid = vec![vec![0.0, 0.0, 0.0], vec![0.0, 1.0, 0.0], vec![0.0, 0.0, 0.0]];
+        let grid = vec![
+            vec![0.0, 0.0, 0.0],
+            vec![0.0, 1.0, 0.0],
+            vec![0.0, 0.0, 0.0],
+        ];
         let mesh = SurfaceMesh::from_grid(grid, (0.0, 1.0), (0.0, 1.0)).unwrap();
         let html = render_surface_html(&mesh, &WebGL3DConfig::default());
         assert!(html.contains("<canvas"));
@@ -950,20 +958,14 @@ mod tests {
 
     #[test]
     fn webgl3d_creation() {
-        let points = vec![
-            Point3D::new(0.0, 0.0, 0.0),
-            Point3D::new(1.0, 1.0, 1.0),
-        ];
+        let points = vec![Point3D::new(0.0, 0.0, 0.0), Point3D::new(1.0, 1.0, 1.0)];
         let renderer = WebGL3D::new(points);
         assert_eq!(renderer.num_points(), 2);
     }
 
     #[test]
     fn webgl3d_bounds() {
-        let points = vec![
-            Point3D::new(-1.0, -2.0, -3.0),
-            Point3D::new(1.0, 2.0, 3.0),
-        ];
+        let points = vec![Point3D::new(-1.0, -2.0, -3.0), Point3D::new(1.0, 2.0, 3.0)];
         let renderer = WebGL3D::new(points);
         let (min_x, max_x, min_y, max_y, min_z, max_z) = renderer.bounds();
         assert_eq!(min_x, -1.0);

@@ -251,11 +251,7 @@ impl GradientBoostingClassifier {
             self.feature_indices.push(feats.clone());
 
             let prob: Vec<f64> = raw.iter().map(|&r| sigmoid(r)).collect();
-            let residuals: Vec<f64> = y
-                .iter()
-                .zip(&prob)
-                .map(|(yi, &pi)| *yi - pi)
-                .collect();
+            let residuals: Vec<f64> = y.iter().zip(&prob).map(|(yi, &pi)| *yi - pi).collect();
             let tree = fit_stump(x, &residuals, &feats);
             for (i, row) in x.iter().enumerate() {
                 let pred = predict_stump(&tree, row);

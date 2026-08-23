@@ -61,10 +61,7 @@ pub fn em<M: EMModel>(
         let mut ll = 0.0;
         for (i, obs) in observations.iter().enumerate() {
             let log_rho = model.log_responsibilities(&params, obs);
-            let max_r = log_rho
-                .iter()
-                .copied()
-                .fold(f64::NEG_INFINITY, f64::max);
+            let max_r = log_rho.iter().copied().fold(f64::NEG_INFINITY, f64::max);
             let sum_exp: f64 = log_rho.iter().map(|&lr| (lr - max_r).exp()).sum();
             let log_z = max_r + sum_exp.ln();
             ll += log_z;
@@ -315,7 +312,11 @@ impl GaussianMixture {
         if let Ok(l) = cholesky(&self.covariances[k]) {
             let mut x = self.means[k].clone();
             for i in 0..d {
-                let z = Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
+                let z = Normal {
+                    mu: 0.0,
+                    sigma: 1.0,
+                }
+                .sample(rng);
                 for (xj, lj) in x.iter_mut().zip(&l).take(d) {
                     *xj += lj[i] * z;
                 }
@@ -365,7 +366,11 @@ impl GMMModel {
         params
     }
 
-    fn unflatten(params: &[f64], k: usize, d: usize) -> (Vec<f64>, Vec<Vec<f64>>, Vec<Vec<Vec<f64>>>) {
+    fn unflatten(
+        params: &[f64],
+        k: usize,
+        d: usize,
+    ) -> (Vec<f64>, Vec<Vec<f64>>, Vec<Vec<Vec<f64>>>) {
         let mut idx = 0;
         let mut a = vec![0.0; k];
         for ai in &mut a {
@@ -514,7 +519,11 @@ mod tests {
         for _ in 0..n {
             let mu = if rng.uniform() < 0.5 { -3.0 } else { 3.0 };
             data.push(vec![
-                mu + Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng),
+                mu + Normal {
+                    mu: 0.0,
+                    sigma: 1.0,
+                }
+                .sample(&mut rng),
             ]);
         }
         let mut gmm = GaussianMixture {
@@ -558,8 +567,18 @@ mod tests {
                 (4.0, 4.0)
             };
             data.push(vec![
-                center.0 + Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng),
-                center.1 + Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng),
+                center.0
+                    + Normal {
+                        mu: 0.0,
+                        sigma: 1.0,
+                    }
+                    .sample(&mut rng),
+                center.1
+                    + Normal {
+                        mu: 0.0,
+                        sigma: 1.0,
+                    }
+                    .sample(&mut rng),
             ]);
         }
         let mut gmm = GaussianMixture {
@@ -581,8 +600,16 @@ mod tests {
         let mut data = Vec::new();
         for _ in 0..300 {
             data.push(vec![
-                Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng),
-                Normal { mu: 0.0, sigma: 1.0 }.sample(&mut rng),
+                Normal {
+                    mu: 0.0,
+                    sigma: 1.0,
+                }
+                .sample(&mut rng),
+                Normal {
+                    mu: 0.0,
+                    sigma: 1.0,
+                }
+                .sample(&mut rng),
             ]);
         }
         let mut gmm = GaussianMixture {
@@ -690,9 +717,13 @@ mod tests {
         for _ in 0..800 {
             let comp_a = rng.uniform() < 0.5;
             let row: Vec<f64> = if comp_a {
-                pa.iter().map(|&p| if rng.uniform() < p { 1.0 } else { 0.0 }).collect()
+                pa.iter()
+                    .map(|&p| if rng.uniform() < p { 1.0 } else { 0.0 })
+                    .collect()
             } else {
-                pb.iter().map(|&p| if rng.uniform() < p { 1.0 } else { 0.0 }).collect()
+                pb.iter()
+                    .map(|&p| if rng.uniform() < p { 1.0 } else { 0.0 })
+                    .collect()
             };
             data.push(row);
         }
@@ -722,12 +753,10 @@ mod tests {
         assert!((second[0] - pb[0]).abs() < 0.05, "pb {}", second[0]);
         assert!((second[1] - pb[1]).abs() < 0.05, "pb1 {}", second[1]);
         // Monotone log-likelihood up to float noise.
-        assert!(
-            result
-                .log_likelihoods
-                .windows(2)
-                .all(|w| w[1] >= w[0] - 1e-6 * (1.0 + w[0].abs()))
-        );
+        assert!(result
+            .log_likelihoods
+            .windows(2)
+            .all(|w| w[1] >= w[0] - 1e-6 * (1.0 + w[0].abs())));
     }
 
     #[test]

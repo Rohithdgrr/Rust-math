@@ -3,143 +3,282 @@
 use crate::tensor::Tensor;
 use mathverse_core::error::MathResult;
 
-/// ReLU: max(0, x)
+/// `ReLU`: max(0, x)
+#[must_use]
 pub fn relu(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| x.max(0.0)).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t.data.iter().map(|&x| x.max(0.0)).collect(),
+    }
 }
 
-/// Derivative of ReLU (1 where x > 0, else 0).
+/// Derivative of `ReLU` (1 where x > 0, else 0).
+#[must_use]
 pub fn relu_grad(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| if x > 0.0 { 1.0 } else { 0.0 }).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| if x > 0.0 { 1.0 } else { 0.0 })
+            .collect(),
+    }
 }
 
-/// LeakyReLU: x if x > 0, else slope * x.
+/// `LeakyReLU`: x if x > 0, else slope * x.
+#[must_use]
 pub fn leaky_relu(t: &Tensor, slope: f64) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| if x > 0.0 { x } else { slope * x }).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| if x > 0.0 { x } else { slope * x })
+            .collect(),
+    }
 }
 
-/// Derivative of LeakyReLU (1 where x > 0, else `slope`).
+/// Derivative of `LeakyReLU` (1 where x > 0, else `slope`).
+#[must_use]
 pub fn leaky_relu_grad(t: &Tensor, slope: f64) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| if x > 0.0 { 1.0 } else { slope }).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| if x > 0.0 { 1.0 } else { slope })
+            .collect(),
+    }
 }
 
-/// PReLU: x if x > 0, else alpha * x (per-channel alpha).
+/// `PReLU`: x if x > 0, else alpha * x (per-channel alpha).
 pub fn prelu(t: &Tensor, alpha: &Tensor) -> MathResult<Tensor> {
     let target = crate::tensor::broadcast_shapes(&t.shape, &alpha.shape)?;
     let a = t.broadcast_to(&target)?;
     let b = alpha.broadcast_to(&target)?;
-    let data: Vec<f64> = a.data.iter().zip(&b.data)
+    let data: Vec<f64> = a
+        .data
+        .iter()
+        .zip(&b.data)
         .map(|(&x, &a)| if x > 0.0 { x } else { a * x })
         .collect();
-    Ok(Tensor { shape: target, data })
+    Ok(Tensor {
+        shape: target,
+        data,
+    })
 }
 
 /// ELU: x if x > 0, else alpha * (exp(x) - 1).
+#[must_use]
 pub fn elu(t: &Tensor, alpha: f64) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter()
-        .map(|&x| if x > 0.0 { x } else { alpha * (x.exp() - 1.0) })
-        .collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| if x > 0.0 { x } else { alpha * x.exp_m1() })
+            .collect(),
+    }
 }
 
 /// SELU: lambda * (x if x > 0 else alpha * (exp(x) - 1)).
 /// lambda ≈ 1.0507, alpha ≈ 1.6733.
+#[must_use]
 pub fn selu(t: &Tensor) -> Tensor {
     let lambda = 1.0507009873554805;
     let alpha = 1.6732632423543772;
-    Tensor { shape: t.shape.clone(), data: t.data.iter()
-        .map(|&x| if x > 0.0 { lambda * x } else { lambda * alpha * (x.exp() - 1.0) })
-        .collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| {
+                if x > 0.0 {
+                    lambda * x
+                } else {
+                    lambda * alpha * x.exp_m1()
+                }
+            })
+            .collect(),
+    }
 }
 
 /// GELU (tanh approximation): 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x³))).
+#[must_use]
 pub fn gelu(t: &Tensor) -> Tensor {
     let c = (2.0 / std::f64::consts::PI).sqrt();
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| {
-        let inner = c * (x + 0.044715 * x.powi(3));
-        0.5 * x * (1.0 + inner.tanh())
-    }).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| {
+                let inner = c * 0.044715f64.mul_add(x.powi(3), x);
+                0.5 * x * (1.0 + inner.tanh())
+            })
+            .collect(),
+    }
 }
 
 /// Derivative of GELU (tanh approximation).
+#[must_use]
 pub fn gelu_grad(t: &Tensor) -> Tensor {
     let c = (2.0 / std::f64::consts::PI).sqrt();
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| {
-        let inner = c * (x + 0.044715 * x.powi(3));
-        let tanh_val = inner.tanh();
-        let sech2 = 1.0 - tanh_val * tanh_val;
-        let d_inner = c * (1.0 + 3.0 * 0.044715 * x * x);
-        0.5 * (1.0 + tanh_val) + 0.5 * x * sech2 * d_inner
-    }).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| {
+                let inner = c * 0.044715f64.mul_add(x.powi(3), x);
+                let tanh_val = inner.tanh();
+                let sech2 = 1.0 - tanh_val * tanh_val;
+                let d_inner = c * (3.0 * 0.044715 * x).mul_add(x, 1.0);
+                (0.5 * x * sech2).mul_add(d_inner, 0.5 * (1.0 + tanh_val))
+            })
+            .collect(),
+    }
 }
 
 /// Sigmoid: 1 / (1 + exp(-x)), numerically stable.
+#[must_use]
 pub fn sigmoid(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| {
-        if x >= 0.0 { 1.0 / (1.0 + (-x).exp()) }
-        else { let e = x.exp(); e / (1.0 + e) }
-    }).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| {
+                if x >= 0.0 {
+                    1.0 / (1.0 + (-x).exp())
+                } else {
+                    let e = x.exp();
+                    e / (1.0 + e)
+                }
+            })
+            .collect(),
+    }
 }
 
 /// Derivative of [`sigmoid`].
+#[must_use]
 pub fn sigmoid_grad(t: &Tensor) -> Tensor {
     let s = sigmoid(t);
-    Tensor { shape: t.shape.clone(), data: s.data.iter().map(|&v| v * (1.0 - v)).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: s.data.iter().map(|&v| v * (1.0 - v)).collect(),
+    }
 }
 
 /// Hyperbolic tangent.
+#[must_use]
 pub fn tanh(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|x| x.tanh()).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t.data.iter().map(|x| x.tanh()).collect(),
+    }
 }
 
 /// Derivative of [`tanh`].
+#[must_use]
 pub fn tanh_grad(t: &Tensor) -> Tensor {
     let h = tanh(t);
-    Tensor { shape: h.shape.clone(), data: h.data.iter().map(|&v| 1.0 - v * v).collect() }
+    Tensor {
+        shape: h.shape.clone(),
+        data: h.data.iter().map(|&v| v.mul_add(-v, 1.0)).collect(),
+    }
 }
 
-/// Swish / SiLU: x * sigmoid(x).
+/// Swish / `SiLU`: x * sigmoid(x).
+#[must_use]
 pub fn swish(t: &Tensor) -> Tensor {
     let s = sigmoid(t);
-    Tensor { shape: t.shape.clone(), data: t.data.iter().zip(&s.data).map(|(&x, &s)| x * s).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t.data.iter().zip(&s.data).map(|(&x, &s)| x * s).collect(),
+    }
 }
 
 /// Mish: x * tanh(softplus(x)) = x * tanh(ln(1 + exp(x))).
+#[must_use]
 pub fn mish(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| {
-        let sp = (1.0 + x.exp()).ln();
-        x * sp.tanh()
-    }).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| {
+                let sp = x.exp().ln_1p();
+                x * sp.tanh()
+            })
+            .collect(),
+    }
 }
 
 /// Softplus: ln(1 + exp(x)), numerically stable.
+#[must_use]
 pub fn softplus(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| {
-        if x > 20.0 { x } else if x < -20.0 { 0.0 } else { (1.0 + x.exp()).ln() }
-    }).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| {
+                if x > 20.0 {
+                    x
+                } else if x < -20.0 {
+                    0.0
+                } else {
+                    x.exp().ln_1p()
+                }
+            })
+            .collect(),
+    }
 }
 
 /// Softsign: x / (1 + |x|).
+#[must_use]
 pub fn softsign(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| x / (1.0 + x.abs())).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t.data.iter().map(|&x| x / (1.0 + x.abs())).collect(),
+    }
 }
 
 /// Hard sigmoid: clamp(x/6 + 0.5, 0, 1).
+#[must_use]
 pub fn hard_sigmoid(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|&x| (x / 6.0 + 0.5).clamp(0.0, 1.0)).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t
+            .data
+            .iter()
+            .map(|&x| (x / 6.0 + 0.5).clamp(0.0, 1.0))
+            .collect(),
+    }
 }
 
 /// Hard tanh: clamp(x, -1, 1).
+#[must_use]
 pub fn hard_tanh(t: &Tensor) -> Tensor {
-    Tensor { shape: t.shape.clone(), data: t.data.iter().map(|x| x.clamp(-1.0, 1.0)).collect() }
+    Tensor {
+        shape: t.shape.clone(),
+        data: t.data.iter().map(|x| x.clamp(-1.0, 1.0)).collect(),
+    }
 }
 
 /// Identity (pass-through).
-pub fn identity(t: &Tensor) -> Tensor { t.clone() }
+#[must_use]
+pub fn identity(t: &Tensor) -> Tensor {
+    t.clone()
+}
 
 /// Softmax along axis with numerical stability (max-subtracted).
 pub fn softmax(t: &Tensor, axis: usize) -> MathResult<Tensor> {
     if axis >= t.shape.len() {
-        return Err(mathverse_core::error::MathError::InvalidArgument("axis out of range"));
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "axis out of range",
+        ));
     }
     let axis_size = t.shape[axis];
     let outer: usize = t.shape[..axis].iter().product();
@@ -152,7 +291,9 @@ pub fn softmax(t: &Tensor, axis: usize) -> MathResult<Tensor> {
             let mut max_val = f64::NEG_INFINITY;
             for k in 0..axis_size {
                 let idx = i * axis_size * inner + k * inner + j;
-                if t.data[idx] > max_val { max_val = t.data[idx]; }
+                if t.data[idx] > max_val {
+                    max_val = t.data[idx];
+                }
             }
             // Compute exp and sum
             let mut sum = 0.0;
@@ -169,13 +310,18 @@ pub fn softmax(t: &Tensor, axis: usize) -> MathResult<Tensor> {
             }
         }
     }
-    Ok(Tensor { shape: t.shape.clone(), data: out })
+    Ok(Tensor {
+        shape: t.shape.clone(),
+        data: out,
+    })
 }
 
 /// Log-softmax: computed directly as x - max - log(sum(exp(x - max))) for numerical stability.
 pub fn log_softmax(t: &Tensor, axis: usize) -> MathResult<Tensor> {
     if axis >= t.shape.len() {
-        return Err(mathverse_core::error::MathError::InvalidArgument("axis out of range"));
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "axis out of range",
+        ));
     }
     let axis_size = t.shape[axis];
     let outer: usize = t.shape[..axis].iter().product();
@@ -187,7 +333,9 @@ pub fn log_softmax(t: &Tensor, axis: usize) -> MathResult<Tensor> {
             let mut max_val = f64::NEG_INFINITY;
             for k in 0..axis_size {
                 let idx = i * axis_size * inner + k * inner + j;
-                if t.data[idx] > max_val { max_val = t.data[idx]; }
+                if t.data[idx] > max_val {
+                    max_val = t.data[idx];
+                }
             }
             let mut sum_exp = 0.0;
             for k in 0..axis_size {
@@ -201,7 +349,10 @@ pub fn log_softmax(t: &Tensor, axis: usize) -> MathResult<Tensor> {
             }
         }
     }
-    Ok(Tensor { shape: t.shape.clone(), data: out })
+    Ok(Tensor {
+        shape: t.shape.clone(),
+        data: out,
+    })
 }
 
 #[cfg(test)]
@@ -298,7 +449,10 @@ mod tests {
         // gelu(0) = 0 exactly (since x=0 → whole expression = 0)
         assert!(g.data[1].abs() < E);
         // gelu is odd-ish: gelu(-1) and gelu(1) have opposite signs
-        assert!(g.data[0] * g.data[2] < 0.0, "GELU should have opposite signs at ±1");
+        assert!(
+            g.data[0] * g.data[2] < 0.0,
+            "GELU should have opposite signs at ±1"
+        );
     }
 
     #[test]
@@ -316,7 +470,7 @@ mod tests {
         let m = mish(&t);
         let mut prev = f64::NEG_INFINITY;
         for &v in &m.data {
-            assert!(v >= prev, "mish not monotonic: {} < {}", prev, v);
+            assert!(v >= prev, "mish not monotonic: {prev} < {v}");
             prev = v;
         }
     }
@@ -327,7 +481,7 @@ mod tests {
         let t = Tensor::new(&[5], &[-100.0, -1.0, 0.0, 1.0, 100.0]).unwrap();
         let s = softsign(&t);
         for &v in &s.data {
-            assert!(v > -1.0 && v < 1.0, "softsign not bounded: {}", v);
+            assert!(v > -1.0 && v < 1.0, "softsign not bounded: {v}");
         }
     }
 }

@@ -1,7 +1,7 @@
 //! Zero-copy borrowed vector view.
 
-use core::ops::{Index, Range, RangeFrom, RangeInclusive};
 use alloc::vec::Vec;
+use core::ops::{Index, Range, RangeFrom, RangeInclusive};
 
 /// A borrowed, zero-copy view into a `f64` slice.
 ///

@@ -209,15 +209,17 @@ impl LineCollection {
 
     /// Build from parallel `(x1, y1, x2, y2)` slices; the shortest length wins.
     #[must_use]
-    pub fn from_xy(x1: &[f64], y1: &[f64], x2: &[f64], y2: &[f64], color: Color, width: f64) -> Self {
+    pub fn from_xy(
+        x1: &[f64],
+        y1: &[f64],
+        x2: &[f64],
+        y2: &[f64],
+        color: Color,
+        width: f64,
+    ) -> Self {
         let n = x1.len().min(y1.len()).min(x2.len()).min(y2.len());
         let segments = (0..n)
-            .map(|i| {
-                (
-                    DataPoint::new(x1[i], y1[i]),
-                    DataPoint::new(x2[i], y2[i]),
-                )
-            })
+            .map(|i| (DataPoint::new(x1[i], y1[i]), DataPoint::new(x2[i], y2[i])))
             .collect();
         Self::new(segments, color, width)
     }

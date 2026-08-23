@@ -1,7 +1,7 @@
 //! Joint plot example.
 
-use mathverse_plot::{render_jointplot, JointConfig};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{render_jointplot, JointConfig};
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate correlated data
@@ -16,8 +16,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
     }
 
     let mut config = JointConfig::new().with_bins(15);
-    config.plot_config = config.plot_config
-        .with_title("Joint Plot: x vs y");
+    config.plot_config = config.plot_config.with_title("Joint Plot: x vs y");
 
     let svg = render_jointplot(&x, &y, &config)?;
     PlotSaver::new(&svg).save_png("jointplot.png")?;

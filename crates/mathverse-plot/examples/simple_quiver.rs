@@ -1,8 +1,8 @@
 //! Quiver plot example: Simple vector field.
 
 use mathverse_plot::quiver::{render_quiver, QuiverConfig, QuiverVector};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let mut vectors = Vec::new();

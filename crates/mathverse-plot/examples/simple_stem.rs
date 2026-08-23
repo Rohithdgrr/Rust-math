@@ -1,9 +1,9 @@
 //! Stem plot example: Discrete signal with positive and negative values.
 
 use mathverse_plot::common::DataPoint;
+use mathverse_plot::save::PlotSaver;
 use mathverse_plot::stem::{render_stem_plot, StemConfig};
 use mathverse_plot::style::Color;
-use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let points: Vec<DataPoint> = (0..=10)

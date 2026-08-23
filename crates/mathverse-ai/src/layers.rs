@@ -1,4 +1,4 @@
-//! Neural network layers: Linear, Conv1d, Conv2d, LayerNorm, BatchNorm, Dropout.
+//! Neural network layers: Linear, Conv1d, Conv2d, `LayerNorm`, `BatchNorm`, Dropout.
 
 use crate::tensor::Tensor;
 use mathverse_core::error::MathResult;
@@ -17,37 +17,57 @@ pub struct Linear {
 
 impl Linear {
     /// Create a linear layer with Kaiming-style random initialization.
+    #[must_use]
     pub fn new(in_features: usize, out_features: usize) -> Self {
         let std = (2.0 / in_features as f64).sqrt();
         let weight = Tensor::randn(&[out_features, in_features]).mul_scalar(std);
         let bias = Tensor::zeros(&[out_features]);
-        Self { weight, bias, in_features, out_features }
+        Self {
+            weight,
+            bias,
+            in_features,
+            out_features,
+        }
     }
 
     /// Xavier/Glorot initialization.
+    #[must_use]
     pub fn xavier(in_features: usize, out_features: usize) -> Self {
         let std = (2.0 / (in_features + out_features) as f64).sqrt();
         let weight = Tensor::randn(&[out_features, in_features]).mul_scalar(std);
         let bias = Tensor::zeros(&[out_features]);
-        Self { weight, bias, in_features, out_features }
+        Self {
+            weight,
+            bias,
+            in_features,
+            out_features,
+        }
     }
 
-    /// Forward pass: [*, in_features] -> [*, out_features] (flattens leading dims).
+    /// Forward pass: [*, `in_features`] -> [*, `out_features`] (flattens leading dims).
     pub fn forward(&self, x: &Tensor) -> MathResult<Tensor> {
         let orig_shape = x.shape.clone();
-        let batch_dims: usize = orig_shape[..orig_shape.len().saturating_sub(1)].iter().product();
+        let batch_dims: usize = orig_shape[..orig_shape.len().saturating_sub(1)]
+            .iter()
+            .product();
         let flat = x.reshape(&[batch_dims, self.in_features])?;
         let wt = self.weight.transpose()?;
         let out = flat.matmul(&wt)?;
         let mut out_shape = orig_shape;
         let last = out_shape.len() - 1;
         out_shape[last] = self.out_features;
-        let bias_2d = self.bias.unsqueeze(0)?.broadcast_to(&[batch_dims, self.out_features])?;
+        let bias_2d = self
+            .bias
+            .unsqueeze(0)?
+            .broadcast_to(&[batch_dims, self.out_features])?;
         out.add(&bias_2d)?.reshape(&out_shape)
     }
 
     /// Number of parameters.
-    pub fn num_params(&self) -> usize { self.in_features * self.out_features + self.out_features }
+    #[must_use]
+    pub fn num_params(&self) -> usize {
+        self.in_features * self.out_features + self.out_features
+    }
 }
 
 /// Layer normalization with learnable gamma (scale) and beta (shift).
@@ -64,6 +84,7 @@ pub struct LayerNorm {
 
 impl LayerNorm {
     /// Create a layer norm module with learnable `gamma` and `beta`.
+    #[must_use]
     pub fn new(normalized_shape: usize, eps: f64) -> Self {
         Self {
             gamma: Tensor::ones(&[normalized_shape]),
@@ -80,10 +101,14 @@ impl LayerNorm {
     /// Returns `MathError::DimensionMismatch` if the last dimension of `x`
     /// does not equal `normalized_shape`.
     pub fn forward(&self, x: &Tensor) -> MathResult<Tensor> {
-        if x.shape.is_empty() { return Err(mathverse_core::error::MathError::DimensionMismatch); }
+        if x.shape.is_empty() {
+            return Err(mathverse_core::error::MathError::DimensionMismatch);
+        }
         let nd = x.shape.len();
         let d = self.normalized_shape;
-        if x.shape[nd - 1] != d { return Err(mathverse_core::error::MathError::DimensionMismatch); }
+        if x.shape[nd - 1] != d {
+            return Err(mathverse_core::error::MathError::DimensionMismatch);
+        }
         let outer: usize = x.shape[..nd - 1].iter().product();
         let mut out = vec![0.0; x.numel()];
         for i in 0..outer {
@@ -97,7 +122,10 @@ impl LayerNorm {
                 out[start + j] = norm * self.gamma.data[j] + self.beta.data[j];
             }
         }
-        Ok(Tensor { shape: x.shape.clone(), data: out })
+        Ok(Tensor {
+            shape: x.shape.clone(),
+            data: out,
+        })
     }
 }
 
@@ -121,6 +149,7 @@ pub struct BatchNorm {
 
 impl BatchNorm {
     /// Create a batch norm module.
+    #[must_use]
     pub fn new(num_features: usize, eps: f64, momentum: f64) -> Self {
         Self {
             gamma: Tensor::ones(&[num_features]),
@@ -135,7 +164,11 @@ impl BatchNorm {
 
     /// Forward pass over first dimension.
     pub fn forward(&mut self, x: &Tensor, training: bool) -> MathResult<Tensor> {
-        if x.shape.len() < 2 { return Err(mathverse_core::error::MathError::InvalidArgument("BatchNorm needs >= 2D input")); }
+        if x.shape.len() < 2 {
+            return Err(mathverse_core::error::MathError::InvalidArgument(
+                "BatchNorm needs >= 2D input",
+            ));
+        }
         let batch = x.shape[0];
         let feature_size: usize = x.shape[1..].iter().product();
         let per_sample = x.numel() / batch;
@@ -157,8 +190,10 @@ impl BatchNorm {
                 }
                 let var = sq_sum / batch as f64;
                 // Update running statistics with exponential moving average
-                self.running_mean.data[f] = self.momentum * self.running_mean.data[f] + (1.0 - self.momentum) * mu;
-                self.running_var.data[f] = self.momentum * self.running_var.data[f] + (1.0 - self.momentum) * var;
+                self.running_mean.data[f] =
+                    (1.0 - self.momentum).mul_add(mu, self.momentum * self.running_mean.data[f]);
+                self.running_var.data[f] =
+                    (1.0 - self.momentum).mul_add(var, self.momentum * self.running_var.data[f]);
                 (mu, var)
             } else {
                 (self.running_mean.data[f], self.running_var.data[f])
@@ -167,10 +202,13 @@ impl BatchNorm {
             for b in 0..batch {
                 let idx = b * per_sample + f;
                 let norm = (x.data[idx] - mu) * inv;
-                out[idx] = self.gamma.data[f] * norm + self.beta.data[f];
+                out[idx] = self.gamma.data[f].mul_add(norm, self.beta.data[f]);
             }
         }
-        Ok(Tensor { shape: x.shape.clone(), data: out })
+        Ok(Tensor {
+            shape: x.shape.clone(),
+            data: out,
+        })
     }
 }
 
@@ -186,9 +224,17 @@ pub struct Dropout {
 
 impl Dropout {
     /// Create a dropout layer.
+    #[must_use]
     pub fn new(p: f64) -> Self {
-        assert!((0.0..1.0).contains(&p), "dropout probability must be in [0, 1), got {p}");
-        Self { p, seed: 0x1234_5678, state: 0x1234_5678 }
+        assert!(
+            (0.0..1.0).contains(&p),
+            "dropout probability must be in [0, 1), got {p}"
+        );
+        Self {
+            p,
+            seed: 0x1234_5678,
+            state: 0x1234_5678,
+        }
     }
 
     /// Create a dropout layer with a specific seed.
@@ -197,31 +243,58 @@ impl Dropout {
     ///
     /// Panics if `p` is outside `[0, 1)` (a `p` of 1.0 would divide by zero
     /// in the inverted-dropout scale factor).
+    #[must_use]
     pub fn with_seed(p: f64, seed: u64) -> Self {
-        assert!((0.0..1.0).contains(&p), "dropout probability must be in [0, 1), got {p}");
-        Self { p, seed, state: seed }
+        assert!(
+            (0.0..1.0).contains(&p),
+            "dropout probability must be in [0, 1), got {p}"
+        );
+        Self {
+            p,
+            seed,
+            state: seed,
+        }
     }
 
     /// Reset the dropout mask RNG to its seed.
-    pub fn reset(&mut self) { self.state = self.seed; }
+    pub fn reset(&mut self) {
+        self.state = self.seed;
+    }
 
     /// Forward: randomly zero out elements with probability p, scale by 1/(1-p).
     pub fn forward(&mut self, x: &Tensor, training: bool) -> Tensor {
-        if !training || self.p == 0.0 { return x.clone(); }
+        if !training || self.p == 0.0 {
+            return x.clone();
+        }
         let scale = 1.0 / (1.0 - self.p);
         let mut state = self.state;
-        let data: Vec<f64> = x.data.iter().map(|&v| {
-            state ^= state << 13; state ^= state >> 7; state ^= state << 17;
-            let u = (state as f64) / (u64::MAX as f64);
-            if u < self.p { 0.0 } else { v * scale }
-        }).collect();
+        let data: Vec<f64> = x
+            .data
+            .iter()
+            .map(|&v| {
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
+                let u = (state as f64) / (u64::MAX as f64);
+                if u < self.p { 0.0 } else { v * scale }
+            })
+            .collect();
         self.state = state;
-        Tensor { shape: x.shape.clone(), data }
+        Tensor {
+            shape: x.shape.clone(),
+            data,
+        }
     }
 }
 
-/// 1D convolution: x [batch, in_channels, length], w [out_channels, in_channels, kernel_size].
-pub fn conv1d(x: &Tensor, weight: &Tensor, bias: Option<&Tensor>, stride: usize, padding: usize) -> MathResult<Tensor> {
+/// 1D convolution: x [batch, `in_channels`, length], w [`out_channels`, `in_channels`, `kernel_size`].
+pub fn conv1d(
+    x: &Tensor,
+    weight: &Tensor,
+    bias: Option<&Tensor>,
+    stride: usize,
+    padding: usize,
+) -> MathResult<Tensor> {
     let (batch, in_ch, len) = (x.shape[0], x.shape[1], x.shape[2]);
     let (out_ch, _, kernel_size) = (weight.shape[0], weight.shape[1], weight.shape[2]);
     let out_len = (len + 2 * padding - kernel_size) / stride + 1;
@@ -236,22 +309,38 @@ pub fn conv1d(x: &Tensor, weight: &Tensor, bias: Option<&Tensor>, stride: usize,
                         if inp >= padding && inp - padding < len {
                             let iv = x.data[b * in_ch * len + ic * len + (inp - padding)];
                             let wv = weight.data[oc * in_ch * kernel_size + ic * kernel_size + k];
-                            val += iv * wv;
+                            val = iv.mul_add(wv, val);
                         }
                     }
                 }
-                if let Some(bias) = bias { val += bias.data[oc]; }
+                if let Some(bias) = bias {
+                    val += bias.data[oc];
+                }
                 out_data[b * out_ch * out_len + oc * out_len + o] = val;
             }
         }
     }
-    Ok(Tensor { shape: vec![batch, out_ch, out_len], data: out_data })
+    Ok(Tensor {
+        shape: vec![batch, out_ch, out_len],
+        data: out_data,
+    })
 }
 
-/// 2D convolution: x [batch, in_ch, h, w], w [out_ch, in_ch, kh, kw].
-pub fn conv2d(x: &Tensor, weight: &Tensor, bias: Option<&Tensor>, stride: usize, padding: usize) -> MathResult<Tensor> {
+/// 2D convolution: x [batch, `in_ch`, h, w], w [`out_ch`, `in_ch`, kh, kw].
+pub fn conv2d(
+    x: &Tensor,
+    weight: &Tensor,
+    bias: Option<&Tensor>,
+    stride: usize,
+    padding: usize,
+) -> MathResult<Tensor> {
     let (batch, in_ch, ih, iw) = (x.shape[0], x.shape[1], x.shape[2], x.shape[3]);
-    let (out_ch, _, kh, kw) = (weight.shape[0], weight.shape[1], weight.shape[2], weight.shape[3]);
+    let (out_ch, _, kh, kw) = (
+        weight.shape[0],
+        weight.shape[1],
+        weight.shape[2],
+        weight.shape[3],
+    );
     let oh = (ih + 2 * padding - kh) / stride + 1;
     let ow = (iw + 2 * padding - kw) / stride + 1;
     let mut out_data = vec![0.0; batch * out_ch * oh * ow];
@@ -265,21 +354,34 @@ pub fn conv2d(x: &Tensor, weight: &Tensor, bias: Option<&Tensor>, stride: usize,
                             for kj in 0..kw {
                                 let inp_i = i * stride + ki;
                                 let inp_j = j * stride + kj;
-                                if inp_i >= padding && inp_i - padding < ih && inp_j >= padding && inp_j - padding < iw {
-                                    let iv = x.data[b * in_ch * ih * iw + ic * ih * iw + (inp_i - padding) * iw + (inp_j - padding)];
-                                    let wv = weight.data[oc * in_ch * kh * kw + ic * kh * kw + ki * kw + kj];
-                                    val += iv * wv;
+                                if inp_i >= padding
+                                    && inp_i - padding < ih
+                                    && inp_j >= padding
+                                    && inp_j - padding < iw
+                                {
+                                    let iv = x.data[b * in_ch * ih * iw
+                                        + ic * ih * iw
+                                        + (inp_i - padding) * iw
+                                        + (inp_j - padding)];
+                                    let wv = weight.data
+                                        [oc * in_ch * kh * kw + ic * kh * kw + ki * kw + kj];
+                                    val = iv.mul_add(wv, val);
                                 }
                             }
                         }
                     }
-                    if let Some(bias) = bias { val += bias.data[oc]; }
+                    if let Some(bias) = bias {
+                        val += bias.data[oc];
+                    }
                     out_data[b * out_ch * oh * ow + oc * oh * ow + i * ow + j] = val;
                 }
             }
         }
     }
-    Ok(Tensor { shape: vec![batch, out_ch, oh, ow], data: out_data })
+    Ok(Tensor {
+        shape: vec![batch, out_ch, oh, ow],
+        data: out_data,
+    })
 }
 
 /// Max pool 1D.
@@ -294,13 +396,18 @@ pub fn max_pool1d(x: &Tensor, kernel_size: usize, stride: usize) -> MathResult<T
                 let mut max_val = f64::NEG_INFINITY;
                 for k in 0..kernel_size {
                     let v = x.data[b * ch * len + c * len + start + k];
-                    if v > max_val { max_val = v; }
+                    if v > max_val {
+                        max_val = v;
+                    }
                 }
                 out_data[b * ch * out_len + c * out_len + o] = max_val;
             }
         }
     }
-    Ok(Tensor { shape: vec![batch, ch, out_len], data: out_data })
+    Ok(Tensor {
+        shape: vec![batch, ch, out_len],
+        data: out_data,
+    })
 }
 
 /// Average pool 2D.
@@ -317,7 +424,10 @@ pub fn avg_pool2d(x: &Tensor, kernel_size: usize) -> MathResult<Tensor> {
                     let mut sum = 0.0;
                     for ki in 0..kernel_size {
                         for kj in 0..kernel_size {
-                            sum += x.data[b * ch * ih * iw + c * ih * iw + (i * kernel_size + ki) * iw + (j * kernel_size + kj)];
+                            sum += x.data[b * ch * ih * iw
+                                + c * ih * iw
+                                + (i * kernel_size + ki) * iw
+                                + (j * kernel_size + kj)];
                         }
                     }
                     out_data[b * ch * oh * ow + c * oh * ow + i * ow + j] = sum / area;
@@ -325,12 +435,19 @@ pub fn avg_pool2d(x: &Tensor, kernel_size: usize) -> MathResult<Tensor> {
             }
         }
     }
-    Ok(Tensor { shape: vec![batch, ch, oh, ow], data: out_data })
+    Ok(Tensor {
+        shape: vec![batch, ch, oh, ow],
+        data: out_data,
+    })
 }
 
 /// Global average pool: reduces spatial dims to 1x1.
 pub fn global_avg_pool(x: &Tensor) -> MathResult<Tensor> {
-    if x.shape.len() != 4 { return Err(mathverse_core::error::MathError::InvalidArgument("global_avg_pool requires 4D input")); }
+    if x.shape.len() != 4 {
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "global_avg_pool requires 4D input",
+        ));
+    }
     let (batch, ch, h, w) = (x.shape[0], x.shape[1], x.shape[2], x.shape[3]);
     let area = (h * w) as f64;
     let mut out_data = vec![0.0; batch * ch];
@@ -345,7 +462,10 @@ pub fn global_avg_pool(x: &Tensor) -> MathResult<Tensor> {
             out_data[b * ch + c] = sum / area;
         }
     }
-    Ok(Tensor { shape: vec![batch, ch], data: out_data })
+    Ok(Tensor {
+        shape: vec![batch, ch],
+        data: out_data,
+    })
 }
 
 #[cfg(test)]
@@ -393,7 +513,10 @@ mod tests {
         let x = Tensor::ones(&[10]);
         let out1 = drop.forward(&x, true);
         let out2 = drop.forward(&x, true);
-        assert_ne!(out1.data, out2.data, "dropout masks must differ across forward passes");
+        assert_ne!(
+            out1.data, out2.data,
+            "dropout masks must differ across forward passes"
+        );
         drop.reset();
         let out3 = drop.forward(&x, true);
         assert_eq!(out1.data, out3.data, "reset must reproduce the first mask");
@@ -417,7 +540,9 @@ mod tests {
         let x = Tensor::ones(&[4, 3]);
         let mut bn = BatchNorm::new(3, 1e-5, 0.9);
         let out = bn.forward(&x, true).unwrap();
-        assert!(out.data.iter().all(|v| v.is_finite()), "NaN/Inf on constant input");
+        assert!(
+            out.data.iter().all(|v| v.is_finite()),
+            "NaN/Inf on constant input"
+        );
     }
 }
-

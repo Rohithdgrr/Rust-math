@@ -211,8 +211,7 @@ impl crate::ticks::TickLocator for DateLocator {
 
 /// matplotlib-style date tick formatter: formats a float timestamp using a
 /// strftime-like format (see [`DateTime::format`]).
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct DateFormatter {
     /// strftime format string (auto-detected when empty).
     pub format: String,
@@ -244,7 +243,6 @@ impl DateFormatter {
     }
 }
 
-
 impl crate::ticks::TickFormatter for DateFormatter {
     fn format(&self, value: f64) -> String {
         DateFormatter::format(self, value)
@@ -257,28 +255,28 @@ fn nice_time_interval(span: i64, target_ticks: usize) -> i64 {
 
     // Time intervals in seconds
     let intervals = [
-        1,           // 1 second
-        5,           // 5 seconds
-        15,          // 15 seconds
-        30,          // 30 seconds
-        60,          // 1 minute
-        300,         // 5 minutes
-        900,         // 15 minutes
-        1800,        // 30 minutes
-        3600,        // 1 hour
-        7200,        // 2 hours
-        10800,       // 3 hours
-        21600,       // 6 hours
-        43200,       // 12 hours
-        86400,       // 1 day
-        604800,      // 1 week
-        2592000,     // 30 days
-        7776000,     // 90 days
-        15552000,    // 180 days
-        31536000,    // 1 year
-        63072000,    // 2 years
-        157680000,   // 5 years
-        315360000,   // 10 years
+        1,         // 1 second
+        5,         // 5 seconds
+        15,        // 15 seconds
+        30,        // 30 seconds
+        60,        // 1 minute
+        300,       // 5 minutes
+        900,       // 15 minutes
+        1800,      // 30 minutes
+        3600,      // 1 hour
+        7200,      // 2 hours
+        10800,     // 3 hours
+        21600,     // 6 hours
+        43200,     // 12 hours
+        86400,     // 1 day
+        604800,    // 1 week
+        2592000,   // 30 days
+        7776000,   // 90 days
+        15552000,  // 180 days
+        31536000,  // 1 year
+        63072000,  // 2 years
+        157680000, // 5 years
+        315360000, // 10 years
     ];
 
     // Find the smallest interval >= raw
@@ -313,7 +311,16 @@ fn to_ymdhms(ts: i64) -> (i32, u32, u32, u32, u32, u32) {
     let days_in_month = [
         31,
         if is_leap_year(year) { 29 } else { 28 },
-        31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
     ];
 
     let mut month = 1u32;
@@ -352,7 +359,16 @@ fn unix_timestamp(year: i32, month: u32, day: u32, hour: u32, min: u32, sec: u32
     let days_in_month = [
         31,
         if is_leap_year(year) { 29 } else { 28 },
-        31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
     ];
     for m in 1..month {
         days += i64::from(days_in_month[(m - 1) as usize]);

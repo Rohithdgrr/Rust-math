@@ -1,6 +1,5 @@
 //! SI unit definitions and base units.
 
-
 /// SI base unit marker trait
 pub trait SiUnit: Copy + Default + std::fmt::Debug {
     /// Full name of the unit (e.g. `"meter"`).

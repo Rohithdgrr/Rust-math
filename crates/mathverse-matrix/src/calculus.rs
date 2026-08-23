@@ -19,19 +19,19 @@ impl MatrixCalculus {
     /// Gradient of scalar function f: R^n → R.
     pub fn gradient(f: impl Fn(&[f64]) -> f64, x: &[f64], h: f64) -> Vec<f64> {
         let mut grad = Vec::with_capacity(x.len());
-        
+
         for i in 0..x.len() {
             let mut x_plus = x.to_vec();
             x_plus[i] += h;
             let f_plus = f(&x_plus);
-            
+
             let mut x_minus = x.to_vec();
             x_minus[i] -= h;
             let f_minus = f(&x_minus);
-            
+
             grad.push((f_plus - f_minus) / (2.0 * h));
         }
-        
+
         grad
     }
 
@@ -40,21 +40,21 @@ impl MatrixCalculus {
         let m = f(x).len();
         let n = x.len();
         let mut jacobian = Matrix::zeros(m, n);
-        
+
         for j in 0..n {
             let mut x_plus = x.to_vec();
             x_plus[j] += h;
             let f_plus = f(&x_plus);
-            
+
             let mut x_minus = x.to_vec();
             x_minus[j] -= h;
             let f_minus = f(&x_minus);
-            
+
             for i in 0..m {
                 jacobian.set(i, j, (f_plus[i] - f_minus[i]) / (2.0 * h));
             }
         }
-        
+
         jacobian
     }
 
@@ -62,7 +62,7 @@ impl MatrixCalculus {
     pub fn hessian(f: impl Fn(&[f64]) -> f64, x: &[f64], h: f64) -> Matrix {
         let n = x.len();
         let mut hessian = Matrix::zeros(n, n);
-        
+
         for i in 0..n {
             for j in 0..=i {
                 if i == j {
@@ -70,13 +70,13 @@ impl MatrixCalculus {
                     let mut x_plus = x.to_vec();
                     x_plus[i] += h;
                     let f_plus = f(&x_plus);
-                    
+
                     let f_center = f(x);
-                    
+
                     let mut x_minus = x.to_vec();
                     x_minus[i] -= h;
                     let f_minus = f(&x_minus);
-                    
+
                     let h_ij = (f_plus - 2.0 * f_center + f_minus) / (h * h);
                     hessian.set(i, j, h_ij);
                 } else {
@@ -85,29 +85,29 @@ impl MatrixCalculus {
                     x_pp[i] += h;
                     x_pp[j] += h;
                     let f_pp = f(&x_pp);
-                    
+
                     let mut x_pm = x.to_vec();
                     x_pm[i] += h;
                     x_pm[j] -= h;
                     let f_pm = f(&x_pm);
-                    
+
                     let mut x_mp = x.to_vec();
                     x_mp[i] -= h;
                     x_mp[j] += h;
                     let f_mp = f(&x_mp);
-                    
+
                     let mut x_mm = x.to_vec();
                     x_mm[i] -= h;
                     x_mm[j] -= h;
                     let f_mm = f(&x_mm);
-                    
+
                     let h_ij = (f_pp - f_pm - f_mp + f_mm) / (4.0 * h * h);
                     hessian.set(i, j, h_ij);
                     hessian.set(j, i, h_ij);
                 }
             }
         }
-        
+
         hessian
     }
 
@@ -122,11 +122,11 @@ impl MatrixCalculus {
         let mut m_plus = m.clone();
         m_plus.set(row, col, m.get(row, col) + h);
         let f_plus = f(&m_plus);
-        
+
         let mut m_minus = m.clone();
         m_minus.set(row, col, m.get(row, col) - h);
         let f_minus = f(&m_minus);
-        
+
         let diff = f_plus.sub(&f_minus).unwrap();
         diff.scale(1.0 / (2.0 * h))
     }
@@ -140,14 +140,14 @@ impl MatrixCalculus {
     ) -> f64 {
         let n = x.len();
         let mut x_plus = Vec::with_capacity(n);
-        
+
         for i in 0..n {
             x_plus.push(x[i] + h * direction[i]);
         }
-        
+
         let f_plus = f(&x_plus);
         let f_x = f(x);
-        
+
         (f_plus - f_x) / h
     }
 
@@ -161,7 +161,7 @@ impl MatrixCalculus {
         let m_plus = m.add(&direction.scale(h)).unwrap();
         let f_plus = f(&m_plus);
         let f_m = f(m);
-        
+
         let diff = f_plus.sub(&f_m).unwrap();
         diff.scale(1.0 / h)
     }
@@ -195,9 +195,9 @@ impl AutoDiff {
     pub fn matrix_product_derivative_a(a: &Matrix, b: &Matrix) -> MathResult<Vec<Matrix>> {
         let (m, n) = (a.rows, a.cols);
         let p = b.cols;
-        
+
         let mut derivatives = Vec::with_capacity(m * n);
-        
+
         for i in 0..m {
             for j in 0..n {
                 let mut deriv = Matrix::zeros(m, p);
@@ -207,7 +207,7 @@ impl AutoDiff {
                 derivatives.push(deriv);
             }
         }
-        
+
         Ok(derivatives)
     }
 
@@ -215,9 +215,9 @@ impl AutoDiff {
     pub fn matrix_product_derivative_b(a: &Matrix, b: &Matrix) -> MathResult<Vec<Matrix>> {
         let (m, n) = (a.rows, a.cols);
         let p = b.cols;
-        
+
         let mut derivatives = Vec::with_capacity(n * p);
-        
+
         for j in 0..n {
             for k in 0..p {
                 let mut deriv = Matrix::zeros(m, p);
@@ -227,7 +227,7 @@ impl AutoDiff {
                 derivatives.push(deriv);
             }
         }
-        
+
         Ok(derivatives)
     }
 
@@ -235,9 +235,9 @@ impl AutoDiff {
     pub fn matrix_inverse_derivative(a: &Matrix) -> MathResult<Vec<Matrix>> {
         let n = a.rows;
         let inv = a.inverse()?;
-        
+
         let mut derivatives = Vec::with_capacity(n * n);
-        
+
         for i in 0..n {
             for j in 0..n {
                 let mut deriv = Matrix::zeros(n, n);
@@ -249,7 +249,7 @@ impl AutoDiff {
                 derivatives.push(deriv);
             }
         }
-        
+
         Ok(derivatives)
     }
 
@@ -257,7 +257,7 @@ impl AutoDiff {
     pub fn determinant_derivative(a: &Matrix) -> MathResult<Matrix> {
         let det = a.det()?;
         let adj = a.inverse()?.scale(det);
-        
+
         Ok(adj.transpose())
     }
 
@@ -294,23 +294,23 @@ impl GradientOptimization {
         tolerance: f64,
     ) -> (Vec<f64>, usize, f64) {
         let mut x = x0.to_vec();
-        
+
         for iteration in 0..max_iterations {
             let gradient = grad(&x);
             let grad_norm: f64 = gradient.iter().map(|g| g * g).sum::<f64>().sqrt();
-            
+
             if grad_norm < tolerance {
                 return (x, iteration, grad_norm);
             }
-            
+
             for i in 0..x.len() {
                 x[i] -= learning_rate * gradient[i];
             }
         }
-        
+
         let gradient = grad(&x);
         let grad_norm: f64 = gradient.iter().map(|g| g * g).sum::<f64>().sqrt();
-        
+
         (x, max_iterations, grad_norm)
     }
 
@@ -324,27 +324,27 @@ impl GradientOptimization {
         tolerance: f64,
     ) -> MathResult<(Vec<f64>, usize, f64)> {
         let mut x = x0.to_vec();
-        
+
         for iteration in 0..max_iterations {
             let gradient = mathverse_vector::Vector::new(grad(&x));
             let hessian = hess(&x);
-            
+
             let grad_norm: f64 = gradient.data.iter().map(|g| g * g).sum::<f64>().sqrt();
-            
+
             if grad_norm < tolerance {
                 return Ok((x, iteration, grad_norm));
             }
-            
+
             let delta = hessian.solve(&gradient)?;
-            
+
             for i in 0..x.len() {
                 x[i] -= delta.get(i);
             }
         }
-        
+
         let gradient = mathverse_vector::Vector::new(grad(&x));
         let grad_norm: f64 = gradient.data.iter().map(|g| g * g).sum::<f64>().sqrt();
-        
+
         Ok((x, max_iterations, grad_norm))
     }
 
@@ -358,36 +358,48 @@ impl GradientOptimization {
     ) -> MathResult<(Vec<f64>, usize, f64)> {
         let n = x0.len();
         let mut x = x0.to_vec();
-        let mut h = Matrix::identity(n);  // Approximate inverse Hessian
-        
+        let mut h = Matrix::identity(n); // Approximate inverse Hessian
+
         for iteration in 0..max_iterations {
             let gradient = mathverse_vector::Vector::new(grad(&x));
             let grad_norm: f64 = gradient.data.iter().map(|g| g * g).sum::<f64>().sqrt();
-            
+
             if grad_norm < tolerance {
                 return Ok((x, iteration, grad_norm));
             }
-            
+
             // Search direction
             let p_vec = h.mul_vec(&gradient)?;
             let p = p_vec.data;
-            
+
             // Line search (simplified)
             let alpha = 1.0;
-            let x_new: Vec<f64> = x.iter().zip(p.iter()).map(|(&xi, &pi)| xi - alpha * pi).collect();
-            
+            let x_new: Vec<f64> = x
+                .iter()
+                .zip(p.iter())
+                .map(|(&xi, &pi)| xi - alpha * pi)
+                .collect();
+
             let gradient_new = mathverse_vector::Vector::new(grad(&x_new));
-            
+
             // BFGS update
-            let s: Vec<f64> = x_new.iter().zip(x.iter()).map(|(&xn, &xi)| xn - xi).collect();
-            let y: Vec<f64> = gradient_new.data.iter().zip(gradient.data.iter())
-                .map(|(&gn, &gi)| gn - gi).collect();
-            
+            let s: Vec<f64> = x_new
+                .iter()
+                .zip(x.iter())
+                .map(|(&xn, &xi)| xn - xi)
+                .collect();
+            let y: Vec<f64> = gradient_new
+                .data
+                .iter()
+                .zip(gradient.data.iter())
+                .map(|(&gn, &gi)| gn - gi)
+                .collect();
+
             let s_vec = mathverse_vector::Vector::new(s.clone());
             let y_vec = mathverse_vector::Vector::new(y.clone());
-            
+
             let sy = s_vec.dot(&y_vec);
-            
+
             if sy > 1e-15 {
                 let n = x.len();
                 let mut a = Matrix::zeros(n, n);
@@ -396,7 +408,7 @@ impl GradientOptimization {
                         a.set(i, j, s[i] * s[j]);
                     }
                 }
-                
+
                 let mut b = Matrix::zeros(n, n);
                 for i in 0..n {
                     for j in 0..n {
@@ -407,19 +419,19 @@ impl GradientOptimization {
                         b.set(i, j, sum);
                     }
                 }
-                
+
                 let a_scaled = a.scale(1.0 / sy);
                 let b_scaled = b.scale(1.0 / sy);
-                
+
                 h = h.add(&a_scaled)?.sub(&b_scaled)?;
             }
-            
+
             x = x_new;
         }
-        
+
         let gradient = mathverse_vector::Vector::new(grad(&x));
         let grad_norm: f64 = gradient.data.iter().map(|g| g * g).sum::<f64>().sqrt();
-        
+
         Ok((x, max_iterations, grad_norm))
     }
 }
@@ -458,9 +470,9 @@ impl MatrixDifferential {
     ) -> MathResult<Vec<f64>> {
         let inner_result = inner(x);
         let inner_grad = inner_derivative(x);
-        
+
         let outer_diff = outer_derivative(&inner_result, &Matrix::identity(inner_result.rows))?;
-        
+
         let mut result = Vec::new();
         for i in 0..inner_grad.len() {
             let mut sum = 0.0;
@@ -469,7 +481,7 @@ impl MatrixDifferential {
             }
             result.push(sum);
         }
-        
+
         Ok(result)
     }
 }
@@ -483,7 +495,7 @@ mod tests {
         let f = |x: &[f64]| x[0].powi(2) + x[1].powi(2);
         let x = vec![1.0, 2.0];
         let grad = MatrixCalculus::gradient(f, &x, 1e-6);
-        
+
         assert!((grad[0] - 2.0).abs() < 1e-5);
         assert!((grad[1] - 4.0).abs() < 1e-5);
     }
@@ -493,7 +505,7 @@ mod tests {
         let f = |x: &[f64]| vec![x[0] + x[1], x[0] * x[1]];
         let x = vec![2.0, 3.0];
         let jac = MatrixCalculus::jacobian(f, &x, 1e-6);
-        
+
         assert!((jac.get(0, 0) - 1.0).abs() < 1e-5);
         assert!((jac.get(0, 1) - 1.0).abs() < 1e-5);
         assert!((jac.get(1, 0) - 3.0).abs() < 1e-5);
@@ -505,7 +517,7 @@ mod tests {
         let f = |x: &[f64]| x[0].powi(2) + x[1].powi(2);
         let x = vec![1.0, 2.0];
         let hess = MatrixCalculus::hessian(f, &x, 1e-5);
-        
+
         assert!((hess.get(0, 0) - 2.0).abs() < 1e-4);
         assert!((hess.get(1, 1) - 2.0).abs() < 1e-4);
         assert!((hess.get(0, 1) - 0.0).abs() < 1e-4);
@@ -516,9 +528,10 @@ mod tests {
         let f = |x: &[f64]| (x[0] - 1.0).powi(2) + (x[1] - 2.0).powi(2);
         let grad = |x: &[f64]| vec![2.0 * (x[0] - 1.0), 2.0 * (x[1] - 2.0)];
         let x0 = vec![0.0, 0.0];
-        
-        let (x, iterations, _) = GradientOptimization::gradient_descent(f, grad, &x0, 0.1, 200, 1e-10);
-        
+
+        let (x, iterations, _) =
+            GradientOptimization::gradient_descent(f, grad, &x0, 0.1, 200, 1e-10);
+
         assert!(iterations < 200);
         assert!((x[0] - 1.0).abs() < 0.1);
         assert!((x[1] - 2.0).abs() < 0.1);
@@ -528,7 +541,7 @@ mod tests {
     fn test_determinant_derivative() {
         let a = Matrix::identity(2);
         let deriv = AutoDiff::determinant_derivative(&a).unwrap();
-        
+
         assert!((deriv.get(0, 0) - 1.0).abs() < 1e-10);
         assert!((deriv.get(1, 1) - 1.0).abs() < 1e-10);
         assert!((deriv.get(0, 1) - 0.0).abs() < 1e-10);
@@ -538,9 +551,9 @@ mod tests {
     fn test_quadratic_form_derivative() {
         let a = Matrix::from_rows(&[&[2.0, 1.0], &[1.0, 2.0]]).unwrap();
         let x = vec![1.0, 1.0];
-        
+
         let grad = AutoDiff::quadratic_form_derivative(&a, &x).unwrap();
-        
+
         // d(x^T A x)/dx = (A + A^T)x; for symmetric A = [[2,1],[1,2]], x=[1,1]: [6,6]
         assert!((grad[0] - 6.0).abs() < 1e-10);
         assert!((grad[1] - 6.0).abs() < 1e-10);

@@ -1,12 +1,12 @@
 //! Time value of money calculations
 
 /// Calculate future value with compound interest
-/// 
+///
 /// # Arguments
 /// * `present_value` - Present value
 /// * `rate` - Interest rate per period (as decimal, e.g., 0.05 for 5%)
 /// * `periods` - Number of periods
-/// 
+///
 /// # Returns
 /// Future value
 pub fn future_value(present_value: f64, rate: f64, periods: f64) -> f64 {
@@ -14,12 +14,12 @@ pub fn future_value(present_value: f64, rate: f64, periods: f64) -> f64 {
 }
 
 /// Calculate present value from future value
-/// 
+///
 /// # Arguments
 /// * `future_value` - Future value
 /// * `rate` - Discount rate per period (as decimal)
 /// * `periods` - Number of periods
-/// 
+///
 /// # Returns
 /// Present value
 pub fn present_value(future_value: f64, rate: f64, periods: f64) -> f64 {
@@ -27,12 +27,12 @@ pub fn present_value(future_value: f64, rate: f64, periods: f64) -> f64 {
 }
 
 /// Calculate future value of an annuity (ordinary)
-/// 
+///
 /// # Arguments
 /// * `payment` - Payment per period
 /// * `rate` - Interest rate per period (as decimal)
 /// * `periods` - Number of periods
-/// 
+///
 /// # Returns
 /// Future value of annuity
 pub fn future_value_annuity(payment: f64, rate: f64, periods: f64) -> f64 {
@@ -40,12 +40,12 @@ pub fn future_value_annuity(payment: f64, rate: f64, periods: f64) -> f64 {
 }
 
 /// Calculate present value of an annuity (ordinary)
-/// 
+///
 /// # Arguments
 /// * `payment` - Payment per period
 /// * `rate` - Discount rate per period (as decimal)
 /// * `periods` - Number of periods
-/// 
+///
 /// # Returns
 /// Present value of annuity
 pub fn present_value_annuity(payment: f64, rate: f64, periods: f64) -> f64 {
@@ -53,12 +53,12 @@ pub fn present_value_annuity(payment: f64, rate: f64, periods: f64) -> f64 {
 }
 
 /// Calculate future value of an annuity due
-/// 
+///
 /// # Arguments
 /// * `payment` - Payment per period
 /// * `rate` - Interest rate per period (as decimal)
 /// * `periods` - Number of periods
-/// 
+///
 /// # Returns
 /// Future value of annuity due
 pub fn future_value_annuity_due(payment: f64, rate: f64, periods: f64) -> f64 {
@@ -66,12 +66,12 @@ pub fn future_value_annuity_due(payment: f64, rate: f64, periods: f64) -> f64 {
 }
 
 /// Calculate present value of an annuity due
-/// 
+///
 /// # Arguments
 /// * `payment` - Payment per period
 /// * `rate` - Discount rate per period (as decimal)
 /// * `periods` - Number of periods
-/// 
+///
 /// # Returns
 /// Present value of annuity due
 pub fn present_value_annuity_due(payment: f64, rate: f64, periods: f64) -> f64 {
@@ -79,12 +79,12 @@ pub fn present_value_annuity_due(payment: f64, rate: f64, periods: f64) -> f64 {
 }
 
 /// Calculate payment for an annuity
-/// 
+///
 /// # Arguments
 /// * `present_value` - Present value
 /// * `rate` - Interest rate per period (as decimal)
 /// * `periods` - Number of periods
-/// 
+///
 /// # Returns
 /// Payment per period
 ///
@@ -100,12 +100,12 @@ pub fn annuity_payment(present_value: f64, rate: f64, periods: f64) -> f64 {
 }
 
 /// Calculate number of periods for an annuity
-/// 
+///
 /// # Arguments
 /// * `present_value` - Present value
 /// * `payment` - Payment per period
 /// * `rate` - Interest rate per period (as decimal)
-/// 
+///
 /// # Returns
 /// Number of periods
 ///
@@ -128,11 +128,11 @@ pub fn annuity_periods(present_value: f64, payment: f64, rate: f64) -> f64 {
 }
 
 /// Calculate effective annual rate from nominal rate
-/// 
+///
 /// # Arguments
 /// * `nominal_rate` - Nominal annual rate (as decimal)
 /// * `compounding_periods` - Number of compounding periods per year
-/// 
+///
 /// # Returns
 /// Effective annual rate (as decimal)
 pub fn effective_annual_rate(nominal_rate: f64, compounding_periods: f64) -> f64 {
@@ -140,12 +140,12 @@ pub fn effective_annual_rate(nominal_rate: f64, compounding_periods: f64) -> f64
 }
 
 /// Calculate continuous compounding future value
-/// 
+///
 /// # Arguments
 /// * `present_value` - Present value
 /// * `rate` - Annual interest rate (as decimal)
 /// * `years` - Time in years
-/// 
+///
 /// # Returns
 /// Future value with continuous compounding
 pub fn continuous_compounding_fv(present_value: f64, rate: f64, years: f64) -> f64 {
@@ -153,12 +153,12 @@ pub fn continuous_compounding_fv(present_value: f64, rate: f64, years: f64) -> f
 }
 
 /// Calculate continuous compounding present value
-/// 
+///
 /// # Arguments
 /// * `future_value` - Future value
 /// * `rate` - Annual discount rate (as decimal)
 /// * `years` - Time in years
-/// 
+///
 /// # Returns
 /// Present value with continuous compounding
 pub fn continuous_compounding_pv(future_value: f64, rate: f64, years: f64) -> f64 {
@@ -166,11 +166,11 @@ pub fn continuous_compounding_pv(future_value: f64, rate: f64, years: f64) -> f6
 }
 
 /// Calculate net present value
-/// 
+///
 /// # Arguments
 /// * `cash_flows` - Slice of cash flows (first element is initial investment, negative)
 /// * `rate` - Discount rate per period (as decimal)
-/// 
+///
 /// # Returns
 /// Net present value
 pub fn net_present_value(cash_flows: &[f64], rate: f64) -> f64 {
@@ -182,13 +182,13 @@ pub fn net_present_value(cash_flows: &[f64], rate: f64) -> f64 {
 }
 
 /// Calculate internal rate of return using Newton-Raphson method
-/// 
+///
 /// # Arguments
 /// * `cash_flows` - Slice of cash flows
 /// * `guess` - Initial guess for IRR (default: 0.1)
 /// * `tolerance` - Convergence tolerance (default: 1e-6)
 /// * `max_iterations` - Maximum iterations (default: 100)
-/// 
+///
 /// # Returns
 /// Internal rate of return (as decimal) or error if convergence fails
 pub fn internal_rate_of_return(
@@ -232,23 +232,39 @@ mod tests {
 
     #[test]
     fn test_future_value() {
-        assert_relative_eq!(future_value(1000.0, 0.05, 10.0), 1628.894626777442, epsilon = 1e-6);
+        assert_relative_eq!(
+            future_value(1000.0, 0.05, 10.0),
+            1_628.894_626_777_442,
+            epsilon = 1e-6
+        );
     }
 
     #[test]
     fn test_present_value() {
-        assert_relative_eq!(present_value(1628.894626777442, 0.05, 10.0), 1000.0, epsilon = 1e-6);
+        assert_relative_eq!(
+            present_value(1_628.894_626_777_442, 0.05, 10.0),
+            1000.0,
+            epsilon = 1e-6
+        );
     }
 
     #[test]
     fn test_effective_annual_rate() {
-        assert_relative_eq!(effective_annual_rate(0.12, 12.0), 0.1268250301319697, epsilon = 1e-6);
+        assert_relative_eq!(
+            effective_annual_rate(0.12, 12.0),
+            0.126_825_030_131_969_7,
+            epsilon = 1e-6
+        );
     }
 
     #[test]
     fn test_net_present_value() {
         let cash_flows = vec![-1000.0, 300.0, 300.0, 300.0, 300.0];
-        assert_relative_eq!(net_present_value(&cash_flows, 0.1), -49.0403660952122, epsilon = 1e-4);
+        assert_relative_eq!(
+            net_present_value(&cash_flows, 0.1),
+            -49.040_366_095_212_2,
+            epsilon = 1e-4
+        );
     }
 
     #[test]

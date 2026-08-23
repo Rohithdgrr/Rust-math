@@ -9,10 +9,7 @@ pub fn par_sum_slice(a: &[f64]) -> f64 {
 
 /// Parallel dot product of two slices.
 pub fn par_dot_slice(a: &[f64], b: &[f64]) -> f64 {
-    a.par_iter()
-        .zip(b.par_iter())
-        .map(|(x, y)| x * y)
-        .sum()
+    a.par_iter().zip(b.par_iter()).map(|(x, y)| x * y).sum()
 }
 
 /// Parallel element-wise addition into output.
@@ -52,16 +49,12 @@ pub fn par_prefix_sum(a: &[f64]) -> Vec<f64> {
 
 /// Parallel min element.
 pub fn par_min(a: &[f64]) -> f64 {
-    a.par_iter()
-        .copied()
-        .reduce(|| f64::INFINITY, f64::min)
+    a.par_iter().copied().reduce(|| f64::INFINITY, f64::min)
 }
 
 /// Parallel max element.
 pub fn par_max(a: &[f64]) -> f64 {
-    a.par_iter()
-        .copied()
-        .reduce(|| f64::NEG_INFINITY, f64::max)
+    a.par_iter().copied().reduce(|| f64::NEG_INFINITY, f64::max)
 }
 
 /// Parallel L2 norm.

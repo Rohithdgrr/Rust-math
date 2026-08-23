@@ -56,10 +56,30 @@ fn rgba_hex_roundtrip() {
 #[test]
 fn named_colors_always_emit_valid_hex() {
     let names = [
-        "red", "green", "blue", "black", "white", "gray", "grey", "orange",
-        "purple", "brown", "navy", "teal", "olive", "maroon", "silver",
-        "lime", "fuchsia", "aqua", "yellow", "cyan", "magenta",
-        "completely_unknown_name_xyz", "", "chartreuse",
+        "red",
+        "green",
+        "blue",
+        "black",
+        "white",
+        "gray",
+        "grey",
+        "orange",
+        "purple",
+        "brown",
+        "navy",
+        "teal",
+        "olive",
+        "maroon",
+        "silver",
+        "lime",
+        "fuchsia",
+        "aqua",
+        "yellow",
+        "cyan",
+        "magenta",
+        "completely_unknown_name_xyz",
+        "",
+        "chartreuse",
     ];
     for name in names {
         let hex = Color::Named(name).to_hex();
@@ -145,7 +165,10 @@ fn xml_escape_identity_for_safe_text() {
     for s in dangerous {
         let out = mathverse_plot::common::xml_escape(s);
         assert_ne!(out, s, "dangerous input passed through unchanged: {s:?}");
-        assert!(!out.contains('<') && !out.contains('>'), "angle brackets leaked: {s:?} -> {out:?}");
+        assert!(
+            !out.contains('<') && !out.contains('>'),
+            "angle brackets leaked: {s:?} -> {out:?}"
+        );
     }
     // The canonical escape sequence must be emitted.
     assert_eq!(mathverse_plot::common::xml_escape("&"), "&amp;");

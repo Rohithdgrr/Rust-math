@@ -24,12 +24,12 @@
 
 extern crate alloc;
 
-pub mod vector_par;
 pub mod matrix_par;
-pub mod slice_par;
 pub mod monte_carlo;
+pub mod slice_par;
+pub mod vector_par;
 
-pub use vector_par::*;
 pub use matrix_par::*;
-pub use slice_par::*;
 pub use monte_carlo::*;
+pub use slice_par::*;
+pub use vector_par::*;

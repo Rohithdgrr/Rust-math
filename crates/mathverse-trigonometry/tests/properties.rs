@@ -8,7 +8,10 @@ use mathverse_trigonometry::*;
 struct Lcg(u64);
 impl Lcg {
     fn next(&mut self) -> u64 {
-        self.0 = self.0.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+        self.0 = self
+            .0
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         self.0
     }
     fn in_unit(&mut self) -> f64 {
@@ -85,25 +88,63 @@ fn f32_coverage_no_nan() {
     let x = 0.7f32;
     let y = 1.3f32;
     let ok: [f32; 40] = [
-        sin(x), cos(x), tan(x), cot(x), sec(x), csc(x),
-        sinh(x), cosh(x), tanh(x), coth(x), sech(x), csch(x),
-        asin(x), acos(x), atan(x), atan2(y, x), acot(x),
-        asinh(x), acosh(2.0), atanh(x), acoth(2.0), asech(x), acsch(x),
-        sin_deg(30.0), cos_deg(60.0), tan_deg(45.0), cot_deg(30.0),
-        sind(30.0), cosd(60.0), tand(45.0),
-        asin_deg(x), acos_deg(x), atan_deg(x), atan2_deg(y, x), acot_deg(x),
-        sinpi(x), cospi(x),
-        sinc(x), sinc_unnorm(x), versine(x),
+        sin(x),
+        cos(x),
+        tan(x),
+        cot(x),
+        sec(x),
+        csc(x),
+        sinh(x),
+        cosh(x),
+        tanh(x),
+        coth(x),
+        sech(x),
+        csch(x),
+        asin(x),
+        acos(x),
+        atan(x),
+        atan2(y, x),
+        acot(x),
+        asinh(x),
+        acosh(2.0),
+        atanh(x),
+        acoth(2.0),
+        asech(x),
+        acsch(x),
+        sin_deg(30.0),
+        cos_deg(60.0),
+        tan_deg(45.0),
+        cot_deg(30.0),
+        sind(30.0),
+        cosd(60.0),
+        tand(45.0),
+        asin_deg(x),
+        acos_deg(x),
+        atan_deg(x),
+        atan2_deg(y, x),
+        acot_deg(x),
+        sinpi(x),
+        cospi(x),
+        sinc(x),
+        sinc_unnorm(x),
+        versine(x),
     ];
     for v in ok {
         assert!(!v.is_nan() && v.is_finite(), "got {v}");
     }
 
     let ok2: [f32; 12] = [
-        coversine(x), haversine(x), exsecant(x), excosecant(x),
-        gudermannian(x), gudermannian_inv(x), gudermannian_alt(x),
-        chebyshev_first(3, x), chebyshev_second(3, x),
-        sin_power(3, x), cos_power(3, x),
+        coversine(x),
+        haversine(x),
+        exsecant(x),
+        excosecant(x),
+        gudermannian(x),
+        gudermannian_inv(x),
+        gudermannian_alt(x),
+        chebyshev_first(3, x),
+        chebyshev_second(3, x),
+        sin_power(3, x),
+        cos_power(3, x),
         wrap_angle(-4.5),
     ];
     for v in ok2 {
@@ -139,8 +180,16 @@ fn batched_nan_passthrough() {
 #[test]
 fn cot_and_tan_half_consistency() {
     // cot matches 1/tan (the two definitions) near the asymptote and elsewhere.
-    for x in [0.1f64, 1.0, core::f64::consts::FRAC_PI_2 - 1e-9, core::f64::consts::FRAC_PI_2] {
-        assert!((cot(x) - 1.0 / tan(x)).abs() < 1e-9 * cot(x).abs().max(1.0), "x={x}");
+    for x in [
+        0.1f64,
+        1.0,
+        core::f64::consts::FRAC_PI_2 - 1e-9,
+        core::f64::consts::FRAC_PI_2,
+    ] {
+        assert!(
+            (cot(x) - 1.0 / tan(x)).abs() < 1e-9 * cot(x).abs().max(1.0),
+            "x={x}"
+        );
     }
     // tan_half matches the direct half-angle tan for well-scaled inputs.
     for x in [0.1f64, 0.5, 1.0, 2.5, -1.7, 6.0] {

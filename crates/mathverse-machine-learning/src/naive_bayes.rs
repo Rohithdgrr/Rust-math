@@ -1,7 +1,7 @@
 //! Gaussian Naive Bayes classifier.
 
-use std::cmp::Ordering;
 use mathverse_core::error::MathResult;
+use std::cmp::Ordering;
 
 /// Fitted Naive Bayes model.
 #[derive(Debug, Clone)]
@@ -17,7 +17,6 @@ pub struct NaiveBayesModel {
 }
 
 /// Fit Gaussian Naive Bayes.
-#[must_use]
 pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<NaiveBayesModel> {
     let n = y.len();
     let p = x[0].len();
@@ -30,15 +29,11 @@ pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<NaiveBayesModel> {
     let mut sums = vec![vec![0.0; p]; nc];
     let mut sum_sqs = vec![vec![0.0; p]; nc];
     for i in 0..n {
-    let ci = classes
-        .iter()
-        .position(|&c| (c - y[i]).abs() < 1e-10);
-    let ci = match ci {
-        Some(idx) => idx,
-        None => return Err(mathverse_core::error::MathError::InvalidArgument(
-            "naive_bayes: prediction contains unseen class label",
-        )),
-    };
+        let Some(ci) = classes.iter().position(|&c| (c - y[i]).abs() < 1e-10) else {
+            return Err(mathverse_core::error::MathError::InvalidArgument(
+                "naive_bayes: prediction contains unseen class label",
+            ));
+        };
         counts[ci] += 1;
         for j in 0..p {
             sums[ci][j] += x[i][j];
@@ -65,19 +60,17 @@ pub fn fit(x: &[Vec<f64>], y: &[f64]) -> MathResult<NaiveBayesModel> {
 }
 
 /// Predict class labels.
-#[must_use]
 pub fn predict(model: &NaiveBayesModel, x: &[Vec<f64>]) -> MathResult<Vec<f64>> {
     x.iter().map(|row| predict_one(model, row)).collect()
 }
 
 /// Predict probabilities for each class.
-#[must_use]
 pub fn predict_proba(model: &NaiveBayesModel, x: &[Vec<f64>]) -> MathResult<Vec<Vec<f64>>> {
-    x.iter().map(|row| predict_one_proba(model, row)).collect()
+    Ok(x.iter().map(|row| predict_one_proba(model, row)).collect())
 }
 
 fn predict_one(model: &NaiveBayesModel, x: &[f64]) -> MathResult<f64> {
-    let probs = predict_one_proba(model, x)?;
+    let probs = predict_one_proba(model, x);
     let best = probs
         .iter()
         .enumerate()
@@ -89,7 +82,7 @@ fn predict_one(model: &NaiveBayesModel, x: &[f64]) -> MathResult<f64> {
     Ok(model.classes[best])
 }
 
-fn predict_one_proba(model: &NaiveBayesModel, x: &[f64]) -> MathResult<Vec<f64>> {
+fn predict_one_proba(model: &NaiveBayesModel, x: &[f64]) -> Vec<f64> {
     let nc = model.classes.len();
     let mut log_probs = vec![0.0; nc];
     for c in 0..nc {
@@ -103,7 +96,7 @@ fn predict_one_proba(model: &NaiveBayesModel, x: &[f64]) -> MathResult<Vec<f64>>
     let max_log = log_probs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let exps: Vec<f64> = log_probs.iter().map(|lp| (lp - max_log).exp()).collect();
     let sum: f64 = exps.iter().sum();
-    Ok(exps.iter().map(|e| e / sum).collect())
+    exps.iter().map(|e| e / sum).collect()
 }
 
 #[cfg(test)]

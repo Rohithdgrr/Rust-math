@@ -96,7 +96,9 @@ pub fn render_quiver(vectors: &[QuiverVector], config: &QuiverConfig) -> PlotRes
         .fold(0.0_f64, f64::max);
 
     if max_mag == 0.0 {
-        return Err(PlotError::InvalidData("all vectors have zero magnitude".into()));
+        return Err(PlotError::InvalidData(
+            "all vectors have zero magnitude".into(),
+        ));
     }
 
     let chart_width = width - padding * 2.0;

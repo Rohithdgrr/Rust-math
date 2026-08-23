@@ -3,7 +3,6 @@
 use mathverse_core::error::{MathError, MathResult};
 
 /// KNN classifier. Predicts the majority class among k nearest neighbors.
-#[must_use]
 pub fn classify(
     x_train: &[Vec<f64>],
     y_train: &[f64],
@@ -35,7 +34,6 @@ pub fn classify(
 }
 
 /// KNN regressor. Predicts the mean of k nearest neighbors.
-#[must_use]
 pub fn regress(
     x_train: &[Vec<f64>],
     y_train: &[f64],
@@ -59,7 +57,12 @@ pub fn regress(
 
 /// Validates KNN inputs: non-empty training set, matching lengths, consistent
 /// feature counts, and a valid `k`.
-fn validate_knn(x_train: &[Vec<f64>], y_train: &[f64], x_test: &[Vec<f64>], k: usize) -> MathResult<()> {
+fn validate_knn(
+    x_train: &[Vec<f64>],
+    y_train: &[f64],
+    x_test: &[Vec<f64>],
+    k: usize,
+) -> MathResult<()> {
     if x_train.is_empty() {
         return Err(MathError::InvalidArgument("training set is empty"));
     }
@@ -67,11 +70,15 @@ fn validate_knn(x_train: &[Vec<f64>], y_train: &[f64], x_test: &[Vec<f64>], k: u
         return Err(MathError::DimensionMismatch);
     }
     if k == 0 || k > x_train.len() {
-        return Err(MathError::InvalidArgument("k must be between 1 and the training size"));
+        return Err(MathError::InvalidArgument(
+            "k must be between 1 and the training size",
+        ));
     }
     let n_features = x_train[0].len();
     if n_features == 0 {
-        return Err(MathError::InvalidArgument("training rows have zero features"));
+        return Err(MathError::InvalidArgument(
+            "training rows have zero features",
+        ));
     }
     for row in x_train.iter().chain(x_test) {
         if row.len() != n_features {

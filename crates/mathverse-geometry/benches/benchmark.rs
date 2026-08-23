@@ -1,5 +1,10 @@
+//! Criterion benchmarks for geometry hot paths.
+
+// The `criterion_group!` macro generates undocumented items.
+#![allow(missing_docs)]
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use mathverse_geometry::{Point2, Circle, Triangle};
+use mathverse_geometry::{Circle, Point2, Triangle};
 
 fn bench_circle_area(c: &mut Criterion) {
     c.bench_function("circle_area", |b| {

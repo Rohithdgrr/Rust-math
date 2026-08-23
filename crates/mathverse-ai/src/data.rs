@@ -1,4 +1,4 @@
-//! Data loading utilities: DataLoader with batching and shuffling.
+//! Data loading utilities: `DataLoader` with batching and shuffling.
 
 use crate::tensor::Tensor;
 use mathverse_core::error::{MathError, MathResult};
@@ -11,7 +11,7 @@ pub struct Batch {
     pub y: Tensor,
 }
 
-/// DataLoader: iterates over data in shuffled mini-batches.
+/// `DataLoader`: iterates over data in shuffled mini-batches.
 pub struct DataLoader {
     /// Full input tensor (first dimension is dataset size).
     pub x: Tensor,
@@ -38,7 +38,15 @@ impl DataLoader {
         Self::validate(&x, &y, batch_size)?;
         let n = x.shape[0];
         let indices: Vec<usize> = (0..n).collect();
-        Ok(Self { x, y, batch_size, shuffle, seed: 0xABCD, indices, pos: 0 })
+        Ok(Self {
+            x,
+            y,
+            batch_size,
+            shuffle,
+            seed: 0xABCD,
+            indices,
+            pos: 0,
+        })
     }
 
     /// Create a new [`DataLoader`] with a specific shuffle seed.
@@ -46,18 +54,34 @@ impl DataLoader {
     /// # Errors
     ///
     /// Same validation as [`DataLoader::new`].
-    pub fn with_seed(x: Tensor, y: Tensor, batch_size: usize, shuffle: bool, seed: u64) -> MathResult<Self> {
+    pub fn with_seed(
+        x: Tensor,
+        y: Tensor,
+        batch_size: usize,
+        shuffle: bool,
+        seed: u64,
+    ) -> MathResult<Self> {
         Self::validate(&x, &y, batch_size)?;
         let n = x.shape[0];
         let indices: Vec<usize> = (0..n).collect();
-        Ok(Self { x, y, batch_size, shuffle, seed, indices, pos: 0 })
+        Ok(Self {
+            x,
+            y,
+            batch_size,
+            shuffle,
+            seed,
+            indices,
+            pos: 0,
+        })
     }
 
     /// Validates loader inputs: non-scalar tensors of equal length and a
     /// non-zero batch size.
     fn validate(x: &Tensor, y: &Tensor, batch_size: usize) -> MathResult<()> {
         if x.shape.is_empty() || y.shape.is_empty() {
-            return Err(MathError::InvalidArgument("DataLoader inputs must have at least 1 dimension"));
+            return Err(MathError::InvalidArgument(
+                "DataLoader inputs must have at least 1 dimension",
+            ));
         }
         if x.shape[0] != y.shape[0] {
             return Err(MathError::DimensionMismatch);
@@ -75,7 +99,9 @@ impl DataLoader {
             let mut state = self.seed;
             // Fisher-Yates shuffle with xorshift
             for i in (1..self.indices.len()).rev() {
-                state ^= state << 13; state ^= state >> 7; state ^= state << 17;
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
                 let j = (state as usize) % (i + 1);
                 self.indices.swap(i, j);
             }
@@ -83,17 +109,24 @@ impl DataLoader {
     }
 
     /// Number of batches.
+    #[must_use]
     pub fn num_batches(&self) -> usize {
         self.x.shape[0].div_ceil(self.batch_size)
     }
 
     /// Get next batch.
     pub fn next_batch(&mut self) -> Option<Batch> {
-        if self.pos >= self.x.shape[0] { return None; }
+        if self.pos >= self.x.shape[0] {
+            return None;
+        }
         let end = (self.pos + self.batch_size).min(self.x.shape[0]);
         let batch_len = end - self.pos;
         let dim: usize = self.x.shape[1..].iter().product();
-        let y_dim: usize = if self.y.shape.len() > 1 { self.y.shape[1..].iter().product() } else { 1 };
+        let y_dim: usize = if self.y.shape.len() > 1 {
+            self.y.shape[1..].iter().product()
+        } else {
+            1
+        };
 
         let mut x_data = Vec::with_capacity(batch_len * dim);
         let mut y_data = Vec::with_capacity(batch_len * y_dim);
@@ -109,13 +142,19 @@ impl DataLoader {
 
         self.pos = end;
         Some(Batch {
-            x: Tensor { shape: x_shape, data: x_data },
-            y: Tensor { shape: y_shape, data: y_data },
+            x: Tensor {
+                shape: x_shape,
+                data: x_data,
+            },
+            y: Tensor {
+                shape: y_shape,
+                data: y_data,
+            },
         })
     }
 }
 
-/// Iterator adapter for DataLoader.
+/// Iterator adapter for `DataLoader`.
 impl Iterator for DataLoader {
     type Item = Batch;
 
@@ -124,7 +163,7 @@ impl Iterator for DataLoader {
     }
 }
 
-/// Train/test split: returns (x_train, x_test, y_train, y_test).
+/// Train/test split: returns (`x_train`, `x_test`, `y_train`, `y_test`).
 ///
 /// `test_ratio` should be in `[0.0, 1.0]`. This function is deterministic given `seed`.
 ///
@@ -132,9 +171,20 @@ impl Iterator for DataLoader {
 ///
 /// Returns `MathError::DimensionMismatch` if `x` and `y` have different
 /// numbers of samples, or if `test_ratio` is outside `[0.0, 1.0]`.
-pub fn train_test_split(x: &Tensor, y: &Tensor, test_ratio: f64, seed: u64) -> MathResult<(Tensor, Tensor, Tensor, Tensor)> {
-    if x.shape[0] != y.shape[0] { return Err(MathError::DimensionMismatch); }
-    if !(0.0..=1.0).contains(&test_ratio) { return Err(MathError::InvalidArgument("train_test_split: test_ratio must be in [0.0, 1.0]")); }
+pub fn train_test_split(
+    x: &Tensor,
+    y: &Tensor,
+    test_ratio: f64,
+    seed: u64,
+) -> MathResult<(Tensor, Tensor, Tensor, Tensor)> {
+    if x.shape[0] != y.shape[0] {
+        return Err(MathError::DimensionMismatch);
+    }
+    if !(0.0..=1.0).contains(&test_ratio) {
+        return Err(MathError::InvalidArgument(
+            "train_test_split: test_ratio must be in [0.0, 1.0]",
+        ));
+    }
     let n = x.shape[0];
     let test_size = (n as f64 * test_ratio) as usize;
     let train_size = n - test_size;
@@ -143,13 +193,19 @@ pub fn train_test_split(x: &Tensor, y: &Tensor, test_ratio: f64, seed: u64) -> M
     // Deterministic shuffle
     let mut state = seed;
     for i in (1..n).rev() {
-        state ^= state << 13; state ^= state >> 7; state ^= state << 17;
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
         let j = (state as usize) % (i + 1);
         indices.swap(i, j);
     }
 
     let x_dim: usize = x.shape[1..].iter().product();
-    let y_dim: usize = if y.shape.len() > 1 { y.shape[1..].iter().product() } else { 1 };
+    let y_dim: usize = if y.shape.len() > 1 {
+        y.shape[1..].iter().product()
+    } else {
+        1
+    };
 
     let mut x_train_data = Vec::with_capacity(train_size * x_dim);
     let mut x_test_data = Vec::with_capacity(test_size * x_dim);
@@ -170,15 +226,27 @@ pub fn train_test_split(x: &Tensor, y: &Tensor, test_ratio: f64, seed: u64) -> M
     let mut y_shape = y.shape.clone();
     x_shape[0] = train_size;
     y_shape[0] = train_size;
-    let x_train = Tensor { shape: x_shape, data: x_train_data };
-    let y_train = Tensor { shape: y_shape, data: y_train_data };
+    let x_train = Tensor {
+        shape: x_shape,
+        data: x_train_data,
+    };
+    let y_train = Tensor {
+        shape: y_shape,
+        data: y_train_data,
+    };
 
     let mut x_shape = x.shape.clone();
     let mut y_shape = y.shape.clone();
     x_shape[0] = test_size;
     y_shape[0] = test_size;
-    let x_test = Tensor { shape: x_shape, data: x_test_data };
-    let y_test = Tensor { shape: y_shape, data: y_test_data };
+    let x_test = Tensor {
+        shape: x_shape,
+        data: x_test_data,
+    };
+    let y_test = Tensor {
+        shape: y_shape,
+        data: y_test_data,
+    };
 
     Ok((x_train, x_test, y_train, y_test))
 }
@@ -189,8 +257,14 @@ mod tests {
 
     #[test]
     fn dataloader_test() {
-        let x = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
-        let y = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
+        let x = Tensor::arange(0.0, 10.0, 1.0)
+            .unwrap()
+            .reshape(&[10, 1])
+            .unwrap();
+        let y = Tensor::arange(0.0, 10.0, 1.0)
+            .unwrap()
+            .reshape(&[10, 1])
+            .unwrap();
         let mut loader = DataLoader::new(x, y, 3, false).unwrap();
         assert_eq!(loader.num_batches(), 4);
         let batch = loader.next().unwrap();
@@ -199,14 +273,21 @@ mod tests {
 
     #[test]
     fn train_test_split_test() {
-        let x = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
-        let y = Tensor::arange(0.0, 10.0, 1.0).unwrap().reshape(&[10, 1]).unwrap();
+        let x = Tensor::arange(0.0, 10.0, 1.0)
+            .unwrap()
+            .reshape(&[10, 1])
+            .unwrap();
+        let y = Tensor::arange(0.0, 10.0, 1.0)
+            .unwrap()
+            .reshape(&[10, 1])
+            .unwrap();
         let (x_tr, x_te, _y_tr, _y_te) = train_test_split(&x, &y, 0.2, 42).unwrap();
         assert_eq!(x_tr.shape[0], 8);
         assert_eq!(x_te.shape[0], 2);
-        let mismatched = Tensor::arange(0.0, 5.0, 1.0).unwrap().reshape(&[5, 1]).unwrap();
+        let mismatched = Tensor::arange(0.0, 5.0, 1.0)
+            .unwrap()
+            .reshape(&[5, 1])
+            .unwrap();
         assert!(train_test_split(&x, &mismatched, 0.2, 42).is_err());
     }
 }
-
-

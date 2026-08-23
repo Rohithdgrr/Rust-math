@@ -69,7 +69,7 @@ impl Polynomial {
     #[inline]
     pub fn from_coeffs(coeffs: &[f64]) -> Self {
         let mut c = coeffs.to_vec();
-        while c.len() > 1 && c.last().map_or(false, |x| x.abs() < TOL) {
+        while c.len() > 1 && c.last().is_some_and(|x| x.abs() < TOL) {
             c.pop();
         }
         if c.is_empty() {
@@ -106,7 +106,9 @@ impl Polynomial {
     /// ```
     #[inline]
     pub fn x() -> Self {
-        Polynomial { coeffs: vec![0.0, 1.0] }
+        Polynomial {
+            coeffs: vec![0.0, 1.0],
+        }
     }
 
     /// Degree of the polynomial (0 for constants, including zero).
@@ -240,7 +242,10 @@ impl Polynomial {
         if self.degree() != other.degree() {
             return false;
         }
-        self.coeffs.iter().zip(other.coeffs.iter()).all(|(a, b)| (a - b).abs() < tol)
+        self.coeffs
+            .iter()
+            .zip(other.coeffs.iter())
+            .all(|(a, b)| (a - b).abs() < tol)
     }
 }
 
@@ -386,10 +391,10 @@ impl Add<f64> for Polynomial {
     #[inline]
     fn add(self, c: f64) -> Polynomial {
         let mut result = self;
-        if !result.coeffs.is_empty() {
-            result.coeffs[0] += c;
-        } else {
+        if result.coeffs.is_empty() {
             result.coeffs.push(c);
+        } else {
+            result.coeffs[0] += c;
         }
         result
     }
@@ -426,7 +431,10 @@ mod tests {
         assert_eq!((b.clone() - a.clone()).coeffs(), &[2.0, 2.0]);
         assert_eq!((a.clone() * b.clone()).coeffs(), &[3.0, 10.0, 8.0]);
         assert_eq!((a * 2.0).coeffs(), &[2.0, 4.0]);
-        assert_eq!((-Polynomial::from_coeffs(&[1.0, 2.0])).coeffs(), &[-1.0, -2.0]);
+        assert_eq!(
+            (-Polynomial::from_coeffs(&[1.0, 2.0])).coeffs(),
+            &[-1.0, -2.0]
+        );
     }
 
     #[test]

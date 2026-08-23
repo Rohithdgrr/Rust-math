@@ -1,7 +1,7 @@
 //! PDF overlay example: theoretical normal PDF on top of sampled data histogram.
 
-use mathverse_plot::{BinningMethod, Color, Histogram, PlotConfig, SvgPlot};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{BinningMethod, Color, Histogram, PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Deterministic pseudo-random sample

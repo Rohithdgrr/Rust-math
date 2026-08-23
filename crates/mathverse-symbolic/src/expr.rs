@@ -47,34 +47,9 @@ impl Expr {
         Expr::Variable(name.to_string())
     }
 
-    /// Addition
-    pub fn add(self, other: Expr) -> Self {
-        Expr::Add(Rc::new(self), Rc::new(other))
-    }
-
-    /// Subtraction
-    pub fn sub(self, other: Expr) -> Self {
-        Expr::Sub(Rc::new(self), Rc::new(other))
-    }
-
-    /// Multiplication
-    pub fn mul(self, other: Expr) -> Self {
-        Expr::Mul(Rc::new(self), Rc::new(other))
-    }
-
-    /// Division
-    pub fn div(self, other: Expr) -> Self {
-        Expr::Div(Rc::new(self), Rc::new(other))
-    }
-
     /// Power
     pub fn pow(self, other: Expr) -> Self {
         Expr::Pow(Rc::new(self), Rc::new(other))
-    }
-
-    /// Negation
-    pub fn neg(self) -> Self {
-        Expr::Neg(Rc::new(self))
     }
 
     /// Natural logarithm
@@ -186,11 +161,21 @@ impl Expr {
             Expr::Variable(name) => {
                 vars.insert(name.clone());
             }
-            Expr::Add(a, b) | Expr::Sub(a, b) | Expr::Mul(a, b) | Expr::Div(a, b) | Expr::Pow(a, b) => {
+            Expr::Add(a, b)
+            | Expr::Sub(a, b)
+            | Expr::Mul(a, b)
+            | Expr::Div(a, b)
+            | Expr::Pow(a, b) => {
                 a.collect_variables(vars);
                 b.collect_variables(vars);
             }
-            Expr::Neg(a) | Expr::Ln(a) | Expr::Exp(a) | Expr::Sin(a) | Expr::Cos(a) | Expr::Tan(a) | Expr::Sqrt(a) => {
+            Expr::Neg(a)
+            | Expr::Ln(a)
+            | Expr::Exp(a)
+            | Expr::Sin(a)
+            | Expr::Cos(a)
+            | Expr::Tan(a)
+            | Expr::Sqrt(a) => {
                 a.collect_variables(vars);
             }
             Expr::Constant(_) => {}
@@ -219,6 +204,46 @@ impl fmt::Display for Expr {
     }
 }
 
+impl std::ops::Add for Expr {
+    type Output = Expr;
+
+    fn add(self, rhs: Expr) -> Expr {
+        Expr::Add(Rc::new(self), Rc::new(rhs))
+    }
+}
+
+impl std::ops::Sub for Expr {
+    type Output = Expr;
+
+    fn sub(self, rhs: Expr) -> Expr {
+        Expr::Sub(Rc::new(self), Rc::new(rhs))
+    }
+}
+
+impl std::ops::Mul for Expr {
+    type Output = Expr;
+
+    fn mul(self, rhs: Expr) -> Expr {
+        Expr::Mul(Rc::new(self), Rc::new(rhs))
+    }
+}
+
+impl std::ops::Div for Expr {
+    type Output = Expr;
+
+    fn div(self, rhs: Expr) -> Expr {
+        Expr::Div(Rc::new(self), Rc::new(rhs))
+    }
+}
+
+impl std::ops::Neg for Expr {
+    type Output = Expr;
+
+    fn neg(self) -> Expr {
+        Expr::Neg(Rc::new(self))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,13 +264,13 @@ mod tests {
 
     #[test]
     fn test_arithmetic() {
-        let expr = Expr::c(2.0).add(Expr::c(3.0));
+        let expr = Expr::c(2.0) + Expr::c(3.0);
         assert_eq!(expr.evaluate(&std::collections::HashMap::new()), Ok(5.0));
     }
 
     #[test]
     fn test_variables_extraction() {
-        let expr = Expr::v("x").add(Expr::v("y").mul(Expr::v("z")));
+        let expr = Expr::v("x") + Expr::v("y") * Expr::v("z");
         let vars = expr.variables();
         assert!(vars.contains(&"x".to_string()));
         assert!(vars.contains(&"y".to_string()));

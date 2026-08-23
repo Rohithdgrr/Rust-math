@@ -83,7 +83,9 @@ fn vector_cross3() {
 #[test]
 fn vector_out_of_bounds_panics_are_catchable() {
     let v = Vector::new(vec![1.0, 2.0]);
-    assert!(panics(|| { let _ = v.get(5); }));
+    assert!(panics(|| {
+        let _ = v.get(5);
+    }));
     assert!(panics(|| {
         let mut w = v.clone();
         w.set(9, 1.0);
@@ -102,7 +104,10 @@ fn operations_basic() {
     assert_eq!(negate(&[1.0, -2.0]), vec![-1.0, 2.0]);
     assert_eq!(add_scalar(&[1.0, 2.0], 10.0), vec![11.0, 12.0]);
     assert_eq!(hadamard(&[1.0, 2.0], &[3.0, 4.0]), vec![3.0, 8.0]);
-    assert_eq!(outer(&[1.0, 2.0], &[3.0, 4.0]), vec![vec![3.0, 4.0], vec![6.0, 8.0]]);
+    assert_eq!(
+        outer(&[1.0, 2.0], &[3.0, 4.0]),
+        vec![vec![3.0, 4.0], vec![6.0, 8.0]]
+    );
     assert_close(dot(&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0]), 32.0, EPS);
 }
 
@@ -118,7 +123,10 @@ fn operations_lerp_endpoints() {
 #[test]
 fn operations_cross_shape_guard() {
     assert_eq!(cross(&[1.0, 0.0], &[0.0, 1.0, 0.0]), Vec::<f64>::new());
-    assert_eq!(cross(&[1.0, 0.0, 0.0, 1.0], &[0.0, 1.0, 0.0, 0.0]), Vec::<f64>::new());
+    assert_eq!(
+        cross(&[1.0, 0.0, 0.0, 1.0], &[0.0, 1.0, 0.0, 0.0]),
+        Vec::<f64>::new()
+    );
 }
 
 #[test]
@@ -174,9 +182,17 @@ fn norms_empty_and_zeros() {
 #[test]
 fn geometry_angle_cases() {
     assert_close(angle(&[1.0, 0.0], &[1.0, 0.0]), 0.0, EPS);
-    assert_close(angle(&[1.0, 0.0], &[0.0, 1.0]), std::f64::consts::FRAC_PI_2, EPS);
+    assert_close(
+        angle(&[1.0, 0.0], &[0.0, 1.0]),
+        std::f64::consts::FRAC_PI_2,
+        EPS,
+    );
     assert_close(angle(&[1.0, 0.0], &[-1.0, 0.0]), std::f64::consts::PI, EPS);
-    assert_close(angle(&[1.0, 1.0], &[1.0, 0.0]), std::f64::consts::FRAC_PI_4, EPS);
+    assert_close(
+        angle(&[1.0, 1.0], &[1.0, 0.0]),
+        std::f64::consts::FRAC_PI_4,
+        EPS,
+    );
     assert_eq!(angle(&[0.0, 0.0], &[1.0, 0.0]), 0.0);
     assert_eq!(angle(&[1.0, 0.0], &[0.0, 0.0]), 0.0);
 }
@@ -232,7 +248,11 @@ fn geometry_triple_product_volume() {
 
 #[test]
 fn geometry_gram_schmidt_orthonormal() {
-    let mut v = vec![vec![1.0, 1.0, 0.0], vec![1.0, 0.0, 1.0], vec![0.0, 1.0, 1.0]];
+    let mut v = vec![
+        vec![1.0, 1.0, 0.0],
+        vec![1.0, 0.0, 1.0],
+        vec![0.0, 1.0, 1.0],
+    ];
     gram_schmidt(&mut v);
     for row in &v {
         assert_close(magnitude(row), 1.0, 1e-10);
@@ -259,17 +279,35 @@ fn geometry_gram_schmidt_handles_dependent_inputs() {
 fn linalg_mat_vec_mul() {
     let m = vec![vec![1.0, 2.0], vec![3.0, 4.0]];
     assert_eq!(mat_vec_mul(&m, &[5.0, 6.0]), vec![17.0, 39.0]);
-    assert_eq!(mat_vec_mul(&[vec![2.0, 0.0, 0.0], vec![0.0, 2.0, 0.0]], &[3.0, 4.0, 5.0]), vec![6.0, 8.0]);
+    assert_eq!(
+        mat_vec_mul(
+            &[vec![2.0, 0.0, 0.0], vec![0.0, 2.0, 0.0]],
+            &[3.0, 4.0, 5.0]
+        ),
+        vec![6.0, 8.0]
+    );
 }
 
 #[test]
 fn linalg_determinants() {
     assert_close(det2x2(&[[1.0, 2.0], [3.0, 4.0]]), -2.0, EPS);
-    assert_close(det3x3(&[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 0.0]]), 27.0, EPS);
+    assert_close(
+        det3x3(&[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 0.0]]),
+        27.0,
+        EPS,
+    );
     // Singular 3x3.
-    assert_close(det3x3(&[[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]]), 0.0, 1e-9);
+    assert_close(
+        det3x3(&[[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]]),
+        0.0,
+        1e-9,
+    );
     // Identity.
-    assert_close(det3x3(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]), 1.0, EPS);
+    assert_close(
+        det3x3(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]),
+        1.0,
+        EPS,
+    );
 }
 
 #[test]
@@ -382,7 +420,11 @@ fn distance_minkowski_family() {
     let b = [3.0, 4.0];
     assert_close(minkowski(&a, &b, 1.0), manhattan(&a, &b), EPS);
     assert_close(minkowski(&a, &b, 2.0), euclidean(&a, &b), EPS);
-    assert_close(minkowski(&a, &b, 3.0), (3.0f64.powi(3) + 4.0f64.powi(3)).powf(1.0 / 3.0), EPS);
+    assert_close(
+        minkowski(&a, &b, 3.0),
+        (3.0f64.powi(3) + 4.0f64.powi(3)).powf(1.0 / 3.0),
+        EPS,
+    );
 }
 
 #[test]
@@ -428,8 +470,12 @@ fn utils_argmax_argmin() {
     assert_eq!(argmin(&[1.0, 5.0, 3.0]), 0);
     assert_eq!(argmax(&[3.0, 1.0, 3.0]), 2); // ties -> last (max_by semantics)
     assert_eq!(argmin(&[-1.0, -2.0, -0.5]), 1);
-    assert!(panics(|| { let _ = argmax(&[] as &[f64]); }));
-    assert!(panics(|| { let _ = argmin(&[] as &[f64]); }));
+    assert!(panics(|| {
+        let _ = argmax(&[] as &[f64]);
+    }));
+    assert!(panics(|| {
+        let _ = argmin(&[] as &[f64]);
+    }));
 }
 
 #[test]

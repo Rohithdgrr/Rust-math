@@ -1,6 +1,6 @@
 //! Special trigonometric functions: sinc, haversine, Gudermannian, Chebyshev, versine, exsecant.
 
-use mathverse_core::traits::{Real, Trig, Hyperbolic, Transcendental};
+use mathverse_core::traits::{Hyperbolic, Real, Transcendental, Trig};
 
 // ---------------------------------------------------------------------------
 // Sinc
@@ -242,7 +242,10 @@ mod tests {
             for theta in [0.1, 0.5, 1.0, 2.0] {
                 let x = theta.cos();
                 let expected = (f64::from(n) * theta).cos();
-                assert!((chebyshev_first(n, x) - expected).abs() < 1e-10, "T_{n}({theta})");
+                assert!(
+                    (chebyshev_first(n, x) - expected).abs() < 1e-10,
+                    "T_{n}({theta})"
+                );
             }
         }
     }
@@ -250,10 +253,22 @@ mod tests {
     #[test]
     fn sin_power_test() {
         for x in [0.0f64, 0.5, 1.0, 2.0] {
-            assert!((sin_power(2, x) - x.sin().powi(2)).abs() < 1e-10, "sin²({x})");
-            assert!((sin_power(3, x) - x.sin().powi(3)).abs() < 1e-10, "sin³({x})");
-            assert!((cos_power(2, x) - x.cos().powi(2)).abs() < 1e-10, "cos²({x})");
-            assert!((cos_power(3, x) - x.cos().powi(3)).abs() < 1e-10, "cos³({x})");
+            assert!(
+                (sin_power(2, x) - x.sin().powi(2)).abs() < 1e-10,
+                "sin²({x})"
+            );
+            assert!(
+                (sin_power(3, x) - x.sin().powi(3)).abs() < 1e-10,
+                "sin³({x})"
+            );
+            assert!(
+                (cos_power(2, x) - x.cos().powi(2)).abs() < 1e-10,
+                "cos²({x})"
+            );
+            assert!(
+                (cos_power(3, x) - x.cos().powi(3)).abs() < 1e-10,
+                "cos³({x})"
+            );
         }
     }
 }

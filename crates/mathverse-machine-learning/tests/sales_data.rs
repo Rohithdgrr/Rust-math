@@ -36,9 +36,9 @@ fn load_rows() -> Vec<SalesRow> {
         let geo = parts.pop().unwrap();
         let person = parts.pop().unwrap();
         rows.push(SalesRow {
-            person: label_index(person, "person"),
-            geo: label_index(geo, "geo"),
-            product: label_index(product, "product"),
+            person: label_index(&person, "person"),
+            geo: label_index(&geo, "geo"),
+            product: label_index(&product, "product"),
             amount,
             customers,
         });
@@ -47,7 +47,7 @@ fn load_rows() -> Vec<SalesRow> {
 }
 
 /// Deterministic string -> small-integer index (missing strings get 0).
-fn label_index(s: String, _ctx: &str) -> f64 {
+fn label_index(s: &str, _ctx: &str) -> f64 {
     let v: u64 = s.bytes().map(u64::from).sum();
     (v % 20) as f64
 }
@@ -97,7 +97,10 @@ fn binary_classification_data() -> (Vec<Vec<f64>>, Vec<f64>) {
         .iter()
         .map(|r| vec![r.person, r.geo, r.product, r.customers])
         .collect();
-    let y: Vec<f64> = rows.iter().map(|r| if r.amount > median { 1.0 } else { 0.0 }).collect();
+    let y: Vec<f64> = rows
+        .iter()
+        .map(|r| if r.amount > median { 1.0 } else { 0.0 })
+        .collect();
     (x, y)
 }
 
@@ -169,7 +172,11 @@ fn logistic_handles_binary_and_multiclass() {
     let proba = logistic::predict_proba(&x, &lr.coefficients, lr.intercept);
     assert!(proba.iter().all(|&p| (0.0..=1.0).contains(&p)));
     let pred = logistic::predict(&x, &lr.coefficients, lr.intercept);
-    assert!(accuracy(&pred, &y) > 0.5, "binary logistic acc: {}", accuracy(&pred, &y));
+    assert!(
+        accuracy(&pred, &y) > 0.5,
+        "binary logistic acc: {}",
+        accuracy(&pred, &y)
+    );
     let ce = logistic::cross_entropy(&x, &y, &lr.coefficients, lr.intercept);
     assert!(ce.is_finite() && ce >= 0.0, "ce: {ce}");
 
@@ -193,10 +200,16 @@ fn logistic_handles_binary_and_multiclass() {
     );
     let op = logistic::predict_proba_ovr(&gx, &ovr);
     assert_eq!(op.len(), gx.len());
-    assert!(op.iter().all(|row| (row.iter().sum::<f64>() - 1.0).abs() < 1e-3));
+    assert!(op
+        .iter()
+        .all(|row| (row.iter().sum::<f64>() - 1.0).abs() < 1e-3));
     let op_pred = logistic::predict_ovr(&gx, &ovr);
     assert_eq!(op_pred.len(), gx.len());
-    assert!(accuracy(&op_pred, &gy) > 0.3, "ovr acc: {}", accuracy(&op_pred, &gy));
+    assert!(
+        accuracy(&op_pred, &gy) > 0.3,
+        "ovr acc: {}",
+        accuracy(&op_pred, &gy)
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -227,7 +240,11 @@ fn tree_variants_classify_geography() {
     let mut tree = tree::DecisionTree::new(12, 4);
     tree.fit(&x, &y);
     let preds = tree.predict(&x);
-    assert!(accuracy(&preds, &y) > 0.5, "tree acc: {}", accuracy(&preds, &y));
+    assert!(
+        accuracy(&preds, &y) > 0.5,
+        "tree acc: {}",
+        accuracy(&preds, &y)
+    );
     let proba = tree.predict_proba(&x, &classes);
     assert_eq!(proba.len(), x.len());
     assert!(proba[0].iter().sum::<f64>().abs() - 1.0 < 0.1 || !proba[0].is_empty());
@@ -235,7 +252,11 @@ fn tree_variants_classify_geography() {
     let mut forest = forest::RandomForest::new(10, 6, 3);
     forest.fit(&x, &y);
     let fpreds = forest.predict(&x);
-    assert!(accuracy(&fpreds, &y) > 0.3, "forest acc: {}", accuracy(&fpreds, &y));
+    assert!(
+        accuracy(&fpreds, &y) > 0.3,
+        "forest acc: {}",
+        accuracy(&fpreds, &y)
+    );
     let fproba = forest.predict_proba(&x, &classes);
     assert_eq!(fproba.len(), x.len());
 }
@@ -247,7 +268,11 @@ fn boosting_and_xgboost_regress_and_classify() {
     gbr.fit(&x, &y);
     let bp = gbr.predict(&x);
     assert!(is_finite(mean(&bp)));
-    assert!((mean(&bp) - mean(&y)).abs() < 300.0, "gbr drift: {}", mean(&bp));
+    assert!(
+        (mean(&bp) - mean(&y)).abs() < 300.0,
+        "gbr drift: {}",
+        mean(&bp)
+    );
 
     let mut xgr = xgboost::XGBoostRegressor::new(30, 0.1, 4, 1.0, 0.0);
     xgr.fit(&x, &y).unwrap();
@@ -260,14 +285,22 @@ fn boosting_and_xgboost_regress_and_classify() {
     let gproba = gbc.predict_proba(&bx);
     assert!(gproba.iter().all(|&p| (0.0..=1.0).contains(&p)));
     let gcpred = gbc.predict(&bx);
-    assert!(accuracy(&gcpred, &by) > 0.5, "gbc acc: {}", accuracy(&gcpred, &by));
+    assert!(
+        accuracy(&gcpred, &by) > 0.5,
+        "gbc acc: {}",
+        accuracy(&gcpred, &by)
+    );
 
     let mut xgc = xgboost::XGBoostClassifier::new(30, 0.1, 4, 1.0, 0.0);
     xgc.fit(&bx, &by).unwrap();
     let xproba = xgc.predict_proba(&bx);
     assert!(xproba.iter().all(|&p| (0.0..=1.0).contains(&p)));
     let xcpred = xgc.predict(&bx);
-    assert!(accuracy(&xcpred, &by) > 0.5, "xgc acc: {}", accuracy(&xcpred, &by));
+    assert!(
+        accuracy(&xcpred, &by) > 0.5,
+        "xgc acc: {}",
+        accuracy(&xcpred, &by)
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -278,7 +311,10 @@ fn boosting_and_xgboost_regress_and_classify() {
 fn svm_and_naive_bayes_classify() {
     let (x, y) = binary_classification_data();
     // SVM expects labels in {-1, +1}.
-    let y_svm: Vec<f64> = y.iter().map(|&v| if v > 0.5 { 1.0 } else { -1.0 }).collect();
+    let y_svm: Vec<f64> = y
+        .iter()
+        .map(|&v| if v > 0.5 { 1.0 } else { -1.0 })
+        .collect();
 
     let kernel = svm::Kernel::RBF { gamma: 0.1 };
     let _sim = kernel.compute(&x[0], &x[1]);
@@ -304,7 +340,9 @@ fn svm_and_naive_bayes_classify() {
     assert!(accuracy(&nb_pred, &y) > 0.3);
     let nb_proba = naive_bayes::predict_proba(&nb, &x).unwrap();
     assert_eq!(nb_proba.len(), x.len());
-    assert!(nb_proba.iter().all(|row| (row.iter().sum::<f64>() - 1.0).abs() < 1e-3));
+    assert!(nb_proba
+        .iter()
+        .all(|row| (row.iter().sum::<f64>() - 1.0).abs() < 1e-3));
 }
 
 #[test]
@@ -336,7 +374,10 @@ fn gaussian_process_and_neural_net_regress() {
             bias: vec![0.0; 2],
         },
         neural_net::Layer::Sigmoid,
-        neural_net::Layer::Linear { weights: vec![vec![0.1; 2]], bias: vec![0.0] },
+        neural_net::Layer::Linear {
+            weights: vec![vec![0.1; 2]],
+            bias: vec![0.0],
+        },
     ]);
     // fit panics if the y vector mismatches; use forward first.
     nn.fit(&bx_sub, &by_sub, 0.01, 20);
@@ -349,12 +390,10 @@ fn gaussian_process_and_neural_net_regress() {
     // Regression network on amount subset.
     let xr_sub: Vec<Vec<f64>> = x.iter().take(60).cloned().collect();
     let yr_sub: Vec<f64> = y.iter().take(60).copied().collect();
-    let mut nn_reg = neural_net::NeuralNet::new(vec![
-        neural_net::Layer::Linear {
-            weights: vec![vec![0.001; xr_sub[0].len()]],
-            bias: vec![2000.0],
-        },
-    ]);
+    let mut nn_reg = neural_net::NeuralNet::new(vec![neural_net::Layer::Linear {
+        weights: vec![vec![0.001; xr_sub[0].len()]],
+        bias: vec![2000.0],
+    }]);
     nn_reg.fit(&xr_sub, &yr_sub, 0.0001, 30);
     let rp = nn_reg.predict(&xr_sub);
     assert!(rp.iter().all(|&v| v.is_finite()));
@@ -371,8 +410,22 @@ fn voting_blending_bagging_adaboost_stacking() {
 
     // VotingClassifier: pure closures that don't need fitting.
     let mut vc2 = ensemble::VotingClassifier::new();
-    vc2.add_model(|xr| xr.iter().map(|r| if r[0] > r[1] { 1.0 } else { 0.0 }).collect(), 1.0);
-    vc2.add_model(|xr| xr.iter().map(|r| if r[2] > 0.0 { 1.0 } else { 0.0 }).collect(), 1.0);
+    vc2.add_model(
+        |xr| {
+            xr.iter()
+                .map(|r| if r[0] > r[1] { 1.0 } else { 0.0 })
+                .collect()
+        },
+        1.0,
+    );
+    vc2.add_model(
+        |xr| {
+            xr.iter()
+                .map(|r| if r[2] > 0.0 { 1.0 } else { 0.0 })
+                .collect()
+        },
+        1.0,
+    );
     let votes = vc2.predict(&x);
     assert_eq!(votes.len(), n);
 
@@ -382,11 +435,8 @@ fn voting_blending_bagging_adaboost_stacking() {
     assert_eq!(vr.predict(&x).len(), n);
 
     // Bagging
-    let mut bag = ensemble_adv::BaggingClassifier::new(
-        5,
-        0.8,
-        ensemble_adv::BaggingBase::DecisionTree,
-    );
+    let mut bag =
+        ensemble_adv::BaggingClassifier::new(5, 0.8, ensemble_adv::BaggingBase::DecisionTree);
     bag.fit(&x, &y);
     let bp = bag.predict(&x);
     assert_eq!(bp.len(), n);
@@ -464,7 +514,6 @@ fn pca_and_kernel_pca_transform() {
     assert_eq!(tr.len(), sub.len());
     assert!(tr[0].len() <= 2);
 
-
     let mut kpca = pca::KernelPCA::new(2, 0.1);
     let ktr = kpca.fit_transform(&sub);
     assert_eq!(ktr.len(), sub.len());
@@ -508,11 +557,16 @@ fn feature_preprocessing_functions() {
     let sc_means: Vec<f64> = (0..x[0].len())
         .map(|j| scaled.iter().map(|r| r[j]).sum::<f64>() / scaled.len() as f64)
         .collect();
-    assert!(sc_means.iter().all(|&m| m.abs() < 0.5), "stds means: {sc_means:?}");
+    assert!(
+        sc_means.iter().all(|&m| m.abs() < 0.5),
+        "stds means: {sc_means:?}"
+    );
 
     let mm = preprocessing_adv::MinMaxScaler::fit_transform(&x);
     let mm_out = mm.transform(&x);
-    assert!(mm_out.iter().all(|r| r.iter().all(|&v| (-0.001..=1.001).contains(&v))));
+    assert!(mm_out
+        .iter()
+        .all(|r| r.iter().all(|&v| (-0.001..=1.001).contains(&v))));
 
     let le = preprocessing_adv::label_encode(&[3.0, 1.0, 3.0, 2.0]);
     assert_eq!(le, vec![2.0, 0.0, 2.0, 1.0]);
@@ -532,7 +586,9 @@ fn feature_preprocessing_functions() {
     let pw = preprocessing_adv::power_transform(&x, "yeo-johnson");
     assert_eq!(pw.len(), x.len());
     let qt = preprocessing_adv::quantile_transform(&x, 10);
-    assert!(qt.iter().all(|r| r.iter().all(|&v| (-0.001..=1.001).contains(&v))));
+    assert!(qt
+        .iter()
+        .all(|r| r.iter().all(|&v| (-0.001..=1.001).contains(&v))));
     let qtf = preprocessing_adv::quantile_transform_fixed(&x, 10);
     assert_eq!(qtf.len(), x.len());
     let (rob, med, iqr) = preprocessing_adv::robust_scale(&x);
@@ -613,7 +669,7 @@ fn advanced_metrics_all_finite() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn model_selection_evaluation_and_estimator_traits() {
+fn model_selection_and_evaluation_metrics() {
     let (x, y) = regression_data();
 
     // Splits
@@ -640,7 +696,9 @@ fn model_selection_evaluation_and_estimator_traits() {
         t.predict(xte)
     });
     assert_eq!(accs.len(), 5);
-    assert!(accs.iter().all(|&a| a.is_finite() && (0.0..=1.0).contains(&a)));
+    assert!(accs
+        .iter()
+        .all(|&a| a.is_finite() && (0.0..=1.0).contains(&a)));
 
     // evaluation
     let ev = evaluation::cross_val_score(&x, &y, 5, |xtr, ytr, xte| {
@@ -677,12 +735,19 @@ fn model_selection_evaluation_and_estimator_traits() {
     assert_eq!(rep.precision.len(), 5);
 
     let scores: Vec<f64> = load_rows().iter().map(|r| r.amount).collect();
-    let labels: Vec<f64> = load_rows().iter().map(|r| if r.customers > 100.0 { 1.0 } else { 0.0 }).collect();
+    let labels: Vec<f64> = load_rows()
+        .iter()
+        .map(|r| if r.customers > 100.0 { 1.0 } else { 0.0 })
+        .collect();
     let roc = model_selection::roc_curve(&scores, &labels);
     assert!(!roc.is_empty());
     let auc = model_selection::auc(&roc);
     assert!(auc.is_finite() && (0.0..=1.0).contains(&auc));
+}
 
+#[test]
+fn estimator_traits_search_and_transformers() {
+    let (bx, by) = binary_classification_data();
     // Estimator traits + grid/random search on a small binary sample.
     let s = 120;
     let gx: Vec<Vec<f64>> = bx.iter().take(s).cloned().collect();
@@ -726,7 +791,9 @@ fn model_selection_evaluation_and_estimator_traits() {
     assert_eq!(ss_out.len(), s);
     let mut mm2 = estimator::MinMaxScaler::new();
     let mm2_out = mm2.fit_transform(&gx).unwrap();
-    assert!(mm2_out.iter().all(|r| r.iter().all(|&v| (-1e-9..=1.0 + 1e-9).contains(&v))));
+    assert!(mm2_out
+        .iter()
+        .all(|r| r.iter().all(|&v| (-1e-9..=1.0 + 1e-9).contains(&v))));
     let mut ohe = estimator::OneHotEncoder::new();
     let ohe_x: Vec<Vec<f64>> = gx.iter().map(|r| vec![r[0], r[1]]).collect();
     let ohe_out = ohe.fit_transform(&ohe_x).unwrap();
@@ -789,7 +856,11 @@ fn pipeline_roundtrip_and_persistence() {
     pipe.fit(&x, &y);
     let preds = pipe.predict(&x);
     assert_eq!(preds.len(), x.len());
-    assert!(accuracy(&preds, &y) > 0.3, "pipeline acc: {}", accuracy(&preds, &y));
+    assert!(
+        accuracy(&preds, &y) > 0.3,
+        "pipeline acc: {}",
+        accuracy(&preds, &y)
+    );
 
     let path = std::env::temp_dir().join("mathverse_pipeline_test.hex");
     pipeline::save_pipeline(&pipe, path.to_str().unwrap()).unwrap();
@@ -807,10 +878,7 @@ fn synthetic_dataset_generators() {
     let (x, y) = datasets::make_classification(200, 4, 3, 42);
     assert_eq!(x.len(), 200);
     assert_eq!(x[0].len(), 4);
-    let max_label = y
-        .iter()
-        .copied()
-        .fold(f64::NEG_INFINITY, f64::max);
+    let max_label = y.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     assert!(max_label <= 3.0);
 
     let (x, y) = datasets::make_regression(200, 3, 0.1, 42);

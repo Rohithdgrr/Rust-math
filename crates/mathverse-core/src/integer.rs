@@ -406,7 +406,9 @@ pub fn is_cube(n: u64) -> bool {
     let mut hi = n;
     while lo <= hi {
         let mid = u64::midpoint(lo, hi);
-        let cube = u128::from(mid).saturating_mul(u128::from(mid)).saturating_mul(u128::from(mid));
+        let cube = u128::from(mid)
+            .saturating_mul(u128::from(mid))
+            .saturating_mul(u128::from(mid));
         match cube.cmp(&u128::from(n)) {
             core::cmp::Ordering::Equal => return true,
             core::cmp::Ordering::Less => lo = mid + 1,
@@ -868,10 +870,7 @@ pub fn sieve_of_eratosthenes(n: usize) -> Vec<u64> {
         }
         p += 1;
     }
-    (2..=n)
-        .filter(|&i| prime[i])
-        .map(|i| i as u64)
-        .collect()
+    (2..=n).filter(|&i| prime[i]).map(|i| i as u64).collect()
 }
 
 /// Prime factorization of `n`: returns a vector of `(prime, exponent)` pairs.
@@ -1608,10 +1607,7 @@ pub fn permutation_count(n: u64, r: u64) -> u128 {
 #[must_use]
 pub fn divisor_count(n: u64) -> u64 {
     let factors = prime_factorization(n);
-    factors
-        .iter()
-        .map(|(_, e)| u64::from(e + 1))
-        .product()
+    factors.iter().map(|(_, e)| u64::from(e + 1)).product()
 }
 
 /// Sum of divisors: `sigma(n)`.
@@ -1682,10 +1678,7 @@ pub fn is_smooth(n: u64, bound: u64) -> bool {
 /// ```
 #[must_use]
 pub fn primorial(p: u64) -> u64 {
-    sieve_of_eratosthenes(p as usize)
-        .iter()
-        .copied()
-        .product()
+    sieve_of_eratosthenes(p as usize).iter().copied().product()
 }
 
 /// Mobius function mu(n):
@@ -1889,11 +1882,7 @@ pub fn segmented_sieve(lo: u64, hi: u64) -> Vec<u64> {
     let small_primes = sieve_of_eratosthenes(limit);
     let mut is_prime = vec![true; (hi - lo + 1) as usize];
     for &p in &small_primes {
-        let start = if lo <= p {
-            p * p
-        } else {
-            lo.div_ceil(p) * p
-        };
+        let start = if lo <= p { p * p } else { lo.div_ceil(p) * p };
         let mut j = start;
         while j <= hi {
             if j >= lo {
@@ -1922,24 +1911,24 @@ mod tests {
         assert_eq!(lcm_n(&[4, 6, 8]), 24);
     }
 
-#[test]
-fn extended_gcd_tests() {
-    assert_eq!(extended_gcd(48, 18).0, 6);
-    assert_eq!(extended_gcd(18, 48).0, 6);
-    assert_eq!(extended_gcd(0, 5).0, 5);
-    assert_eq!(extended_gcd(5, 0).0, 5);
-    assert_eq!(extended_gcd(13, 17).0, 1);
-}
+    #[test]
+    fn extended_gcd_tests() {
+        assert_eq!(extended_gcd(48, 18).0, 6);
+        assert_eq!(extended_gcd(18, 48).0, 6);
+        assert_eq!(extended_gcd(0, 5).0, 5);
+        assert_eq!(extended_gcd(5, 0).0, 5);
+        assert_eq!(extended_gcd(13, 17).0, 1);
+    }
 
-#[test]
-fn bezout_tests() {
-    let (x, y) = bezout_coefficients(48, 18);
-    assert_eq!(48 * x + 18 * y, 6);
-    let (x, y) = bezout_coefficients(13, 17);
-    assert_eq!(13 * x + 17 * y, 1);
-    assert_eq!(extended_gcd(0, 5).0, 5);
-    assert_eq!(extended_gcd(5, 0).0, 5);
-}
+    #[test]
+    fn bezout_tests() {
+        let (x, y) = bezout_coefficients(48, 18);
+        assert_eq!(48 * x + 18 * y, 6);
+        let (x, y) = bezout_coefficients(13, 17);
+        assert_eq!(13 * x + 17 * y, 1);
+        assert_eq!(extended_gcd(0, 5).0, 5);
+        assert_eq!(extended_gcd(5, 0).0, 5);
+    }
 
     #[test]
     fn modular_inverse_tests() {
@@ -1947,12 +1936,12 @@ fn bezout_tests() {
         assert_eq!(modular_inverse(2, 4), None);
     }
 
-#[test]
-fn mod_pow_tests() {
-    assert_eq!(mod_pow(2, 10, 1000), 24);
-    assert_eq!(mod_pow(3, 0, 7), 1);
-    assert_eq!(mod_pow(0, 5, 7), 0);
-}
+    #[test]
+    fn mod_pow_tests() {
+        assert_eq!(mod_pow(2, 10, 1000), 24);
+        assert_eq!(mod_pow(3, 0, 7), 1);
+        assert_eq!(mod_pow(0, 5, 7), 0);
+    }
 
     #[test]
     fn isqrt_tests() {
@@ -1987,7 +1976,10 @@ fn mod_pow_tests() {
         assert_eq!(factorial(5), 120);
         assert_eq!(checked_factorial(0), Some(1));
         assert_eq!(checked_factorial(5), Some(120));
-        assert_eq!(checked_factorial(34), Some(295232799039604140847618609643520000000));
+        assert_eq!(
+            checked_factorial(34),
+            Some(295232799039604140847618609643520000000)
+        );
         assert_eq!(checked_factorial(35), None);
     }
 
@@ -2011,17 +2003,17 @@ fn mod_pow_tests() {
         assert!(!is_odd(4));
     }
 
-#[test]
-fn is_cube_tests() {
-    assert!(is_cube(0));
-    assert!(is_cube(1));
-    assert!(is_cube(8));
-    assert!(is_cube(27));
-    assert!(is_cube(64));
-    assert!(!is_cube(9));
-    assert!(!is_cube(10));
-    assert!(!is_cube(u64::MAX));
-}
+    #[test]
+    fn is_cube_tests() {
+        assert!(is_cube(0));
+        assert!(is_cube(1));
+        assert!(is_cube(8));
+        assert!(is_cube(27));
+        assert!(is_cube(64));
+        assert!(!is_cube(9));
+        assert!(!is_cube(10));
+        assert!(!is_cube(u64::MAX));
+    }
 
     #[test]
     fn nearest_power_of_two_tests() {
@@ -2153,18 +2145,18 @@ fn is_cube_tests() {
         assert_eq!(prime_factors(60), vec![2, 3, 5]);
     }
 
-#[test]
-fn triangular_test() {
-    assert!(is_triangular(0));
-    assert!(is_triangular(1));
-    assert!(is_triangular(3));
-    assert!(is_triangular(6));
-    assert!(is_triangular(10));
-    assert!(!is_triangular(2));
-    assert!(!is_triangular(4));
-    assert!(!is_triangular(5));
-    assert!(!is_triangular(9));
-}
+    #[test]
+    fn triangular_test() {
+        assert!(is_triangular(0));
+        assert!(is_triangular(1));
+        assert!(is_triangular(3));
+        assert!(is_triangular(6));
+        assert!(is_triangular(10));
+        assert!(!is_triangular(2));
+        assert!(!is_triangular(4));
+        assert!(!is_triangular(5));
+        assert!(!is_triangular(9));
+    }
 
     #[test]
     fn harshad_test() {
@@ -2172,15 +2164,15 @@ fn triangular_test() {
         assert!(!is_harshad(16));
     }
 
-#[test]
-fn armstrong_test() {
-    assert!(is_armstrong(153));
-    assert!(is_armstrong(370));
-    assert!(is_armstrong(371));
-    assert!(is_armstrong(407));
-    assert!(!is_armstrong(154));
-    assert!(!is_armstrong(10));
-}
+    #[test]
+    fn armstrong_test() {
+        assert!(is_armstrong(153));
+        assert!(is_armstrong(370));
+        assert!(is_armstrong(371));
+        assert!(is_armstrong(407));
+        assert!(!is_armstrong(154));
+        assert!(!is_armstrong(10));
+    }
 
     #[test]
     fn perfect_abundant_deficient() {

@@ -1,23 +1,28 @@
-//! Vision Transformer (ViT) components: patch embedding, CLS token, positional embeddings.
+//! Vision Transformer (`ViT`) components: patch embedding, CLS token, positional embeddings.
 
 use crate::tensor::Tensor;
 use mathverse_core::error::{MathError, MathResult};
 
-/// Split image into patches and project to d_model dimensions.
+/// Split image into patches and project to `d_model` dimensions.
+///
 /// `x`: [batch, channels, height, width]
 /// `patch_size`: spatial size of each patch
 /// `d_model`: embedding dimension
-/// Returns [batch, num_patches, d_model].
+/// Returns [batch, `num_patches`, `d_model`].
 pub fn patch_embedding(x: &Tensor, patch_size: usize, d_model: usize) -> MathResult<Tensor> {
     if x.shape.len() != 4 {
-        return Err(MathError::InvalidArgument("x must be [batch, channels, H, W]"));
+        return Err(MathError::InvalidArgument(
+            "x must be [batch, channels, H, W]",
+        ));
     }
     let batch = x.shape[0];
     let channels = x.shape[1];
     let h = x.shape[2];
     let w = x.shape[3];
     if !h.is_multiple_of(patch_size) || !w.is_multiple_of(patch_size) {
-        return Err(MathError::InvalidArgument("H and W must be divisible by patch_size"));
+        return Err(MathError::InvalidArgument(
+            "H and W must be divisible by patch_size",
+        ));
     }
     let patches_h = h / patch_size;
     let patches_w = w / patch_size;
@@ -56,11 +61,13 @@ pub fn patch_embedding(x: &Tensor, patch_size: usize, d_model: usize) -> MathRes
 }
 
 /// Prepend CLS token to sequence.
-/// `x`: [batch, seq_len, d_model], `cls_token`: [1, 1, d_model]
-/// Returns [batch, 1 + seq_len, d_model].
+/// `x`: [batch, `seq_len`, `d_model`], `cls_token`: [1, 1, `d_model`]
+/// Returns [batch, 1 + `seq_len`, `d_model`].
 pub fn cls_token_prepend(x: &Tensor, cls_token: &Tensor) -> MathResult<Tensor> {
     if x.shape.len() != 3 {
-        return Err(MathError::InvalidArgument("x must be [batch, seq_len, d_model]"));
+        return Err(MathError::InvalidArgument(
+            "x must be [batch, seq_len, d_model]",
+        ));
     }
     let batch = x.shape[0];
     let seq_len = x.shape[1];
@@ -89,16 +96,22 @@ pub fn cls_token_prepend(x: &Tensor, cls_token: &Tensor) -> MathResult<Tensor> {
 }
 
 /// Learnable position embeddings (random init, meant to be trained).
-/// Returns [1, seq_len, d_model].
+/// Returns [1, `seq_len`, `d_model`].
+#[must_use]
 pub fn position_embedding(seq_len: usize, d_model: usize) -> Tensor {
     Tensor::randn(&[1, seq_len, d_model])
 }
 
-/// ViT forward pass through multiple transformer layers.
-/// `patches`: [batch, seq_len, d_model] (already embedded, CLS prepended)
-/// `w_q`, `w_k`, `w_v`: [d_model, d_model], `w_o`: [d_model, d_model]
-/// `w_ff1`: [d_model, 4*d_model], `w_ff2`: [4*d_model, d_model]
-/// Returns output [batch, seq_len, d_model].
+/// `ViT` forward pass through multiple transformer layers.
+///
+/// `patches`: [batch, `seq_len`, `d_model`] (already embedded, CLS prepended)
+/// `w_q`, `w_k`, `w_v`: [`d_model`, `d_model`], `w_o`: [`d_model`, `d_model`]
+/// `w_ff1`: [`d_model`, 4*`d_model`], `w_ff2`: [4*`d_model`, `d_model`]
+/// Returns output [batch, `seq_len`, `d_model`].
+// The weight tensors are kept as separate parameters to mirror the
+// per-layer weight matrices of a real transformer; bundling them into a
+// struct would be an API break for little gain.
+#[allow(clippy::too_many_arguments)]
 pub fn vit_forward(
     patches: &Tensor,
     w_q: &Tensor,
@@ -111,13 +124,17 @@ pub fn vit_forward(
     num_layers: usize,
 ) -> MathResult<Tensor> {
     if patches.shape.len() != 3 {
-        return Err(MathError::InvalidArgument("patches must be [batch, seq, d_model]"));
+        return Err(MathError::InvalidArgument(
+            "patches must be [batch, seq, d_model]",
+        ));
     }
     let batch = patches.shape[0];
     let seq_len = patches.shape[1];
     let d_model = patches.shape[2];
-    if w_q.shape != [d_model, d_model] || w_k.shape != [d_model, d_model]
-        || w_v.shape != [d_model, d_model] || w_o.shape != [d_model, d_model]
+    if w_q.shape != [d_model, d_model]
+        || w_k.shape != [d_model, d_model]
+        || w_v.shape != [d_model, d_model]
+        || w_o.shape != [d_model, d_model]
     {
         return Err(MathError::DimensionMismatch);
     }
@@ -147,11 +164,16 @@ pub fn vit_forward(
                     for j in 0..seq_len {
                         let mut dot = 0.0;
                         for d in 0..d_k {
-                            dot += q.data[bi * seq_len * d_model + i * d_model + h * d_k + d]
-                                * k.data[bi * seq_len * d_model + j * d_model + h * d_k + d];
+                            dot = q.data[bi * seq_len * d_model + i * d_model + h * d_k + d]
+                                .mul_add(
+                                    k.data[bi * seq_len * d_model + j * d_model + h * d_k + d],
+                                    dot,
+                                );
                         }
                         scores[j] = dot / (d_k as f64).sqrt();
-                        if scores[j] > max_s { max_s = scores[j]; }
+                        if scores[j] > max_s {
+                            max_s = scores[j];
+                        }
                     }
                     let mut sum_exp = 0.0;
                     #[allow(clippy::needless_range_loop)]
@@ -163,8 +185,11 @@ pub fn vit_forward(
                     for d in 0..d_k {
                         let mut val = 0.0;
                         #[allow(clippy::needless_range_loop)]
-                    for j in 0..seq_len {
-                            val += scores[j] * v.data[bi * seq_len * d_model + j * d_model + h * d_k + d];
+                        for j in 0..seq_len {
+                            val = scores[j].mul_add(
+                                v.data[bi * seq_len * d_model + j * d_model + h * d_k + d],
+                                val,
+                            );
                         }
                         attn_out[bi * seq_len * d_model + i * d_model + h * d_k + d] = val * inv;
                     }
@@ -186,7 +211,9 @@ pub fn vit_forward(
         let ff_hidden = flat.matmul(w_ff1)?;
         let ff_activated = crate::activations::gelu(&ff_hidden);
         // Linear 2
-        let ff_out = ff_activated.matmul(w_ff2)?.reshape(&[batch, seq_len, d_model])?;
+        let ff_out = ff_activated
+            .matmul(w_ff2)?
+            .reshape(&[batch, seq_len, d_model])?;
         // Residual connection
         x = x.add(&ff_out)?;
     }
@@ -202,7 +229,7 @@ mod tests {
     #[test]
     fn patch_embedding_test() {
         // 4x4 image, patch_size=2 → 4 patches of 2x2
-        let x = Tensor::new(&[1, 1, 4, 4], &(1..=16).map(|i| i as f64).collect::<Vec<_>>()).unwrap();
+        let x = Tensor::new(&[1, 1, 4, 4], &(1..=16).map(f64::from).collect::<Vec<_>>()).unwrap();
         let out = patch_embedding(&x, 2, 8).unwrap();
         assert_eq!(out.shape, vec![1, 4, 8]);
         // Each patch is projected, should be non-zero
@@ -211,14 +238,20 @@ mod tests {
 
     #[test]
     fn patch_embedding_batch() {
-        let x = Tensor::new(&[2, 3, 6, 6], &(0..216).map(|i| i as f64).collect::<Vec<_>>()).unwrap();
+        let x = Tensor::new(&[2, 3, 6, 6], &(0..216).map(f64::from).collect::<Vec<_>>()).unwrap();
         let out = patch_embedding(&x, 3, 4).unwrap();
         assert_eq!(out.shape, vec![2, 4, 4]);
     }
 
     #[test]
     fn cls_token_prepend_test() {
-        let x = Tensor::new(&[1, 3, 4], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]).unwrap();
+        let x = Tensor::new(
+            &[1, 3, 4],
+            &[
+                1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+            ],
+        )
+        .unwrap();
         let cls = Tensor::new(&[1, 1, 4], &[0.1, 0.2, 0.3, 0.4]).unwrap();
         let out = cls_token_prepend(&x, &cls).unwrap();
         assert_eq!(out.shape, vec![1, 4, 4]);
@@ -255,15 +288,3 @@ mod tests {
         assert!(out.data.iter().all(|&v| v.is_finite()));
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-

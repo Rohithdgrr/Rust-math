@@ -92,7 +92,10 @@ pub fn render_stacked_bar(
     // Calculate max total across all categories
     let mut max_total = 0.0;
     for cat_idx in 0..num_cats {
-        let total: f64 = series.iter().map(|s| s.values.get(cat_idx).copied().unwrap_or(0.0)).sum();
+        let total: f64 = series
+            .iter()
+            .map(|s| s.values.get(cat_idx).copied().unwrap_or(0.0))
+            .sum();
         if total > max_total {
             max_total = total;
         }
@@ -192,7 +195,9 @@ pub fn render_stacked_bar(
             svg.push('\n');
             svg.push_str(&format!(
                 r#"  <text x="{}" y="{}" font-size="11" dominant-baseline="middle">{}</text>"#,
-                legend_x + 16.0, ly + 6.0, s.label
+                legend_x + 16.0,
+                ly + 6.0,
+                s.label
             ));
             svg.push('\n');
         }

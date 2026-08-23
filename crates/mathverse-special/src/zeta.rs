@@ -79,8 +79,14 @@ mod tests {
     fn zeta_known_values() {
         let z3 = zeta(3.0);
         let expected = 1.202_056_903_159_594;
-        eprintln!("zeta(3.0) = {z3:.15}, expected = {expected:.15}, diff = {}", (z3 - expected).abs());
-        assert!((z3 - expected).abs() < 1e-13, "zeta(3.0)={z3}, expected={expected}");
+        eprintln!(
+            "zeta(3.0) = {z3:.15}, expected = {expected:.15}, diff = {}",
+            (z3 - expected).abs()
+        );
+        assert!(
+            (z3 - expected).abs() < 1e-13,
+            "zeta(3.0)={z3}, expected={expected}"
+        );
         assert!((zeta(4.0) - 1.082_323_233_711_138).abs() < 1e-14);
         assert!((zeta(6.0) - 1.017_343_061_984_449).abs() < 1e-13);
         assert!((zeta(8.0) - 1.004_077_356_197_944).abs() < 1e-13);

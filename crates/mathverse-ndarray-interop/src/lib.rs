@@ -54,16 +54,14 @@ pub fn view1_to_vector(arr: ArrayView1<'_, f64>) -> Vector {
 /// Convert a `Matrix` into an `Array2<f64>`.
 pub fn matrix_to_array2(m: Matrix) -> Array2<f64> {
     let (rows, cols) = m.shape();
-    Array2::from_shape_vec((rows, cols), m.into_data())
-        .expect("Matrix shape should be valid")
+    Array2::from_shape_vec((rows, cols), m.into_data()).expect("Matrix shape should be valid")
 }
 
 /// Convert an `Array2<f64>` into a `Matrix`.
 pub fn array2_to_matrix(arr: Array2<f64>) -> Result<Matrix, ShapeError> {
     let (rows, cols) = arr.dim();
     // A valid `Array2` always has `rows * cols` elements, so this cannot fail.
-    Ok(Matrix::new(rows, cols, arr.into_raw_vec())
-        .expect("Array2 shape should be valid"))
+    Ok(Matrix::new(rows, cols, arr.into_raw_vec()).expect("Array2 shape should be valid"))
 }
 
 /// Convert a `&Matrix` into an `ArrayView2<f64>`.

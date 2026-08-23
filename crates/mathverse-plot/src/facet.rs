@@ -315,9 +315,13 @@ impl FacetGrid {
                 }
             }
         } else {
-            let n_cols = self.col_var.as_ref()
+            let n_cols = self
+                .col_var
+                .as_ref()
                 .map_or(1, |v| Self::unique_values(data, v).len());
-            let n_rows = self.row_var.as_ref()
+            let n_rows = self
+                .row_var
+                .as_ref()
                 .map_or(1, |v| Self::unique_values(data, v).len());
             (n_rows, n_cols)
         }
@@ -325,15 +329,27 @@ impl FacetGrid {
 
     /// Total number of panels.
     pub fn total_panels(&self, data: &[FacetData]) -> usize {
-        let col_vals = self.col_var.as_ref()
+        let col_vals = self
+            .col_var
+            .as_ref()
             .map(|v| Self::unique_values(data, v))
             .unwrap_or_default();
-        let row_vals = self.row_var.as_ref()
+        let row_vals = self
+            .row_var
+            .as_ref()
             .map(|v| Self::unique_values(data, v))
             .unwrap_or_default();
 
-        let n_cols = if col_vals.is_empty() { 1 } else { col_vals.len() };
-        let n_rows = if row_vals.is_empty() { 1 } else { row_vals.len() };
+        let n_cols = if col_vals.is_empty() {
+            1
+        } else {
+            col_vals.len()
+        };
+        let n_rows = if row_vals.is_empty() {
+            1
+        } else {
+            row_vals.len()
+        };
 
         n_cols * n_rows
     }
@@ -341,16 +357,23 @@ impl FacetGrid {
     /// Render the facet grid as SVG.
     pub fn render_svg(&self, data: &[FacetData]) -> String {
         let (n_rows, n_cols) = self.grid_dims(data);
-        let col_vals = self.col_var.as_ref()
+        let col_vals = self
+            .col_var
+            .as_ref()
             .map(|v| Self::unique_values(data, v))
             .unwrap_or_default();
-        let row_vals = self.row_var.as_ref()
+        let row_vals = self
+            .row_var
+            .as_ref()
             .map(|v| Self::unique_values(data, v))
             .unwrap_or_default();
 
         let strip_height = 20.0;
-        let total_width = self.margin * 2.0 + n_cols as f64 * (self.panel_width + self.gap) - self.gap;
-        let total_height = self.margin * 2.0 + n_rows as f64 * (self.panel_height + self.gap + strip_height) - self.gap;
+        let total_width =
+            self.margin * 2.0 + n_cols as f64 * (self.panel_width + self.gap) - self.gap;
+        let total_height = self.margin * 2.0
+            + n_rows as f64 * (self.panel_height + self.gap + strip_height)
+            - self.gap;
 
         let mut svg = String::new();
         svg.push_str(&format!(
@@ -369,7 +392,8 @@ impl FacetGrid {
         for row_idx in 0..n_rows {
             for col_idx in 0..n_cols {
                 let x = self.margin + col_idx as f64 * (self.panel_width + self.gap);
-                let y = self.margin + row_idx as f64 * (self.panel_height + self.gap + strip_height);
+                let y =
+                    self.margin + row_idx as f64 * (self.panel_height + self.gap + strip_height);
 
                 let col_val = col_vals.get(col_idx);
                 let row_val = row_vals.get(row_idx);
@@ -377,14 +401,20 @@ impl FacetGrid {
                 // Strip label
                 let strip_label = match (&self.label_pos, col_val, row_val) {
                     (FacetLabelPos::StripTop | FacetLabelPos::Top, Some(val), _)
-                    | (FacetLabelPos::StripLeft | FacetLabelPos::Left, _, Some(val)) => Some(val.as_str()),
+                    | (FacetLabelPos::StripLeft | FacetLabelPos::Left, _, Some(val)) => {
+                        Some(val.as_str())
+                    }
                     _ => None,
                 };
 
                 if let Some(label) = strip_label {
                     svg.push_str(&format!(
                         "  <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{}\"/>\n",
-                        x, y, self.panel_width, strip_height, self.strip_background.to_hex()
+                        x,
+                        y,
+                        self.panel_width,
+                        strip_height,
+                        self.strip_background.to_hex()
                     ));
                     svg.push_str(&format!(
                         "  <text x=\"{}\" y=\"{}\" text-anchor=\"middle\" font-size=\"{}\" fill=\"{}\">{}</text>\n",
@@ -406,28 +436,47 @@ impl FacetGrid {
                 // Get subset data
                 let subset = Self::subset(
                     data,
-                    self.col_var.as_deref(), col_val.map(std::string::String::as_str),
-                    self.row_var.as_deref(), row_val.map(std::string::String::as_str),
+                    self.col_var.as_deref(),
+                    col_val.map(std::string::String::as_str),
+                    self.row_var.as_deref(),
+                    row_val.map(std::string::String::as_str),
                 );
 
                 // Render data points as scatter
                 let (mut x_min, mut y_min) = (0.0, 0.0);
                 if !subset.is_empty() {
-                    let (xmin, xmax) = subset.iter()
+                    let (xmin, xmax) = subset
+                        .iter()
                         .map(|d| d.x)
-                        .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), v| (a.min(v), b.max(v)));
-                    let (ymin, ymax) = subset.iter()
+                        .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), v| {
+                            (a.min(v), b.max(v))
+                        });
+                    let (ymin, ymax) = subset
+                        .iter()
                         .map(|d| d.y)
-                        .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), v| (a.min(v), b.max(v)));
+                        .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), v| {
+                            (a.min(v), b.max(v))
+                        });
                     x_min = xmin;
                     y_min = ymin;
 
-                    let x_range = if (xmax - xmin).abs() < 1e-10 { 1.0 } else { xmax - xmin };
-                    let y_range = if (ymax - ymin).abs() < 1e-10 { 1.0 } else { ymax - ymin };
+                    let x_range = if (xmax - xmin).abs() < 1e-10 {
+                        1.0
+                    } else {
+                        xmax - xmin
+                    };
+                    let y_range = if (ymax - ymin).abs() < 1e-10 {
+                        1.0
+                    } else {
+                        ymax - ymin
+                    };
 
                     for point in &subset {
-                        let px = x + ((point.x - xmin) / x_range) * (self.panel_width - 20.0) + 10.0;
-                        let py = panel_y + self.panel_height - ((point.y - ymin) / y_range) * (self.panel_height - 20.0) - 10.0;
+                        let px =
+                            x + ((point.x - xmin) / x_range) * (self.panel_width - 20.0) + 10.0;
+                        let py = panel_y + self.panel_height
+                            - ((point.y - ymin) / y_range) * (self.panel_height - 20.0)
+                            - 10.0;
                         let color = point.color.unwrap_or(Color::BLUE);
                         svg.push_str(&format!(
                             "  <circle cx=\"{:.1}\" cy=\"{:.1}\" r=\"3\" fill=\"{}\" opacity=\"0.7\"/>\n",
@@ -518,10 +567,18 @@ mod tests {
 
     fn sample_data() -> Vec<FacetData> {
         vec![
-            FacetData::new(1.0, 10.0).with_column("group", "A").with_column("time", "T1"),
-            FacetData::new(2.0, 20.0).with_column("group", "B").with_column("time", "T1"),
-            FacetData::new(3.0, 15.0).with_column("group", "A").with_column("time", "T2"),
-            FacetData::new(4.0, 25.0).with_column("group", "B").with_column("time", "T2"),
+            FacetData::new(1.0, 10.0)
+                .with_column("group", "A")
+                .with_column("time", "T1"),
+            FacetData::new(2.0, 20.0)
+                .with_column("group", "B")
+                .with_column("time", "T1"),
+            FacetData::new(3.0, 15.0)
+                .with_column("group", "A")
+                .with_column("time", "T2"),
+            FacetData::new(4.0, 25.0)
+                .with_column("group", "B")
+                .with_column("time", "T2"),
         ]
     }
 
@@ -553,7 +610,8 @@ mod tests {
         let subset_a = FacetGrid::subset(&data, Some("group"), Some("A"), None, None);
         assert_eq!(subset_a.len(), 2);
 
-        let subset_b_t1 = FacetGrid::subset(&data, Some("group"), Some("B"), Some("time"), Some("T1"));
+        let subset_b_t1 =
+            FacetGrid::subset(&data, Some("group"), Some("B"), Some("time"), Some("T1"));
         assert_eq!(subset_b_t1.len(), 1);
         assert_eq!(subset_b_t1[0].x, 2.0);
     }

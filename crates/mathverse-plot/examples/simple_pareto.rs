@@ -1,8 +1,8 @@
 //! Pareto chart example: Defect categories with cumulative line.
 
 use mathverse_plot::pareto::{render_pareto, ParetoBar, ParetoConfig};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::Color;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bars = vec![

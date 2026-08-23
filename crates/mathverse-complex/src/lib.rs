@@ -28,9 +28,9 @@ use core::fmt;
 use core::ops::{Add, Div, Mul, Neg, Sub};
 use mathverse_core::traits::RealFull;
 
+pub mod activations;
 pub mod analysis;
 pub mod batch;
-pub mod activations;
 pub mod convolution;
 pub mod correlation;
 pub mod distributions;
@@ -930,10 +930,10 @@ mod tests {
             let mut rng = StdRng::seed_from_u64(7);
             let n = 20_000;
             let sigma = 1.0;
-            let samples: Vec<Complex> =
-                (0..n).map(|_| complex_gaussian(&mut rng, sigma)).collect();
+            let samples: Vec<Complex> = (0..n).map(|_| complex_gaussian(&mut rng, sigma)).collect();
             let mean_re: f64 = samples.iter().map(|z| z.re).sum::<f64>() / f64::from(n as i32);
-            let var_re: f64 = samples.iter().map(|z| z.re * z.re).sum::<f64>() / f64::from(n as i32)
+            let var_re: f64 = samples.iter().map(|z| z.re * z.re).sum::<f64>()
+                / f64::from(n as i32)
                 - mean_re * mean_re;
             assert!(mean_re.abs() < 0.05, "mean {mean_re}");
             // Regression: uniform[0,1)*sigma has variance ~sigma²/12 ≈ 0.083,

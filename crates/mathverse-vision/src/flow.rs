@@ -6,6 +6,8 @@ use crate::Image;
 ///
 /// Returns `(horizontal_flow, vertical_flow)` as two grayscale `Image` instances.
 pub fn lucas_kanade(a: &Image, b: &Image) -> (Image, Image) {
+    const GX: [f64; 9] = [-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0];
+    const GY: [f64; 9] = [-1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0];
     assert_eq!((a.w, a.h), (b.w, b.h));
     let (w, h) = (a.w, a.h);
     // The 5×5 window cannot be placed in images smaller than 2×2; the
@@ -13,8 +15,6 @@ pub fn lucas_kanade(a: &Image, b: &Image) -> (Image, Image) {
     if w < 3 || h < 3 {
         return (Image::new(w, h), Image::new(w, h));
     }
-    const GX: [f64; 9] = [-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0];
-    const GY: [f64; 9] = [-1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0];
     let ax = a.convolve3(&GX);
     let ay = a.convolve3(&GY);
     let mut u = Image::new(w, h);
@@ -72,9 +72,9 @@ mod tests {
             }
         }
         let (u, v) = lucas_kanade(&a, &b);
-        let um = u.data.iter().cloned().fold(0.0f64, f64::max);
-        let vm = v.data.iter().cloned().fold(0.0f64, f64::max);
-        assert!((um - 1.0).abs() < 0.3, "um {}", um);
-        assert!((vm - 1.0).abs() < 0.3, "vm {}", vm);
+        let um = u.data.iter().copied().fold(0.0f64, f64::max);
+        let vm = v.data.iter().copied().fold(0.0f64, f64::max);
+        assert!((um - 1.0).abs() < 0.3, "um {um}");
+        assert!((vm - 1.0).abs() < 0.3, "vm {vm}");
     }
 }

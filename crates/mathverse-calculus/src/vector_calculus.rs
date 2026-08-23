@@ -79,7 +79,7 @@ pub fn laplacian(f: &dyn Fn(&[f64]) -> f64, x: &[f64]) -> f64 {
 
 /// Jacobian matrix `J_ij = ∂F_i/∂x_j` at point `x`.
 ///
-/// Returns a flattened vector where J[i][j] is stored at index i*m + j.
+/// Returns a flattened vector where ``J[i][j]`` is stored at index i*m + j.
 ///
 /// ```
 /// use mathverse_calculus::vector_calculus::jacobian;
@@ -105,7 +105,7 @@ pub fn jacobian(f: &dyn Fn(&[f64]) -> Vec<f64>, x: &[f64]) -> Vec<f64> {
 
 /// Hessian matrix `H_ij = ∂²f/∂x_i∂x_j` at point `x`.
 ///
-/// Returns a flattened vector where H[i][j] is stored at index i*n + j.
+/// Returns a flattened vector where ``H[i][j]`` is stored at index i*n + j.
 /// The Hessian is symmetric for smooth functions.
 ///
 /// ```
@@ -180,7 +180,11 @@ pub fn directional_derivative(f: &dyn Fn(&[f64]) -> f64, x: &[f64], v: &[f64]) -
     if norm == 0.0 {
         return Ok(0.0);
     }
-    Ok(grad.iter().zip(v.iter()).map(|(&gi, &vi)| gi * vi / norm).sum())
+    Ok(grad
+        .iter()
+        .zip(v.iter())
+        .map(|(&gi, &vi)| gi * vi / norm)
+        .sum())
 }
 
 #[cfg(test)]
@@ -206,7 +210,10 @@ mod tests {
         assert!(c.iter().all(|&v| (v + 1.0).abs() < 1e-6));
         // irrotational: gradient field has zero curl
         let g = |x: &[f64]| vec![2.0 * x[0], 2.0 * x[1], 2.0 * x[2]];
-        assert!(curl(&g, &[1.0, 2.0, 3.0]).unwrap().iter().all(|&v| v.abs() < 1e-6));
+        assert!(curl(&g, &[1.0, 2.0, 3.0])
+            .unwrap()
+            .iter()
+            .all(|&v| v.abs() < 1e-6));
         assert!(curl(&rot, &[1.0, 2.0]).is_err());
         // field returning fewer components than x has coordinates
         assert!(divergence(&|x: &[f64]| vec![x[0]], &[1.0, 2.0]).is_err());

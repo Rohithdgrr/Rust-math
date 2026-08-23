@@ -131,9 +131,7 @@ fn jacobi_eigen_symmetric(a: &ComplexMatrix) -> (Vec<f64>, ComplexMatrix) {
 pub fn pca(data: &ComplexMatrix, n_components: usize) -> MathResult<PcaResult> {
     let (n_samples, n_features) = (data.rows, data.cols);
     if n_components > n_features.min(n_samples) {
-        return Err(MathError::InvalidArgument(
-            "n_components exceeds rank",
-        ));
+        return Err(MathError::InvalidArgument("n_components exceeds rank"));
     }
 
     // Step 1: Compute mean
@@ -279,12 +277,10 @@ mod tests {
     #[test]
     fn pca_perfect_line() {
         // All points lie on a line: y = 2x
-        let data: Vec<Complex> = vec![
-            1.0, 2.0, 2.0, 4.0, 3.0, 6.0, 4.0, 8.0, 5.0, 10.0,
-        ]
-        .into_iter()
-        .map(Complex::real)
-        .collect();
+        let data: Vec<Complex> = vec![1.0, 2.0, 2.0, 4.0, 3.0, 6.0, 4.0, 8.0, 5.0, 10.0]
+            .into_iter()
+            .map(Complex::real)
+            .collect();
         let m = ComplexMatrix::from_data(data, 5, 2);
 
         let result = pca(&m, 1).unwrap();
@@ -324,12 +320,10 @@ mod tests {
 
     #[test]
     fn pca_project_and_reconstruct() {
-        let data: Vec<Complex> = vec![
-            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0,
-        ]
-        .into_iter()
-        .map(Complex::real)
-        .collect();
+        let data: Vec<Complex> = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+            .into_iter()
+            .map(Complex::real)
+            .collect();
         let m = ComplexMatrix::from_data(data, 5, 2);
 
         let result = pca(&m, 2).unwrap();

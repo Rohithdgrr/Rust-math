@@ -1,7 +1,7 @@
 //! 2D KDE plot example.
 
-use mathverse_plot::{render_kde_plot, KdeConfig};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{render_kde_plot, KdeConfig};
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate two correlated clusters
@@ -24,9 +24,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
         y.push(yi);
     }
 
-    let mut config = KdeConfig::new()
-        .with_bandwidth(0.8)
-        .with_grid_size(40);
+    let mut config = KdeConfig::new().with_bandwidth(0.8).with_grid_size(40);
 
     config.plot_config = config.plot_config.with_title("2D KDE: Two Clusters");
 

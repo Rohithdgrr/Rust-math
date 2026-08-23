@@ -58,7 +58,8 @@ impl PdfBackend {
                 let x1 = to_mm_x(x_hi);
                 let y0 = to_mm_y(y_hi);
                 let y1 = to_mm_y(y_lo);
-                let rect = Rect::from_xywh(x0.into(), y0.into(), (x1 - x0).into(), (y1 - y0).into());
+                let rect =
+                    Rect::from_xywh(x0.into(), y0.into(), (x1 - x0).into(), (y1 - y0).into());
                 ops.push(Op::DrawRectangle { rectangle: rect });
             }
         }

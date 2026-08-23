@@ -1,10 +1,8 @@
 //! Smooth Bezier curves example.
 
-use mathverse_plot::{
-    DataPoint, DataSeries, Interpolation, PlotConfig, SmoothConfig, SvgPlot,
-};
-use mathverse_plot::style::PlotStyle;
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::style::PlotStyle;
+use mathverse_plot::{DataPoint, DataSeries, Interpolation, PlotConfig, SmoothConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create some data points

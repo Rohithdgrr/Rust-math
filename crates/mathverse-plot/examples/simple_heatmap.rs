@@ -1,8 +1,8 @@
 //! Heatmap example: `sin(x) * cos(y)` rendered with Viridis colormap.
 
 use mathverse_plot::color::viridis;
-use mathverse_plot::{PlotConfig, SvgPlot};
 use mathverse_plot::save::PlotSaver;
+use mathverse_plot::{PlotConfig, SvgPlot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rows = 20;

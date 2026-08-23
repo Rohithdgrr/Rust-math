@@ -93,11 +93,16 @@ impl AxisBreak {
                 // Zigzag line (5 points: start, up, down, up, end)
                 let points = format!(
                     "{},{} {},{} {},{} {},{} {},{}",
-                    x - 6.0, y_top,
-                    x + 6.0, y_top + mark_height * 0.25,
-                    x - 6.0, y_top + mark_height * 0.5,
-                    x + 6.0, y_top + mark_height * 0.75,
-                    x - 6.0, y_top + mark_height,
+                    x - 6.0,
+                    y_top,
+                    x + 6.0,
+                    y_top + mark_height * 0.25,
+                    x - 6.0,
+                    y_top + mark_height * 0.5,
+                    x + 6.0,
+                    y_top + mark_height * 0.75,
+                    x - 6.0,
+                    y_top + mark_height,
                 );
                 svg.push_str(&format!(
                     "  <polyline points=\"{points}\" fill=\"none\" stroke=\"black\" stroke-width=\"1.5\"/>\n"
@@ -105,11 +110,16 @@ impl AxisBreak {
                 // Mirror at bottom
                 let points2 = format!(
                     "{},{} {},{} {},{} {},{} {},{}",
-                    x - 6.0, y_bottom,
-                    x + 6.0, y_bottom - mark_height * 0.25,
-                    x - 6.0, y_bottom - mark_height * 0.5,
-                    x + 6.0, y_bottom - mark_height * 0.75,
-                    x - 6.0, y_bottom - mark_height,
+                    x - 6.0,
+                    y_bottom,
+                    x + 6.0,
+                    y_bottom - mark_height * 0.25,
+                    x - 6.0,
+                    y_bottom - mark_height * 0.5,
+                    x + 6.0,
+                    y_bottom - mark_height * 0.75,
+                    x - 6.0,
+                    y_bottom - mark_height,
                 );
                 svg.push_str(&format!(
                     "  <polyline points=\"{points2}\" fill=\"none\" stroke=\"black\" stroke-width=\"1.5\"/>\n"
@@ -288,7 +298,11 @@ impl BrokenAxis {
 
         // Sort breaks by start value
         let mut sorted_breaks = self.breaks.clone();
-        sorted_breaks.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap_or(std::cmp::Ordering::Equal));
+        sorted_breaks.sort_by(|a, b| {
+            a.start
+                .partial_cmp(&b.start)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         for break_ in &sorted_breaks {
             if result > break_.end {
@@ -425,8 +439,7 @@ mod tests {
 
     #[test]
     fn broken_axis_render_breaks() {
-        let broken = BrokenAxis::new(false)
-            .break_at(10.0, 20.0);
+        let broken = BrokenAxis::new(false).break_at(10.0, 20.0);
         let svg = broken.render_breaks_svg(100.0, 50.0, 150.0);
         assert!(svg.contains("<polyline") || svg.contains("<line") || svg.contains("<path"));
     }
