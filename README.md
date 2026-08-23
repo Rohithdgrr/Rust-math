@@ -16,7 +16,7 @@ MathVerse aspires to be for Rust what NumPy, SciPy, SymPy, scikit-learn, OpenCV 
 - **Unified** — one workspace, one error type (`MathError`), one trait hierarchy, one prelude
 - **Modular** — 37 independent crates, each usable standalone
 - **Safe** — `#![forbid(unsafe_code)]` workspace-wide, `Result`-based error handling
-- **Tested** — 1,000+ unit tests, property-based tests, numerical accuracy tests
+- **Tested** — 3,000+ tests (unit, integration, property-based, doctests) across the workspace
 - **Documented** — every public item has `///` doc comments with runnable examples
 
 ---
@@ -53,7 +53,6 @@ MathVerse aspires to be for Rust what NumPy, SciPy, SymPy, scikit-learn, OpenCV 
 | `mathverse-finance` | Finance | TVM, Black-Scholes, portfolio optimization |
 | `mathverse-symbolic` | Symbolic Math | Expression trees, symbolic derivatives, LaTeX |
 | `mathverse-units` | Units | SI/imperial conversion, dimensional analysis |
-| `mathverse-optimization` | Optimization | Gradient descent, genetic algorithms, constrained optimization |
 | `mathverse-graphics` | Graphics | Quaternions, meshes, transforms |
 | `mathverse-plot` | Plotting | SVG, HTML, terminal visualization |
 | `mathverse-prelude` | Prelude | Namespaced re-exports plus a curated collision-free prelude |
