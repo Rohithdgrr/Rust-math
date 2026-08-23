@@ -137,17 +137,23 @@ fn contourf_regression() {
             ys.push(f64::from(j) / 11.0);
         }
     }
+    // Trig results are only guaranteed identical across platforms up to
+    // implementation-defined ULPs; quantize so the hashed SVG is stable
+    // between Windows/macOS/Linux libm implementations.
     let zs: Vec<f64> = xs
         .iter()
         .zip(&ys)
-        .map(|(x, y)| (x * 4.0).sin() * (y * 4.0).cos())
+        .map(|(x, y)| {
+            let v = (x * 4.0).sin() * (y * 4.0).cos();
+            (v * 1e10).round() / 1e10
+        })
         .collect();
     let grid: Vec<Vec<f64>> = zs.chunks(12).map(<[f64]>::to_vec).collect();
     let cfg = mathverse_plot::ContourConfig::new();
     let svg = mathverse_plot::contour::render_contour(&grid, (0.0, 1.0), (0.0, 1.0), &cfg).unwrap();
     let hash = fnv1a(&svg);
     assert_eq!(
-        hash, 0x2725_43f2_ea04_8bcb,
+        hash, 0xdcd2_011a_9d24_9b4e,
         "contour SVG changed (hash {hash:#x}) — update after intentional change"
     );
 }
