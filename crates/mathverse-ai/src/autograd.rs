@@ -381,9 +381,7 @@ impl ComputationGraph {
     /// Zero every stored gradient (node structure is preserved).
     pub fn zero_grad(&mut self) {
         let mut d = self.inner.borrow_mut();
-        for slot in &mut d.grads {
-            *slot = None;
-        }
+        d.grads.fill(None);
     }
 
     /// Clear all nodes and gradients, resetting the graph to empty.

@@ -322,7 +322,7 @@ fn main() {
                 let x = (f64::from(i) - 100.0) * 0.1;
                 let t = x / std::f64::consts::SQRT_2;
                 // Approximate CDF via tanh (smooth, monotonic, no erf needed)
-                let cdf = 0.5 * (1.0 + t.tanh());
+                let cdf = f64::midpoint(1.0, t.tanh());
                 DataPoint::new(x, cdf)
             })
             .collect();

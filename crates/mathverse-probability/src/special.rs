@@ -172,7 +172,7 @@ pub(crate) fn adaptive_simpson(
     max_eval: usize,
 ) -> f64 {
     fn simpson(f: &dyn Fn(f64) -> f64, a: f64, b: f64) -> f64 {
-        let m = 0.5 * (a + b);
+        let m = f64::midpoint(a, b);
         (b - a) / 6.0 * (f(a) + 4.0 * f(m) + f(b))
     }
 
@@ -189,9 +189,9 @@ pub(crate) fn adaptive_simpson(
         max_eval: usize,
         evals: &mut usize,
     ) -> f64 {
-        let m = 0.5 * (a + b);
-        let lm = 0.5 * (a + m);
-        let rm = 0.5 * (m + b);
+        let m = f64::midpoint(a, b);
+        let lm = f64::midpoint(a, m);
+        let rm = f64::midpoint(m, b);
         let flm = f(lm);
         let frm = f(rm);
         *evals += 2;
@@ -233,7 +233,7 @@ pub(crate) fn adaptive_simpson(
         return 0.0;
     }
     let fa = f(a);
-    let fm = f(0.5 * (a + b));
+    let fm = f(f64::midpoint(a, b));
     let fb = f(b);
     let mut evals = 3usize;
     let whole = simpson(f, a, b);

@@ -276,7 +276,7 @@ pub fn auc(points: &[(f64, f64)]) -> f64 {
     for w in points.windows(2) {
         let (x0, y0) = w[0];
         let (x1, y1) = w[1];
-        area += 0.5 * (y0 + y1) * (x1 - x0);
+        area += f64::midpoint(y0, y1) * (x1 - x0);
     }
     area
 }

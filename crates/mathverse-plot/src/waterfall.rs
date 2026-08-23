@@ -192,16 +192,17 @@ pub fn render_waterfall(bars: &[WaterfallBar], config: &WaterfallConfig) -> Plot
             current_bottom += bar.value;
         }
 
-        let y_top;
-        let y_bottom;
-
-        if bar.is_total || bar.value >= 0.0 {
-            y_top = zero_y - (bar_bottom + bar_height) / (max_val - min_val) * chart_height;
-            y_bottom = zero_y - bar_bottom / (max_val - min_val) * chart_height;
+        let (y_top, y_bottom) = if bar.is_total || bar.value >= 0.0 {
+            (
+                zero_y - (bar_bottom + bar_height) / (max_val - min_val) * chart_height,
+                zero_y - bar_bottom / (max_val - min_val) * chart_height,
+            )
         } else {
-            y_top = zero_y - bar_bottom / (max_val - min_val) * chart_height;
-            y_bottom = zero_y - (bar_bottom + bar_height) / (max_val - min_val) * chart_height;
-        }
+            (
+                zero_y - bar_bottom / (max_val - min_val) * chart_height,
+                zero_y - (bar_bottom + bar_height) / (max_val - min_val) * chart_height,
+            )
+        };
 
         svg.push_str(&format!(
             r#"  <rect x="{x}" y="{y_top}" width="{}" height="{}" fill="{}" rx="2"/>"#,

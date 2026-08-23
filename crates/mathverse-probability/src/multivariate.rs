@@ -512,7 +512,12 @@ impl GaussianCopula {
 
         // Transform to uniform via normal CDF
         x.iter()
-            .map(|&xi| 0.5 * (1.0 + crate::distributions::erf(xi / core::f64::consts::SQRT_2)))
+            .map(|&xi| {
+                f64::midpoint(
+                    1.0,
+                    crate::distributions::erf(xi / core::f64::consts::SQRT_2),
+                )
+            })
             .collect()
     }
 }

@@ -10,7 +10,7 @@ pub fn trapezoid(f: &dyn Fn(f64) -> f64, a: f64, b: f64, n: usize) -> MathResult
         return Err(MathError::InvalidArgument("trapezoid: n must be > 0"));
     }
     let h = (b - a) / n as f64;
-    let mut s = 0.5 * (f(a) + f(b));
+    let mut s = f64::midpoint(f(a), f(b));
     for i in 1..n {
         s += f(a + i as f64 * h);
     }

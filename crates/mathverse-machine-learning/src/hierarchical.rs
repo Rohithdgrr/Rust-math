@@ -63,7 +63,7 @@ pub fn agglomerative(x: &[Vec<f64>], n_clusters: usize, linkage: Linkage) -> Agg
         let size = sizes[best_i] + sizes[best_j];
         linkage_matrix.push((best_i, best_j, best_dist, size));
         // Drain best_j into best_i
-        let drained: Vec<usize> = clusters[best_j].drain(..).collect();
+        let drained: Vec<usize> = std::mem::take(&mut clusters[best_j]);
         clusters[best_i].extend(drained);
         sizes[best_i] = size;
         active[best_j] = false;

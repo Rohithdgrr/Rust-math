@@ -150,7 +150,7 @@ fn build_tree_weighted(
                 if gain > best_gain {
                     best_gain = gain;
                     best_feature = feature;
-                    best_threshold = 0.5 * (v_lo + v_hi);
+                    best_threshold = f64::midpoint(v_lo, v_hi);
                     best_split_pos = pos + 1;
                 }
             }

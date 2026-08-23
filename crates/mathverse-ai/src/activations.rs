@@ -134,7 +134,7 @@ pub fn gelu_grad(t: &Tensor) -> Tensor {
                 let tanh_val = inner.tanh();
                 let sech2 = 1.0 - tanh_val * tanh_val;
                 let d_inner = c * (3.0 * 0.044715 * x).mul_add(x, 1.0);
-                (0.5 * x * sech2).mul_add(d_inner, 0.5 * (1.0 + tanh_val))
+                (0.5 * x * sech2).mul_add(d_inner, f64::midpoint(1.0, tanh_val))
             })
             .collect(),
     }

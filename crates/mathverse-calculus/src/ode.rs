@@ -467,7 +467,7 @@ mod tests {
         let f = |_t: f64, y: &[f64]| -> Vec<f64> { vec![y[1], -y[0]] };
         let result = runge_kutta_4_system(&f, 0.0, &[1.0, 0.0], 10.0 * PI, 10000).unwrap();
         let y_final = &result.last().unwrap().1;
-        let energy = 0.5 * (y_final[0] * y_final[0] + y_final[1] * y_final[1]);
+        let energy = f64::midpoint(y_final[0] * y_final[0], y_final[1] * y_final[1]);
         assert!((energy - 0.5).abs() < 1e-4, "energy drifted: {energy}");
     }
 

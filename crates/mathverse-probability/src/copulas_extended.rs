@@ -32,14 +32,14 @@ pub fn students_t_quantile(nu: f64, p: f64) -> f64 {
     let mut lo = -40.0;
     let mut hi = 40.0;
     for _ in 0..80 {
-        let mid = 0.5 * (lo + hi);
+        let mid = f64::midpoint(lo, hi);
         if t.cdf(mid) < p {
             lo = mid;
         } else {
             hi = mid;
         }
     }
-    0.5 * (lo + hi)
+    f64::midpoint(lo, hi)
 }
 
 /// Clayton copula `C(u,v) = (u^{-θ} + v^{-θ} - 1)^{-1/θ}`, θ > 0.
@@ -245,7 +245,7 @@ impl FrankCopula {
         let mut lo = 1e-4;
         let mut hi = 100.0;
         for _ in 0..80 {
-            let mid = 0.5 * (lo + hi);
+            let mid = f64::midpoint(lo, hi);
             let t = 1.0 + 4.0 * (debye_1(mid) - 1.0) / mid;
             if t < target {
                 lo = mid;
@@ -253,7 +253,7 @@ impl FrankCopula {
                 hi = mid;
             }
         }
-        0.5 * (lo + hi)
+        f64::midpoint(lo, hi)
     }
 }
 

@@ -445,7 +445,10 @@ impl ConfidenceIntervals {
 
         // Approximate inverse survival function for standard normal.
         let normal_cdf = |x: f64| -> f64 {
-            0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
+            f64::midpoint(
+                1.0,
+                crate::distributions::erf(x / core::f64::consts::SQRT_2),
+            )
         };
         let target = 1.0 - alpha;
 

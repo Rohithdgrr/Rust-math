@@ -143,7 +143,7 @@ pub fn roc_auc(scores: &Tensor, labels: &Tensor) -> MathResult<f64> {
         }
         let tpr = tp / total_pos;
         let fpr = fp / total_neg;
-        auc = (0.5 * (prev_tpr + tpr)).mul_add(fpr - prev_fpr, auc);
+        auc = f64::midpoint(prev_tpr, tpr).mul_add(fpr - prev_fpr, auc);
         prev_fpr = fpr;
         prev_tpr = tpr;
     }

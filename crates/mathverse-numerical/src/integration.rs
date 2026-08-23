@@ -26,7 +26,7 @@ impl GaussianQuadrature {
 
         let mut sum = 0.0;
         for (&x, &w) in nodes.iter().zip(weights.iter()) {
-            let transformed = 0.5 * (b - a) * x + 0.5 * (a + b);
+            let transformed = 0.5 * (b - a) * x + f64::midpoint(a, b);
             sum += w * f(transformed);
         }
 
@@ -211,10 +211,10 @@ impl GaussianQuadrature {
 
         let mut sum = 0.0;
         for (&xi, &wi) in nodes.iter().zip(weights.iter()) {
-            let x = 0.5 * (b - a) * xi + 0.5 * (a + b);
+            let x = 0.5 * (b - a) * xi + f64::midpoint(a, b);
 
             for (&yj, &wj) in nodes.iter().zip(weights.iter()) {
-                let y = 0.5 * (d - c) * yj + 0.5 * (c + d);
+                let y = 0.5 * (d - c) * yj + f64::midpoint(c, d);
                 sum += wi * wj * f(x, y);
             }
         }
@@ -250,7 +250,7 @@ impl RombergIntegration {
 
     fn trapezoidal(f: &dyn Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
         let h = (b - a) / n as f64;
-        let mut sum = 0.5 * (f(a) + f(b));
+        let mut sum = f64::midpoint(f(a), f(b));
 
         for i in 1..n {
             let x = a + i as f64 * h;
@@ -390,7 +390,7 @@ impl SimpsonRule {
 
     fn trapezoidal(f: &dyn Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
         let h = (b - a) / n as f64;
-        let mut sum = 0.5 * (f(a) + f(b));
+        let mut sum = f64::midpoint(f(a), f(b));
 
         for i in 1..n {
             let x = a + i as f64 * h;
@@ -502,7 +502,7 @@ impl ClenshawCurtis {
 
         let mut sum = 0.0;
         for i in 0..n {
-            let x = 0.5 * (b - a) * nodes[i] + 0.5 * (a + b);
+            let x = 0.5 * (b - a) * nodes[i] + f64::midpoint(a, b);
             sum += weights[i] * f(x);
         }
 

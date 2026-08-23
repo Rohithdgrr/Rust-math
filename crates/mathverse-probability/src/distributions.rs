@@ -443,7 +443,10 @@ impl ContinuousDist for Normal {
         (-0.5 * z * z).exp() / (self.sigma * (2.0 * core::f64::consts::PI).sqrt())
     }
     fn cdf(&self, x: f64) -> f64 {
-        0.5 * (1.0 + erf((x - self.mu) / (self.sigma * core::f64::consts::SQRT_2)))
+        f64::midpoint(
+            1.0,
+            erf((x - self.mu) / (self.sigma * core::f64::consts::SQRT_2)),
+        )
     }
     fn ppf(&self, q: f64) -> f64 {
         assert!((0.0..=1.0).contains(&q), "q must be in [0, 1]");
@@ -592,7 +595,10 @@ impl ContinuousDist for LogNormal {
         if x <= 0.0 {
             0.0
         } else {
-            0.5 * (1.0 + erf((x.ln() - self.mu) / (self.sigma * core::f64::consts::SQRT_2)))
+            f64::midpoint(
+                1.0,
+                erf((x.ln() - self.mu) / (self.sigma * core::f64::consts::SQRT_2)),
+            )
         }
     }
     fn ppf(&self, q: f64) -> f64 {

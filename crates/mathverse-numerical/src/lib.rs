@@ -45,7 +45,7 @@ pub fn bisection(f: &dyn Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> MathResult
         return Err(MathError::InvalidArgument("no sign change on bracket"));
     }
     for _ in 0..200 {
-        let m = 0.5 * (lo + hi);
+        let m = f64::midpoint(lo, hi);
         let fm = f(m);
         if fm == 0.0 || (hi - lo).abs() <= tol {
             return Ok(m);

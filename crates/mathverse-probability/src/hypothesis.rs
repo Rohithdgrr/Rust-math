@@ -61,7 +61,10 @@ impl ZTest {
 
     fn p_value(z: f64, alternative: AlternativeHypothesis) -> f64 {
         let normal_cdf = |x: f64| -> f64 {
-            0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
+            f64::midpoint(
+                1.0,
+                crate::distributions::erf(x / core::f64::consts::SQRT_2),
+            )
         };
 
         match alternative {
@@ -140,7 +143,10 @@ impl TTest {
         let t_cdf = |x: f64, df: f64| -> f64 {
             if df > 100.0 {
                 // Use normal approximation for large df
-                0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
+                f64::midpoint(
+                    1.0,
+                    crate::distributions::erf(x / core::f64::consts::SQRT_2),
+                )
             } else {
                 // Simplified approximation
                 let beta = crate::distributions::Beta {
@@ -328,7 +334,10 @@ impl PowerAnalysis {
                 let z_alpha = Self::critical_z(alpha);
                 let z_beta = effect_size * (sample_size as f64).sqrt() - z_alpha;
                 let normal_cdf = |x: f64| -> f64 {
-                    0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
+                    f64::midpoint(
+                        1.0,
+                        crate::distributions::erf(x / core::f64::consts::SQRT_2),
+                    )
                 };
                 normal_cdf(z_beta)
             }
@@ -337,7 +346,10 @@ impl PowerAnalysis {
                 let z_alpha = Self::critical_z(alpha);
                 let z_beta = effect_size * (sample_size as f64).sqrt() - z_alpha;
                 let normal_cdf = |x: f64| -> f64 {
-                    0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
+                    f64::midpoint(
+                        1.0,
+                        crate::distributions::erf(x / core::f64::consts::SQRT_2),
+                    )
                 };
                 normal_cdf(z_beta)
             }
@@ -361,7 +373,10 @@ impl PowerAnalysis {
     fn critical_z(alpha: f64) -> f64 {
         // Approximate critical z-value for two-tailed test
         let normal_cdf = |x: f64| -> f64 {
-            0.5 * (1.0 + crate::distributions::erf(x / core::f64::consts::SQRT_2))
+            f64::midpoint(
+                1.0,
+                crate::distributions::erf(x / core::f64::consts::SQRT_2),
+            )
         };
 
         // Binary search for critical value
