@@ -318,13 +318,13 @@ mod tests {
         let cases = [0.0, 0.5, 2.0_f64.sqrt() / 2.0, 3.0_f64.sqrt() / 2.0, 1.0, -1.0];
         for deg in [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360] {
             if let Some(v) = sin_exact_deg(deg) {
-                let expected = (deg as f64).to_radians().sin();
+                let expected = f64::from(deg).to_radians().sin();
                 assert!((v.to_f64() - expected).abs() < 1e-12, "sin({deg})");
             }
         }
         for deg in [0, 30, 45, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360] {
             if let Some(v) = tan_exact_deg(deg) {
-                let expected = (deg as f64).to_radians().tan();
+                let expected = f64::from(deg).to_radians().tan();
                 assert!((v.to_f64() - expected).abs() < 1e-12, "tan({deg})");
             }
         }

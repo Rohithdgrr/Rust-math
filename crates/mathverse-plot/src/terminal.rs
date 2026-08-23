@@ -164,6 +164,6 @@ mod tests {
 
         let ascii = plot.generate();
         assert!(ascii.contains("Test Plot"));
-        assert!(ascii.contains("*"));
+        assert!(ascii.contains('*'));
     }
 }

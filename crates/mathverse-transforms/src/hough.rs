@@ -54,7 +54,7 @@ pub fn hough_circle_accumulator(edges: &[(usize, usize)], width: usize, height: 
     for &(x, y) in edges {
         for r in min_r..=max_r {
             for theta in 0..360 {
-                let t = theta as f64 * core::f64::consts::PI / 180.0;
+                let t = f64::from(theta) * core::f64::consts::PI / 180.0;
                 let cx = x as f64 - r as f64 * t.cos();
                 let cy = y as f64 - r as f64 * t.sin();
                 if cx >= 0.0 && cx < width as f64 && cy >= 0.0 && cy < height as f64 {

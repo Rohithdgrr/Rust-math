@@ -69,8 +69,8 @@ pub fn render_candlestick_svg(
     width: u32,
     height: u32,
 ) -> String {
-    let w = width as f64;
-    let h = height as f64;
+    let w = f64::from(width);
+    let h = f64::from(height);
     let pad = 40.0;
     let plot_w = w - 2.0 * pad;
     let plot_h = h - 2.0 * pad;
@@ -136,10 +136,10 @@ pub fn render_candlestick_svg(
 
     // Axes
     svg.push_str(&format!(
-        r##"  <line x1="{pad}" y1="{pad}" x2="{pad}" y2="{pad_bottom:.2}" stroke="black" stroke-width="1"/>"##
+        r#"  <line x1="{pad}" y1="{pad}" x2="{pad}" y2="{pad_bottom:.2}" stroke="black" stroke-width="1"/>"#
     ));
     svg.push_str(&format!(
-        r##"  <line x1="{pad}" y1="{pad_bottom:.2}" x2="{pad_right:.2}" y2="{pad_bottom:.2}" stroke="black" stroke-width="1"/>"##
+        r#"  <line x1="{pad}" y1="{pad_bottom:.2}" x2="{pad_right:.2}" y2="{pad_bottom:.2}" stroke="black" stroke-width="1"/>"#
     ));
 
     // Count total candles to compute candle width

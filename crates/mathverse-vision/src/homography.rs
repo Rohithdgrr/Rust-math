@@ -103,7 +103,7 @@ pub fn homography_dlt(src: &[(f64, f64)], dst: &[(f64, f64)]) -> Option<Homograp
     }
     // Build 2n×9 DLT matrix, compute A^T A (9×9)
     let mut ata = [[0.0f64; 9]; 9];
-    for (_i, ((sx, sy), (dx, dy))) in src.iter().zip(dst).enumerate() {
+    for ((sx, sy), (dx, dy)) in src.iter().zip(dst) {
         // Row 2i:   [-sx, -sy, -1, 0, 0, 0, dx*sx, dx*sy, dx]
         // Row 2i+1:  [0, 0, 0, -sx, -sy, -1, dy*sx, dy*sy, dy]
         let rows: [[f64; 9]; 2] = [

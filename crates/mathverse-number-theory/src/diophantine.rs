@@ -16,8 +16,8 @@ pub fn extended_gcd(a: i64, b: i64) -> (i64, i64, i64) {
     if a == 0 {
         return (b, 0, 1);
     }
-    let (g, x, y) = extended_gcd(b % a, a);
-    (g, y - (b / a) * x, x)
+    let (gcd_out, x_prev, y_prev) = extended_gcd(b % a, a);
+    (gcd_out, y_prev - (b / a) * x_prev, x_prev)
 }
 
 /// Solves the linear Diophantine equation `a·x + b·y = c`.
@@ -33,14 +33,14 @@ pub fn extended_gcd(a: i64, b: i64) -> (i64, i64, i64) {
 /// ```
 #[must_use]
 pub fn solve_linear_diophantine(a: i64, b: i64, c: i64) -> Option<(i64, i64)> {
-    let (g, x, y) = extended_gcd(a.abs(), b.abs());
-    if c % g != 0 {
+    let (gcd_ab, x_g, y_g) = extended_gcd(a.abs(), b.abs());
+    if c % gcd_ab != 0 {
         return None;
     }
-    let mult = c / g;
-    let x = x * mult * a.signum();
-    let y = y * mult * b.signum();
-    Some((x, y))
+    let mult = c / gcd_ab;
+    let x_sol = x_g * mult * a.signum();
+    let y_sol = y_g * mult * b.signum();
+    Some((x_sol, y_sol))
 }
 
 /// Returns `true` if `n` is square-free (no repeated prime factor).
@@ -85,10 +85,10 @@ pub fn is_square_free(n: u64) -> bool {
 #[must_use]
 pub fn kronecker(a: u64, n: u64) -> i64 {
     if n == 0 {
-        return if a == 1 { 1 } else { 0 };
+        return i64::from(a == 1);
     }
     if a == 0 {
-        return if n == 1 { 1 } else { 0 };
+        return i64::from(n == 1);
     }
     crate::jacobi(a, n)
 }
@@ -129,8 +129,8 @@ pub fn pell_fundamental(d: u64) -> Option<(u128, u128)> {
     if a0 * a0 == d {
         return None; // d is a perfect square
     }
-    let d128 = d as u128;
-    let a0_128 = a0 as u128;
+    let d128 = u128::from(d);
+    let a0_128 = u128::from(a0);
     let mut m: u128 = 0;
     let mut dd: u128 = 1;
     let mut a: u128 = a0_128;
@@ -223,7 +223,7 @@ pub fn pell_fundamental_big(d: u64) -> Option<(num_bigint::BigUint, num_bigint::
 /// assert_eq!(euler_kronecker(2, 9), 1);
 /// ```
 #[must_use]
-pub fn euler_kronecker(a: i64, n: u64) -> i64 {
+pub const fn euler_kronecker(a: i64, n: u64) -> i64 {
     crate::jacobi(a as u64, n)
 }
 

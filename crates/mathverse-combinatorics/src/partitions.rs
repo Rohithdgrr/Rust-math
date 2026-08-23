@@ -81,10 +81,10 @@ pub fn euler_partition_formula(n: u64) -> u128 {
         let gk = pentagonal(k);
         if gk > n { break; }
         let sign = if k % 2 == 0 { -1 } else { 1 };
-        result += sign as i128 * partition((n - gk) as u64) as i128;
+        result += i128::from(sign) * partition((n - gk) as u64) as i128;
         let gk_neg = pentagonal(-k);
         if gk_neg >= 0 && gk_neg <= n {
-            result += sign as i128 * partition((n - gk_neg) as u64) as i128;
+            result += i128::from(sign) * partition((n - gk_neg) as u64) as i128;
         }
         k += 1;
     }

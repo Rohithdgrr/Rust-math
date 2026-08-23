@@ -6,10 +6,15 @@ use mathverse_core::error::{MathError, MathResult};
 /// Compressed Sparse Row (CSR) format.
 #[derive(Debug, Clone)]
 pub struct CsrMatrix {
+    /// Number of rows.
     pub rows: usize,
+    /// Number of columns.
     pub cols: usize,
+    /// Non-zero values in row-major order.
     pub values: Vec<f64>,
+    /// Column index of each value in `values`.
     pub col_indices: Vec<usize>,
+    /// Row offsets into `values`/`col_indices` (length `rows + 1`).
     pub row_ptr: Vec<usize>,
 }
 
@@ -135,10 +140,15 @@ impl CsrMatrix {
 /// Compressed Sparse Column (CSC) format.
 #[derive(Debug, Clone)]
 pub struct CscMatrix {
+    /// Number of rows.
     pub rows: usize,
+    /// Number of columns.
     pub cols: usize,
+    /// Non-zero values in column-major order.
     pub values: Vec<f64>,
+    /// Row index of each value in `values`.
     pub row_indices: Vec<usize>,
+    /// Column offsets into `values`/`row_indices` (length `cols + 1`).
     pub col_ptr: Vec<usize>,
 }
 
@@ -247,8 +257,11 @@ impl CscMatrix {
 /// Coordinate list (COO) format (extended from sparse.rs).
 #[derive(Debug, Clone)]
 pub struct CooMatrix {
+    /// Number of rows.
     pub rows: usize,
+    /// Number of columns.
     pub cols: usize,
+    /// Stored `(row, col, value)` triplets.
     pub entries: Vec<(usize, usize, f64)>,
 }
 
@@ -309,10 +322,10 @@ impl CooMatrix {
     /// Sort entries by row then column.
     pub fn sort(&mut self) {
         self.entries.sort_by(|a, b| {
-            if a.0 != b.0 {
-                a.0.cmp(&b.0)
-            } else {
+            if a.0 == b.0 {
                 a.1.cmp(&b.1)
+            } else {
+                a.0.cmp(&b.0)
             }
         });
     }
@@ -351,7 +364,9 @@ impl CooMatrix {
 /// Diagonal sparse format.
 #[derive(Debug, Clone)]
 pub struct DiagonalSparse {
+    /// Order of the square matrix.
     pub n: usize,
+    /// Diagonal entries (length `n`).
     pub diag: Vec<f64>,
 }
 
@@ -430,14 +445,17 @@ impl SparseOperations {
         coo.to_csr()
     }
 
+    /// Convert a COO matrix to CSC format.
     pub fn coo_to_csc(coo: &CooMatrix) -> CscMatrix {
         coo.to_csc()
     }
 
+    /// Convert a CSR matrix to CSC format.
     pub fn csr_to_csc(csr: &CsrMatrix) -> CscMatrix {
         csr.transpose()
     }
 
+    /// Convert a CSC matrix to CSR format.
     pub fn csc_to_csr(csc: &CscMatrix) -> CsrMatrix {
         csc.transpose()
     }
@@ -456,7 +474,7 @@ impl SparseOperations {
         }
         
         if total > 0 {
-            nnz as f64 / total as f64
+            f64::from(nnz) / total as f64
         } else {
             0.0
         }
@@ -599,7 +617,7 @@ mod tests {
         let sparse = Matrix::zeros(10, 10);
         
         assert!(SparseOperations::sparsity_ratio(&dense) >= 0.1);
-        assert!(SparseOperations::sparsity_ratio(&sparse) == 0.0);
+        assert_eq!(SparseOperations::sparsity_ratio(&sparse), 0.0);
     }
 
     #[test]
@@ -609,6 +627,6 @@ mod tests {
         assert!((csr.get(0, 0) - 1.0).abs() < 1e-10);
         assert!((csr.get(1, 1) - 1.0).abs() < 1e-10);
         assert!((csr.get(2, 2) - 1.0).abs() < 1e-10);
-        assert!(csr.get(0, 1) == 0.0);
+        assert_eq!(csr.get(0, 1), 0.0);
     }
 }

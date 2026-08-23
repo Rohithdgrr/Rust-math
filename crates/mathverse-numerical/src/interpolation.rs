@@ -4,8 +4,11 @@ use mathverse_core::error::{MathError, MathResult};
 
 /// Cubic spline interpolation with natural boundary conditions.
 pub struct CubicSpline {
+    /// Sample x coordinates, sorted ascending.
     pub xs: Vec<f64>,
+    /// Sample y coordinates.
     pub ys: Vec<f64>,
+    /// Per-interval `(a, b, c, d)` polynomial coefficients.
     pub coeffs: Vec<(f64, f64, f64, f64)>, // (a, b, c, d) for each interval
 }
 
@@ -99,8 +102,11 @@ impl CubicSpline {
 
 /// Hermite interpolation with specified derivatives.
 pub struct HermiteInterpolation {
+    /// Sample x coordinates.
     pub xs: Vec<f64>,
+    /// Function values at `xs`.
     pub ys: Vec<f64>,
+    /// Derivative values at `xs`.
     pub dys: Vec<f64>,
 }
 
@@ -154,8 +160,11 @@ impl HermiteInterpolation {
 
 /// Barycentric interpolation (numerically stable).
 pub struct BarycentricInterpolation {
+    /// Sample x coordinates.
     pub xs: Vec<f64>,
+    /// Sample y coordinates.
     pub ys: Vec<f64>,
+    /// Barycentric weights.
     pub weights: Vec<f64>,
 }
 
@@ -209,10 +218,15 @@ impl BarycentricInterpolation {
 
 /// Radial basis function interpolation.
 pub struct RBFInterpolation {
+    /// Sample points in multidimensional space.
     pub xs: Vec<Vec<f64>>,
+    /// Function values at the sample points.
     pub ys: Vec<f64>,
+    /// RBF centers (equal to `xs`).
     pub centers: Vec<Vec<f64>>,
+    /// Solved RBF weights.
     pub weights: Vec<f64>,
+    /// Basis function shape parameter.
     pub epsilon: f64,
 }
 
@@ -314,9 +328,13 @@ impl RBFInterpolation {
 
 /// Multidimensional linear interpolation on regular grid.
 pub struct MultilinearInterpolation {
+    /// Number of points along each grid axis.
     pub grid_dims: Vec<usize>,
+    /// Lower bound of each grid axis.
     pub grid_min: Vec<f64>,
+    /// Upper bound of each grid axis.
     pub grid_max: Vec<f64>,
+    /// Grid values in row-major order.
     pub values: Vec<f64>,
 }
 
@@ -409,8 +427,11 @@ impl MultilinearInterpolation {
 
 /// Chebyshev interpolation on Chebyshev nodes.
 pub struct ChebyshevInterpolation {
+    /// Chebyshev series coefficients.
     pub coeffs: Vec<f64>,
+    /// Lower end of the interpolation interval.
     pub a: f64,
+    /// Upper end of the interpolation interval.
     pub b: f64,
 }
 
@@ -423,7 +444,7 @@ impl ChebyshevInterpolation {
         //   c_j = (2/n) Σ_i f(x_i) T_j(x_i),  c_0 halved.
         for i in 0..n {
             let theta = core::f64::consts::PI * (i as f64 + 0.5) / n as f64;
-            let x = (a + b) / 2.0 + (b - a) / 2.0 * theta.cos();
+            let x = f64::midpoint(a, b) + (b - a) / 2.0 * theta.cos();
             let y = f(x);
             
             for j in 0..n {
@@ -456,7 +477,9 @@ impl ChebyshevInterpolation {
 
 /// Nearest neighbor interpolation.
 pub struct NearestNeighbor {
+    /// Sample x coordinates, sorted ascending.
     pub xs: Vec<f64>,
+    /// Sample y coordinates.
     pub ys: Vec<f64>,
 }
 

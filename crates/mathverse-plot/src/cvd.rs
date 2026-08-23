@@ -35,12 +35,8 @@ impl CvdType {
     /// Severity factor (0.0 = full color, 1.0 = complete deficiency).
     pub fn severity(&self) -> f64 {
         match self {
-            CvdType::Protanopia => 1.0,
-            CvdType::Deuteranopia => 1.0,
-            CvdType::Tritanopia => 1.0,
-            CvdType::Protanomaly => 0.6,
-            CvdType::Deuteranomaly => 0.6,
-            CvdType::Tritanomaly => 0.6,
+            CvdType::Protanopia | CvdType::Deuteranopia | CvdType::Tritanopia => 1.0,
+            CvdType::Protanomaly | CvdType::Deuteranomaly | CvdType::Tritanomaly => 0.6,
         }
     }
 
@@ -66,9 +62,9 @@ pub fn simulate_cvd(color: Color, cvd_type: CvdType) -> Color {
     let severity = cvd_type.severity();
 
     // Convert sRGB [0-255] to linear [0-1]
-    let r_lin = srgb_to_linear(r as f64 / 255.0);
-    let g_lin = srgb_to_linear(g as f64 / 255.0);
-    let b_lin = srgb_to_linear(b as f64 / 255.0);
+    let r_lin = srgb_to_linear(f64::from(r) / 255.0);
+    let g_lin = srgb_to_linear(f64::from(g) / 255.0);
+    let b_lin = srgb_to_linear(f64::from(b) / 255.0);
 
     // LMS transformation (sRGB -> LMS via CIE 1931)
     let l = 0.390478 * r_lin + 0.543912 * g_lin + 0.141609 * b_lin;
@@ -141,13 +137,12 @@ pub fn simulate_palette(palette: &[Color], cvd_type: CvdType) -> Vec<Color> {
 /// Returns SVG showing the palette in original and simulated forms.
 pub fn cvd_comparison_svg(palette: &[Color], cvd_type: CvdType, width: u32, height: u32) -> String {
     let simulated = simulate_palette(palette, cvd_type);
-    let swatch_width = (width as f64 / palette.len() as f64).floor();
-    let swatch_height = height as f64 / 2.0;
+    let swatch_width = (f64::from(width) / palette.len() as f64).floor();
+    let swatch_height = f64::from(height) / 2.0;
 
     let mut svg = String::new();
     svg.push_str(&format!(
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\">\n",
-        width, height
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\">\n"
     ));
 
     // Title
@@ -266,7 +261,7 @@ mod tests {
     fn cvd_simulate_green_deuteranopia() {
         let color = Color::GREEN;
         let sim = simulate_cvd(color, CvdType::Deuteranopia);
-        let (r, g, b) = sim.to_rgb();
+        let (r, _g, _b) = sim.to_rgb();
         // Green should appear brownish to a deuteranope
         assert!(r > 50, "red should be visible: got {r}");
     }

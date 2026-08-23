@@ -257,8 +257,7 @@ pub fn compute_x_range(data: &PlotData) -> Range {
             None => Some((x, x)),
             Some((lo, hi)) => Some((lo.min(x), hi.max(x))),
         })
-        .map(|(lo, hi)| Range { min: lo, max: hi })
-        .unwrap_or(Range { min: 0.0, max: 1.0 })
+        .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range { min: lo, max: hi })
 }
 
 /// Compute the y-axis range from all data sources in a `PlotData` snapshot.
@@ -291,8 +290,7 @@ pub fn compute_y_range(data: &PlotData) -> Range {
             None => Some((y, y)),
             Some((lo, hi)) => Some((lo.min(y), hi.max(y))),
         })
-        .map(|(lo, hi)| Range { min: lo, max: hi })
-        .unwrap_or(Range { min: 0.0, max: 1.0 })
+        .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range { min: lo, max: hi })
 }
 
 /// Largest-Triangle-Three-Buckets downsampling.
@@ -457,7 +455,7 @@ mod tests {
     #[test]
     fn lttb_preserves_endpoints() {
         let pts: Vec<DataPoint> = (0..1000)
-            .map(|i| DataPoint::new(i as f64, (i as f64 * 0.1).sin()))
+            .map(|i| DataPoint::new(f64::from(i), (f64::from(i) * 0.1).sin()))
             .collect();
         let ds = downsample_lttb(&pts, 50);
         assert_eq!(ds.len(), 50);

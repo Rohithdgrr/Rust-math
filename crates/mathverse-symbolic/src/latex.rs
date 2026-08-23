@@ -15,19 +15,19 @@ pub fn to_latex(expr: &Expr) -> String {
             if c.fract() == 0.0 {
                 format!("{}", *c as i64)
             } else {
-                format!("{:.6}", c).trim_end_matches('0').trim_end_matches('.').to_string()
+                format!("{c:.6}").trim_end_matches('0').trim_end_matches('.').to_string()
             }
         }
         Expr::Variable(name) => name.clone(),
         Expr::Add(a, b) => {
             let left = to_latex(a);
             let right = to_latex(b);
-            format!("{} + {}", left, right)
+            format!("{left} + {right}")
         }
         Expr::Sub(a, b) => {
             let left = to_latex(a);
             let right = to_latex(b);
-            format!("{} - {}", left, right)
+            format!("{left} - {right}")
         }
         Expr::Mul(a, b) => {
             let left = to_latex(a);
@@ -36,28 +36,28 @@ pub fn to_latex(expr: &Expr) -> String {
             let left_paren = needs_parentheses(a, true);
             let right_paren = needs_parentheses(b, false);
             
-            let left_str = if left_paren { format!("({})", left) } else { left };
-            let right_str = if right_paren { format!("({})", right) } else { right };
+            let left_str = if left_paren { format!("({left})") } else { left };
+            let right_str = if right_paren { format!("({right})") } else { right };
             
-            format!("{} \\cdot {}", left_str, right_str)
+            format!("{left_str} \\cdot {right_str}")
         }
         Expr::Div(a, b) => {
             let left = to_latex(a);
             let right = to_latex(b);
-            format!("\\frac{{{}}}{{{}}}", left, right)
+            format!("\\frac{{{left}}}{{{right}}}")
         }
         Expr::Pow(a, b) => {
             let base = to_latex(a);
             let exp = to_latex(b);
             let base_paren = needs_parentheses(a, true);
-            let base_str = if base_paren { format!("({})", base) } else { base };
-            format!("{}^{{{}}}", base_str, exp)
+            let base_str = if base_paren { format!("({base})") } else { base };
+            format!("{base_str}^{{{exp}}}")
         }
         Expr::Neg(a) => {
             let inner = to_latex(a);
             let inner_paren = needs_parentheses(a, false);
             if inner_paren {
-                format!("({})", inner)
+                format!("({inner})")
             } else {
                 inner
             }
@@ -66,45 +66,45 @@ pub fn to_latex(expr: &Expr) -> String {
             let inner = to_latex(a);
             let inner_paren = needs_parentheses(a, false);
             if inner_paren {
-                format!("\\ln({})", inner)
+                format!("\\ln({inner})")
             } else {
-                format!("\\ln {}", inner)
+                format!("\\ln {inner}")
             }
         }
         Expr::Exp(a) => {
             let inner = to_latex(a);
-            format!("e^{{{}}}", inner)
+            format!("e^{{{inner}}}")
         }
         Expr::Sin(a) => {
             let inner = to_latex(a);
             let inner_paren = needs_parentheses(a, false);
             if inner_paren {
-                format!("\\sin({})", inner)
+                format!("\\sin({inner})")
             } else {
-                format!("\\sin {}", inner)
+                format!("\\sin {inner}")
             }
         }
         Expr::Cos(a) => {
             let inner = to_latex(a);
             let inner_paren = needs_parentheses(a, false);
             if inner_paren {
-                format!("\\cos({})", inner)
+                format!("\\cos({inner})")
             } else {
-                format!("\\cos {}", inner)
+                format!("\\cos {inner}")
             }
         }
         Expr::Tan(a) => {
             let inner = to_latex(a);
             let inner_paren = needs_parentheses(a, false);
             if inner_paren {
-                format!("\\tan({})", inner)
+                format!("\\tan({inner})")
             } else {
-                format!("\\tan {}", inner)
+                format!("\\tan {inner}")
             }
         }
         Expr::Sqrt(a) => {
             let inner = to_latex(a);
-            format!("\\sqrt{{{}}}", inner)
+            format!("\\sqrt{{{inner}}}")
         }
     }
 }
@@ -154,8 +154,8 @@ pub fn to_latex_inline(expr: &Expr) -> String {
 pub fn to_latex_equation(label: Option<&str>, expr: &Expr) -> String {
     let latex = to_latex(expr);
     match label {
-        Some(l) => format!("\\begin{{equation}}\\label{{{}}} {} \\end{{equation}}", l, latex),
-        None => format!("\\begin{{equation}} {} \\end{{equation}}", latex),
+        Some(l) => format!("\\begin{{equation}}\\label{{{l}}} {latex} \\end{{equation}}"),
+        None => format!("\\begin{{equation}} {latex} \\end{{equation}}"),
     }
 }
 
@@ -167,9 +167,9 @@ pub fn to_latex_equation(label: Option<&str>, expr: &Expr) -> String {
 /// # Returns
 /// LaTeX align environment string
 pub fn to_latex_align(exprs: &[Expr]) -> String {
-    let lines: Vec<String> = exprs.iter().map(|e| to_latex(e)).collect();
+    let lines: Vec<String> = exprs.iter().map(to_latex).collect();
     let joined = lines.join(" \\\\\n");
-    format!("\\begin{{align}}\n{}\\n\\end{{align}}", joined)
+    format!("\\begin{{align}}\n{joined}\\n\\end{{align}}")
 }
 
 #[cfg(test)]

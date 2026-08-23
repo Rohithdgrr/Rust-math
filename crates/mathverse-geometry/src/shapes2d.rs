@@ -10,30 +10,36 @@ pub struct Point2 {
 }
 
 impl Point2 {
-    pub fn new(x: f64, y: f64) -> Self {
-        Point2 { x, y }
+    #[must_use]
+    pub const fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
     }
     /// Euclidean distance to another point.
-    pub fn distance_to(self, other: Point2) -> f64 {
+    #[must_use]
+    pub fn distance_to(self, other: Self) -> f64 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
-        (dx * dx + dy * dy).sqrt()
+        dx.hypot(dy)
     }
     /// Translate by `(dx, dy)`.
-    pub fn translate(self, dx: f64, dy: f64) -> Point2 {
-        Point2::new(self.x + dx, self.y + dy)
+    #[must_use]
+    pub fn translate(self, dx: f64, dy: f64) -> Self {
+        Self::new(self.x + dx, self.y + dy)
     }
     /// Uniform scale about the origin.
-    pub fn scale(self, s: f64) -> Point2 {
-        Point2::new(self.x * s, self.y * s)
+    #[must_use]
+    pub fn scale(self, s: f64) -> Self {
+        Self::new(self.x * s, self.y * s)
     }
     /// Rotate by `angle` radians counterclockwise about the origin.
-    pub fn rotate(self, angle: f64) -> Point2 {
+    #[must_use]
+    pub fn rotate(self, angle: f64) -> Self {
         let (s, c) = angle.sin_cos();
-        Point2::new(c * self.x - s * self.y, s * self.x + c * self.y)
+        Self::new(s.mul_add(-self.y, c * self.x), c.mul_add(self.y, s * self.x))
     }
     /// Rotate by `angle` radians about `center`.
-    pub fn rotate_around(self, angle: f64, center: Point2) -> Point2 {
+    #[must_use]
+    pub fn rotate_around(self, angle: f64, center: Self) -> Self {
         self.translate(-center.x, -center.y).rotate(angle).translate(center.x, center.y)
     }
 }
@@ -47,36 +53,43 @@ pub struct Circle {
 
 impl Circle {
     /// Panics if `radius < 0`.
-    pub fn new(center: Point2, radius: f64) -> Circle {
+    #[must_use]
+    pub fn new(center: Point2, radius: f64) -> Self {
         assert!(radius >= 0.0, "circle radius must be non-negative");
-        Circle { center, radius }
+        Self { center, radius }
     }
+    #[must_use]
     pub fn area(&self) -> f64 {
         PI * self.radius * self.radius
     }
+    #[must_use]
     pub fn perimeter(&self) -> f64 {
         TAU * self.radius
     }
-    pub fn centroid(&self) -> Point2 {
+    #[must_use]
+    pub const fn centroid(&self) -> Point2 {
         self.center
     }
+    #[must_use]
     pub fn contains(&self, p: Point2) -> bool {
         self.center.distance_to(p) <= self.radius
     }
     /// Whether this circle overlaps `other` (touch counts).
-    pub fn intersects(&self, other: &Circle) -> bool {
+    #[must_use]
+    pub fn intersects(&self, other: &Self) -> bool {
         self.center.distance_to(other.center) <= self.radius + other.radius
     }
     /// Intersection points with another circle: 0, 1, or 2.
     /// Coincident circles yield `[]`.
-    pub fn intersection_points(&self, other: &Circle) -> Vec<Point2> {
+    #[must_use]
+    pub fn intersection_points(&self, other: &Self) -> Vec<Point2> {
         let d = self.center.distance_to(other.center);
         let (r1, r2) = (self.radius, other.radius);
         if d > r1 + r2 || d < (r1 - r2).abs() || d == 0.0 {
             return vec![];
         }
-        let a = (r1 * r1 - r2 * r2 + d * d) / (2.0 * d);
-        let h2 = r1 * r1 - a * a;
+        let a = d.mul_add(d, r2.mul_add(-r2, r1 * r1)) / (2.0 * d);
+        let h2 = r1.mul_add(r1, -(a * a));
         let p = self.center.translate(a * (other.center.x - self.center.x) / d, a * (other.center.y - self.center.y) / d);
         if h2 <= 1e-14 {
             return vec![p];
@@ -97,16 +110,20 @@ pub struct Triangle {
 }
 
 impl Triangle {
-    pub fn new(a: Point2, b: Point2, c: Point2) -> Triangle {
-        Triangle { a, b, c }
+    #[must_use]
+    pub const fn new(a: Point2, b: Point2, c: Point2) -> Self {
+        Self { a, b, c }
     }
     /// Shoelace formula; area is always positive.
+    #[must_use]
     pub fn area(&self) -> f64 {
-        ((self.b.x - self.a.x) * (self.c.y - self.a.y) - (self.c.x - self.a.x) * (self.b.y - self.a.y)).abs() / 2.0
+        (self.c.x - self.a.x).mul_add(-(self.b.y - self.a.y), (self.b.x - self.a.x) * (self.c.y - self.a.y)).abs() / 2.0
     }
+    #[must_use]
     pub fn perimeter(&self) -> f64 {
         self.a.distance_to(self.b) + self.b.distance_to(self.c) + self.c.distance_to(self.a)
     }
+    #[must_use]
     pub fn centroid(&self) -> Point2 {
         Point2::new((self.a.x + self.b.x + self.c.x) / 3.0, (self.a.y + self.b.y + self.c.y) / 3.0)
     }
@@ -123,30 +140,37 @@ pub struct Rectangle {
 
 impl Rectangle {
     /// Panics if `width < 0` or `height < 0`.
-    pub fn new(x: f64, y: f64, width: f64, height: f64) -> Rectangle {
+    #[must_use]
+    pub fn new(x: f64, y: f64, width: f64, height: f64) -> Self {
         assert!(width >= 0.0 && height >= 0.0, "rectangle dimensions must be non-negative");
-        Rectangle { x, y, width, height }
+        Self { x, y, width, height }
     }
+    #[must_use]
     pub fn area(&self) -> f64 {
         self.width * self.height
     }
+    #[must_use]
     pub fn perimeter(&self) -> f64 {
         2.0 * (self.width + self.height)
     }
+    #[must_use]
     pub fn centroid(&self) -> Point2 {
         Point2::new(self.x + self.width / 2.0, self.y + self.height / 2.0)
     }
+    #[must_use]
     pub fn contains(&self, p: Point2) -> bool {
         p.x >= self.x && p.x <= self.x + self.width && p.y >= self.y && p.y <= self.y + self.height
     }
     /// Overlap of two axis-aligned rectangles.
-    pub fn intersects(&self, other: &Rectangle) -> bool {
+    #[must_use]
+    pub fn intersects(&self, other: &Self) -> bool {
         self.x < other.x + other.width
             && other.x < self.x + self.width
             && self.y < other.y + other.height
             && other.y < self.y + self.height
     }
     /// Rotate by `angle` radians about the centroid, returning the resulting `Polygon`.
+    #[must_use]
     pub fn rotated_polygon(&self, angle: f64) -> Polygon {
         let c = self.centroid();
         let corners = [
@@ -167,25 +191,29 @@ pub struct Polygon {
 
 impl Polygon {
     /// Panics if fewer than 3 points.
-    pub fn new(points: Vec<Point2>) -> Polygon {
+    #[must_use]
+    pub fn new(points: Vec<Point2>) -> Self {
         assert!(points.len() >= 3, "polygon needs at least 3 points");
-        Polygon { points }
+        Self { points }
     }
     /// Shoelace formula; works for convex and simple concave polygons.
+    #[must_use]
     pub fn area(&self) -> f64 {
         let mut s = 0.0;
         let n = self.points.len();
         for i in 0..n {
             let (a, b) = (self.points[i], self.points[(i + 1) % n]);
-            s += a.x * b.y - b.x * a.y;
+            s += b.x.mul_add(-a.y, a.x * b.y);
         }
         s.abs() / 2.0
     }
+    #[must_use]
     pub fn perimeter(&self) -> f64 {
         let n = self.points.len();
         (0..n).map(|i| self.points[i].distance_to(self.points[(i + 1) % n])).sum()
     }
     /// Area-weighted centroid.
+    #[must_use]
     pub fn centroid(&self) -> Point2 {
         let n = self.points.len();
         let mut cx = 0.0;
@@ -193,10 +221,10 @@ impl Polygon {
         let mut a2 = 0.0;
         for i in 0..n {
             let (p, q) = (self.points[i], self.points[(i + 1) % n]);
-            let cross = p.x * q.y - q.x * p.y;
+            let cross = q.x.mul_add(-p.y, p.x * q.y);
             a2 += cross;
-            cx += (p.x + q.x) * cross;
-            cy += (p.y + q.y) * cross;
+            cx = (p.x + q.x).mul_add(cross, cx);
+            cy = (p.y + q.y).mul_add(cross, cy);
         }
         if a2 == 0.0 {
             return Point2::new(0.0, 0.0);
@@ -209,6 +237,7 @@ impl Polygon {
     /// Uses the even-odd ray-casting rule; points exactly on the boundary
     /// are considered inside. Works for both convex and concave simple
     /// polygons (self-intersecting polygons are not well-defined).
+    #[must_use]
     pub fn contains(&self, p: Point2) -> bool {
         let n = self.points.len();
         if n < 3 {
@@ -242,7 +271,7 @@ impl Polygon {
     /// Returns `true` if `p` lies on the closed segment `a`-`b`.
     fn point_on_segment(p: Point2, a: Point2, b: Point2) -> bool {
         const EPS: f64 = 1e-12;
-        let cross = (p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x);
+        let cross = (p.y - a.y).mul_add(-(b.x - a.x), (p.x - a.x) * (b.y - a.y));
         if cross.abs() > EPS {
             return false;
         }
@@ -263,25 +292,30 @@ pub struct Ellipse {
 
 impl Ellipse {
     /// Panics if `rx < 0` or `ry < 0`.
-    pub fn new(center: Point2, rx: f64, ry: f64) -> Ellipse {
+    #[must_use]
+    pub fn new(center: Point2, rx: f64, ry: f64) -> Self {
         assert!(rx >= 0.0 && ry >= 0.0, "ellipse semi-axes must be non-negative");
-        Ellipse { center, rx, ry }
+        Self { center, rx, ry }
     }
+    #[must_use]
     pub fn area(&self) -> f64 {
         PI * self.rx * self.ry
     }
     /// Ramanujan's approximation (error < 0.04% for all eccentricities).
+    #[must_use]
     pub fn perimeter(&self) -> f64 {
         let s = self.rx + self.ry;
-        PI * (3.0 * s - ((3.0 * self.rx + self.ry) * (self.rx + 3.0 * self.ry)).sqrt())
+        PI * 3.0f64.mul_add(s, -(3.0f64.mul_add(self.rx, self.ry) * 3.0f64.mul_add(self.ry, self.rx)).sqrt())
     }
-    pub fn centroid(&self) -> Point2 {
+    #[must_use]
+    pub const fn centroid(&self) -> Point2 {
         self.center
     }
+    #[must_use]
     pub fn contains(&self, p: Point2) -> bool {
         let dx = (p.x - self.center.x) / self.rx;
         let dy = (p.y - self.center.y) / self.ry;
-        dx * dx + dy * dy <= 1.0
+        dy.mul_add(dy, dx * dx) <= 1.0
     }
 }
 

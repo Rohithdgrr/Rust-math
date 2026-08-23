@@ -91,8 +91,8 @@ pub fn render_boxen_plot(data: &[BoxenData], config: &BoxenConfig) -> PlotResult
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     // Reject empty per-series values: `sorted[0]` below must never be hit
     // on an empty series (this used to panic).
@@ -130,7 +130,7 @@ pub fn render_boxen_plot(data: &[BoxenData], config: &BoxenConfig) -> PlotResult
     // Grid
     if config.show_grid {
         for i in 0..=5 {
-            let y = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let y = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");

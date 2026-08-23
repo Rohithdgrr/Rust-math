@@ -9,12 +9,12 @@ pub fn combinations(n: u64, k: u64) -> u128 {
 pub fn permutations(n: u64, k: u64) -> u128 {
     if k > n { return 0; }
     let mut acc: u128 = 1;
-    for i in (n - k + 1)..=n { acc *= i as u128; }
+    for i in (n - k + 1)..=n { acc *= u128::from(i); }
     acc
 }
 
 pub fn permutations_with_repetition(n: u64, k: u64) -> u128 {
-    (n as u128).pow(k as u32)
+    u128::from(n).pow(k as u32)
 }
 
 pub fn combinations_with_repetition(n: u64, k: u64) -> u128 {
@@ -24,13 +24,13 @@ pub fn combinations_with_repetition(n: u64, k: u64) -> u128 {
 pub fn falling_factorial(n: u64, k: u64) -> u128 {
     if k > n { return 0; }
     let mut acc: u128 = 1;
-    for i in (n - k + 1)..=n { acc *= i as u128; }
+    for i in (n - k + 1)..=n { acc *= u128::from(i); }
     acc
 }
 
 pub fn rising_factorial(n: u64, k: u64) -> u128 {
     let mut acc: u128 = 1;
-    for i in n..(n + k) { acc *= i as u128; }
+    for i in n..(n + k) { acc *= u128::from(i); }
     acc
 }
 

@@ -53,6 +53,7 @@ pub struct MergeConfig {
 
 impl MergeConfig {
     /// Creates a config with the given join type and same-named key.
+    #[must_use]
     pub fn on(on: &str, how: JoinType) -> Self {
         Self {
             how,
@@ -65,6 +66,7 @@ impl MergeConfig {
     }
 
     /// Creates a config with different key names on each side.
+    #[must_use]
     pub fn left_right(left_on: &str, right_on: &str, how: JoinType) -> Self {
         Self {
             how,
@@ -77,12 +79,14 @@ impl MergeConfig {
     }
 
     /// Sets the suffixes for duplicate non-key columns.
+    #[must_use]
     pub fn with_suffixes(mut self, left: &str, right: &str) -> Self {
         self.suffixes = (left.to_string(), right.to_string());
         self
     }
 
     /// Enables the `_merge` indicator column.
+    #[must_use]
     pub fn with_indicator(mut self) -> Self {
         self.indicator = true;
         self
@@ -119,16 +123,16 @@ pub enum JoinType {
 }
 
 impl DataFrame {
-    /// Joins this DataFrame with `other` on a same-named key column.
+    /// Joins this `DataFrame` with `other` on a same-named key column.
     ///
     /// # Errors
     ///
     /// Returns an error if the key column is missing on either side.
-    pub fn merge(&self, other: &DataFrame, on: &str, how: JoinType) -> DataFrameResult<Self> {
+    pub fn merge(&self, other: &Self, on: &str, how: JoinType) -> DataFrameResult<Self> {
         self.join(other, on, on, how)
     }
 
-    /// Joins this DataFrame with `other` on possibly differently-named key
+    /// Joins this `DataFrame` with `other` on possibly differently-named key
     /// columns. Both key columns are kept in the output.
     ///
     /// # Errors
@@ -136,7 +140,7 @@ impl DataFrame {
     /// Returns an error if either key column is missing.
     pub fn join(
         &self,
-        other: &DataFrame,
+        other: &Self,
         left_on: &str,
         right_on: &str,
         how: JoinType,
@@ -149,7 +153,8 @@ impl DataFrame {
     /// # Errors
     ///
     /// Returns an error if key columns are missing.
-    pub fn merge_with(&self, other: &DataFrame, config: &MergeConfig) -> DataFrameResult<Self> {
+    #[allow(clippy::too_many_lines)]
+    pub fn merge_with(&self, other: &Self, config: &MergeConfig) -> DataFrameResult<Self> {
         let left_on = config.effective_left_on()?;
         let right_on = config.effective_right_on()?;
         if !self.has_column(left_on) {
@@ -225,10 +230,10 @@ impl DataFrame {
         }
 
         // Assemble output columns.
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         let left_key_col = self.column(left_on)?;
         let right_key_col = other.column(right_on)?;
-        result.add_any_column(gather_key(left_key_col, right_key_col, &pairs)?)?;
+        result.add_any_column(gather_key(left_key_col, right_key_col, &pairs))?;
 
         // Remaining left columns.
         let sfx_r = &config.suffixes.1;
@@ -236,11 +241,11 @@ impl DataFrame {
             if name == left_on {
                 continue;
             }
-            result.add_any_column(gather(self.column(name)?, &pairs, true)?)?;
+            result.add_any_column(gather(self.column(name)?, &pairs, true))?;
         }
         // Right key column when names differ.
         if right_on != left_on {
-            result.add_any_column(gather(right_key_col, &pairs, false)?)?;
+            result.add_any_column(gather(right_key_col, &pairs, false))?;
         }
         // Remaining right columns with suffix handling.
         for name in other.column_names() {
@@ -252,7 +257,7 @@ impl DataFrame {
             if result.has_column(&out_name) {
                 out_name = format!("{name}{sfx_r}");
             }
-            result.add_any_column(gather(col, &pairs, false)?.with_name(out_name))?;
+            result.add_any_column(gather(col, &pairs, false).with_name(out_name))?;
         }
 
         // Add indicator column if requested.
@@ -277,7 +282,7 @@ impl DataFrame {
 /// left row exists, otherwise the right key (for unmatched right rows in
 /// right/outer joins). Falls back to the right key when the left key is
 /// itself null so valid right keys are not lost.
-fn gather_key(left: &AnyColumn, right: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)]) -> DataFrameResult<AnyColumn> {
+fn gather_key(left: &AnyColumn, right: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)]) -> AnyColumn {
     let len = pairs.len();
     let mut nulls: Vec<bool> = Vec::with_capacity(len);
     let mut picks_left: Vec<Option<usize>> = Vec::with_capacity(len);
@@ -290,14 +295,12 @@ fn gather_key(left: &AnyColumn, right: &AnyColumn, pairs: &[(Option<usize>, Opti
                 let left_null = left.is_null(*lr);
                 let right_null = right.is_null(*rr);
                 match (left_null, right_null) {
-                    (false, _) => true,
+                    (false, _) | (true, true) => true,
                     (true, false) => false,
-                    (true, true) => true,
                 }
             }
-            (Some(_), None) => true,
+            (Some(_) | None, None) => true,
             (None, Some(_)) => false,
-            (None, None) => true,
         };
         if use_left {
             picks_left.push(*l);
@@ -312,110 +315,67 @@ fn gather_key(left: &AnyColumn, right: &AnyColumn, pairs: &[(Option<usize>, Opti
     let validity = NullBitmap::from_bools(&nulls);
     match left {
         AnyColumn::Float64(s) => {
-            let data: Vec<f64> = (0..len)
-                .map(|i| {
-                    picks_left[i]
-                        .map(|p| s.data()[p])
-                        .or_else(|| picks_right[i].map(|p| match right {
-                            AnyColumn::Float64(r) => r.data()[p],
-                            _ => 0.0,
-                        }))
-                        .unwrap_or(0.0)
-                })
-                .collect();
-            Ok(AnyColumn::Float64(Series::with_validity(s.name(), data, validity)))
+            let r = if let AnyColumn::Float64(r) = right { Some(r) } else { None };
+            AnyColumn::Float64(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Float32(s) => {
-            let data: Vec<f32> = (0..len)
-                .map(|i| {
-                    picks_left[i]
-                        .map(|p| s.data()[p])
-                        .or_else(|| picks_right[i].map(|p| match right {
-                            AnyColumn::Float32(r) => r.data()[p],
-                            _ => 0.0,
-                        }))
-                        .unwrap_or(0.0)
-                })
-                .collect();
-            Ok(AnyColumn::Float32(Series::with_validity(s.name(), data, validity)))
+            let r = if let AnyColumn::Float32(r) = right { Some(r) } else { None };
+            AnyColumn::Float32(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Int64(s) => {
-            let data: Vec<i64> = (0..len)
-                .map(|i| {
-                    picks_left[i]
-                        .map(|p| s.data()[p])
-                        .or_else(|| picks_right[i].map(|p| match right {
-                            AnyColumn::Int64(r) => r.data()[p],
-                            _ => 0,
-                        }))
-                        .unwrap_or(0)
-                })
-                .collect();
-            Ok(AnyColumn::Int64(Series::with_validity(s.name(), data, validity)))
+            let r = if let AnyColumn::Int64(r) = right { Some(r) } else { None };
+            AnyColumn::Int64(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Int32(s) => {
-            let data: Vec<i32> = (0..len)
-                .map(|i| {
-                    picks_left[i]
-                        .map(|p| s.data()[p])
-                        .or_else(|| picks_right[i].map(|p| match right {
-                            AnyColumn::Int32(r) => r.data()[p],
-                            _ => 0,
-                        }))
-                        .unwrap_or(0)
-                })
-                .collect();
-            Ok(AnyColumn::Int32(Series::with_validity(s.name(), data, validity)))
+            let r = if let AnyColumn::Int32(r) = right { Some(r) } else { None };
+            AnyColumn::Int32(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Bool(s) => {
-            let data: Vec<bool> = (0..len)
-                .map(|i| {
-                    picks_left[i]
-                        .map(|p| s.data()[p])
-                        .or_else(|| picks_right[i].map(|p| match right {
-                            AnyColumn::Bool(r) => r.data()[p],
-                            _ => false,
-                        }))
-                        .unwrap_or(false)
-                })
-                .collect();
-            Ok(AnyColumn::Bool(Series::with_validity(s.name(), data, validity)))
+            let r = if let AnyColumn::Bool(r) = right { Some(r) } else { None };
+            AnyColumn::Bool(gather_series(s, r, &picks_left, &picks_right, validity))
         }
         AnyColumn::Utf8(s) => {
-            let data: Vec<String> = (0..len)
-                .map(|i| {
-                    picks_left[i]
-                        .map(|p| s.data()[p].clone())
-                        .or_else(|| picks_right[i].map(|p| match right {
-                            AnyColumn::Utf8(r) => r.data()[p].clone(),
-                            _ => String::new(),
-                        }))
-                        .unwrap_or_default()
-                })
-                .collect();
-            Ok(AnyColumn::Utf8(Series::with_validity(s.name(), data, validity)))
+            let r = if let AnyColumn::Utf8(r) = right { Some(r) } else { None };
+            AnyColumn::Utf8(gather_series(s, r, &picks_left, &picks_right, validity))
         }
+        // Note: preserved legacy behavior of returning `Date` for all
+        // date-time-like columns.
         AnyColumn::Date(s) | AnyColumn::DateTime(s) | AnyColumn::Duration(s) => {
-            let data: Vec<i64> = (0..len)
-                .map(|i| {
-                    picks_left[i]
-                        .map(|p| s.data()[p])
-                        .or_else(|| picks_right[i].map(|p| match right {
-                            AnyColumn::Date(r) | AnyColumn::DateTime(r) | AnyColumn::Duration(r) => r.data()[p],
-                            _ => 0,
-                        }))
-                        .unwrap_or_default()
-                })
-                .collect();
-            Ok(AnyColumn::Date(Series::with_validity(s.name(), data, validity)))
+            let r = match right {
+                AnyColumn::Date(r) | AnyColumn::DateTime(r) | AnyColumn::Duration(r) => Some(r),
+                _ => None,
+            };
+            AnyColumn::Date(gather_series(s, r, &picks_left, &picks_right, validity))
         }
     }
+}
+
+/// Gathers values for one typed key series from the left/right pick lists,
+/// preferring left picks and falling back to `T::default()` when both are
+/// absent (the position is null in that case).
+fn gather_series<T: Clone + Default>(
+    s: &Series<T>,
+    right: Option<&Series<T>>,
+    picks_left: &[Option<usize>],
+    picks_right: &[Option<usize>],
+    validity: NullBitmap,
+) -> Series<T> {
+    let data: Vec<T> = picks_left
+        .iter()
+        .zip(picks_right)
+        .map(|(l, r)| {
+            l.map(|p| s.data()[p].clone())
+                .or_else(|| right.and_then(|rs| r.map(|p| rs.data()[p].clone())))
+                .unwrap_or_default()
+        })
+        .collect();
+    Series::with_validity(s.name(), data, validity)
 }
 
 /// Gathers values from `col` according to the join pairs. When `from_left`
 /// is `true`, the `left` side of each pair selects the value; otherwise the
 /// `right` side does. Pairs whose selected side is `None` yield nulls.
-pub(crate) fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], from_left: bool) -> DataFrameResult<AnyColumn> {
+pub fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], from_left: bool) -> AnyColumn {
     let len = pairs.len();
     let mut nulls: Vec<bool> = Vec::with_capacity(len);
     let pick: Vec<Option<usize>> = pairs
@@ -430,34 +390,34 @@ pub(crate) fn gather(col: &AnyColumn, pairs: &[(Option<usize>, Option<usize>)], 
     match col {
         AnyColumn::Float64(s) => {
             let data: Vec<f64> = pick.iter().map(|&p| p.map_or(0.0, |i| s.data()[i])).collect();
-            Ok(AnyColumn::Float64(Series::with_validity(s.name(), data, validity)))
+            AnyColumn::Float64(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Float32(s) => {
             let data: Vec<f32> = pick.iter().map(|&p| p.map_or(0.0, |i| s.data()[i])).collect();
-            Ok(AnyColumn::Float32(Series::with_validity(s.name(), data, validity)))
+            AnyColumn::Float32(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Int64(s) => {
             let data: Vec<i64> = pick.iter().map(|&p| p.map_or(0, |i| s.data()[i])).collect();
-            Ok(AnyColumn::Int64(Series::with_validity(s.name(), data, validity)))
+            AnyColumn::Int64(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Int32(s) => {
             let data: Vec<i32> = pick.iter().map(|&p| p.map_or(0, |i| s.data()[i])).collect();
-            Ok(AnyColumn::Int32(Series::with_validity(s.name(), data, validity)))
+            AnyColumn::Int32(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Bool(s) => {
-            let data: Vec<bool> = pick.iter().map(|&p| p.map_or(false, |i| s.data()[i])).collect();
-            Ok(AnyColumn::Bool(Series::with_validity(s.name(), data, validity)))
+            let data: Vec<bool> = pick.iter().map(|&p| p.is_some_and(|i| s.data()[i])).collect();
+            AnyColumn::Bool(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Utf8(s) => {
             let data: Vec<String> = pick
                 .iter()
                 .map(|&p| p.map_or_else(String::new, |i| s.data()[i].clone()))
                 .collect();
-            Ok(AnyColumn::Utf8(Series::with_validity(s.name(), data, validity)))
+            AnyColumn::Utf8(Series::with_validity(s.name(), data, validity))
         }
         AnyColumn::Date(s) | AnyColumn::DateTime(s) | AnyColumn::Duration(s) => {
             let data: Vec<i64> = pick.iter().map(|&p| p.map_or(0, |i| s.data()[i])).collect();
-            Ok(AnyColumn::Date(Series::with_validity(s.name(), data, validity)))
+            AnyColumn::Date(Series::with_validity(s.name(), data, validity))
         }
     }
 }
@@ -466,7 +426,7 @@ impl DataFrame {
     /// Returns only left rows that have a matching key on the right (no right
     /// columns are included). Equivalent to SQL `SELECT * FROM left SEMI JOIN
     /// right ON ...`.
-    pub fn semi_join(&self, other: &DataFrame, left_on: &str, right_on: &str) -> DataFrameResult<Self> {
+    pub fn semi_join(&self, other: &Self, left_on: &str, right_on: &str) -> DataFrameResult<Self> {
         let right_key = other.column(right_on)?;
         let mut lookup: alloc::collections::BTreeSet<Vec<u8>> = alloc::collections::BTreeSet::new();
         for row in 0..other.nrows() {
@@ -487,7 +447,7 @@ impl DataFrame {
                 }
             }
         }
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         for name in self.column_names() {
             let col = self.column(name)?;
             result.add_any_column(col.select_rows(&picks)?)?;
@@ -498,7 +458,7 @@ impl DataFrame {
     /// Returns only left rows that have **no** matching key on the right (no
     /// right columns are included). Equivalent to SQL `SELECT * FROM left
     /// LEFT JOIN right ON ... WHERE right.key IS NULL`.
-    pub fn anti_join(&self, other: &DataFrame, left_on: &str, right_on: &str) -> DataFrameResult<Self> {
+    pub fn anti_join(&self, other: &Self, left_on: &str, right_on: &str) -> DataFrameResult<Self> {
         let right_key = other.column(right_on)?;
         let mut lookup: alloc::collections::BTreeSet<Vec<u8>> = alloc::collections::BTreeSet::new();
         for row in 0..other.nrows() {
@@ -519,7 +479,7 @@ impl DataFrame {
                 picks.push(row);
             }
         }
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         for name in self.column_names() {
             let col = self.column(name)?;
             result.add_any_column(col.select_rows(&picks)?)?;
@@ -608,7 +568,7 @@ mod tests {
         let merged = left().merge(&right(), "id", JoinType::Outer).unwrap();
         let ids = merged.column("id").unwrap().as_i64().unwrap();
         assert!(!ids.is_null(0)); // id=1 (left-only) present
-        let mut vals: Vec<i64> = ids.data().iter().copied().collect();
+        let mut vals: Vec<i64> = ids.data().to_vec();
         vals.sort_unstable();
         assert_eq!(vals, vec![1, 2, 3, 4]);
     }
@@ -707,7 +667,7 @@ mod tests {
         assert_eq!(merged.nrows(), 4);
         assert!(merged.has_column("_merge"));
         let ind = merged.column("_merge").unwrap().as_utf8().unwrap();
-        let vals: Vec<&str> = ind.data().iter().map(|s| s.as_str()).collect();
+        let vals: Vec<&str> = ind.data().iter().map(std::string::String::as_str).collect();
         assert!(vals.contains(&"both"));
         assert!(vals.contains(&"left_only"));
         assert!(vals.contains(&"right_only"));

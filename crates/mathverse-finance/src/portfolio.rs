@@ -88,11 +88,11 @@ pub fn efficient_portfolio(
     let weights = vec![1.0 / n as f64; n];
     let current_return = portfolio_return(&weights, expected_returns);
     
-    if current_return != 0.0 {
+    if current_return == 0.0 {
+        weights
+    } else {
         let adjustment = target_return / current_return;
         weights.iter().map(|&w| w * adjustment).collect()
-    } else {
-        weights
     }
 }
 

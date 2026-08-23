@@ -6,11 +6,16 @@ use mathverse_core::error::MathResult;
 /// Low-rank approximation result.
 #[derive(Debug, Clone)]
 pub struct LowRankApproximation {
-    pub u: Matrix,      // Left singular vectors (truncated)
-    pub s: Vec<f64>,    // Singular values (truncated)
-    pub vt: Matrix,     // Right singular vectors (truncated)
-    pub rank: usize,    // Approximation rank
-    pub error: f64,     // Approximation error
+    /// Left singular vectors (truncated).
+    pub u: Matrix,
+    /// Singular values (truncated).
+    pub s: Vec<f64>,
+    /// Right singular vectors (truncated).
+    pub vt: Matrix,
+    /// Approximation rank.
+    pub rank: usize,
+    /// Approximation error (Frobenius norm of the discarded part).
+    pub error: f64,
 }
 
 /// Low-rank approximation methods.

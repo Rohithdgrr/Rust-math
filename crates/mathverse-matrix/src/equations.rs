@@ -101,15 +101,9 @@ impl SylvesterEquation {
 
     /// Check if Sylvester equation has unique solution.
     pub fn has_unique_solution(a: &Matrix, b: &Matrix) -> bool {
-        let (vals_a, _) = match a.eigen_symmetric() {
-            Ok(result) => result,
-            Err(_) => return false,
-        };
+        let Ok((vals_a, _)) = a.eigen_symmetric() else { return false };
         
-        let (vals_b, _) = match b.eigen_symmetric() {
-            Ok(result) => result,
-            Err(_) => return false,
-        };
+        let Ok((vals_b, _)) = b.eigen_symmetric() else { return false };
         
         // Check if λ_i + μ_j ≠ 0 for all i, j
         for &lambda in &vals_a {
@@ -188,7 +182,7 @@ impl LyapunovEquation {
         
         let i_n = Matrix::identity(n);
         let kron_a = crate::kronecker::KroneckerProduct::compute(&i_n, a);
-        let kron_a_t = crate::kronecker::KroneckerProduct::compute(&a, &i_n);
+        let kron_a_t = crate::kronecker::KroneckerProduct::compute(a, &i_n);
         
         let kron_sum = kron_a.add(&kron_a_t)?;
         
@@ -216,10 +210,7 @@ impl LyapunovEquation {
 
     /// Check if Lyapunov equation has unique solution (A stable).
     pub fn has_unique_solution(a: &Matrix) -> bool {
-        let (vals, _) = match a.eigen_symmetric() {
-            Ok(result) => result,
-            Err(_) => return false,
-        };
+        let Ok((vals, _)) = a.eigen_symmetric() else { return false };
         
         // Check if all eigenvalues have negative real parts
         vals.iter().all(|&v| v < 0.0)
@@ -227,14 +218,12 @@ impl LyapunovEquation {
 
     /// Solve discrete Lyapunov equation: AXA^T - X + Q = 0.
     pub fn solve_discrete(a: &Matrix, q: &Matrix) -> MathResult<Matrix> {
-        let _n = a.rows;
-        
         // Use iterative method
         let mut x = q.clone();
         
         for _ in 0..100 {
             let axa = a.mul(&x)?.mul(&a.transpose())?;
-            let x_new = axa.add(&q)?;
+            let x_new = axa.add(q)?;
             
             let diff = x_new.sub(&x)?;
             let norm = crate::norms::MatrixNorms::frobenius(&diff);
@@ -291,15 +280,9 @@ impl SteinEquation {
 
     /// Check if Stein equation has unique solution.
     pub fn has_unique_solution(a: &Matrix, b: &Matrix) -> bool {
-        let (vals_a, _) = match a.eigen_symmetric() {
-            Ok(result) => result,
-            Err(_) => return false,
-        };
+        let Ok((vals_a, _)) = a.eigen_symmetric() else { return false };
         
-        let (vals_b, _) = match b.eigen_symmetric() {
-            Ok(result) => result,
-            Err(_) => return false,
-        };
+        let Ok((vals_b, _)) = b.eigen_symmetric() else { return false };
         
         // Check if λ_i * μ_j ≠ 1 for all i, j
         for &lambda in &vals_a {

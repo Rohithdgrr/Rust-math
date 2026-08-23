@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create data with interesting detail
     let points: Vec<DataPoint> = (0..=200)
         .map(|i| {
-            let x = i as f64 * 0.05;
+            let x = f64::from(i) * 0.05;
             let y = x.sin() * (x * 0.3).exp() + 0.1 * (x * 10.0).sin();
             DataPoint::new(x, y)
         })
@@ -40,8 +40,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Add the same data to the inset (it will clip to the zoom region)
     let zoomed_points: Vec<DataPoint> = (0..=200)
         .filter_map(|i| {
-            let x = i as f64 * 0.05;
-            if x >= 1.0 && x <= 3.0 {
+            let x = f64::from(i) * 0.05;
+            if (1.0..=3.0).contains(&x) {
                 let y = x.sin() * (x * 0.3).exp() + 0.1 * (x * 10.0).sin();
                 Some(DataPoint::new(x, y))
             } else {
@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let inset_svg = inset.render(50.0, 50.0);
 
     // Add inset to the main SVG
-    svg = svg.replace("</svg>", &format!("{}\n</svg>", inset_svg));
+    svg = svg.replace("</svg>", &format!("{inset_svg}\n</svg>"));
 
     PlotSaver::new(&svg).save_png("inset.png")?;
     println!("Wrote inset.svg ({} bytes)", svg.len());

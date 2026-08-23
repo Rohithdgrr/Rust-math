@@ -6,7 +6,7 @@ use mathverse_core::error::{MathError, MathResult};
 pub struct Percentage;
 
 impl Percentage {
-    /// Calculate markup: selling price = cost + (cost * markup_rate).
+    /// Calculate markup: selling price = cost + (cost * `markup_rate`).
     #[must_use]
     pub fn markup(cost: f64, markup_rate: f64) -> f64 {
         cost * (1.0 + markup_rate / 100.0)
@@ -20,7 +20,7 @@ impl Percentage {
         Ok((selling_price - cost) / cost * 100.0)
     }
 
-    /// Calculate margin: margin_rate = (selling_price - cost) / selling_price.
+    /// Calculate margin: `margin_rate` = (`selling_price` - cost) / `selling_price`.
     pub fn margin_rate(cost: f64, selling_price: f64) -> MathResult<f64> {
         if selling_price == 0.0 {
             return Err(MathError::DivisionByZero);
@@ -36,7 +36,7 @@ impl Percentage {
         Ok(cost / (1.0 - margin_rate / 100.0))
     }
 
-    /// Calculate discount: discounted price = original * (1 - discount_rate).
+    /// Calculate discount: discounted price = original * (1 - `discount_rate`).
     #[must_use]
     pub fn discount(original_price: f64, discount_rate: f64) -> f64 {
         original_price * (1.0 - discount_rate / 100.0)
@@ -66,27 +66,27 @@ impl Percentage {
         times_per_year: u32,
         years: f64,
     ) -> f64 {
-        let n = times_per_year as f64;
+        let n = f64::from(times_per_year);
         principal * (1.0 + rate / 100.0 / n).powf(n * years)
     }
 
     /// Calculate simple interest: A = P(1 + rt).
     #[must_use]
     pub fn simple_interest(principal: f64, rate: f64, years: f64) -> f64 {
-        principal * (1.0 + rate / 100.0 * years)
+        principal * (rate / 100.0).mul_add(years, 1.0)
     }
 
     /// Calculate effective annual rate from nominal rate.
     #[must_use]
     pub fn effective_annual_rate(nominal_rate: f64, compounding_periods: u32) -> f64 {
-        let n = compounding_periods as f64;
+        let n = f64::from(compounding_periods);
         ((1.0 + nominal_rate / 100.0 / n).powf(n) - 1.0) * 100.0
     }
 
     /// Calculate nominal rate from effective annual rate.
     #[must_use]
     pub fn nominal_rate(effective_rate: f64, compounding_periods: u32) -> f64 {
-        let n = compounding_periods as f64;
+        let n = f64::from(compounding_periods);
         ((1.0 + effective_rate / 100.0).powf(1.0 / n) - 1.0) * n * 100.0
     }
 
@@ -115,13 +115,16 @@ impl Percentage {
     pub fn successive_changes(initial: f64, changes: &[f64]) -> f64 {
         let mut result = initial;
         for &change in changes {
-            result = result * (1.0 + change / 100.0);
+            result *= 1.0 + change / 100.0;
         }
         result
     }
 
     /// Calculate reverse percentage (find original before percentage change).
     pub fn reverse_percentage(final_value: f64, percent_change: f64) -> MathResult<f64> {
+        // Exact equality is required here: only exactly -100.0 makes the
+        // divisor below zero, which would be a division-by-zero error.
+        #[allow(clippy::float_cmp)]
         if percent_change == -100.0 {
             return Err(MathError::InvalidArgument("cannot reverse -100% change"));
         }
@@ -153,7 +156,7 @@ impl ProfitLoss {
         revenue - cost - expenses
     }
 
-    /// Calculate net profit margin: net_profit / revenue.
+    /// Calculate net profit margin: `net_profit` / revenue.
     pub fn net_profit_margin(revenue: f64, net_profit: f64) -> MathResult<f64> {
         if revenue == 0.0 {
             return Err(MathError::DivisionByZero);
@@ -216,7 +219,7 @@ mod tests {
 
     #[test]
     fn test_profit_loss() {
-        assert_eq!(ProfitLoss::gross_profit(1000.0, 600.0), 400.0);
+        assert!((ProfitLoss::gross_profit(1000.0, 600.0) - 400.0).abs() < 1e-10);
         assert!((ProfitLoss::gross_profit_margin(1000.0, 600.0).unwrap() - 40.0).abs() < 1e-10);
     }
 

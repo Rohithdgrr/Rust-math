@@ -179,16 +179,16 @@ impl StreamingPlot {
 
     /// Get the current data as a vector.
     pub fn data(&self) -> Vec<DataPoint> {
-        self.data.iter().cloned().collect()
+        self.data.iter().copied().collect()
     }
 
     /// Get the visible window of data.
     pub fn visible_data(&self) -> Vec<DataPoint> {
         if self.config.scroll {
             let window_start = self.data.len().saturating_sub(self.config.window_size);
-            self.data.iter().skip(window_start).cloned().collect()
+            self.data.iter().skip(window_start).copied().collect()
         } else {
-            self.data.iter().cloned().collect()
+            self.data.iter().copied().collect()
         }
     }
 
@@ -520,7 +520,7 @@ mod tests {
         let mut plot = StreamingPlot::new(config);
 
         for i in 0..10 {
-            plot.push(i as f64);
+            plot.push(f64::from(i));
         }
 
         assert_eq!(plot.len(), 5);

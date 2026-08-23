@@ -64,9 +64,9 @@ impl MatrixPower {
         let mut powered = Matrix::zeros(n, n);
         for i in 0..n {
             let val = if vals[i] >= 0.0 {
-                vals[i].powf(a as f64 / b as f64)
+                vals[i].powf(f64::from(a) / f64::from(b))
             } else {
-                -((-vals[i]).powf(a as f64 / b as f64))
+                -((-vals[i]).powf(f64::from(a) / f64::from(b)))
             };
             powered.set(i, i, val);
         }

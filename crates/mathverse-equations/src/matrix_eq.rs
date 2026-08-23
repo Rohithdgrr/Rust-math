@@ -28,6 +28,8 @@ pub fn solve_gauss(a: &[Vec<f64>], b: &[f64]) -> Option<Vec<f64>> {
     Some(x)
 }
 
+/// Computes the inverse of a square matrix via Gauss-Jordan elimination.
+/// Returns `None` if the matrix is not square or is singular.
 pub fn matrix_inverse(a: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
     let n = a.len();
     if n == 0 || a.iter().any(|r| r.len() != n) { return None; }
@@ -55,6 +57,8 @@ pub fn matrix_inverse(a: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
     Some((0..n).map(|i| aug[i][n..2*n].to_vec()).collect())
 }
 
+/// Computes the determinant of a square matrix via LU-style elimination
+/// with partial pivoting. Returns `None` if the matrix is not square.
 pub fn determinant(a: &[Vec<f64>]) -> Option<f64> {
     let n = a.len();
     if n == 0 || a.iter().any(|r| r.len() != n) { return None; }
@@ -77,10 +81,11 @@ pub fn determinant(a: &[Vec<f64>]) -> Option<f64> {
             for c in col..n { m[r][c] -= f * m[col][c]; }
         }
     }
-    if swaps % 2 != 0 { det = -det; }
+    if !swaps.is_multiple_of(2) { det = -det; }
     Some(det)
 }
 
+/// Computes the rank of a matrix via row reduction.
 pub fn rank(a: &[Vec<f64>]) -> usize {
     let mut m: Vec<Vec<f64>> = a.to_vec();
     if m.is_empty() { return 0; }

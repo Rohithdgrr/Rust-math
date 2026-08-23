@@ -10,9 +10,9 @@ fn main() -> mathverse_plot::PlotResult<()> {
     let mut y_data = Vec::with_capacity(n);
     let mut state: u64 = 42;
     for _ in 0..n {
-        state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
+        state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
         let u1 = (state >> 11) as f64 / (1u64 << 53) as f64;
-        state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
+        state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
         let u2 = (state >> 11) as f64 / (1u64 << 53) as f64;
         // Box-Muller transform
         let z0 = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();

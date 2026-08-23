@@ -23,16 +23,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let phase = 2.0 * std::f64::consts::PI * i as f64 / total as f64;
             let points: Vec<DataPoint> = (0..=100)
                 .map(|j| {
-                    let x = j as f64 * 0.1;
+                    let x = f64::from(j) * 0.1;
                     let y = (x + phase).sin();
                     DataPoint::new(x, y)
                 })
                 .collect();
 
-            let series = DataSeries::new(format!("frame_{}", i), points);
+            let series = DataSeries::new(format!("frame_{i}"), points);
             render_frame(PlotConfig::new(), series)
         },
-        config.clone(),
+        &config,
     )?;
 
     println!("Generated {} frames", frames.len());

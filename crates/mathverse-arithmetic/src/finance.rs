@@ -16,9 +16,9 @@ pub fn present_value(future_value: f64, rate: f64, periods: f64) -> f64 {
 #[must_use]
 pub fn annuity_future_value(payment: f64, rate: f64, periods: u32) -> f64 {
     if rate.abs() < f64::EPSILON {
-        payment * periods as f64
+        payment * f64::from(periods)
     } else {
-        payment * ((1.0 + rate).powf(periods as f64) - 1.0) / rate
+        payment * ((1.0 + rate).powf(f64::from(periods)) - 1.0) / rate
     }
 }
 
@@ -26,9 +26,9 @@ pub fn annuity_future_value(payment: f64, rate: f64, periods: u32) -> f64 {
 #[must_use]
 pub fn annuity_present_value(payment: f64, rate: f64, periods: u32) -> f64 {
     if rate.abs() < f64::EPSILON {
-        payment * periods as f64
+        payment * f64::from(periods)
     } else {
-        payment * (1.0 - (1.0 + rate).powf(-(periods as f64))) / rate
+        payment * (1.0 - (1.0 + rate).powf(-f64::from(periods))) / rate
     }
 }
 
@@ -47,7 +47,7 @@ pub fn growing_perpetuity(payment: f64, rate: f64, growth: f64) -> f64 {
 /// Number of periods to reach a target future value.
 #[must_use]
 pub fn periods_to_reach(present_value: f64, future_value: f64, rate: f64) -> f64 {
-    (future_value / present_value).ln() / (1.0 + rate).ln()
+    (future_value / present_value).ln() / rate.ln_1p()
 }
 
 /// Rate per period needed to reach a target future value.
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn fv_pv() {
-        assert!((future_value(1000.0, 0.05, 10.0) - 1628.8946267774414).abs() < EPS);
+        assert!((future_value(1000.0, 0.05, 10.0) - 1_628.894_626_777_441_4).abs() < EPS);
         let fv = future_value(1000.0, 0.05, 10.0);
         assert!((present_value(fv, 0.05, 10.0) - 1000.0).abs() < EPS);
     }
@@ -90,9 +90,9 @@ mod tests {
     #[test]
     fn annuity() {
         let fv = annuity_future_value(100.0, 0.05, 10);
-        assert!((fv - 1257.7892535548828).abs() < EPS);
+        assert!((fv - 1_257.789_253_554_882_8).abs() < EPS);
         let pv = annuity_present_value(100.0, 0.05, 10);
-        assert!((pv - 772.1734929184781).abs() < EPS);
+        assert!((pv - 772.173_492_918_478_1).abs() < EPS);
     }
 
     #[test]
@@ -104,12 +104,12 @@ mod tests {
     #[test]
     fn doubling_time() {
         let t = periods_to_reach(1000.0, 2000.0, 0.07);
-        assert!((t - 10.2447683510587).abs() < EPS);
+        assert!((t - 10.244_768_351_058_7).abs() < EPS);
     }
 
     #[test]
     fn continuous() {
-        assert!((continuous_compound(1000.0, 0.05, 10.0) - 1648.7212707001282).abs() < EPS);
+        assert!((continuous_compound(1000.0, 0.05, 10.0) - 1_648.721_270_700_128_2).abs() < EPS);
     }
 
     #[test]

@@ -11,6 +11,7 @@ pub fn fixed_point(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -
     Some(x)
 }
 
+/// Iterates a map `n` times, returning `x0` followed by each iterate.
 pub fn iterate_map(f: impl Fn(f64) -> f64, x0: f64, n: usize) -> Vec<f64> {
     let mut result = vec![x0];
     let mut x = x0;
@@ -21,6 +22,7 @@ pub fn iterate_map(f: impl Fn(f64) -> f64, x0: f64, n: usize) -> Vec<f64> {
     result
 }
 
+/// Produces cobweb-plot points `(x, g(x))` and `(g(x), g(x))` for `n` iterations.
 pub fn cobweb(g: impl Fn(f64) -> f64, x0: f64, n: usize) -> Vec<(f64, f64)> {
     let mut result = Vec::new();
     let mut x = x0;
@@ -33,6 +35,8 @@ pub fn cobweb(g: impl Fn(f64) -> f64, x0: f64, n: usize) -> Vec<(f64, f64)> {
     result
 }
 
+/// Estimates the Lyapunov exponent of a 1-D map over `n` iterations using
+/// the derivative `df`. Returns `-∞` if the derivative vanishes.
 pub fn lyapunov_exponent(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f64, n: usize) -> f64 {
     let mut x = x0;
     let mut sum = 0.0;
@@ -45,6 +49,8 @@ pub fn lyapunov_exponent(f: impl Fn(f64) -> f64, df: impl Fn(f64) -> f64, x0: f6
     sum / n as f64
 }
 
+/// Iterates until successive iterates differ by less than `tol`.
+/// Returns `None` if no fixed point is found within `max_iter` iterations.
 pub fn iterate_to_fixed_point(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_iter: usize) -> Option<f64> {
     let mut x = x0;
     for _ in 0..max_iter {
@@ -55,6 +61,7 @@ pub fn iterate_to_fixed_point(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_ite
     None
 }
 
+/// Computes the orbit of `x0` under `g`: `x0` followed by `n` iterates.
 pub fn orbit(g: impl Fn(f64) -> f64, x0: f64, n: usize) -> Vec<f64> {
     let mut result = Vec::with_capacity(n + 1);
     let mut x = x0;
@@ -66,6 +73,8 @@ pub fn orbit(g: impl Fn(f64) -> f64, x0: f64, n: usize) -> Vec<f64> {
     result
 }
 
+/// Detects the period of a periodic orbit: the smallest `p ≤ max_period`
+/// with `g^p(x) ≈ x` after a transient. Returns `None` if no period is found.
 pub fn period(g: impl Fn(f64) -> f64, x0: f64, tol: f64, max_period: usize) -> Option<usize> {
     let mut x = x0;
     for _ in 0..100 { x = g(x); } // transient
@@ -83,7 +92,7 @@ mod tests {
 
     #[test]
     fn fixed_pt() {
-        let x = fixed_point(|x| (x + 2.0 / x) / 2.0, 1.0, 1e-15, 100).unwrap();
+        let x = fixed_point(|x| f64::midpoint(x, 2.0 / x), 1.0, 1e-15, 100).unwrap();
         assert!((x - 2.0_f64.sqrt()).abs() < 1e-12);
     }
 

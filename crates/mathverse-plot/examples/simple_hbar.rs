@@ -6,12 +6,12 @@ use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let bars = vec![
-        HBar::new("Tokyo", 13960000.0, Color::rgb(255, 99, 71)),
-        HBar::new("Delhi", 11030000.0, Color::rgb(30, 144, 255)),
-        HBar::new("Shanghai", 24870000.0, Color::rgb(50, 205, 50)),
-        HBar::new("São Paulo", 12330000.0, Color::rgb(255, 165, 0)),
-        HBar::new("Mumbai", 12440000.0, Color::rgb(148, 0, 211)),
-        HBar::new("Cairo", 9540000.0, Color::rgb(220, 20, 60)),
+        HBar::new("Tokyo", 13_960_000.0, Color::rgb(255, 99, 71)),
+        HBar::new("Delhi", 11_030_000.0, Color::rgb(30, 144, 255)),
+        HBar::new("Shanghai", 24_870_000.0, Color::rgb(50, 205, 50)),
+        HBar::new("São Paulo", 12_330_000.0, Color::rgb(255, 165, 0)),
+        HBar::new("Mumbai", 12_440_000.0, Color::rgb(148, 0, 211)),
+        HBar::new("Cairo", 9_540_000.0, Color::rgb(220, 20, 60)),
     ];
 
     let config = HBarConfig::new()

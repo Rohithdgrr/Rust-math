@@ -1,85 +1,90 @@
+//! Criterion benchmarks for `mathverse-stats`.
+#![allow(missing_docs)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn bench_stats_mean(c: &mut Criterion) {
-    let data: Vec<f64> = (0..100_000).map(|i| i as f64).collect();
+    let data: Vec<f64> = (0..100_000).map(f64::from).collect();
 
     c.bench_function("stats_mean_100k", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::mean(&data)))
+        bencher.iter(|| black_box(mathverse_statistics::mean(&data)));
     });
 }
 
 fn bench_stats_variance(c: &mut Criterion) {
-    let data: Vec<f64> = (0..100_000).map(|i| i as f64).collect();
+    let data: Vec<f64> = (0..100_000).map(f64::from).collect();
 
     c.bench_function("stats_variance_100k", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::variance_sample(&data)))
+        bencher.iter(|| black_box(mathverse_statistics::variance_sample(&data)));
     });
 }
 
 fn bench_stats_median(c: &mut Criterion) {
-    let mut data: Vec<f64> = (0..10_000).map(|i| i as f64).collect();
+    let mut data: Vec<f64> = (0..10_000).map(f64::from).collect();
     data.reverse(); // unsorted
 
     c.bench_function("stats_median_10k", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::median(&mut data)))
+        bencher.iter(|| black_box(mathverse_statistics::median(&data)));
     });
 }
 
 fn bench_stats_covariance_matrix(c: &mut Criterion) {
     let n = 500;
-    let data: Vec<Vec<f64>> = (0..n)
-        .map(|i| vec![i as f64, (i * 2) as f64, (i * 3) as f64])
+    let rows: Vec<Vec<f64>> = (0..n)
+        .map(|i| vec![f64::from(i), f64::from(i * 2), f64::from(i * 3)])
         .collect();
+    let data: Vec<&[f64]> = rows.iter().map(std::vec::Vec::as_slice).collect();
 
     c.bench_function("stats_cov_matrix_500x3", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::covariance_matrix(&data)))
+        bencher.iter(|| black_box(mathverse_statistics::covariance_matrix(&data)));
     });
 }
 
 fn bench_stats_correlation_matrix(c: &mut Criterion) {
     let n = 500;
-    let data: Vec<Vec<f64>> = (0..n)
-        .map(|i| vec![i as f64, (i * 2) as f64, (i * 3) as f64])
+    let rows: Vec<Vec<f64>> = (0..n)
+        .map(|i| vec![f64::from(i), f64::from(i * 2), f64::from(i * 3)])
         .collect();
+    let data: Vec<&[f64]> = rows.iter().map(std::vec::Vec::as_slice).collect();
 
     c.bench_function("stats_corr_matrix_500x3", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::correlation_matrix(&data)))
+        bencher.iter(|| black_box(mathverse_statistics::correlation_matrix(&data)));
     });
 }
 
 fn bench_stats_pca(c: &mut Criterion) {
     let n = 500;
-    let data: Vec<Vec<f64>> = (0..n)
-        .map(|i| vec![i as f64, (i * 2) as f64, (i * 3) as f64])
+    let rows: Vec<Vec<f64>> = (0..n)
+        .map(|i| vec![f64::from(i), f64::from(i * 2), f64::from(i * 3)])
         .collect();
+    let data: Vec<&[f64]> = rows.iter().map(std::vec::Vec::as_slice).collect();
 
     c.bench_function("stats_pca_500x3", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::pca(&data, 2)))
+        bencher.iter(|| black_box(mathverse_statistics::pca(&data)));
     });
 }
 
 fn bench_stats_skewness(c: &mut Criterion) {
-    let data: Vec<f64> = (0..100_000).map(|i| i as f64).collect();
+    let data: Vec<f64> = (0..100_000).map(f64::from).collect();
 
     c.bench_function("stats_skewness_100k", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::skewness(&data)))
+        bencher.iter(|| black_box(mathverse_statistics::skewness(&data)));
     });
 }
 
 fn bench_stats_kurtosis(c: &mut Criterion) {
-    let data: Vec<f64> = (0..100_000).map(|i| i as f64).collect();
+    let data: Vec<f64> = (0..100_000).map(f64::from).collect();
 
     c.bench_function("stats_kurtosis_100k", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::kurtosis(&data)))
+        bencher.iter(|| black_box(mathverse_statistics::kurtosis(&data)));
     });
 }
 
 fn bench_stats_linear_regression(c: &mut Criterion) {
-    let x: Vec<f64> = (0..10_000).map(|i| i as f64).collect();
-    let y: Vec<f64> = (0..10_000).map(|i| i as f64 * 2.0 + 1.0).collect();
+    let x: Vec<f64> = (0..10_000).map(f64::from).collect();
+    let y: Vec<f64> = (0..10_000).map(|i| f64::from(i) * 2.0 + 1.0).collect();
 
     c.bench_function("stats_linear_regression_10k", |bencher| {
-        bencher.iter(|| black_box(mathverse_statistics::linear_regression(&x, &y)))
+        bencher.iter(|| black_box(mathverse_statistics::linear_regression(&x, &y)));
     });
 }
 

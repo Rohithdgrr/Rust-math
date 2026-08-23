@@ -35,7 +35,7 @@ pub fn imread(path: impl AsRef<Path>) -> Result<Image, String> {
     let data = gray
         .as_raw()
         .iter()
-        .map(|&p| p as f64 / 255.0)
+        .map(|&p| f64::from(p) / 255.0)
         .collect::<Vec<_>>();
     Ok(Image::from_data(w, h, data))
 }
@@ -56,7 +56,7 @@ pub fn imread_color(path: impl AsRef<Path>) -> Result<Image, String> {
     let data = rgb
         .as_raw()
         .iter()
-        .map(|&p| p as f64 / 255.0)
+        .map(|&p| f64::from(p) / 255.0)
         .collect::<Vec<_>>();
     Ok(Image::from_data(w * 3, h, data))
 }
@@ -92,7 +92,7 @@ pub fn imwrite(path: impl AsRef<Path>, img: &Image) -> Result<(), String> {
 /// Returns `Err` if the file cannot be created or encoded, or if the width
 /// is not divisible by 3.
 pub fn imwrite_color(path: impl AsRef<Path>, img: &Image) -> Result<(), String> {
-    if img.w % 3 != 0 {
+    if !img.w.is_multiple_of(3) {
         return Err(format!(
             "imwrite_color: width {} is not a multiple of 3 (expected interleaved RGB)",
             img.w
@@ -137,7 +137,7 @@ pub fn resize(img: &Image, new_w: usize, new_h: usize) -> Result<Image, String> 
     let data = scaled
         .as_raw()
         .iter()
-        .map(|&p| p as f64 / 255.0)
+        .map(|&p| f64::from(p) / 255.0)
         .collect::<Vec<_>>();
     Ok(Image::from_data(new_w, new_h, data))
 }

@@ -112,7 +112,7 @@ fn render_math(s: &str) -> String {
                         }
                         "sqrt" => {
                             let body = take_group(&chars, &mut i);
-                            out.push_str("\u{221A}");
+                            out.push('\u{221A}');
                             out.push_str(&render_math(&body));
                         }
                         "text" => {
@@ -131,7 +131,7 @@ fn render_math(s: &str) -> String {
                                 out.push_str(g);
                             } else {
                                 // Unknown command: drop the backslash, keep text.
-                                out.push_str(&cmd);
+                                out.push_str(cmd);
                             }
                         }
                     }
@@ -215,17 +215,14 @@ pub fn render(text: &str) -> String {
     while let Some(idx) = rest.find('$') {
         out.push_str(&esc(&rest[..idx]));
         rest = &rest[idx + 1..];
-        match rest.find('$') {
-            Some(end) => {
-                out.push_str(&render_math(&rest[..end]));
-                rest = &rest[end + 1..];
-            }
-            None => {
-                // Unbalanced: treat the rest as literal.
-                out.push('$');
-                out.push_str(&esc(rest));
-                rest = "";
-            }
+        if let Some(end) = rest.find('$') {
+            out.push_str(&render_math(&rest[..end]));
+            rest = &rest[end + 1..];
+        } else {
+            // Unbalanced: treat the rest as literal.
+            out.push('$');
+            out.push_str(&esc(rest));
+            rest = "";
         }
     }
     out.push_str(&esc(rest));
@@ -262,8 +259,8 @@ mod tests {
     fn fraction_and_sqrt() {
         let out = render(r"$\frac{a}{b} + \sqrt{x}$");
         assert!(out.contains("\u{221A}"));
-        assert!(out.contains("a"));
-        assert!(out.contains("b"));
+        assert!(out.contains('a'));
+        assert!(out.contains('b'));
     }
 
     #[test]

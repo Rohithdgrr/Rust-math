@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_par_sum_slice() {
-        let a: Vec<f64> = (0..1000).map(|i| i as f64).collect();
+        let a: Vec<f64> = (0..1000).map(f64::from).collect();
         assert!((par_sum_slice(&a) - 499_500.0).abs() < 1e-6);
     }
 

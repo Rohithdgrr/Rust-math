@@ -11,8 +11,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|r| {
             (0..cols)
                 .map(|c| {
-                    let x = c as f64 / cols as f64 * 4.0 * std::f64::consts::PI;
-                    let y = r as f64 / rows as f64 * 2.0 * std::f64::consts::PI;
+                    let x = f64::from(c) / f64::from(cols) * 4.0 * std::f64::consts::PI;
+                    let y = f64::from(r) / f64::from(rows) * 2.0 * std::f64::consts::PI;
                     x.sin() * y.cos()
                 })
                 .collect()
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     plot.add_heatmap("sin*cos", grid, viridis)?;
 
-    PlotSaver::new(&plot.generate()).save_png("heatmap.png")?;
+    PlotSaver::new(plot.generate()).save_png("heatmap.png")?;
     println!("wrote heatmap.png");
     Ok(())
 }

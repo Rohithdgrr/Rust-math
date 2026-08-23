@@ -29,7 +29,9 @@ pub const JACOBI_OFF_DIAGONAL_TOL: f64 = 1e-14;
 /// LU decomposition with partial pivoting: `P A = L U` (unit-diagonal L).
 #[derive(Debug, Clone)]
 pub struct Lu {
+    /// Unit lower triangular factor with the multipliers from elimination.
     pub l: Matrix,
+    /// Upper triangular factor.
     pub u: Matrix,
     /// Row permutation: row `i` of `P A` is row `pivots[i]` of `A`.
     pub pivots: Vec<usize>,
@@ -68,7 +70,7 @@ impl Matrix {
                     p = i;
                 }
             }
-            if !(max > tol) {
+            if max.partial_cmp(&tol) != Some(core::cmp::Ordering::Greater) {
                 // Covers exact zeros and numerically-dead pivots alike.
                 return Err(MathError::Singular);
             }
@@ -92,13 +94,13 @@ impl Matrix {
         for i in 0..n {
             for j in 0..n {
                 let v = a[i * n + j];
-                if i > j {
-                    l.set(i, j, v);
-                } else if i == j {
-                    l.set(i, j, 1.0);
-                    u.set(i, j, v);
-                } else {
-                    u.set(i, j, v);
+                match i.cmp(&j) {
+                    core::cmp::Ordering::Greater => l.set(i, j, v),
+                    core::cmp::Ordering::Equal => {
+                        l.set(i, j, 1.0);
+                        u.set(i, j, v);
+                    }
+                    core::cmp::Ordering::Less => u.set(i, j, v),
                 }
             }
         }
@@ -138,11 +140,19 @@ impl Matrix {
 /// `Q` is `m×m` orthogonal; `R` is `m×n` upper triangular.
 #[derive(Debug, Clone)]
 pub struct Qr {
+    /// Orthogonal factor `Q` (`m×m`).
     pub q: Matrix,
+    /// Upper triangular factor `R` (`m×n`).
     pub r: Matrix,
 }
 
 impl Matrix {
+    /// QR decomposition via Householder reflectors.
+    ///
+    /// # Errors
+    ///
+    /// Never fails for a well-formed matrix; the error type is retained for
+    /// interface consistency.
     pub fn qr(&self) -> MathResult<Qr> {
         let (m, n) = (self.rows, self.cols);
         let mut r = self.clone();
@@ -192,8 +202,12 @@ impl Matrix {
 /// values), `S` the descending singular values, `Vᵀ` is `n×n` orthogonal.
 #[derive(Debug, Clone)]
 pub struct Svd {
+    /// Left singular vectors as columns (`m×n`, orthonormal columns; zero
+    /// columns where the corresponding singular value is zero).
     pub u: Matrix,
+    /// Singular values in descending order (length `n`).
     pub s: Vec<f64>,
+    /// Right singular vectors as rows (`n×n` orthogonal).
     pub vt: Matrix,
 }
 

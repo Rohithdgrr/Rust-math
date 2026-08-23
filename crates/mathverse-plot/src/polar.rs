@@ -81,8 +81,8 @@ impl PolarData {
 
 /// Render a polar chart to SVG.
 pub fn render_polar_svg(data: &PolarData, width: u32, height: u32) -> String {
-    let w = width as f64;
-    let h = height as f64;
+    let w = f64::from(width);
+    let h = f64::from(height);
     let cx = w / 2.0;
     let cy = h / 2.0;
     let max_r = data.max_r();
@@ -130,7 +130,7 @@ pub fn render_polar_svg(data: &PolarData, width: u32, height: u32) -> String {
 
     // Radial lines (theta grid) every 30°
     for deg in (0..360).step_by(30) {
-        let theta = deg as f64 * std::f64::consts::PI / 180.0;
+        let theta = f64::from(deg) * std::f64::consts::PI / 180.0;
         let x2 = cx + plot_r * mathverse_trigonometry::cos(theta);
         let y2 = cy - plot_r * mathverse_trigonometry::sin(theta);
         svg.push_str(&format!(
@@ -150,10 +150,10 @@ pub fn render_polar_svg(data: &PolarData, width: u32, height: u32) -> String {
     let axis_left = cx - plot_r;
     let axis_right = cx + plot_r;
     svg.push_str(&format!(
-        r##"  <line x1="{cx}" y1="{axis_top:.2}" x2="{cx}" y2="{axis_bot:.2}" stroke="black" stroke-width="1"/>"##
+        r#"  <line x1="{cx}" y1="{axis_top:.2}" x2="{cx}" y2="{axis_bot:.2}" stroke="black" stroke-width="1"/>"#
     ));
     svg.push_str(&format!(
-        r##"  <line x1="{axis_left:.2}" y1="{cy}" x2="{axis_right:.2}" y2="{cy}" stroke="black" stroke-width="1"/>"##
+        r#"  <line x1="{axis_left:.2}" y1="{cy}" x2="{axis_right:.2}" y2="{cy}" stroke="black" stroke-width="1"/>"#
     ));
 
     // Data series
@@ -252,7 +252,7 @@ mod tests {
         let svg = render_polar_svg(&data, 400, 400);
         assert!(svg.contains("<svg"));
         assert!(svg.contains("Polar Test"));
-        assert!(svg.contains("M")); // line path exists
+        assert!(svg.contains('M')); // line path exists
     }
 
     #[test]

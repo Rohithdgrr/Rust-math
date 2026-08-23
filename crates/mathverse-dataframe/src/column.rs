@@ -1,4 +1,4 @@
-use alloc::string::{String, ToString};
+﻿use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt;
 
@@ -24,10 +24,31 @@ pub enum AnyColumn {
     Utf8(Series<String>),
     /// Date column (days since Unix epoch).
     Date(Series<i64>),
-    /// DateTime column (microseconds since Unix epoch).
+    /// `DateTime` column (microseconds since Unix epoch).
     DateTime(Series<i64>),
     /// Duration column (microseconds).
     Duration(Series<i64>),
+}
+
+/// Gathers the given positions out of a series, preserving order.
+fn gather_positions<T: Clone>(s: &Series<T>, positions: &[usize]) -> DataFrameResult<Vec<T>> {
+    positions
+        .iter()
+        .map(|&p| {
+            s.data()
+                .get(p)
+                .cloned()
+                .ok_or(DataFrameError::IndexOutOfBounds {
+                    index: p,
+                    length: s.len(),
+                })
+        })
+        .collect()
+}
+
+/// Builds a validity bitmap from the null flags of a series.
+fn validity_of<T>(s: &Series<T>) -> NullBitmap {
+    NullBitmap::from_bools(&(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>())
 }
 
 impl AnyColumn {
@@ -37,13 +58,10 @@ impl AnyColumn {
         match self {
             Self::Float64(s) => s.name(),
             Self::Float32(s) => s.name(),
-            Self::Int64(s) => s.name(),
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => s.name(),
             Self::Int32(s) => s.name(),
             Self::Bool(s) => s.name(),
             Self::Utf8(s) => s.name(),
-            Self::Date(s) => s.name(),
-            Self::DateTime(s) => s.name(),
-            Self::Duration(s) => s.name(),
         }
     }
 
@@ -53,13 +71,10 @@ impl AnyColumn {
         match self {
             Self::Float64(s) => s.len(),
             Self::Float32(s) => s.len(),
-            Self::Int64(s) => s.len(),
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => s.len(),
             Self::Int32(s) => s.len(),
             Self::Bool(s) => s.len(),
             Self::Utf8(s) => s.len(),
-            Self::Date(s) => s.len(),
-            Self::DateTime(s) => s.len(),
-            Self::Duration(s) => s.len(),
         }
     }
 
@@ -91,13 +106,12 @@ impl AnyColumn {
         match self {
             Self::Float64(s) => s.is_null(pos),
             Self::Float32(s) => s.is_null(pos),
-            Self::Int64(s) => s.is_null(pos),
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
+                s.is_null(pos)
+            }
             Self::Int32(s) => s.is_null(pos),
             Self::Bool(s) => s.is_null(pos),
             Self::Utf8(s) => s.is_null(pos),
-            Self::Date(s) => s.is_null(pos),
-            Self::DateTime(s) => s.is_null(pos),
-            Self::Duration(s) => s.is_null(pos),
         }
     }
 
@@ -107,13 +121,12 @@ impl AnyColumn {
         match self {
             Self::Float64(s) => s.null_count(),
             Self::Float32(s) => s.null_count(),
-            Self::Int64(s) => s.null_count(),
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
+                s.null_count()
+            }
             Self::Int32(s) => s.null_count(),
             Self::Bool(s) => s.null_count(),
             Self::Utf8(s) => s.null_count(),
-            Self::Date(s) => s.null_count(),
-            Self::DateTime(s) => s.null_count(),
-            Self::Duration(s) => s.null_count(),
         }
     }
 
@@ -126,13 +139,12 @@ impl AnyColumn {
         match self {
             Self::Float64(s) => s.set_null(pos),
             Self::Float32(s) => s.set_null(pos),
-            Self::Int64(s) => s.set_null(pos),
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
+                s.set_null(pos);
+            }
             Self::Int32(s) => s.set_null(pos),
             Self::Bool(s) => s.set_null(pos),
             Self::Utf8(s) => s.set_null(pos),
-            Self::Date(s) => s.set_null(pos),
-            Self::DateTime(s) => s.set_null(pos),
-            Self::Duration(s) => s.set_null(pos),
         }
     }
 
@@ -141,13 +153,12 @@ impl AnyColumn {
         match self {
             Self::Float64(s) => s.rename_mut(name),
             Self::Float32(s) => s.rename_mut(name),
-            Self::Int64(s) => s.rename_mut(name),
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
+                s.rename_mut(name);
+            }
             Self::Int32(s) => s.rename_mut(name),
             Self::Bool(s) => s.rename_mut(name),
             Self::Utf8(s) => s.rename_mut(name),
-            Self::Date(s) => s.rename_mut(name),
-            Self::DateTime(s) => s.rename_mut(name),
-            Self::Duration(s) => s.rename_mut(name),
         }
     }
 
@@ -160,7 +171,6 @@ impl AnyColumn {
     }
 
     /// Returns a reference to the f64 series, or an error if the type doesn't match.
-    #[must_use]
     pub fn as_f64(&self) -> DataFrameResult<&Series<f64>> {
         match self {
             Self::Float64(s) => Ok(s),
@@ -172,7 +182,6 @@ impl AnyColumn {
     }
 
     /// Returns a reference to the i64 series, or an error if the type doesn't match.
-    #[must_use]
     pub fn as_i64(&self) -> DataFrameResult<&Series<i64>> {
         match self {
             Self::Int64(s) => Ok(s),
@@ -184,7 +193,6 @@ impl AnyColumn {
     }
 
     /// Returns a reference to the bool series, or an error if the type doesn't match.
-    #[must_use]
     pub fn as_bool(&self) -> DataFrameResult<&Series<bool>> {
         match self {
             Self::Bool(s) => Ok(s),
@@ -196,7 +204,6 @@ impl AnyColumn {
     }
 
     /// Returns a reference to the string series, or an error if the type doesn't match.
-    #[must_use]
     pub fn as_utf8(&self) -> DataFrameResult<&Series<String>> {
         match self {
             Self::Utf8(s) => Ok(s),
@@ -242,13 +249,10 @@ impl AnyColumn {
         match self {
             Self::Float64(s) => s,
             Self::Float32(s) => s,
-            Self::Int64(s) => s,
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => s,
             Self::Int32(s) => s,
             Self::Bool(s) => s,
             Self::Utf8(s) => s,
-            Self::Date(s) => s,
-            Self::DateTime(s) => s,
-            Self::Duration(s) => s,
         }
     }
 
@@ -256,7 +260,6 @@ impl AnyColumn {
     ///
     /// Integer types are cast to f64. Bool is cast to 0.0/1.0. Utf8 is not convertible.
     /// Null positions are preserved in the output series.
-    #[must_use]
     pub fn to_f64(&self) -> DataFrameResult<Series<f64>> {
         let name = self.name().to_string();
         let data = match self {
@@ -285,7 +288,6 @@ impl AnyColumn {
 
     /// Selects rows by position, returning a new `AnyColumn` with the same
     /// validity (null) pattern as the source rows.
-    #[must_use]
     pub fn select_rows(&self, positions: &[usize]) -> DataFrameResult<Self> {
         if let Some(&p) = positions.iter().find(|&&p| p >= self.len()) {
             return Err(DataFrameError::IndexOutOfBounds {
@@ -293,263 +295,210 @@ impl AnyColumn {
                 length: self.len(),
             });
         }
-        let gather = |s: &Series<f64>| -> DataFrameResult<Vec<f64>> {
-            positions
-                .iter()
-                .map(|&p| {
-                    s.data()
-                        .get(p)
-                        .copied()
-                        .ok_or(DataFrameError::IndexOutOfBounds {
-                            index: p,
-                            length: s.len(),
-                        })
-                })
-                .collect()
-        };
         let nulls: Vec<bool> = positions.iter().map(|&p| self.is_null(p)).collect();
         let validity = NullBitmap::from_bools(&nulls);
         match self {
             Self::Float64(s) => Ok(Self::Float64(Series::with_validity(
                 s.name(),
-                gather(s)?,
+                gather_positions(s, positions)?,
                 validity,
             ))),
-            Self::Float32(s) => {
-                let data: DataFrameResult<Vec<f32>> = positions
-                    .iter()
-                    .map(|&p| {
-                        s.data()
-                            .get(p)
-                            .copied()
-                            .ok_or(DataFrameError::IndexOutOfBounds {
-                                index: p,
-                                length: s.len(),
-                            })
-                    })
-                    .collect();
-                Ok(Self::Float32(Series::with_validity(s.name(), data?, validity)))
-            }
-            Self::Int64(s) => {
-                let data: DataFrameResult<Vec<i64>> = positions
-                    .iter()
-                    .map(|&p| {
-                        s.data()
-                            .get(p)
-                            .copied()
-                            .ok_or(DataFrameError::IndexOutOfBounds {
-                                index: p,
-                                length: s.len(),
-                            })
-                    })
-                    .collect();
-                Ok(Self::Int64(Series::with_validity(s.name(), data?, validity)))
-            }
-            Self::Int32(s) => {
-                let data: DataFrameResult<Vec<i32>> = positions
-                    .iter()
-                    .map(|&p| {
-                        s.data()
-                            .get(p)
-                            .copied()
-                            .ok_or(DataFrameError::IndexOutOfBounds {
-                                index: p,
-                                length: s.len(),
-                            })
-                    })
-                    .collect();
-                Ok(Self::Int32(Series::with_validity(s.name(), data?, validity)))
-            }
-            Self::Bool(s) => {
-                let data: DataFrameResult<Vec<bool>> = positions
-                    .iter()
-                    .map(|&p| {
-                        s.data()
-                            .get(p)
-                            .copied()
-                            .ok_or(DataFrameError::IndexOutOfBounds {
-                                index: p,
-                                length: s.len(),
-                            })
-                    })
-                    .collect();
-                Ok(Self::Bool(Series::with_validity(s.name(), data?, validity)))
-            }
-            Self::Utf8(s) => {
-                let data: DataFrameResult<Vec<String>> = positions
-                    .iter()
-                    .map(|&p| {
-                        s.data()
-                            .get(p)
-                            .cloned()
-                            .ok_or(DataFrameError::IndexOutOfBounds {
-                                index: p,
-                                length: s.len(),
-                            })
-                    })
-                    .collect();
-                Ok(Self::Utf8(Series::with_validity(s.name(), data?, validity)))
-            }
+            Self::Float32(s) => Ok(Self::Float32(Series::with_validity(
+                s.name(),
+                gather_positions(s, positions)?,
+                validity,
+            ))),
+            Self::Int64(s) => Ok(Self::Int64(Series::with_validity(
+                s.name(),
+                gather_positions(s, positions)?,
+                validity,
+            ))),
+            Self::Int32(s) => Ok(Self::Int32(Series::with_validity(
+                s.name(),
+                gather_positions(s, positions)?,
+                validity,
+            ))),
+            Self::Bool(s) => Ok(Self::Bool(Series::with_validity(
+                s.name(),
+                gather_positions(s, positions)?,
+                validity,
+            ))),
+            Self::Utf8(s) => Ok(Self::Utf8(Series::with_validity(
+                s.name(),
+                gather_positions(s, positions)?,
+                validity,
+            ))),
+            // Note: preserved legacy behavior of returning `Date` for all
+            // date-time-like columns.
             Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
-                let data: DataFrameResult<Vec<i64>> = positions
-                    .iter()
-                    .map(|&p| {
-                        s.data()
-                            .get(p)
-                            .copied()
-                            .ok_or(DataFrameError::IndexOutOfBounds {
-                                index: p,
-                                length: s.len(),
-                            })
-                    })
-                    .collect();
-                Ok(Self::Date(Series::with_validity(s.name(), data?, validity)))
+                Ok(Self::Date(Series::with_validity(
+                    s.name(),
+                    gather_positions(s, positions)?,
+                    validity,
+                )))
             }
         }
     }
 
     /// Casts this column to a different dtype.
-    #[must_use]
     pub fn cast(&self, target: DType) -> DataFrameResult<Self> {
         match target {
             DType::Float64 => Ok(Self::Float64(self.to_f64()?)),
-            DType::Float32 => match self {
-                Self::Float32(s) => Ok(Self::Float32(s.clone())),
-                Self::Float64(s) => {
-                    let data: Vec<f32> = s.data().iter().map(|&v| v as f32).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Float32(Series::with_validity(s.name(), data, validity)))
-                }
-                Self::Int32(s) => {
-                    let data: Vec<f32> = s.data().iter().map(|&v| v as f32).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Float32(Series::with_validity(s.name(), data, validity)))
-                }
-                Self::Int64(s) => {
-                    let data: Vec<f32> = s.data().iter().map(|&v| v as f32).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Float32(Series::with_validity(s.name(), data, validity)))
-                }
-                Self::Bool(s) => {
-                    let data: Vec<f32> = s.data().iter().map(|&v| if v { 1.0 } else { 0.0 }).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Float32(Series::with_validity(s.name(), data, validity)))
-                }
-                other => Err(DataFrameError::InvalidOperation(alloc::format!(
-                    "cannot cast {} to f32",
-                    other.dtype()
-                ))),
-            },
-            DType::Int64 => match self {
-                Self::Int64(s) => Ok(Self::Int64(s.clone())),
-                Self::Float64(s) => {
-                    let data: Vec<i64> = s.data().iter().map(|&v| v as i64).collect();
-                    Ok(Self::Int64(Series::new(s.name(), data)))
-                }
-                Self::Float32(s) => {
-                    let data: Vec<i64> = s.data().iter().map(|&v| v as i64).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Int64(Series::with_validity(s.name(), data, validity)))
-                }
-                other => Err(DataFrameError::InvalidOperation(alloc::format!(
-                    "cannot cast {} to i64",
-                    other.dtype()
-                ))),
-            },
-            DType::Int32 => match self {
-                Self::Int32(s) => Ok(Self::Int32(s.clone())),
-                Self::Float64(s) => {
-                    let data: Vec<i32> = s.data().iter().map(|&v| v as i32).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Int32(Series::with_validity(s.name(), data, validity)))
-                }
-                Self::Float32(s) => {
-                    let data: Vec<i32> = s.data().iter().map(|&v| v as i32).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Int32(Series::with_validity(s.name(), data, validity)))
-                }
-                Self::Int64(s) => {
-                    let data: Vec<i32> = s.data().iter().map(|&v| v as i32).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Int32(Series::with_validity(s.name(), data, validity)))
-                }
-                other => Err(DataFrameError::InvalidOperation(alloc::format!(
-                    "cannot cast {} to i32",
-                    other.dtype()
-                ))),
-            },
-            DType::Bool => match self {
-                Self::Bool(s) => Ok(Self::Bool(s.clone())),
-                Self::Utf8(s) => {
-                    let data: Vec<bool> = s.data().iter().map(|v| !v.is_empty()).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Bool(Series::with_validity(s.name(), data, validity)))
-                }
-                other => Err(DataFrameError::InvalidOperation(alloc::format!(
-                    "cannot cast {} to bool",
-                    other.dtype()
-                ))),
-            },
-            DType::Utf8 => match self {
-                Self::Utf8(s) => Ok(Self::Utf8(s.clone())),
-                Self::Int64(s) => {
-                    let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
-                    Ok(Self::Utf8(Series::new(s.name(), data)))
-                }
-                Self::Float64(s) => {
-                    let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
-                    Ok(Self::Utf8(Series::new(s.name(), data)))
-                }
-                Self::Int32(s) => {
-                    let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Utf8(Series::with_validity(s.name(), data, validity)))
-                }
-                Self::Float32(s) => {
-                    let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Utf8(Series::with_validity(s.name(), data, validity)))
-                }
-                Self::Bool(s) => {
-                    let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Utf8(Series::with_validity(s.name(), data, validity)))
-                }
-                Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
-                    let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
-                    let validity = crate::null::NullBitmap::from_bools(
-                        &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
-                    );
-                    Ok(Self::Utf8(Series::with_validity(s.name(), data, validity)))
-                }
-            },
+            DType::Float32 => self.cast_f32(),
+            DType::Int64 => self.cast_i64(),
+            DType::Int32 => self.cast_i32(),
+            DType::Bool => self.cast_bool(),
+            DType::Utf8 => self.cast_utf8(),
             _ => Err(DataFrameError::InvalidOperation(alloc::format!(
                 "casting to {target} is not supported"
             ))),
+        }
+    }
+
+    fn cast_f32(&self) -> DataFrameResult<Self> {
+        match self {
+            Self::Float32(s) => Ok(Self::Float32(s.clone())),
+            Self::Float64(s) => {
+                let data: Vec<f32> = s.data().iter().map(|&v| v as f32).collect();
+                Ok(Self::Float32(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
+                let data: Vec<f32> = s.data().iter().map(|&v| v as f32).collect();
+                Ok(Self::Float32(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            Self::Int32(s) => {
+                let data: Vec<f32> = s.data().iter().map(|&v| v as f32).collect();
+                Ok(Self::Float32(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            Self::Bool(s) => {
+                let data: Vec<f32> = s.data().iter().map(|&v| if v { 1.0 } else { 0.0 }).collect();
+                Ok(Self::Float32(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            Self::Utf8(s) => Err(DataFrameError::InvalidOperation(alloc::format!(
+                "cannot cast {} to f32",
+                s.dtype()
+            ))),
+        }
+    }
+
+    fn cast_i64(&self) -> DataFrameResult<Self> {
+        match self {
+            Self::Int64(_) => Ok(self.clone()),
+            Self::Float64(s) => {
+                let data: Vec<i64> = s.data().iter().map(|&v| v as i64).collect();
+                Ok(Self::Int64(Series::new(s.name(), data)))
+            }
+            Self::Float32(s) => {
+                let data: Vec<i64> = s.data().iter().map(|&v| v as i64).collect();
+                Ok(Self::Int64(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            other => Err(DataFrameError::InvalidOperation(alloc::format!(
+                "cannot cast {} to i64",
+                other.dtype()
+            ))),
+        }
+    }
+
+    fn cast_i32(&self) -> DataFrameResult<Self> {
+        match self {
+            Self::Int32(_) => Ok(self.clone()),
+            Self::Float64(s) => {
+                let data: Vec<i32> = s.data().iter().map(|&v| v as i32).collect();
+                Ok(Self::Int32(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            Self::Float32(s) => {
+                let data: Vec<i32> = s.data().iter().map(|&v| v as i32).collect();
+                Ok(Self::Int32(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            Self::Int64(s) | Self::Date(s) | Self::DateTime(s) | Self::Duration(s) => {
+                let data: Vec<i32> = s.data().iter().map(|&v| v as i32).collect();
+                Ok(Self::Int32(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            other => Err(DataFrameError::InvalidOperation(alloc::format!(
+                "cannot cast {} to i32",
+                other.dtype()
+            ))),
+        }
+    }
+
+    fn cast_bool(&self) -> DataFrameResult<Self> {
+        match self {
+            Self::Bool(_) => Ok(self.clone()),
+            Self::Utf8(s) => {
+                let data: Vec<bool> = s.data().iter().map(|v| !v.is_empty()).collect();
+                Ok(Self::Bool(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }
+            other => Err(DataFrameError::InvalidOperation(alloc::format!(
+                "cannot cast {} to bool",
+                other.dtype()
+            ))),
+        }
+    }
+
+    fn cast_utf8(&self) -> DataFrameResult<Self> {
+        macro_rules! to_utf8 {
+            ($s:expr) => {{
+                let s = $s;
+                let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
+                Ok(Self::Utf8(Series::with_validity(
+                    s.name(),
+                    data,
+                    validity_of(s),
+                )))
+            }};
+        }
+        match self {
+            Self::Utf8(_) => Ok(self.clone()),
+            Self::Int64(s) => {
+                let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
+                Ok(Self::Utf8(Series::new(s.name(), data)))
+            }
+            Self::Float64(s) => {
+                let data: Vec<String> = s.data().iter().map(|v| alloc::format!("{v}")).collect();
+                Ok(Self::Utf8(Series::new(s.name(), data)))
+            }
+            Self::Int32(s) => to_utf8!(s),
+            Self::Float32(s) => to_utf8!(s),
+            Self::Bool(s) => to_utf8!(s),
+            Self::Date(s) => to_utf8!(s),
+            Self::DateTime(s) => to_utf8!(s),
+            Self::Duration(s) => to_utf8!(s),
         }
     }
 
@@ -564,7 +513,6 @@ impl AnyColumn {
     /// let result = col.str_contains("lo").unwrap();
     /// // result is a Bool column: [true, false, false]
     /// ```
-    #[must_use]
     pub fn str_contains(&self, pattern: &str) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -592,7 +540,6 @@ impl AnyColumn {
     /// let result = col.str_startswith("a").unwrap();
     /// // result: [true, false, true]
     /// ```
-    #[must_use]
     pub fn str_startswith(&self, prefix: &str) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -620,7 +567,6 @@ impl AnyColumn {
     /// let result = col.str_endswith(".csv").unwrap();
     /// // result: [true, false, true]
     /// ```
-    #[must_use]
     pub fn str_endswith(&self, suffix: &str) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -648,7 +594,6 @@ impl AnyColumn {
     /// let result = col.str_to_lowercase().unwrap();
     /// // result: ["hello", "world"]
     /// ```
-    #[must_use]
     pub fn str_to_lowercase(&self) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -676,7 +621,6 @@ impl AnyColumn {
     /// let result = col.str_to_uppercase().unwrap();
     /// // result: ["HELLO", "WORLD"]
     /// ```
-    #[must_use]
     pub fn str_to_uppercase(&self) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -703,7 +647,6 @@ impl AnyColumn {
     /// let result = col.str_strip().unwrap();
     /// // result: ["hello", "world", "!"]
     /// ```
-    #[must_use]
     pub fn str_strip(&self) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -738,13 +681,13 @@ impl AnyColumn {
     /// let result = col.str_replace("ab", "x", None).unwrap();
     /// // result: ["axb", "xx"]
     /// ```
-    #[must_use]
     pub fn str_replace(&self, from: &str, to: &str, count: Option<usize>) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
                 let data: Vec<String> = s.data().iter().map(|v| {
-                    match count {
-                        Some(n) => {
+                    count.map_or_else(
+                        || v.replace(from, to),
+                        |n| {
                             let mut result = String::new();
                             let mut remaining = v.as_str();
                             let mut replaced = 0;
@@ -761,9 +704,8 @@ impl AnyColumn {
                             }
                             result.push_str(remaining);
                             result
-                        }
-                        None => v.replace(from, to),
-                    }
+                        },
+                    )
                 }).collect();
                 let validity = crate::null::NullBitmap::from_bools(
                     &(0..s.len()).map(|i| s.is_null(i)).collect::<Vec<_>>(),
@@ -788,7 +730,6 @@ impl AnyColumn {
     /// let result = col.str_split(",", 1).unwrap();
     /// // result: ["b", "y"]
     /// ```
-    #[must_use]
     pub fn str_split(&self, delimiter: &str, index: usize) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -830,7 +771,6 @@ impl AnyColumn {
     /// let result = col.str_matches("bc").unwrap();
     /// // result: [true, false]
     /// ```
-    #[must_use]
     pub fn str_matches(&self, pattern: &str) -> DataFrameResult<Self> {
         self.str_contains(pattern)
     }
@@ -845,7 +785,6 @@ impl AnyColumn {
     /// let result = col.str_len().unwrap();
     /// // result is Int64: [2, 5]
     /// ```
-    #[must_use]
     pub fn str_len(&self) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -872,7 +811,6 @@ impl AnyColumn {
     /// let result = col.str_repeat(3).unwrap();
     /// // result: ["ababab", "ccc"]
     /// ```
-    #[must_use]
     pub fn str_repeat(&self, n: usize) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -892,7 +830,6 @@ impl AnyColumn {
     /// Returns a new Utf8 column with each string padded on the left
     /// with `pad_char` to reach `width` total bytes. Strings already
     /// at or past `width` are unchanged.
-    #[must_use]
     pub fn str_pad_left(&self, width: usize, pad_char: char) -> DataFrameResult<Self> {
         match self {
             Self::Utf8(s) => {
@@ -900,8 +837,7 @@ impl AnyColumn {
                     if v.len() >= width {
                         v.clone()
                     } else {
-                        let pad: String = core::iter::repeat(pad_char)
-                            .take(width - v.len())
+                        let pad: String = std::iter::repeat_n(pad_char, width - v.len())
                             .collect();
                         alloc::format!("{pad}{v}")
                     }
@@ -918,11 +854,10 @@ impl AnyColumn {
         }
     }
 
-    // ── ML / Data Science column methods ──────────────────────────
+    // â”€â”€ ML / Data Science column methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// Returns a new column with all values clamped to `[min, max]`.
     /// Null positions remain null.
-    #[must_use]
     pub fn clip(&self, min: f64, max: f64) -> DataFrameResult<Self> {
         let s = self.to_f64()?;
         let data: Vec<f64> = s.data().iter().map(|v| v.clamp(min, max)).collect();
@@ -935,7 +870,6 @@ impl AnyColumn {
     /// Returns a new column with ranks assigned. `method` is one of:
     /// `"dense"`, `"min"`, `"max"`, `"average"`.
     /// Null positions receive null in the output.
-    #[must_use]
     pub fn rank(&self, method: &str) -> DataFrameResult<Self> {
         let vals = self.valid_f64()?;
         if vals.is_empty() {
@@ -1018,7 +952,6 @@ impl AnyColumn {
 
     /// Returns a boolean column: `true` where the value is an outlier
     /// by the IQR method (outside `k * IQR` from Q1/Q3).
-    #[must_use]
     pub fn outliers_iqr(&self, k: f64) -> DataFrameResult<Self> {
         let vals = self.valid_f64()?;
         if vals.len() < 4 {
@@ -1026,14 +959,14 @@ impl AnyColumn {
             let flags = vec![false; self.len()];
             return Ok(Self::Bool(Series::new(self.name(), flags)));
         }
-        let mut sorted = vals.clone();
+        let mut sorted = vals;
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
         let n = sorted.len();
         let q1 = sorted[n / 4];
         let q3 = sorted[(n * 3) / 4];
         let iqr = q3 - q1;
-        let lower = q1 - k * iqr;
-        let upper = q3 + k * iqr;
+        let lower = k.mul_add(-iqr, q1);
+        let upper = k.mul_add(iqr, q3);
         let s = self.to_f64()?;
         let flags: Vec<bool> = s.data().iter().enumerate().map(|(i, &v)| {
             if s.is_null(i) { false } else { v < lower || v > upper }
@@ -1042,8 +975,7 @@ impl AnyColumn {
     }
 
     /// Returns a new Float64 column with z-score standardized values
-    /// (μ=0, σ=1). Null positions remain null.
-    #[must_use]
+    /// (Î¼=0, Ïƒ=1). Null positions remain null.
     pub fn zscore(&self) -> DataFrameResult<Self> {
         let vals = self.valid_f64()?;
         if vals.is_empty() {
@@ -1054,7 +986,7 @@ impl AnyColumn {
         let variance = vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n - 1.0);
         let std = variance.sqrt();
         if std == 0.0 {
-            // All values identical → zeros.
+            // All values identical â†’ zeros.
             let data = vec![0.0f64; self.len()];
             let validity = crate::null::NullBitmap::from_bools(
                 &(0..self.len()).map(|i| self.is_null(i)).collect::<Vec<_>>(),
@@ -1072,7 +1004,6 @@ impl AnyColumn {
     /// Returns a new Float64 column scaled to `[0, 1]` (min-max) or
     /// `[-1, 1]` (max-abs). `method` is `"minmax"` or `"maxabs"`.
     /// Null positions remain null.
-    #[must_use]
     pub fn normalize(&self, method: &str) -> DataFrameResult<Self> {
         let s = self.to_f64()?;
         match method {
@@ -1084,8 +1015,8 @@ impl AnyColumn {
                 if vals.is_empty() {
                     return Ok(Self::Float64(Series::new(s.name(), vec![0.0; s.len()])));
                 }
-                let min = vals.iter().cloned().fold(f64::INFINITY, f64::min);
-                let max = vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+                let min = vals.iter().copied().fold(f64::INFINITY, f64::min);
+                let max = vals.iter().copied().fold(f64::NEG_INFINITY, f64::max);
                 let range = max - min;
                 let data: Vec<f64> = if range == 0.0 {
                     vec![0.0; s.len()]

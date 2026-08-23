@@ -8,8 +8,8 @@ use mathverse_plot::save::PlotSaver;
 fn main() -> mathverse_plot::PlotResult<()> {
     let points: Vec<DataPoint> = (0..=10)
         .map(|i| {
-            let x = i as f64;
-            let y = (x * 0.8).sin() * 5.0 + (i % 3) as f64 - 1.0;
+            let x = f64::from(i);
+            let y = (x * 0.8).sin() * 5.0 + f64::from(i % 3) - 1.0;
             DataPoint::new(x, y)
         })
         .collect();

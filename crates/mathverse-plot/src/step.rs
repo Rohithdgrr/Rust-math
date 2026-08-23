@@ -77,8 +77,8 @@ pub fn render_step_plot(points: &[DataPoint], config: &StepConfig) -> PlotResult
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     let min_x = points.iter().map(|p| p.x).fold(f64::MAX, f64::min);
     let max_x = points.iter().map(|p| p.x).fold(f64::MIN, f64::max);
@@ -108,7 +108,7 @@ pub fn render_step_plot(points: &[DataPoint], config: &StepConfig) -> PlotResult
     if config.show_grid {
         let x_right = width - padding;
         for i in 0..=5 {
-            let y = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let y = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");
@@ -147,7 +147,7 @@ pub fn render_step_plot(points: &[DataPoint], config: &StepConfig) -> PlotResult
                 path.push_str(&format!(" L {prev_x},{y} L {x},{y}"));
             }
             StepPosition::Mid => {
-                let mid_x = (prev_x + x) / 2.0;
+                let mid_x = f64::midpoint(prev_x, x);
                 path.push_str(&format!(" L {mid_x},{prev_y} L {mid_x},{y} L {x},{y}"));
             }
         }

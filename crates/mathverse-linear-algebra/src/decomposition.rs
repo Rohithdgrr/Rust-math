@@ -221,7 +221,7 @@ pub fn eigenvalue_2x2(a: [[f64; 2]; 2]) -> (Complex, Complex) {
     if disc >= 0.0 {
         // Real eigenvalues
         let sqrt_disc = disc.sqrt();
-        let lambda1 = (trace + sqrt_disc) / 2.0;
+        let lambda1 = f64::midpoint(trace, sqrt_disc);
         let lambda2 = (trace - sqrt_disc) / 2.0;
         (
             Complex { re: lambda1, im: 0.0 },
@@ -341,11 +341,7 @@ mod tests {
                 let expected = if i == j { 1.0 } else { 0.0 };
                 assert!(
                     (dot - expected).abs() < 1e-10,
-                    "Q^T Q[{},{}] = {}, expected {}",
-                    i,
-                    j,
-                    dot,
-                    expected
+                    "Q^T Q[{i},{j}] = {dot}, expected {expected}"
                 );
             }
         }
@@ -369,11 +365,7 @@ mod tests {
                 let expected = if i == j { 1.0 } else { 0.0 };
                 assert!(
                     (dot - expected).abs() < 1e-6,
-                    "Q^T Q[{},{}] = {}, expected {}",
-                    i,
-                    j,
-                    dot,
-                    expected
+                    "Q^T Q[{i},{j}] = {dot}, expected {expected}"
                 );
             }
         }

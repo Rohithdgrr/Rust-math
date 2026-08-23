@@ -40,8 +40,7 @@ impl Color {
     #[must_use]
     pub fn to_rgb(&self) -> (u8, u8, u8) {
         match self {
-            Color::Rgb(r, g, b) => (*r, *g, *b),
-            Color::Rgba(r, g, b, _) => (*r, *g, *b),
+            Color::Rgb(r, g, b) | Color::Rgba(r, g, b, _) => (*r, *g, *b),
             Color::Named(name) => match *name {
                 "black" => (0, 0, 0),
                 "white" => (255, 255, 255),
@@ -49,8 +48,8 @@ impl Color {
                 "green" => (0, 128, 0),
                 "blue" => (0, 0, 255),
                 "yellow" => (255, 255, 0),
-                "cyan" => (0, 255, 255),
-                "magenta" => (255, 0, 255),
+                "cyan" | "aqua" => (0, 255, 255),
+                "magenta" | "fuchsia" => (255, 0, 255),
                 "gray" | "grey" => (128, 128, 128),
                 "orange" => (255, 165, 0),
                 "purple" => (128, 0, 128),
@@ -61,13 +60,11 @@ impl Color {
                 "maroon" => (128, 0, 0),
                 "silver" => (192, 192, 192),
                 "lime" => (0, 255, 0),
-                "fuchsia" => (255, 0, 255),
-                "aqua" => (0, 255, 255),
                 other => {
                     let h = other
                         .as_bytes()
                         .iter()
-                        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(*b as u64));
+                        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(u64::from(*b)));
                     let v = (h & 0xFF) as u8;
                     (v, v, v)
                 }

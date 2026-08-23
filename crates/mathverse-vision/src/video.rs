@@ -105,8 +105,7 @@ impl VideoWriter {
         
         // Write frame data: width * height f64 values
         let byte_data: Vec<u8> = img.data.iter()
-            .map(|&f| f.to_le_bytes())
-            .flatten()
+            .flat_map(|&f| f.to_le_bytes())
             .collect();
         self.file.write_all(&byte_data)?;
         

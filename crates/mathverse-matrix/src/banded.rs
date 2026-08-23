@@ -6,11 +6,16 @@ use mathverse_core::error::{MathError, MathResult};
 /// Banded matrix storage format.
 #[derive(Debug, Clone)]
 pub struct BandedMatrix {
+    /// Number of rows.
     pub rows: usize,
+    /// Number of columns.
     pub cols: usize,
+    /// Number of non-zero sub-diagonals below the main diagonal.
     pub lower_bandwidth: usize,
+    /// Number of non-zero super-diagonals above the main diagonal.
     pub upper_bandwidth: usize,
-    pub data: Vec<f64>,  // Compressed storage
+    /// Compressed storage: `rows` rows of `lower + upper + 1` band values.
+    pub data: Vec<f64>,
 }
 
 impl BandedMatrix {
@@ -109,9 +114,13 @@ impl BandedMatrix {
 /// Tridiagonal matrix (special case of banded).
 #[derive(Debug, Clone)]
 pub struct TridiagonalMatrix {
+    /// Order of the square matrix.
     pub n: usize,
+    /// Main diagonal entries (length `n`).
     pub main_diag: Vec<f64>,
+    /// Super-diagonal entries (length `n - 1`).
     pub upper_diag: Vec<f64>,
+    /// Sub-diagonal entries (length `n - 1`).
     pub lower_diag: Vec<f64>,
 }
 
@@ -230,7 +239,9 @@ impl TridiagonalMatrix {
 /// Diagonal matrix (special case of banded).
 #[derive(Debug, Clone)]
 pub struct DiagonalMatrix {
+    /// Order of the square matrix.
     pub n: usize,
+    /// Diagonal entries (length `n`).
     pub diag: Vec<f64>,
 }
 
@@ -365,8 +376,11 @@ impl BandedOperations {
 /// Toeplitz matrix (constant along diagonals).
 #[derive(Debug, Clone)]
 pub struct ToeplitzMatrix {
+    /// Order of the square matrix.
     pub n: usize,
+    /// Entries `A(0, j)` for the first row.
     pub first_row: Vec<f64>,
+    /// Entries `A(i, 0)` for the first column.
     pub first_col: Vec<f64>,
 }
 
@@ -413,7 +427,9 @@ impl ToeplitzMatrix {
 /// Circulant matrix (special Toeplitz with periodic structure).
 #[derive(Debug, Clone)]
 pub struct CirculantMatrix {
+    /// Order of the square matrix.
     pub n: usize,
+    /// Entries `A(0, j)`; each subsequent row is a cyclic shift.
     pub first_row: Vec<f64>,
 }
 

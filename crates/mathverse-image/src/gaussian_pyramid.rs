@@ -86,8 +86,8 @@ pub fn gaussian_pyramid(img: &GrayImage, octaves: usize) -> Vec<GrayImage> {
         let blurred = current.gaussian_blur(effective_radius, sigma);
 
         // Subsample by 2: take every other pixel
-        let new_w = (blurred.w + 1) / 2; // ceiling division for odd widths
-        let new_h = (blurred.h + 1) / 2;
+        let new_w = blurred.w.div_ceil(2); // ceiling division for odd widths
+        let new_h = blurred.h.div_ceil(2);
 
         let mut subsampled = GrayImage::new(new_w, new_h).unwrap();
         for y in (0..blurred.h).step_by(2) {

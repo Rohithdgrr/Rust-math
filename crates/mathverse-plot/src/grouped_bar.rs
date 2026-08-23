@@ -88,8 +88,8 @@ pub fn render_grouped_bar(
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
     let num_cats = config.categories.len();
     let num_series = series.len();
 
@@ -122,8 +122,8 @@ pub fn render_grouped_bar(
     // Grid lines
     let x_right = width - padding;
     for i in 0..=5 {
-        let y = padding + 30.0 + (i as f64 / 5.0) * chart_height;
-        let val = max_value * (1.0 - i as f64 / 5.0);
+        let y = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
+        let val = max_value * (1.0 - f64::from(i) / 5.0);
         svg.push_str("  <line x1=\"");
         svg.push_str(&label_area.to_string());
         svg.push_str("\" y1=\"");
@@ -138,7 +138,7 @@ pub fn render_grouped_bar(
         svg.push_str("\" y=\"");
         svg.push_str(&y.to_string());
         svg.push_str("\" text-anchor=\"end\" font-size=\"10\" dominant-baseline=\"middle\">");
-        svg.push_str(&format!("{:.0}", val));
+        svg.push_str(&format!("{val:.0}"));
         svg.push_str("</text>\n");
     }
 

@@ -28,8 +28,7 @@ pub fn classify(
         let best = counts
             .iter()
             .max_by_key(|(_, c)| *c)
-            .map(|(&v, _)| f64::from_bits(v))
-            .unwrap_or(0.0);
+            .map_or(0.0, |(&v, _)| f64::from_bits(v));
         results.push(best);
     }
     Ok(results)

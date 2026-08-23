@@ -11,10 +11,10 @@
 
 //! # mathverse-number-theory
 //!
-//! Production-grade number theory for the MathVerse ecosystem.
+//! Production-grade number theory for the `MathVerse` ecosystem.
 //!
 //! All primality tests use **deterministic Miller-Rabin** for `u64`,
-//! providing O(log³ n) performance with no DoS risk. Arithmetic operations
+//! providing O(log³ n) performance with no `DoS` risk. Arithmetic operations
 //! use checked arithmetic to prevent silent overflow.
 //!
 //! ## Modules
@@ -66,54 +66,53 @@
 //! assert_eq!(x * x - 2 * y * y, 1);
 //! ```
 
-pub mod primes;
+pub mod advanced;
+pub mod continued_fraction;
+pub mod diophantine;
 pub mod factorization;
 pub mod modular;
-pub mod totient;
+pub mod primes;
 pub mod quadratic_residue;
-pub mod diophantine;
-pub mod continued_fraction;
-pub mod advanced;
+pub mod totient;
 
 pub mod sympy_compat;
 
 // Re-export core integer algorithms that are well-tested and correct.
-pub use mathverse_core::integer::{gcd, lcm, isqrt, is_square};
+pub use mathverse_core::integer::{gcd, is_square, isqrt, lcm};
 
 // Re-export from local modules (canonical implementations).
-pub use primes::{
-    is_prime, miller_rabin, sieve, sieve_of_eratosthenes, segmented_sieve,
-    nth_prime, prime_between, twin_primes, goldbach,
-    mersenne_prime, lucas_lehmer, prime_gap_after, prime_gap_containing,
-};
-pub use factorization::{
-    prime_factors, factorize, pollard_rho, divisors, divisor_count,
-    divisor_sum, sigma_k, mobius, liouville,
-    is_perfect_number, is_abundant, is_deficient,
-};
-pub use modular::{
-    mod_pow, mod_pow_unchecked, mod_inverse, mod_add, mod_sub, mod_mul,
-    mod_div, crt, solve_linear_congruence, linear_congruence_solvable,
-};
-pub use totient::{
-    euler_totient, euler_totient_sum, carmichael, is_coprime, coprimes_up_to,
-    primitive_root, multiplicative_order,
-};
-pub use quadratic_residue::{
-    legendre, jacobi, tonelli_shanks, quadratic_residues,
-    is_quadratic_residue, chinese_remainder_quadratic,
-};
-pub use diophantine::{
-    extended_gcd, solve_linear_diophantine, is_square_free,
-    kronecker, quadratic_reciprocity, pell_fundamental, euler_kronecker,
-};
 pub use advanced::{
-    next_prime, prev_prime, prime_factorization, sum_of_divisors,
-    number_of_divisors, radical, kiuchi, highly_composite, perfect_power,
+    highly_composite, kiuchi, next_prime, number_of_divisors, perfect_power, prev_prime,
+    prime_factorization, radical, sum_of_divisors,
 };
 pub use continued_fraction::{
-    continued_fraction, convergents, approximant,
-    golden_ratio_cf, e_cf, pi_cf, cf_to_value, cf_to_fraction,
+    approximant, cf_to_fraction, cf_to_value, continued_fraction, convergents, e_cf,
+    golden_ratio_cf, pi_cf,
+};
+pub use diophantine::{
+    euler_kronecker, extended_gcd, is_square_free, kronecker, pell_fundamental,
+    quadratic_reciprocity, solve_linear_diophantine,
+};
+pub use factorization::{
+    divisor_count, divisor_sum, divisors, factorize, is_abundant, is_deficient, is_perfect_number,
+    liouville, mobius, pollard_rho, prime_factors, sigma_k,
+};
+pub use modular::{
+    crt, linear_congruence_solvable, mod_add, mod_div, mod_inverse, mod_mul, mod_pow,
+    mod_pow_unchecked, mod_sub, solve_linear_congruence,
+};
+pub use primes::{
+    goldbach, is_prime, lucas_lehmer, mersenne_prime, miller_rabin, nth_prime, prime_between,
+    prime_gap_after, prime_gap_containing, segmented_sieve, sieve, sieve_of_eratosthenes,
+    twin_primes,
+};
+pub use quadratic_residue::{
+    chinese_remainder_quadratic, is_quadratic_residue, jacobi, legendre, quadratic_residues,
+    tonelli_shanks,
+};
+pub use totient::{
+    carmichael, coprimes_up_to, euler_totient, euler_totient_sum, is_coprime, multiplicative_order,
+    primitive_root,
 };
 
 #[cfg(feature = "bigint")]

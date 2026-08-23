@@ -10,6 +10,7 @@ pub fn solve_2x2(a: [[f64; 2]; 2], b: [f64; 2]) -> Option<[f64; 2]> {
     ])
 }
 
+/// Solves a 3×3 system `Ax = b` via the inverse-matrix method.
 pub fn solve_3x3(a: [[f64; 3]; 3], b: [f64; 3]) -> Option<[f64; 3]> {
     let det = a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1])
             - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0])
@@ -27,7 +28,9 @@ pub fn solve_3x3(a: [[f64; 3]; 3], b: [f64; 3]) -> Option<[f64; 3]> {
     ].map(|v| v / det))
 }
 
-pub fn row_reduce(matrix: &mut Vec<Vec<f64>>) -> bool {
+/// Reduces `matrix` to row echelon form in place using partial pivoting.
+/// Returns `true` if the coefficient part (all but the last column) has full rank.
+pub fn row_reduce(matrix: &mut [Vec<f64>]) -> bool {
     let n = matrix.len();
     if n == 0 { return true; }
     let m = matrix[0].len();
@@ -52,8 +55,9 @@ pub fn row_reduce(matrix: &mut Vec<Vec<f64>>) -> bool {
     row == n.min(m - 1)
 }
 
+/// Deprecated alias for [`row_reduce`].
 #[deprecated(note = "misleading name — only does row reduction, does not solve. Use `row_reduce` or `solve_gauss`")]
-pub fn gaussian_elimination(matrix: &mut Vec<Vec<f64>>) -> bool {
+pub fn gaussian_elimination(matrix: &mut [Vec<f64>]) -> bool {
     row_reduce(matrix)
 }
 

@@ -214,7 +214,7 @@ mod tests {
         let mut img = GrayImage::new(64, 64).unwrap();
         // Uniform mid-gray background prevents intensity-invariant alias
         // matches against the image border (NCC is invariant to a·i + b).
-        for v_ in img.data.iter_mut() {
+        for v_ in &mut img.data {
             *v_ = 0.5;
         }
         // Two-tone 8×8 template copied to top-left corner (21, 17)

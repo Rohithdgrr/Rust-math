@@ -20,14 +20,14 @@ fn main() -> mathverse_plot::PlotResult<()> {
         let n = 8 + i;
         let group: Vec<f64> = (0..n)
             .map(|j| {
-                let noise = ((j * (i + 1)) % 7) as f64 / 7.0 - 0.5;
-                (i as f64).sin() * 2.0 + noise * (0.5 + i as f64 / 4.0)
+                let noise = f64::from((j * (i + 1)) % 7) / 7.0 - 0.5;
+                f64::from(i).sin() * 2.0 + noise * (0.5 + f64::from(i) / 4.0)
             })
             .collect();
 
         let bar = ErrorBar::ci(&group, 1.96)?;
-        plot.add_error_bar(i as f64, bar, Color::BLUE);
-        means.push(DataPoint::new(i as f64, bar.center));
+        plot.add_error_bar(f64::from(i), bar, Color::BLUE);
+        means.push(DataPoint::new(f64::from(i), bar.center));
     }
 
     plot.add_series(DataSeries::with_style(
@@ -37,7 +37,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
             .with_marker_style(mathverse_plot::style::MarkerStyle::Circle),
     ));
 
-PlotSaver::new(&plot.generate()).save_png("errorbars.png")?;
+PlotSaver::new(plot.generate()).save_png("errorbars.png")?;
 println!("wrote errorbars.png");
     Ok(())
 }

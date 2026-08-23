@@ -21,7 +21,7 @@ fn zeta_even_integer(n: u64) -> f64 {
         fact *= i as f64;
     }
     let b = BERNOULLI_EVEN[(n - 1) as usize];
-    let sign = if n % 2 == 0 { -1.0 } else { 1.0 }; // (-1)^{n+1}
+    let sign = if n.is_multiple_of(2) { -1.0 } else { 1.0 }; // (-1)^{n+1}
     let two_pi = 2.0 * PI;
     sign * b * two_pi.powi(2 * n as i32) / (2.0 * fact)
 }
@@ -38,6 +38,8 @@ fn zeta_even_integer(n: u64) -> f64 {
 /// assert!(zeta(1.0).is_infinite());
 /// ```
 pub fn zeta(s: f64) -> f64 {
+    // Direct summation up to N, then approximate the tail.
+    const N: u64 = 10_000;
     if s.is_nan() {
         return f64::NAN;
     }
@@ -49,12 +51,11 @@ pub fn zeta(s: f64) -> f64 {
     }
     if s.fract() == 0.0 && s > 1.0 && s <= 16.0 {
         let n = s as u64;
-        if n % 2 == 0 {
+        if n.is_multiple_of(2) {
             return zeta_even_integer(n / 2);
         }
     }
     // Direct summation up to N, then approximate the tail.
-    const N: u64 = 10000;
     let mut sum = 0.0;
     for n in 1..=N {
         sum += (n as f64).powf(-s);
@@ -84,7 +85,7 @@ mod tests {
         assert!((zeta(6.0) - 1.017_343_061_984_449).abs() < 1e-13);
         assert!((zeta(8.0) - 1.004_077_356_197_944).abs() < 1e-13);
         assert!((zeta(3.0) - 1.202_056_903_159_594).abs() < 1e-13);
-        assert!((zeta(5.0) - 1.036_927_755_143_370).abs() < 1e-13);
+        assert!((zeta(5.0) - 1.036_927_755_143_37).abs() < 1e-13);
         assert!((zeta(1.5) - 2.612_375_348_685_488).abs() < 1e-12);
         assert!((zeta(10.0) - 1.000_994_575_127_818).abs() < 1e-13);
     }

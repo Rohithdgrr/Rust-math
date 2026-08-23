@@ -9,8 +9,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
         .map(|j| {
             (0..n)
                 .map(|i| {
-                    let x = i as f64 / (n - 1) as f64 * 4.0 - 2.0;
-                    let y = j as f64 / (n - 1) as f64 * 4.0 - 2.0;
+                    let x = f64::from(i) / f64::from(n - 1) * 4.0 - 2.0;
+                    let y = f64::from(j) / f64::from(n - 1) * 4.0 - 2.0;
                     (-x * x - y * y).exp()
                 })
                 .collect()

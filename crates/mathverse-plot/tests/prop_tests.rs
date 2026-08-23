@@ -9,11 +9,11 @@ use mathverse_plot::style::Color;
 struct Lcg(u32);
 impl Lcg {
     fn next(&mut self) -> u32 {
-        self.0 = self.0.wrapping_mul(1664525).wrapping_add(1013904223);
+        self.0 = self.0.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
         self.0
     }
     fn f64(&mut self) -> f64 {
-        self.next() as f64 / u32::MAX as f64
+        f64::from(self.next()) / f64::from(u32::MAX)
     }
 }
 
@@ -84,8 +84,8 @@ fn quartiles_are_monotonic_and_in_range() {
             "quartiles out of order: {:?}",
             (s.q1, s.median, s.q3)
         );
-        let lo = xs.iter().cloned().fold(f64::INFINITY, f64::min);
-        let hi = xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let lo = xs.iter().copied().fold(f64::INFINITY, f64::min);
+        let hi = xs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         assert!(s.min >= lo && s.max <= hi, "whiskers outside data range");
         assert!(s.q1 >= lo && s.q3 <= hi, "quartiles outside data range");
     }

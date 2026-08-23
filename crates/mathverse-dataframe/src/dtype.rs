@@ -1,6 +1,6 @@
 use core::fmt;
 
-/// Supported data types for DataFrame columns.
+/// Supported data types for `DataFrame` columns.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DType {
     /// 64-bit floating point.
@@ -17,7 +17,7 @@ pub enum DType {
     Utf8,
     /// Date as days since Unix epoch.
     Date,
-    /// DateTime as microseconds since Unix epoch.
+    /// `DateTime` as microseconds since Unix epoch.
     DateTime,
     /// Signed duration in microseconds.
     Duration,

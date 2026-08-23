@@ -45,6 +45,6 @@ fn main() {
     
     // Compute histogram
     let histogram = img.histogram();
-    let max_bin = histogram.iter().cloned().fold(0usize, usize::max);
-    println!("Histogram max bin count: {}", max_bin);
+    let max_bin = histogram.iter().copied().fold(0usize, usize::max);
+    println!("Histogram max bin count: {max_bin}");
 }

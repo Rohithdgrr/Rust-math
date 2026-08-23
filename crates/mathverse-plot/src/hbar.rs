@@ -97,8 +97,8 @@ pub fn render_hbar_chart(bars: &[HBar], config: &HBarConfig) -> PlotResult<Strin
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     // Calculate max value
     let max_value = bars.iter().map(|b| b.value).fold(0.0_f64, f64::max);
@@ -123,7 +123,7 @@ pub fn render_hbar_chart(bars: &[HBar], config: &HBarConfig) -> PlotResult<Strin
     if config.show_grid {
         let grid_steps = 5;
         for i in 0..=grid_steps {
-            let x = label_width + (i as f64 / grid_steps as f64) * chart_width;
+            let x = label_width + (f64::from(i) / f64::from(grid_steps)) * chart_width;
             svg.push_str("  <line x1=\"");
             svg.push_str(&x.to_string());
             svg.push_str("\" y1=\"");

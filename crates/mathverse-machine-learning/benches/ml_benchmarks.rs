@@ -7,7 +7,7 @@ use mathverse_machine_learning::pca::PCA;
 use mathverse_machine_learning::tree::DecisionTree;
 
 fn bench_knn(c: &mut Criterion) {
-    let train_x: Vec<Vec<f64>> = (0..500).map(|i| vec![i as f64, i as f64 * 0.5]).collect();
+    let train_x: Vec<Vec<f64>> = (0..500).map(|i| vec![f64::from(i), f64::from(i) * 0.5]).collect();
     let train_y: Vec<f64> = (0..500)
         .map(|i| if i % 2 == 0 { 0.0 } else { 1.0 })
         .collect();
@@ -20,19 +20,19 @@ fn bench_knn(c: &mut Criterion) {
                 black_box(&test_x),
                 3,
             )
-        })
+        });
     });
 }
 
 fn bench_kmeans(c: &mut Criterion) {
-    let x: Vec<Vec<f64>> = (0..1000).map(|i| vec![i as f64, (i * 2) as f64]).collect();
+    let x: Vec<Vec<f64>> = (0..1000).map(|i| vec![f64::from(i), f64::from(i * 2)]).collect();
     c.bench_function("kmeans_3_clusters_1000", |b| {
-        b.iter(|| kmeans::kmeans(black_box(&x), 3, 10, 1e-6))
+        b.iter(|| kmeans::kmeans(black_box(&x), 3, 10, 1e-6));
     });
 }
 
 fn bench_decision_tree(c: &mut Criterion) {
-    let x: Vec<Vec<f64>> = (0..500).map(|i| vec![i as f64, i as f64 * 0.5]).collect();
+    let x: Vec<Vec<f64>> = (0..500).map(|i| vec![f64::from(i), f64::from(i) * 0.5]).collect();
     let y: Vec<f64> = (0..500)
         .map(|i| if i % 2 == 0 { 0.0 } else { 1.0 })
         .collect();
@@ -40,12 +40,12 @@ fn bench_decision_tree(c: &mut Criterion) {
     tree.fit(&x, &y);
     let test = vec![vec![100.0, 50.0]];
     c.bench_function("decision_tree_predict", |b| {
-        b.iter(|| tree.predict(black_box(&test)))
+        b.iter(|| tree.predict(black_box(&test)));
     });
 }
 
 fn bench_random_forest(c: &mut Criterion) {
-    let x: Vec<Vec<f64>> = (0..500).map(|i| vec![i as f64, i as f64 * 0.5]).collect();
+    let x: Vec<Vec<f64>> = (0..500).map(|i| vec![f64::from(i), f64::from(i) * 0.5]).collect();
     let y: Vec<f64> = (0..500)
         .map(|i| if i % 2 == 0 { 0.0 } else { 1.0 })
         .collect();
@@ -53,31 +53,31 @@ fn bench_random_forest(c: &mut Criterion) {
     rf.fit(&x, &y);
     let test = vec![vec![100.0, 50.0]];
     c.bench_function("random_forest_predict", |b| {
-        b.iter(|| rf.predict(black_box(&test)))
+        b.iter(|| rf.predict(black_box(&test)));
     });
 }
 
 fn bench_linear_regression(c: &mut Criterion) {
-    let x: Vec<Vec<f64>> = (0..1000).map(|i| vec![i as f64]).collect();
-    let y: Vec<f64> = (0..1000).map(|i| i as f64 * 2.0 + 1.0).collect();
+    let x: Vec<Vec<f64>> = (0..1000).map(|i| vec![f64::from(i)]).collect();
+    let y: Vec<f64> = (0..1000).map(|i| f64::from(i) * 2.0 + 1.0).collect();
     let test = vec![vec![500.0]];
     c.bench_function("linear_regression_fit_predict", |b| {
         b.iter(|| {
             let result = linear::fit(black_box(&x), black_box(&y)).unwrap();
             linear::predict(black_box(&test), &result.coefficients, result.intercept)
-        })
+        });
     });
 }
 
 fn bench_pca(c: &mut Criterion) {
     let x: Vec<Vec<f64>> = (0..500)
-        .map(|i| vec![i as f64, i as f64 * 0.5, i as f64 * 0.3])
+        .map(|i| vec![f64::from(i), f64::from(i) * 0.5, f64::from(i) * 0.3])
         .collect();
     c.bench_function("pca_fit_transform_500x3", |b| {
         b.iter(|| {
             let mut pca = PCA::new(2);
             pca.fit_transform(black_box(&x))
-        })
+        });
     });
 }
 

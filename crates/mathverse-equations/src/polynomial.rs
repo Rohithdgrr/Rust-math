@@ -12,6 +12,7 @@ pub fn solve_linear(a: f64, b: f64) -> Vec<f64> {
     }
 }
 
+/// Solves `ax² + bx + c = 0`. Falls back to [`solve_linear`] if `a ≈ 0`.
 pub fn solve_quadratic(a: f64, b: f64, c: f64) -> Vec<f64> {
     if a.abs() < 1e-15 { return solve_linear(b, c); }
     let disc = b * b - 4.0 * a * c;
@@ -23,6 +24,8 @@ pub fn solve_quadratic(a: f64, b: f64, c: f64) -> Vec<f64> {
     }
 }
 
+/// Solves `ax³ + bx² + cx + d = 0` using Cardano's method (trigonometric for
+/// three real roots). Falls back to [`solve_quadratic`] if `a ≈ 0`.
 pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
     if a.abs() < 1e-15 { return solve_quadratic(b, c, d); }
     let b = b / a;
@@ -51,6 +54,8 @@ pub fn solve_cubic(a: f64, b: f64, c: f64, d: f64) -> Vec<f64> {
     }
 }
 
+/// Solves `ax⁴ + bx³ + cx² + dx + e = 0` via Ferrari's method.
+/// Falls back to [`solve_cubic`] if `a ≈ 0`.
 pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
     if a.abs() < 1e-15 { return solve_cubic(b, c, d, e); }
     let b = b / a;
@@ -66,7 +71,7 @@ pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
         let sqrt_disc = disc.sqrt();
         let mut roots = Vec::new();
         for sign in [-1.0, 1.0] {
-            let inner = (-p + sign * sqrt_disc) / 2.0;
+            let inner = f64::midpoint(-p, sign * sqrt_disc);
             if inner >= 0.0 {
                 let sq = inner.sqrt();
                 roots.push(sq - b / 4.0);
@@ -95,6 +100,8 @@ pub fn solve_quartic(a: f64, b: f64, c: f64, d: f64, e: f64) -> Vec<f64> {
     }
 }
 
+/// Evaluates a polynomial with coefficients in descending power order:
+/// `coeffs = [c_n, ..., c_1, c_0]` gives `c_n·x^n + ... + c_1·x + c_0`.
 pub fn polynomial_eval(coeffs: &[f64], x: f64) -> f64 {
     coeffs.iter().rev().fold(0.0, |acc, &c| acc * x + c)
 }

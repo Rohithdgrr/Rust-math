@@ -21,10 +21,12 @@ use std::path::{Path, PathBuf};
 
 /// Output format options.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum OutputFormat {
     /// Scalable Vector Graphics.
     Svg,
     /// Portable Network Graphics (raster).
+    #[default]
     Png,
     /// JPEG (lossy raster, requires the `png` feature for the rasterizer).
     Jpeg,
@@ -42,12 +44,11 @@ impl OutputFormat {
     /// File extension for this format.
     pub fn extension(&self) -> &str {
         match self {
-            OutputFormat::Svg => "svg",
+            OutputFormat::Svg | OutputFormat::AnimatedSvg => "svg",
             OutputFormat::Png => "png",
             OutputFormat::Jpeg => "jpg",
             OutputFormat::Pdf => "pdf",
             OutputFormat::Html => "html",
-            OutputFormat::AnimatedSvg => "svg",
             OutputFormat::Terminal => "txt",
         }
     }
@@ -55,12 +56,11 @@ impl OutputFormat {
     /// MIME type for this format.
     pub fn mime_type(&self) -> &str {
         match self {
-            OutputFormat::Svg => "image/svg+xml",
+            OutputFormat::Svg | OutputFormat::AnimatedSvg => "image/svg+xml",
             OutputFormat::Png => "image/png",
             OutputFormat::Jpeg => "image/jpeg",
             OutputFormat::Pdf => "application/pdf",
             OutputFormat::Html => "text/html",
-            OutputFormat::AnimatedSvg => "image/svg+xml",
             OutputFormat::Terminal => "text/plain",
         }
     }
@@ -126,7 +126,7 @@ Self { formats, ..Self::default_set() }
     }
 
     /// Add a format.
-    pub fn add(mut self, format: OutputFormat) -> Self {
+    pub fn add_format(mut self, format: OutputFormat) -> Self {
         if !self.formats.contains(&format) {
             self.formats.push(format);
         }
@@ -161,11 +161,6 @@ Self { formats, ..Self::default_set() }
     }
 }
 
-impl Default for OutputFormat {
-    fn default() -> Self {
-        OutputFormat::Png
-    }
-}
 
 impl Default for FormatSet {
     fn default() -> Self {
@@ -299,10 +294,9 @@ impl PlotSaver {
     /// Create from dimensions (generates placeholder SVG).
     pub fn from_dimensions(width: u32, height: u32) -> Self {
         let svg = format!(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\">\
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\">\
              <rect width=\"100%\" height=\"100%\" fill=\"white\"/>\
-             </svg>",
-            width, height, width, height
+             </svg>"
         );
         Self {
             svg_content: svg,
@@ -389,9 +383,9 @@ impl PlotSaver {
                         dst.copy_from_slice(&[0, 0, 0, 0]);
                     } else {
                         let inv = 255.0 / f32::from(a);
-                        let rr = ((f32::from(r) * inv).round() as u8).min(255);
-                        let gg = ((f32::from(g) * inv).round() as u8).min(255);
-                        let bb = ((f32::from(b) * inv).round() as u8).min(255);
+                        let rr = (f32::from(r) * inv).round() as u8;
+                        let gg = (f32::from(g) * inv).round() as u8;
+                        let bb = (f32::from(b) * inv).round() as u8;
                         dst.copy_from_slice(&[rr, gg, bb, a]);
                     }
                 }
@@ -412,12 +406,14 @@ impl PlotSaver {
     /// Rasterize the SVG to a tiny-skia pixmap honoring facecolor/transparency.
     #[cfg(feature = "png")]
     fn render_pixmap(&self, dpi: u32, scale: f64) -> Result<tiny_skia::Pixmap, String> {
-        let width = (self.width as f64 * scale) as u32;
-        let height = (self.height as f64 * scale) as u32;
+        let width = (f64::from(self.width) * scale) as u32;
+        let height = (f64::from(self.height) * scale) as u32;
 
-        let mut opts = usvg::Options::default();
-        opts.resources_dir = std::env::current_dir().ok();
-        opts.dpi = dpi as f32;
+        let opts = usvg::Options {
+            resources_dir: std::env::current_dir().ok(),
+            dpi: dpi as f32,
+            ..usvg::Options::default()
+        };
 
         let tree = usvg::Tree::from_data(self.svg_content.as_bytes(), &opts)
             .map_err(|e| format!("usvg parse: {e}"))?;
@@ -508,11 +504,11 @@ impl PlotSaver {
     }
 
     /// Export to a specific format.
-    fn export_format(&self, format: OutputFormat, path: &Path, _formats: &FormatSet) -> ExportResult {
-        #[cfg(feature = "png")]
-        let formats = _formats;
+    fn export_format(&self, format: OutputFormat, path: &Path, formats: &FormatSet) -> ExportResult {
+        #[cfg(not(feature = "png"))]
+        let _ = formats;
         let content = match format {
-            OutputFormat::Svg => self.generate_svg(),
+            OutputFormat::Svg | OutputFormat::AnimatedSvg => self.generate_svg(), // Same as SVG for static
             OutputFormat::Png | OutputFormat::Jpeg => {
                 // Raster formats require the png feature (rasterizer stack).
                 #[cfg(feature = "png")]
@@ -579,7 +575,6 @@ impl PlotSaver {
                 }
             }
             OutputFormat::Html => self.generate_html(),
-            OutputFormat::AnimatedSvg => self.generate_svg(), // Same as SVG for static
             OutputFormat::Terminal => self.generate_terminal(),
         };
 
@@ -711,9 +706,9 @@ impl PlotSaver {
     /// This is the analogue of `%matplotlib inline` in Jupyter.
     #[cfg(feature = "png")]
     pub fn inline_png_data_uri(&self, dpi: u32, scale: f64) -> Result<String, String> {
+        use std::fmt::Write;
         let bytes = self.raster_bytes(OutputFormat::Png, dpi, scale)?;
         let mut b64 = String::new();
-        use std::fmt::Write;
         for chunk in bytes.chunks(48) {
             let _ = write!(b64, "{}", base64_encode(chunk));
         }
@@ -742,8 +737,7 @@ impl PlotSaver {
         if result.success {
             Ok(())
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            Err(std::io::Error::other(
                 result.error.unwrap_or_else(|| "PNG export failed".to_string()),
             ))
         }
@@ -921,9 +915,9 @@ mod tests {
     #[test]
     fn format_set_builder() {
         let fs = FormatSet::new()
-            .add(OutputFormat::Svg)
-            .add(OutputFormat::Png)
-            .add(OutputFormat::Svg); // Duplicate should not be added
+            .add_format(OutputFormat::Svg)
+            .add_format(OutputFormat::Png)
+            .add_format(OutputFormat::Svg); // Duplicate should not be added
         assert_eq!(fs.formats().len(), 2);
     }
 

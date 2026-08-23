@@ -195,12 +195,12 @@ mod tests {
 
     fn simple_predict(train_x: &[Vec<f64>], train_y: &[f64], test_x: &[Vec<f64>]) -> Vec<f64> {
         let mean_y: f64 = train_y.iter().sum::<f64>() / train_y.len() as f64;
-        let mean_x: Vec<f64> = if !train_x.is_empty() {
+        let mean_x: Vec<f64> = if train_x.is_empty() {
+            vec![0.0]
+        } else {
             (0..train_x[0].len())
                 .map(|j| train_x.iter().map(|r| r[j]).sum::<f64>() / train_x.len() as f64)
                 .collect()
-        } else {
-            vec![0.0]
         };
 
         test_x
@@ -217,8 +217,8 @@ mod tests {
 
     #[test]
     fn test_cross_val_score() {
-        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..20).map(|i| i as f64 * 2.0).collect();
+        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..20).map(|i| f64::from(i) * 2.0).collect();
         let scores = cross_val_score(&x, &y, 4, simple_predict);
         assert_eq!(scores.len(), 4);
         for s in &scores {
@@ -241,8 +241,8 @@ mod tests {
 
     #[test]
     fn test_learning_curve() {
-        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..20).map(|i| i as f64).collect();
+        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..20).map(|i| f64::from(i)).collect();
         let curve = learning_curve(&x, &y, &[2, 5, 10], simple_predict);
         assert_eq!(curve.len(), 3);
         for (size, train_s, val_s) in &curve {
@@ -254,8 +254,8 @@ mod tests {
 
     #[test]
     fn test_bootstrap_score() {
-        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..20).map(|i| i as f64).collect();
+        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..20).map(|i| f64::from(i)).collect();
         let (mean, std) = bootstrap_score(&x, &y, 10, 42, simple_predict);
         assert!(mean < 0.0);
         assert!(std >= 0.0);
@@ -264,8 +264,8 @@ mod tests {
     #[test]
     fn test_bootstrap_uses_out_of_bag() {
         // Test that bootstrap uses out-of-bag samples correctly
-        let x: Vec<Vec<f64>> = (0..10).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..10).map(|i| i as f64).collect();
+        let x: Vec<Vec<f64>> = (0..10).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..10).map(|i| f64::from(i)).collect();
         
         // Count how many times we get non-empty test sets
         let mut non_empty_count = 0;

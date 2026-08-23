@@ -252,7 +252,8 @@ mod tests {
     #[test]
     fn adaptive_simpson_integrates_gaussian_tail() {
         let f = |x: f64| (-0.5 * x * x).exp() / (2.0 * core::f64::consts::PI).sqrt();
-        let i = adaptive_simpson(&f, -5.0, 5.0, 1e-10, 100_000);
-        assert!((i - 1.0).abs() < 1e-7);
+        // [-6, 6] truncates only ~2e-9 of the standard normal mass.
+        let i = adaptive_simpson(&f, -6.0, 6.0, 1e-10, 100_000);
+        assert!((i - 1.0).abs() < 1e-7, "integral {i}");
     }
 }

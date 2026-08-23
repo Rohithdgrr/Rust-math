@@ -458,9 +458,9 @@ mod tests {
     fn xgb_regressor_multivariate() {
         // y = 2a − b: exercises the multi-feature exact split search.
         let x: Vec<Vec<f64>> = (0..20)
-            .map(|i| vec![i as f64, (19 - i) as f64])
+            .map(|i| vec![f64::from(i), f64::from(19 - i)])
             .collect();
-        let y: Vec<f64> = (0..20).map(|i| 2.0 * i as f64 - (19 - i) as f64).collect();
+        let y: Vec<f64> = (0..20).map(|i| 2.0 * f64::from(i) - f64::from(19 - i)).collect();
         let mut model = XGBoostRegressor::new(80, 0.2, 4, 1.0, 0.0);
         model.fit(&x, &y).unwrap();
         for (xi, yi) in x.iter().zip(y.iter()) {

@@ -102,7 +102,7 @@ pub fn fundamental(a: &[(f64, f64)], b: &[(f64, f64)]) -> Option<Fundamental> {
         return None;
     }
     let mut ata = vec![vec![0.0; 9]; 9];
-    for (_i, ((x, y), (xp, yp))) in a.iter().zip(b).enumerate() {
+    for ((x, y), (xp, yp)) in a.iter().zip(b) {
         let row = [xp * x, xp * y, *xp, yp * x, yp * y, *yp, *x, *y, 1.0];
         for ci in 0..9 {
             for cj in 0..9 {

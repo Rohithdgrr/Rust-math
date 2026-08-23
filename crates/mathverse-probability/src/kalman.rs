@@ -77,7 +77,7 @@ pub(crate) fn mat_inv(a: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
         .enumerate()
         .map(|(i, row)| {
             row.iter()
-                .cloned()
+                .copied()
                 .chain((0..n).map(|j| if i == j { 1.0 } else { 0.0 }))
                 .collect()
         })
@@ -94,14 +94,21 @@ pub(crate) fn mat_inv(a: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
         }
         aug.swap(col, pivot);
         let div = aug[col][col];
-        for c in 0..2 * n {
-            aug[col][c] /= div;
+        for v in &mut aug[col] {
+            *v /= div;
         }
         for r in 0..n {
             if r != col {
                 let factor = aug[r][col];
-                for c in 0..2 * n {
-                    aug[r][c] -= factor * aug[col][c];
+                let (dst, src): (&mut [f64], &[f64]) = if r > col {
+                    let (lo, hi) = aug.split_at_mut(r);
+                    (&mut hi[0], &lo[col])
+                } else {
+                    let (lo, hi) = aug.split_at_mut(col);
+                    (&mut lo[r], &hi[0])
+                };
+                for (rv, &cv) in dst.iter_mut().zip(src) {
+                    *rv -= factor * cv;
                 }
             }
         }
@@ -122,8 +129,8 @@ pub(crate) fn cholesky(a: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
     for i in 0..n {
         for j in 0..=i {
             let mut s = a[i][j];
-            for k in 0..j {
-                s -= l[i][k] * l[j][k];
+            for (&l_ik, &l_jk) in l[i][..j].iter().zip(&l[j][..j]) {
+                s -= l_ik * l_jk;
             }
             if i == j {
                 if s <= 1e-12 {
@@ -314,16 +321,26 @@ impl UnscentedKalmanFilter {
             }
             cholesky(&jitter).unwrap_or_else(|_| {
                 let mut d = vec![vec![0.0; n]; n];
-                for i in 0..n {
-                    d[i][i] = 1e-6;
+                for (i, row) in d.iter_mut().enumerate().take(n) {
+                    row[i] = 1e-6;
                 }
                 cholesky(&d).unwrap()
             })
         });
         let mut points = vec![self.x.clone()];
-        for i in 0..n {
-            let plus: Vec<f64> = (0..n).map(|k| self.x[k] + scale.sqrt() * l[k][i]).collect();
-            let minus: Vec<f64> = (0..n).map(|k| self.x[k] - scale.sqrt() * l[k][i]).collect();
+        for col in 0..n {
+            let plus: Vec<f64> = self
+                .x
+                .iter()
+                .zip(&l)
+                .map(|(&xv, row)| xv + scale.sqrt() * row[col])
+                .collect();
+            let minus: Vec<f64> = self
+                .x
+                .iter()
+                .zip(&l)
+                .map(|(&xv, row)| xv - scale.sqrt() * row[col])
+                .collect();
             points.push(plus);
             points.push(minus);
         }
@@ -543,8 +560,8 @@ mod tests {
 
         let mut ekf = ExtendedKalmanFilter::new(vec![0.0], vec![vec![5.0]]).unwrap();
         for z in &zs {
-            ekf.predict(&f, &f_jac, &q);
-            ekf.update(&[*z], &h, &h_jac, &r).unwrap();
+            ekf.predict(f, f_jac, &q);
+            ekf.update(&[*z], h, h_jac, &r).unwrap();
         }
         assert!(
             (ekf.x[0] - truth[119]).abs() < 0.25,
@@ -554,8 +571,8 @@ mod tests {
 
         let mut ukf = UnscentedKalmanFilter::new(vec![0.0], vec![vec![5.0]]).unwrap();
         for z in &zs {
-            ukf.predict(&f, &q);
-            ukf.update(&[*z], &h, &r).unwrap();
+            ukf.predict(f, &q);
+            ukf.update(&[*z], h, &r).unwrap();
         }
         assert!(
             (ukf.x[0] - truth[119]).abs() < 0.25,

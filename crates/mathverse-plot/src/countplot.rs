@@ -63,11 +63,11 @@ pub fn render_countplot(
     }
 
     let mut sorted: Vec<(&str, u64)> = counts.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.sort_by_key(|&(_, c)| std::cmp::Reverse(c));
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     let max_count = sorted.iter().map(|(_, c)| *c).max().unwrap_or(1) as f64;
 
@@ -135,7 +135,7 @@ pub fn render_countplot(
 
         // Grid
         for i in 0..=5 {
-            let y = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let y = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");

@@ -240,7 +240,7 @@ pub fn mean_absolute_percentage_error(pred: &[f64], target: &[f64]) -> f64 {
     if count == 0 {
         0.0
     } else {
-        sum / count as f64 * 100.0
+        sum / f64::from(count) * 100.0
     }
 }
 
@@ -258,7 +258,7 @@ pub fn median_absolute_error(pred: &[f64], target: &[f64]) -> f64 {
         return 0.0;
     }
     if n.is_multiple_of(2) {
-        (errors[n / 2 - 1] + errors[n / 2]) / 2.0
+        f64::midpoint(errors[n / 2 - 1], errors[n / 2])
     } else {
         errors[n / 2]
     }
@@ -377,7 +377,7 @@ mod tests {
         let pred_proba = vec![vec![0.1, 0.9], vec![0.8, 0.2]];
         let target = vec![1.0, 0.0];
         let bs = brier_score(&pred_proba, &target);
-        assert!(bs >= 0.0 && bs <= 1.0);
+        assert!((0.0..=1.0).contains(&bs));
     }
 
     #[test]
@@ -406,7 +406,7 @@ mod tests {
         let scores = vec![0.9, 0.8, 0.1];
         let labels = vec![1.0, 0.0, 1.0];
         let ndcg_val = ndcg(&scores, &labels, 3);
-        assert!(ndcg_val >= 0.0 && ndcg_val <= 1.0);
+        assert!((0.0..=1.0).contains(&ndcg_val));
     }
 
     #[test]

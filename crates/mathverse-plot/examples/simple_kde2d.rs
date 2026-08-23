@@ -10,16 +10,16 @@ fn main() -> mathverse_plot::PlotResult<()> {
 
     // Cluster 1: centered around (2, 3)
     for i in 0..40 {
-        let xi = 2.0 + (i as f64 * 0.3).sin() * 0.8;
-        let yi = 3.0 + (i as f64 * 0.5).cos() * 0.6;
+        let xi = 2.0 + (f64::from(i) * 0.3).sin() * 0.8;
+        let yi = 3.0 + (f64::from(i) * 0.5).cos() * 0.6;
         x.push(xi);
         y.push(yi);
     }
 
     // Cluster 2: centered around (6, 7)
     for i in 0..40 {
-        let xi = 6.0 + (i as f64 * 0.4).sin() * 1.0;
-        let yi = 7.0 + (i as f64 * 0.6).cos() * 0.8;
+        let xi = 6.0 + (f64::from(i) * 0.4).sin() * 1.0;
+        let yi = 7.0 + (f64::from(i) * 0.6).cos() * 0.8;
         x.push(xi);
         y.push(yi);
     }

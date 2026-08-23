@@ -1,15 +1,14 @@
 //! Regression plot example.
 
 use mathverse_plot::{render_regplot, RegPlotConfig, common::DataPoint};
-use mathverse_plot::style::Color;
 use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     // Generate points with a linear trend plus noise
     let points: Vec<DataPoint> = (0..30)
         .map(|i| {
-            let x = i as f64 * 0.5;
-            let y = 1.5 * x + 2.0 + ((i as f64 * 0.7).sin() * 1.5);
+            let x = f64::from(i) * 0.5;
+            let y = 1.5 * x + 2.0 + ((f64::from(i) * 0.7).sin() * 1.5);
             DataPoint::new(x, y)
         })
         .collect();

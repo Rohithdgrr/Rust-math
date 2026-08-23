@@ -8,11 +8,13 @@ use super::primitives2d::LineSegment2;
 // ---------------------------------------------------------------------------
 
 /// Closest point on segment `seg` to point `p`, then distance.
+#[must_use]
 pub fn point_segment_distance(p: Point2, seg: LineSegment2) -> f64 {
     p.distance_to(closest_point_on_segment(p, seg))
 }
 
 /// Closest point on segment `seg` to point `p`.
+#[must_use]
 pub fn closest_point_on_segment(p: Point2, seg: LineSegment2) -> Point2 {
     seg.closest_point(p)
 }
@@ -22,14 +24,15 @@ pub fn closest_point_on_segment(p: Point2, seg: LineSegment2) -> Point2 {
 // ---------------------------------------------------------------------------
 
 /// Distance from point `p` to the infinite line through `a` and `b`.
+#[must_use]
 pub fn point_line_distance(p: Point2, a: Point2, b: Point2) -> f64 {
     let dx = b.x - a.x;
     let dy = b.y - a.y;
-    let len_sq = dx * dx + dy * dy;
+    let len_sq = dy.mul_add(dy, dx * dx);
     if len_sq < 1e-30 {
         return p.distance_to(a);
     }
-    ((dy * p.x - dx * p.y + b.x * a.y - b.y * a.x).abs()) / len_sq.sqrt()
+    (b.y.mul_add(-a.x, b.x.mul_add(a.y, dx.mul_add(-p.y, dy * p.x))).abs()) / len_sq.sqrt()
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +40,7 @@ pub fn point_line_distance(p: Point2, a: Point2, b: Point2) -> f64 {
 // ---------------------------------------------------------------------------
 
 /// Minimum distance from point `p` to the polygon boundary (0 if inside).
+#[must_use]
 pub fn point_polygon_distance(p: Point2, poly: &Polygon) -> f64 {
     let pts = &poly.points;
     let n = pts.len();
@@ -74,6 +78,7 @@ pub fn point_polygon_distance(p: Point2, poly: &Polygon) -> f64 {
 // ---------------------------------------------------------------------------
 
 /// Find the closest pair of points in a set. O(n²) brute force for simplicity.
+#[must_use]
 pub fn closest_pair(points: &[Point2]) -> Option<(Point2, Point2, f64)> {
     if points.len() < 2 {
         return None;
@@ -99,20 +104,20 @@ pub fn closest_pair(points: &[Point2]) -> Option<(Point2, Point2, f64)> {
 /// Minkowski support point for two convex point sets.
 fn minkowski_support(a: &[Point2], b: &[Point2], dir: Point2) -> Point2 {
     let pa = a.iter().max_by(|x, y| {
-        (x.x * dir.x + x.y * dir.y).partial_cmp(&(y.x * dir.x + y.y * dir.y)).unwrap()
+        x.y.mul_add(dir.y, x.x * dir.x).partial_cmp(&y.y.mul_add(dir.y, y.x * dir.x)).unwrap()
     }).unwrap();
     let pb = b.iter().max_by(|x, y| {
-        (x.x * -dir.x + x.y * -dir.y).partial_cmp(&(y.x * -dir.x + y.y * -dir.y)).unwrap()
+        x.y.mul_add(-dir.y, x.x * -dir.x).partial_cmp(&y.y.mul_add(-dir.y, y.x * -dir.x)).unwrap()
     }).unwrap();
     Point2::new(pa.x - pb.x, pa.y - pb.y)
 }
 
 fn cross_z(a: Point2, b: Point2) -> f64 {
-    a.x * b.y - a.y * b.x
+    a.y.mul_add(-b.x, a.x * b.y)
 }
 
 fn dot2(a: Point2, b: Point2) -> f64 {
-    a.x * b.x + a.y * b.y
+    a.y.mul_add(b.y, a.x * b.x)
 }
 
 fn do_simplex(simplex: &mut Vec<Point2>, dir: &mut Point2) -> bool {
@@ -195,35 +200,35 @@ fn closest_point_on_simplex(simplex: &[Point2]) -> Point2 {
             if d3 >= 0.0 && d4 <= d3 {
                 return b;
             }
-            let vc = d1 * d4 - d3 * d2;
+            let vc = d3.mul_add(-d2, d1 * d4);
             if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
                 let v = d1 / (d1 - d3);
-                return Point2::new(a.x + v * ab.x, a.y + v * ab.y);
+                return Point2::new(v.mul_add(ab.x, a.x), v.mul_add(ab.y, a.y));
             }
             let bo2 = Point2::new(-c.x, -c.y);
             let d5 = dot2(ab, bo2);
             let d6 = dot2(ac, bo2);
-            let vb = d5 * d2 - d1 * d6;
+            let vb = d1.mul_add(-d6, d5 * d2);
             if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
                 let w = d2 / (d2 - d6);
-                return Point2::new(a.x + w * ac.x, a.y + w * ac.y);
+                return Point2::new(w.mul_add(ac.x, a.x), w.mul_add(ac.y, a.y));
             }
-            let va = d3 * d6 - d5 * d4;
+            let va = d5.mul_add(-d4, d3 * d6);
             if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
                 let denom = (d4 - d3) + (d5 - d6);
                 let u = (d4 - d3) / denom;
                 let w = (d5 - d6) / denom;
                 return Point2::new(
-                    a.x + u * ab.x + w * ac.x,
-                    a.y + u * ab.y + w * ac.y,
+                    w.mul_add(ac.x, u.mul_add(ab.x, a.x)),
+                    w.mul_add(ac.y, u.mul_add(ab.y, a.y)),
                 );
             }
             let denom = va + vb + vc;
             let u = vb / denom;
             let w = vc / denom;
             Point2::new(
-                a.x + u * ab.x + w * ac.x,
-                a.y + u * ab.y + w * ac.y,
+                w.mul_add(ac.x, u.mul_add(ab.x, a.x)),
+                w.mul_add(ac.y, u.mul_add(ab.y, a.y)),
             )
         }
         _ => Point2::new(0.0, 0.0),
@@ -232,6 +237,7 @@ fn closest_point_on_simplex(simplex: &[Point2]) -> Point2 {
 
 /// GJK distance between two convex shapes (given as point sets).
 /// Returns the minimum distance and closest points.
+#[must_use]
 pub fn gjk_distance(a: &[Point2], b: &[Point2]) -> f64 {
     if a.is_empty() || b.is_empty() {
         return f64::INFINITY;
@@ -249,7 +255,7 @@ pub fn gjk_distance(a: &[Point2], b: &[Point2]) -> f64 {
         if do_simplex(&mut simplex, &mut dir) {
             return 0.0;
         }
-        if dir.x * dir.x + dir.y * dir.y < 1e-20 {
+        if dir.y.mul_add(dir.y, dir.x * dir.x) < 1e-20 {
             break;
         }
         iter += 1;
@@ -259,7 +265,7 @@ pub fn gjk_distance(a: &[Point2], b: &[Point2]) -> f64 {
     }
     // Distance from origin to closest point on simplex
     let cp = closest_point_on_simplex(&simplex);
-    (cp.x * cp.x + cp.y * cp.y).sqrt()
+    cp.x.hypot(cp.y)
 }
 
 #[cfg(test)]

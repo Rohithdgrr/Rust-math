@@ -2,7 +2,7 @@
 //!
 //! Demonstrates how to use dual y-axes and broken axes for plots.
 
-use mathverse_plot::dual_axis::{AxisBreak, AxisBuilder, BrokenAxis, BreakStyle, DualYAxis};
+use mathverse_plot::dual_axis::{AxisBreak, AxisBuilder, BreakStyle, DualYAxis};
 use mathverse_plot::axis_config::AxisConfig;
 use mathverse_plot::style::Color;
 
@@ -27,7 +27,7 @@ fn main() {
     let temp_20 = 20.0;
     let mapped_precip = dual_with_limits.map_to_secondary(temp_20);
     println!("\nMapping temperature to precipitation:");
-    println!("  {}°C -> {:.1} mm", temp_20, mapped_precip);
+    println!("  {temp_20}°C -> {mapped_precip:.1} mm");
 
     // Create a broken axis
     let broken = AxisBuilder::broken_y(10.0, 20.0);

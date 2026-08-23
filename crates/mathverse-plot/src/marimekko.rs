@@ -89,8 +89,8 @@ pub fn render_marimekko(
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     let total_weight: f64 = columns.iter().map(|c| c.width_weight).sum();
     if total_weight <= 0.0 {

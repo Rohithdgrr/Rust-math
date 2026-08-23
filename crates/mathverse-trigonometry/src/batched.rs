@@ -138,7 +138,7 @@ mod tests {
         assert!((out[1] - 1.0).abs() < EPS);
         assert!(out[2].abs() < 1e-12);
 
-        assert!((map_sin(&xs[..2], &mut out) == false));
+        assert!((!map_sin(&xs[..2], &mut out)));
         assert_eq!(out[0], 0.0, "output must be untouched on mismatch");
 
         let mut vals = [0.0f64, PI / 2.0, PI];

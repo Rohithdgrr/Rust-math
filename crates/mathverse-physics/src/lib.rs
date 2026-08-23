@@ -25,6 +25,9 @@ pub mod quantum;
 pub mod fluid_dynamics;
 pub mod astrophysics;
 pub mod nuclear;
+pub mod fluent;
+
+pub use fluent::FluentPhysicsUnits;
 
  // Glob re-exports intentionally expose every public item at the crate root;
 #[allow(unused_imports)]

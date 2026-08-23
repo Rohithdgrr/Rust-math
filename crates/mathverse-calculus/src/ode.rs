@@ -173,17 +173,6 @@ pub fn rkf45(
     tol: f64,
     max_steps: usize,
 ) -> MathResult<Vec<(f64, f64)>> {
-    if tol <= 0.0 || !tol.is_finite() {
-        return Err(mathverse_core::error::MathError::InvalidArgument(
-            "rkf45: tolerance must be positive and finite",
-        ));
-    }
-    if t0 == t_end {
-        return Err(mathverse_core::error::MathError::InvalidArgument(
-            "rkf45: t0 must differ from t_end",
-        ));
-    }
-
     // Fehlberg tableau (6 stages, embedded orders 4 and 5).
     const A: [[f64; 5]; 5] = [
         [0.25, 0.0, 0.0, 0.0, 0.0],
@@ -204,6 +193,17 @@ pub fn rkf45(
     ];
     // 4th-order weights (used only for the error estimate).
     const B4: [f64; 6] = [25.0 / 216.0, 0.0, 1408.0 / 2565.0, 2197.0 / 4104.0, -1.0 / 5.0, 0.0];
+
+    if tol <= 0.0 || !tol.is_finite() {
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "rkf45: tolerance must be positive and finite",
+        ));
+    }
+    if t0 == t_end {
+        return Err(mathverse_core::error::MathError::InvalidArgument(
+            "rkf45: t0 must differ from t_end",
+        ));
+    }
 
     let dir = (t_end - t0).signum();
     let span = (t_end - t0).abs();
@@ -361,7 +361,7 @@ mod tests {
     #[test]
     fn euler_test() {
         // dy/dt = y, y(0) = 1, solution: y = e^t
-        let result = euler(&|t, y| y, 0.0, 1.0, 1.0, 100).unwrap();
+        let result = euler(&|_t, y| y, 0.0, 1.0, 1.0, 100).unwrap();
         let y_final = result.last().unwrap().1;
         assert!((y_final - 1.0_f64.exp()).abs() < 0.02);
     }
@@ -369,7 +369,7 @@ mod tests {
     #[test]
     fn runge_kutta_4_test() {
         // dy/dt = y, y(0) = 1, solution: y = e^t
-        let result = runge_kutta_4(&|t, y| y, 0.0, 1.0, 1.0, 10).unwrap();
+        let result = runge_kutta_4(&|_t, y| y, 0.0, 1.0, 1.0, 10).unwrap();
         let y_final = result.last().unwrap().1;
         assert!((y_final - 1.0_f64.exp()).abs() < 1e-5);
     }
@@ -377,7 +377,7 @@ mod tests {
     #[test]
     fn midpoint_test() {
         // dy/dt = y, y(0) = 1, solution: y = e^t
-        let result = midpoint(&|t, y| y, 0.0, 1.0, 1.0, 100).unwrap();
+        let result = midpoint(&|_t, y| y, 0.0, 1.0, 1.0, 100).unwrap();
         let y_final = result.last().unwrap().1;
         assert!((y_final - 1.0_f64.exp()).abs() < 0.001);
     }

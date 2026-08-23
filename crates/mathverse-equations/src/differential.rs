@@ -14,6 +14,7 @@ pub fn euler(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f64) -> 
     result
 }
 
+/// Classical fourth-order Runge-Kutta integration of `y' = f(t, y)`.
 pub fn runge_kutta4(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f64) -> Vec<(f64, f64)> {
     assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let mut result = vec![(t0, y0)];
@@ -31,6 +32,7 @@ pub fn runge_kutta4(f: impl Fn(f64, f64) -> f64, y0: f64, t0: f64, tf: f64, h: f
     result
 }
 
+/// Euler's method for the system `y' = f(t, y)` with `y ∈ R^n`.
 pub fn euler_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, tf: f64, h: f64) -> Vec<(f64, Vec<f64>)> {
     assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let mut result = vec![(t0, y0.to_vec())];
@@ -45,6 +47,7 @@ pub fn euler_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, t
     result
 }
 
+/// Classical fourth-order Runge-Kutta integration of the system `y' = f(t, y)`.
 pub fn rk4_system(f: &impl Fn(f64, &[f64]) -> Vec<f64>, y0: &[f64], t0: f64, tf: f64, h: f64) -> Vec<(f64, Vec<f64>)> {
     assert!(h > 0.0 && t0 < tf, "step size must be positive and t0 < tf");
     let n = y0.len();

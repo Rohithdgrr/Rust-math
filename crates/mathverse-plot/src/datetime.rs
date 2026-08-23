@@ -37,27 +37,27 @@ impl DateTime {
 
     /// Convert to seconds since epoch (for plotting).
     pub fn to_f64(self) -> f64 {
-        self.timestamp as f64 + self.nanos as f64 / 1_000_000_000.0
+        self.timestamp as f64 + f64::from(self.nanos) / 1_000_000_000.0
     }
 
     /// Create from seconds since epoch.
     pub fn from_f64(secs: f64) -> Self {
         let timestamp = secs.floor() as i64;
-        let nanos = ((secs - secs as f64) * 1_000_000_000.0).round() as u32;
+        let nanos = (secs.fract() * 1_000_000_000.0).round() as u32;
         Self { timestamp, nanos }
     }
 
     /// Format according to the given format string.
     pub fn format(&self, fmt: &str) -> String {
         let (y, mo, d, h, mi, s) = to_ymdhms(self.timestamp);
-        let fractional = self.nanos as f64 / 1_000_000_000.0;
+        let fractional = f64::from(self.nanos) / 1_000_000_000.0;
 
-        fmt.replace("%Y", &format!("{:04}", y))
-            .replace("%m", &format!("{:02}", mo))
-            .replace("%d", &format!("{:02}", d))
-            .replace("%H", &format!("{:02}", h))
-            .replace("%M", &format!("{:02}", mi))
-            .replace("%S", &format!("{:02}", s))
+        fmt.replace("%Y", &format!("{y:04}"))
+            .replace("%m", &format!("{mo:02}"))
+            .replace("%d", &format!("{d:02}"))
+            .replace("%H", &format!("{h:02}"))
+            .replace("%M", &format!("{mi:02}"))
+            .replace("%S", &format!("{s:02}"))
             .replace("%f", &format!("{:06}", (fractional * 1_000_000.0) as u32))
     }
 
@@ -66,10 +66,8 @@ impl DateTime {
         let span = (self.timestamp - other.timestamp).abs();
         if span < 60 {
             "%H:%M:%S" // seconds
-        } else if span < 3600 {
-            "%H:%M" // minutes
         } else if span < 86400 {
-            "%H:%M" // hours
+            "%H:%M" // minutes/hours
         } else if span < 86400 * 30 {
             "%m-%d" // days
         } else if span < 86400 * 365 {
@@ -214,6 +212,7 @@ impl crate::ticks::TickLocator for DateLocator {
 /// matplotlib-style date tick formatter: formats a float timestamp using a
 /// strftime-like format (see [`DateTime::format`]).
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct DateFormatter {
     /// strftime format string (auto-detected when empty).
     pub format: String,
@@ -245,13 +244,6 @@ impl DateFormatter {
     }
 }
 
-impl Default for DateFormatter {
-    fn default() -> Self {
-        Self {
-            format: String::new(),
-        }
-    }
-}
 
 impl crate::ticks::TickFormatter for DateFormatter {
     fn format(&self, value: f64) -> String {
@@ -363,11 +355,11 @@ fn unix_timestamp(year: i32, month: u32, day: u32, hour: u32, min: u32, sec: u32
         31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
     ];
     for m in 1..month {
-        days += days_in_month[(m - 1) as usize] as i64;
+        days += i64::from(days_in_month[(m - 1) as usize]);
     }
-    days += (day - 1) as i64;
+    days += i64::from(day - 1);
 
-    days * 86400 + hour as i64 * 3600 + min as i64 * 60 + sec as i64
+    days * 86400 + i64::from(hour) * 3600 + i64::from(min) * 60 + i64::from(sec)
 }
 
 #[cfg(test)]

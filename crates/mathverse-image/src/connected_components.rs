@@ -85,7 +85,7 @@ mod tests {
         // left 3x3 block = 1, right 3x3 block = 1, gap at column 2
         for y in 0..3 {
             for x in 0..6 {
-                img.set(x, y, if x < 2 { 1.0 } else if x > 3 { 1.0 } else { 0.0 });
+                img.set(x, y, if (2..=3).contains(&x) { 0.0 } else { 1.0 });
             }
         }
         let (_labels, count) = connected_components(&img, 0.5);

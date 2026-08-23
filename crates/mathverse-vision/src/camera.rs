@@ -176,7 +176,7 @@ impl CameraTrait for V4LCamera {
         for y in 0..self.height {
             for x in 0..self.width {
                 let idx = y * self.width + x;
-                if ((x + offset) / 20 + y / 20) % 2 == 0 {
+                if ((x + offset) / 20 + y / 20).is_multiple_of(2) {
                     data[idx] = 1.0;
                 } else {
                     data[idx] = 0.0;
@@ -323,10 +323,10 @@ impl CameraTrait for RealCamera {
         use nokhwa::pixel_format::RgbFormat;
         
         let frame = self.camera.frame()
-            .map_err(|e| format!("Failed to capture frame: {}", e))?;
+            .map_err(|e| format!("Failed to capture frame: {e}"))?;
         
         let decoded = frame.decode_image::<RgbFormat>()
-            .map_err(|e| format!("Failed to decode frame: {}", e))?;
+            .map_err(|e| format!("Failed to decode frame: {e}"))?;
         
         let w = decoded.width() as usize;
         let h = decoded.height() as usize;
@@ -347,9 +347,9 @@ impl CameraTrait for RealCamera {
                 let src_idx = (sy * w + sx) * 3;
                 
                 if src_idx + 2 < rgb_data.len() {
-                    let r = rgb_data[src_idx] as f64 / 255.0;
-                    let g = rgb_data[src_idx + 1] as f64 / 255.0;
-                    let b = rgb_data[src_idx + 2] as f64 / 255.0;
+                    let r = f64::from(rgb_data[src_idx]) / 255.0;
+                    let g = f64::from(rgb_data[src_idx + 1]) / 255.0;
+                    let b = f64::from(rgb_data[src_idx + 2]) / 255.0;
                     
                     // Convert to grayscale
                     gray_data[ty * target_w + tx] = 0.299 * r + 0.587 * g + 0.114 * b;
@@ -434,7 +434,7 @@ impl SystemCamera {
                 return Ok(SystemCamera { inner, width, height });
             }
             Err(e) => {
-                println!("⚠ Real camera not available: {}", e);
+                println!("⚠ Real camera not available: {e}");
                 println!("Using animated test pattern instead...");
             }
         }
@@ -473,7 +473,7 @@ impl SystemCamera {
         use nokhwa::utils::{CameraIndex, RequestedFormat, RequestedFormatType, CameraFormat, Resolution, FrameFormat};
         use nokhwa::Camera;
 
-        println!("Attempting to open camera {}...", index);
+        println!("Attempting to open camera {index}...");
         
         let camera_index = CameraIndex::Index(index as u32);
         
@@ -489,12 +489,12 @@ impl SystemCamera {
         );
 
         let mut camera = Camera::new(camera_index, requested)
-            .map_err(|e| format!("Failed to open camera device: {}", e))?;
+            .map_err(|e| format!("Failed to open camera device: {e}"))?;
 
         println!("Camera device opened, starting stream...");
         
         camera.open_stream()
-            .map_err(|e| format!("Failed to start camera stream: {}", e))?;
+            .map_err(|e| format!("Failed to start camera stream: {e}"))?;
 
         println!("Camera stream started successfully!");
         

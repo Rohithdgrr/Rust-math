@@ -80,8 +80,8 @@ pub fn render_quiver(vectors: &[QuiverVector], config: &QuiverConfig) -> PlotRes
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     // Find bounds
     let min_x = vectors.iter().map(|v| v.x).fold(f64::MAX, f64::min);
@@ -119,7 +119,7 @@ pub fn render_quiver(vectors: &[QuiverVector], config: &QuiverConfig) -> PlotRes
         let x_right = width - padding;
         let y_bottom = height - padding;
         for i in 0..=5 {
-            let y = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let y = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");
@@ -131,7 +131,7 @@ pub fn render_quiver(vectors: &[QuiverVector], config: &QuiverConfig) -> PlotRes
             svg.push_str("\" stroke=\"#eee\"/>\n");
         }
         for i in 0..=5 {
-            let x = padding + (i as f64 / 5.0) * chart_width;
+            let x = padding + (f64::from(i) / 5.0) * chart_width;
             svg.push_str("  <line x1=\"");
             svg.push_str(&x.to_string());
             svg.push_str("\" y1=\"");

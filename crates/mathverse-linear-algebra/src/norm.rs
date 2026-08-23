@@ -101,8 +101,6 @@ pub fn matrix_norm(a: &Matrix, p: f64) -> f64 {
         norm_inf(a)
     } else if p == 2.0 {
         norm_2(a)
-    } else if p == 0.0 {
-        norm_frobenius(a)
     } else {
         norm_frobenius(a)
     }
@@ -163,7 +161,7 @@ mod tests {
         // Well-conditioned matrix
         let a = mat(&[&[1.0, 0.0], &[0.0, 1.0]]);
         let sv = singular_values(&a);
-        println!("Identity singular values: {:?}", sv);
+        println!("Identity singular values: {sv:?}");
         // For identity, power iteration should find at least one singular value = 1
         assert!(!sv.is_empty());
         assert!((sv[0] - 1.0).abs() < 1e-4);
@@ -171,7 +169,7 @@ mod tests {
         // Ill-conditioned matrix
         let b = mat(&[&[1.0, 1.0], &[1.0, 1.0 + 1e-2]]);
         let sv_b = singular_values(&b);
-        println!("Ill-conditioned singular values: {:?}", sv_b);
+        println!("Ill-conditioned singular values: {sv_b:?}");
         // Should find at least one singular value
         assert!(!sv_b.is_empty());
         // Largest singular value should be positive

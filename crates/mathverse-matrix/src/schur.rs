@@ -6,8 +6,11 @@ use mathverse_core::error::{MathError, MathResult};
 /// Schur decomposition result.
 #[derive(Debug, Clone)]
 pub struct SchurDecomposition {
-    pub q: Matrix,  // Orthogonal matrix
-    pub t: Matrix,  // Quasi-triangular (upper triangular with 2x2 blocks for complex eigenvalues)
+    /// Orthogonal factor `Q` with `Qᵀ A Q = T`.
+    pub q: Matrix,
+    /// Quasi-triangular factor (upper triangular with 2×2 blocks for complex
+    /// eigenvalue pairs).
+    pub t: Matrix,
 }
 
 /// Schur decomposition for general matrices.
@@ -20,9 +23,8 @@ impl SchurDecompositionImpl {
             return Err(MathError::DimensionMismatch);
         }
         
-        let _n = m.rows;
-        let mut h = Self::hessenberg(m)?;
-        let mut q = Self::hessenberg_q(m)?;
+        let mut h = Self::hessenberg(m);
+        let mut q = Self::hessenberg_q(m);
         
         // QR iteration
         for _ in 0..100 {
@@ -40,7 +42,7 @@ impl SchurDecompositionImpl {
     }
 
     /// Reduce matrix to upper Hessenberg form (similarity transform only).
-    fn hessenberg(m: &Matrix) -> MathResult<Matrix> {
+    fn hessenberg(m: &Matrix) -> Matrix {
         let n = m.rows;
         let mut h = m.clone();
         
@@ -86,11 +88,11 @@ impl SchurDecompositionImpl {
             }
         }
         
-        Ok(h)
+        h
     }
 
     /// Compute the accumulated orthogonal factor Q from Hessenberg reduction: A = Q H Q^T.
-    fn hessenberg_q(m: &Matrix) -> MathResult<Matrix> {
+    fn hessenberg_q(m: &Matrix) -> Matrix {
         let n = m.rows;
         let mut h = m.clone();
         let mut q = Matrix::identity(n);
@@ -147,7 +149,7 @@ impl SchurDecompositionImpl {
             }
         }
         
-        Ok(q)
+        q
     }
 
     /// Check if matrix is upper triangular (within tolerance).
@@ -192,7 +194,7 @@ impl SchurDecompositionImpl {
                 let discriminant = trace * trace - 4.0 * det;
                 
                 if discriminant >= 0.0 {
-                    eigenvalues.push((trace + discriminant.sqrt()) / 2.0);
+                    eigenvalues.push(f64::midpoint(trace, discriminant.sqrt()));
                     eigenvalues.push((trace - discriminant.sqrt()) / 2.0);
                 } else {
                     // Complex eigenvalues - store real parts
@@ -217,12 +219,12 @@ impl SchurApplications {
     /// Compute matrix exponential using Schur decomposition.
     pub fn exp(m: &Matrix) -> MathResult<Matrix> {
         let schur = SchurDecompositionImpl::compute(m)?;
-        let exp_t = Self::exp_triangular(&schur.t)?;
+        let exp_t = Self::exp_triangular(&schur.t);
         schur.q.mul(&exp_t)?.mul(&schur.q.transpose())
     }
 
     /// Exponential of triangular matrix using Parlett recurrence.
-    fn exp_triangular(t: &Matrix) -> MathResult<Matrix> {
+    fn exp_triangular(t: &Matrix) -> Matrix {
         let n = t.rows;
         let mut exp_t = Matrix::zeros(n, n);
         
@@ -255,18 +257,18 @@ impl SchurApplications {
             }
         }
         
-        Ok(exp_t)
+        exp_t
     }
 
     /// Compute matrix function using Schur decomposition.
     pub fn matrix_function(m: &Matrix, f: impl Fn(f64) -> f64) -> MathResult<Matrix> {
         let schur = SchurDecompositionImpl::compute(m)?;
-        let f_t = Self::apply_function_triangular(&schur.t, &f)?;
+        let f_t = Self::apply_function_triangular(&schur.t, &f);
         schur.q.mul(&f_t)?.mul(&schur.q.transpose())
     }
 
     /// Apply function to triangular matrix via Parlett recurrence.
-    fn apply_function_triangular(t: &Matrix, f: &impl Fn(f64) -> f64) -> MathResult<Matrix> {
+    fn apply_function_triangular(t: &Matrix, f: &impl Fn(f64) -> f64) -> Matrix {
         let n = t.rows;
         let mut f_t = Matrix::zeros(n, n);
         
@@ -298,7 +300,7 @@ impl SchurApplications {
             }
         }
         
-        Ok(f_t)
+        f_t
     }
 
     /// Solve Sylvester equation using Schur form.
@@ -371,7 +373,7 @@ mod tests {
         let eigenvalues = SchurDecompositionImpl::eigenvalues(&schur);
         
         // Should be 3 and 1
-        assert!(eigenvalues.len() == 2);
+        assert_eq!(eigenvalues.len(), 2);
         assert!((eigenvalues[0] - 3.0).abs() < 1e-10 || (eigenvalues[1] - 3.0).abs() < 1e-10);
     }
 

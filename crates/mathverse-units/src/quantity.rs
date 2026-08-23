@@ -23,6 +23,7 @@ use std::ops::{Add, Div, Mul, Sub};
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Quantity<D: Dimension, U: SiUnit> {
+    /// The raw numeric value of this quantity.
     pub value: f64,
     _dim: PhantomData<D>,
     _unit: PhantomData<U>,
@@ -131,9 +132,9 @@ mod tests {
     fn test_display() {
         let q: Quantity<LengthDim, Meter> = Quantity::new(5.0);
         // Rust's `{}` f64 formatting prints `5.0` as `5`.
-        assert_eq!(format!("{}", q), "5m");
+        assert_eq!(format!("{q}"), "5m");
         let q: Quantity<LengthDim, Meter> = Quantity::new(5.5);
-        assert_eq!(format!("{}", q), "5.5m");
+        assert_eq!(format!("{q}"), "5.5m");
     }
 
     #[test]

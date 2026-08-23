@@ -135,8 +135,8 @@ pub fn render_radar_chart(series: &[RadarSeries], config: &RadarConfig) -> PlotR
         }
     }
 
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
     let angle_step = 2.0 * PI / num_axes as f64;
 
     // Find max value for normalization

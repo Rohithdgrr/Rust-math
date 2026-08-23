@@ -1,4 +1,4 @@
-//! # MathVerse Image Processing Library
+//! # `MathVerse` Image Processing Library
 //!
 //! A production-grade Rust library for grayscale image processing, providing
 //! efficient implementations of common computer vision algorithms.
@@ -665,7 +665,7 @@ mod tests {
         for (a, b) in img.data.iter().zip(&twice.data) {
             assert!((a - b).abs() < 1e-12);
         }
-        let sq = GrayImage::from_data(6, 6, (0..36).map(|i| (i % 7) as f64 / 10.0).collect()).unwrap();
+        let sq = GrayImage::from_data(6, 6, (0..36).map(|i| f64::from(i % 7) / 10.0).collect()).unwrap();
         let four = sq.rotate90().rotate90().rotate90().rotate90();
         for (a, b) in sq.data.iter().zip(&four.data) {
             assert!((a - b).abs() < 1e-12);

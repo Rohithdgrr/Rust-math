@@ -8,8 +8,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     let mut vectors = Vec::new();
     for i in 0..5 {
         for j in 0..5 {
-            let x = i as f64;
-            let y = j as f64;
+            let x = f64::from(i);
+            let y = f64::from(j);
             let u = -y;
             let v = x;
             vectors.push(QuiverVector::new(x, y, u, v));

@@ -45,7 +45,7 @@ impl GrayImage {
                     }
                 }
 
-                let mean = sum / count as f64;
+                let mean = sum / f64::from(count);
                 let local_threshold = mean - c;
                 out.set(x, y, if self.get(x, y) >= local_threshold { 1.0 } else { 0.0 });
             }
@@ -56,9 +56,9 @@ impl GrayImage {
     /// Add Gaussian noise to the image.
     pub fn add_gaussian_noise(&self, mean: f64, std_dev: f64) -> GrayImage {
         let mut out = self.clone();
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
-        for v in out.data.iter_mut() {
+        for v in &mut out.data {
             let noise: f64 = normal_sample(&mut rng, mean, std_dev);
             *v = (*v + noise).clamp(0.0, 1.0);
         }
@@ -73,7 +73,7 @@ impl GrayImage {
         use rand::{rngs::StdRng, SeedableRng};
         let mut rng = StdRng::seed_from_u64(seed);
         let mut out = self.clone();
-        for v in out.data.iter_mut() {
+        for v in &mut out.data {
             let noise: f64 = normal_sample(&mut rng, mean, std_dev);
             *v = (*v + noise).clamp(0.0, 1.0);
         }
@@ -83,9 +83,9 @@ impl GrayImage {
     /// Add salt-and-pepper noise to the image.
     pub fn add_salt_pepper_noise(&self, density: f64) -> GrayImage {
         let mut out = self.clone();
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
-        for v in out.data.iter_mut() {
+        for v in &mut out.data {
             if rng.random::<f64>() < density {
                 *v = if rng.random::<bool>() { 1.0 } else { 0.0 };
             }
@@ -110,7 +110,7 @@ impl GrayImage {
                 }
                 // total_cmp: NaN pixel values sort deterministically instead
                 // of panicking via partial_cmp().unwrap().
-                window.sort_by(|a, b| a.total_cmp(b));
+                window.sort_by(f64::total_cmp);
                 let median = window[window.len() / 2];
                 out.set(x, y, median);
             }
@@ -208,12 +208,12 @@ impl GrayImage {
 
     /// Compute the minimum pixel value.
     pub fn min_value(&self) -> f64 {
-        self.data.iter().cloned().fold(f64::INFINITY, f64::min)
+        self.data.iter().copied().fold(f64::INFINITY, f64::min)
     }
 
     /// Compute the maximum pixel value.
     pub fn max_value(&self) -> f64 {
-        self.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
+        self.data.iter().copied().fold(f64::NEG_INFINITY, f64::max)
     }
 
     /// Normalize the image to [0, 1] range based on min/max values.

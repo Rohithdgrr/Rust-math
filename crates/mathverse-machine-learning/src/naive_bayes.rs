@@ -83,7 +83,7 @@ fn predict_one(model: &NaiveBayesModel, x: &[f64]) -> MathResult<f64> {
         .enumerate()
         .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(Ordering::Equal))
         .map(|(idx, _)| idx)
-        .ok_or_else(|| mathverse_core::error::MathError::InvalidArgument(
+        .ok_or(mathverse_core::error::MathError::InvalidArgument(
             "naive_bayes: no classes available for prediction",
         ))?;
     Ok(model.classes[best])
@@ -100,7 +100,7 @@ fn predict_one_proba(model: &NaiveBayesModel, x: &[f64]) -> MathResult<Vec<f64>>
             log_probs[c] += -0.5 * ((2.0 * std::f64::consts::PI * v).ln() + (x[j] - m).powi(2) / v);
         }
     }
-    let max_log = log_probs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let max_log = log_probs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let exps: Vec<f64> = log_probs.iter().map(|lp| (lp - max_log).exp()).collect();
     let sum: f64 = exps.iter().sum();
     Ok(exps.iter().map(|e| e / sum).collect())

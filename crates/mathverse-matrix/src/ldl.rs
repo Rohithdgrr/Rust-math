@@ -6,8 +6,10 @@ use mathverse_core::error::{MathError, MathResult};
 /// LDL decomposition result: A = L D L^T where L is unit lower triangular and D is diagonal.
 #[derive(Debug, Clone)]
 pub struct LdlDecomposition {
-    pub l: Matrix,      // Unit lower triangular
-    pub d: Matrix,      // Diagonal matrix
+    /// Unit lower triangular factor.
+    pub l: Matrix,
+    /// Diagonal factor.
+    pub d: Matrix,
 }
 
 /// LDL decomposition for symmetric matrices.

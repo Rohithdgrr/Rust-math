@@ -36,7 +36,7 @@ fn main() -> Result<(), String> {
         WIDTH,
         HEIGHT,
         WindowOptions::default(),
-    ).map_err(|e| format!("Failed to create window: {}", e))?;
+    ).map_err(|e| format!("Failed to create window: {e}"))?;
     
     // Limit update rate to approximately 30 FPS
     window.set_target_fps(30);
@@ -86,7 +86,7 @@ fn main() -> Result<(), String> {
             println!("Mode: Original");
         }
         if window.is_key_pressed(Key::Space, minifb::KeyRepeat::No) {
-            println!("Screenshot saved as frame_{:04}.raw", frame_count);
+            println!("Screenshot saved as frame_{frame_count:04}.raw");
         }
         
         // Capture frame
@@ -129,18 +129,18 @@ fn main() -> Result<(), String> {
         // Update window
         window
             .update_with_buffer(&buffer, WIDTH, HEIGHT)
-            .map_err(|e| format!("Window update failed: {}", e))?;
+            .map_err(|e| format!("Window update failed: {e}"))?;
         
         frame_count += 1;
         
         // Print FPS every 30 frames
         if frame_count % 30 == 0 {
-            print!("\rFrames: {} ", frame_count);
+            print!("\rFrames: {frame_count} ");
             std::io::Write::flush(&mut std::io::stdout()).ok();
         }
     }
     
-    println!("\n\nCamera closed. Total frames: {}", frame_count);
+    println!("\n\nCamera closed. Total frames: {frame_count}");
     Ok(())
 }
 
@@ -152,7 +152,7 @@ fn grayscale_to_rgb_buffer(img: &Image) -> Vec<u32> {
         // Clamp to [0, 1] and convert to 8-bit
         let byte = (val.clamp(0.0, 1.0) * 255.0) as u8;
         // Pack as 0xRRGGBB
-        buffer[i] = ((byte as u32) << 16) | ((byte as u32) << 8) | (byte as u32);
+        buffer[i] = (u32::from(byte) << 16) | (u32::from(byte) << 8) | u32::from(byte);
     }
     
     buffer
@@ -202,7 +202,7 @@ fn histogram_equalize(img: &Image) -> Image {
         let bin = (val * 255.0).floor() as usize;
         let bin = bin.min(255);
         // Map using CDF
-        let equalized = (cdf[bin] as f64 / total_pixels as f64);
+        let equalized = cdf[bin] as f64 / total_pixels as f64;
         out.data[i] = equalized;
     }
     

@@ -1,4 +1,5 @@
-//! Criterion benchmarks for `mathverse-trigonometry`.
+//! Criterion benchmarks for mathverse-trigonometry.
+#![allow(missing_docs)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
@@ -17,7 +18,7 @@ fn bench_scalar_sincos(c: &mut Criterion) {
                 acc += sin(x) + cosd(x) + tan(x);
             }
             acc
-        })
+        });
     });
 }
 
@@ -30,7 +31,7 @@ fn bench_sinpi_cospi(c: &mut Criterion) {
                 acc += sinpi(x) + cospi(x);
             }
             acc
-        })
+        });
     });
 }
 
@@ -43,14 +44,14 @@ fn bench_degree_variants(c: &mut Criterion) {
                 acc += sind(x) + cosd(x) + sin_cos_deg(x).0;
             }
             acc
-        })
+        });
     });
 }
 
 fn bench_batch_sumsin(c: &mut Criterion) {
     let xs: Vec<f64> = (0..N).map(|i| (i % 1000) as f64 / 97.0).collect();
     c.bench_function("trig_sum_sin_1m", |bencher| {
-        bencher.iter(|| sum_sin(black_box(&xs)))
+        bencher.iter(|| sum_sin(black_box(&xs)));
     });
 }
 
@@ -63,7 +64,7 @@ fn bench_identities(c: &mut Criterion) {
                 acc += sin_double(x) + tan_half(x / 2.0);
             }
             acc
-        })
+        });
     });
 }
 

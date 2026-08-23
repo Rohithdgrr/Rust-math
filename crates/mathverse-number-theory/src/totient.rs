@@ -10,13 +10,14 @@
 /// assert_eq!(euler_totient(1), 1);
 /// ```
 #[must_use]
+#[allow(clippy::missing_const_for_fn)]
 pub fn euler_totient(mut n: u64) -> u64 {
     if n == 0 {
         return 0;
     }
     let mut result = n;
     let mut d = 2u64;
-    while (d as u128) * (d as u128) <= n as u128 {
+    while u128::from(d) * u128::from(d) <= u128::from(n) {
         if n.is_multiple_of(d) {
             while n.is_multiple_of(d) {
                 n /= d;
@@ -180,7 +181,10 @@ pub fn primitive_root(n: u64) -> Option<u64> {
     let phi = euler_totient(n);
     let unique_factors = {
         let factors = crate::prime_factors(phi);
-        factors.iter().copied().collect::<std::collections::HashSet<_>>()
+        factors
+            .iter()
+            .copied()
+            .collect::<std::collections::HashSet<_>>()
     };
     for g in 2..=100.min(n - 1) {
         if !is_coprime(g, n) {
@@ -191,11 +195,11 @@ pub fn primitive_root(n: u64) -> Option<u64> {
         }
     }
     // Deterministic pseudo-random search for larger candidates.
-    let mut state = n.wrapping_mul(0x5DEECE66D);
+    let mut state = n.wrapping_mul(0x0005_DEEC_E66D);
     for _ in 0..10_000 {
         state = state
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let g = 101 + (state % (n - 101));
         if !is_coprime(g, n) {
             continue;
@@ -207,7 +211,12 @@ pub fn primitive_root(n: u64) -> Option<u64> {
     None
 }
 
-fn is_primitive_root(g: u64, n: u64, phi: u64, unique_factors: &std::collections::HashSet<u64>) -> bool {
+fn is_primitive_root(
+    g: u64,
+    n: u64,
+    phi: u64,
+    unique_factors: &std::collections::HashSet<u64>,
+) -> bool {
     for &p in unique_factors {
         if crate::modular::mod_pow_unchecked(g, phi / p, n) == 1 {
             return false;
@@ -245,7 +254,7 @@ pub fn multiplicative_order(a: u64, n: u64) -> Option<u64> {
             i += 1;
         }
         i += 1;
-        while order % p == 0 && crate::modular::mod_pow_unchecked(a, order / p, n) == 1 {
+        while order.is_multiple_of(p) && crate::modular::mod_pow_unchecked(a, order / p, n) == 1 {
             order /= p;
         }
     }

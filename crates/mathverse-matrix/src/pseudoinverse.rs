@@ -205,9 +205,7 @@ impl PseudoinverseApplications {
         
         // Truncate singular values
         let mut s_trunc = vec![0.0; k];
-        for i in 0..k {
-            s_trunc[i] = svd.s[i];
-        }
+        s_trunc[..k].copy_from_slice(&svd.s[..k]);
         
         // Truncate U and V
         let mut u_trunc = Matrix::zeros(m.rows, k);
@@ -267,7 +265,7 @@ mod tests {
         let m = Matrix::from_rows(&[&[1.0, 1.0], &[1.0, 2.0], &[1.0, 3.0]]).unwrap();
         let b = mathverse_vector::Vector::new(vec![1.0, 2.0, 2.0]);
         let x = PseudoinverseApplications::solve(&m, &b).unwrap();
-        assert!(x.data.len() == 2);
+        assert_eq!(x.data.len(), 2);
     }
 
     #[test]
@@ -282,6 +280,6 @@ mod tests {
         let m = Matrix::from_rows(&[&[1.0, 1.0], &[1.0, 2.0]]).unwrap();
         let b = mathverse_vector::Vector::new(vec![1.0, 2.0]);
         let x = PseudoinverseApplications::tikhonov(&m, &b, 0.1).unwrap();
-        assert!(x.data.len() == 2);
+        assert_eq!(x.data.len(), 2);
     }
 }

@@ -13,20 +13,20 @@ fn main() {
     let fahrenheit = celsius_to_fahrenheit(celsius);
     let kelvin = celsius_to_kelvin(celsius);
 
-    println!("{}°C = {}°F", celsius, fahrenheit);
-    println!("{}°C = {}K", celsius, kelvin);
+    println!("{celsius}°C = {fahrenheit}°F");
+    println!("{celsius}°C = {kelvin}K");
 
     let fahrenheit = 77.0;
     let celsius = fahrenheit_to_celsius(fahrenheit);
     let kelvin = fahrenheit_to_kelvin(fahrenheit);
 
-    println!("{}°F = {}°C", fahrenheit, celsius);
-    println!("{}°F = {}K", fahrenheit, kelvin);
+    println!("{fahrenheit}°F = {celsius}°C");
+    println!("{fahrenheit}°F = {kelvin}K");
 
     let kelvin = 300.0;
     let celsius = kelvin_to_celsius(kelvin);
     let fahrenheit = kelvin_to_fahrenheit(kelvin);
 
-    println!("{}K = {}°C", kelvin, celsius);
-    println!("{}K = {}°F", kelvin, fahrenheit);
+    println!("{kelvin}K = {celsius}°C");
+    println!("{kelvin}K = {fahrenheit}°F");
 }

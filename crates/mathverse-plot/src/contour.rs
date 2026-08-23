@@ -132,8 +132,8 @@ pub fn render_contour(
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
     let rows = z_grid.len();
     let cols = z_grid[0].len();
 
@@ -220,11 +220,10 @@ pub fn render_contour(
 
             // Label
             if config.show_labels {
-                let mx = (x0 + x1) / 2.0;
-                let my = (y0 + y1) / 2.0;
+                let mx = f64::midpoint(x0, x1);
+                let my = f64::midpoint(y0, y1);
                 svg.push_str(&format!(
-                    r#"  <text x="{mx}" y="{my}" font-size="9" fill="{color}" text-anchor="middle" dy="-3">{:.1}</text>"#,
-                    level
+                    r#"  <text x="{mx}" y="{my}" font-size="9" fill="{color}" text-anchor="middle" dy="-3">{level:.1}</text>"#
                 ));
                 svg.push('\n');
             }
@@ -244,7 +243,7 @@ pub fn render_contour(
             let h1 = cb_h * (t1 - t0);
             svg.push_str(&format!(
                 r#"  <rect x="{}" y="{}" width="{}" height="{}" fill="{}"/>"#,
-                cb_x, y0, cb_w, h1, color_for_level((t0 + t1) / 2.0)
+                cb_x, y0, cb_w, h1, color_for_level(f64::midpoint(t0, t1))
             ));
             svg.push('\n');
         }
@@ -292,7 +291,7 @@ mod tests {
     #[test]
     fn contour_plot_renders() {
         let grid: Vec<Vec<f64>> = (0..10)
-            .map(|j| (0..10).map(|i| (i as f64 * i as f64 + j as f64 * j as f64) / 100.0).collect())
+            .map(|j| (0..10).map(|i| (f64::from(i) * f64::from(i) + f64::from(j) * f64::from(j)) / 100.0).collect())
             .collect();
         let config = ContourConfig::new();
         let svg = render_contour(&grid, (0.0, 1.0), (0.0, 1.0), &config).unwrap();

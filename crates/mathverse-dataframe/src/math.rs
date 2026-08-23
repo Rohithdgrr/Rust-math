@@ -5,17 +5,17 @@
 //! `mathverse-core`'s `libm`-backed fallbacks, which ship with the same API.
 
 #[cfg(feature = "std")]
-pub(crate) fn sqrt(x: f64) -> f64 {
+pub fn sqrt(x: f64) -> f64 {
     x.sqrt()
 }
 
 #[cfg(feature = "std")]
-pub(crate) fn floor(x: f64) -> f64 {
+pub fn floor(x: f64) -> f64 {
     x.floor()
 }
 
 #[cfg(feature = "std")]
-pub(crate) fn ceil(x: f64) -> f64 {
+pub fn ceil(x: f64) -> f64 {
     x.ceil()
 }
 

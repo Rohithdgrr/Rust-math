@@ -93,7 +93,8 @@ mod tests {
 
     #[test]
     fn newton_system_test() {
-        let f: Vec<Box<dyn Fn(&[f64]) -> f64>> = vec![
+        type ObjectiveVec = Vec<Box<dyn Fn(&[f64]) -> f64>>;
+        let f: ObjectiveVec = vec![
             Box::new(|x| x[0]*x[0] + x[1]*x[1] - 1.0),
             Box::new(|x| x[0] - x[1]),
         ];

@@ -17,7 +17,7 @@ pub fn next_prime(n: u64) -> u64 {
     if candidate <= 2 {
         return 2;
     }
-    if candidate % 2 == 0 {
+    if candidate.is_multiple_of(2) {
         candidate += 1;
     }
     while !crate::is_prime(candidate) {
@@ -39,7 +39,7 @@ pub fn prev_prime(n: u64) -> Option<u64> {
         return None;
     }
     let mut candidate = n - 1;
-    if candidate > 2 && candidate % 2 == 0 {
+    if candidate > 2 && candidate.is_multiple_of(2) {
         candidate -= 1;
     }
     while candidate >= 2 {
@@ -179,16 +179,16 @@ pub fn highly_composite(limit: u64) -> Vec<u64> {
 /// Uses floating-point root estimation for speed, with exact verification.
 /// Returns `None` if `n` is not a perfect power.
 ///
-    /// ```
-    /// use mathverse_number_theory::perfect_power;
-    /// // 8 = 2³, 9 = 3², 64 = 8² (or 2⁶ or 4³)
-    /// assert_eq!(perfect_power(8), Some((2, 3)));
-    /// assert_eq!(perfect_power(9), Some((3, 2)));
-    /// let r = perfect_power(64).unwrap();
-    /// assert_eq!(r.0.pow(r.1), 64); // any valid (base, exponent) pair
-    /// assert_eq!(perfect_power(7), None);
-    /// assert_eq!(perfect_power(1), None);
-    /// ```
+/// ```
+/// use mathverse_number_theory::perfect_power;
+/// // 8 = 2³, 9 = 3², 64 = 8² (or 2⁶ or 4³)
+/// assert_eq!(perfect_power(8), Some((2, 3)));
+/// assert_eq!(perfect_power(9), Some((3, 2)));
+/// let r = perfect_power(64).unwrap();
+/// assert_eq!(r.0.pow(r.1), 64); // any valid (base, exponent) pair
+/// assert_eq!(perfect_power(7), None);
+/// assert_eq!(perfect_power(1), None);
+/// ```
 #[must_use]
 pub fn perfect_power(n: u64) -> Option<(u64, u32)> {
     if n <= 3 {
@@ -223,9 +223,9 @@ fn nth_root_u64(n: u64, k: u32) -> u64 {
         return n;
     }
     let mut lo = 1u64;
-    let mut hi = n.min(1u64 << ((64 + k - 1) / k));
+    let mut hi = n.min(1u64 << 64u32.div_ceil(k));
     while lo < hi {
-        let mid = lo + (hi - lo + 1) / 2;
+        let mid = lo + (hi - lo).div_ceil(2);
         match mid.checked_pow(k) {
             Some(v) if v <= n => lo = mid,
             _ => hi = mid - 1,

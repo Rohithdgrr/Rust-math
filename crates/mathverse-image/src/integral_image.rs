@@ -9,8 +9,11 @@ use crate::GrayImage;
 /// `[x0, x1) × [y0, y1)` can be computed with four table lookups.
 #[derive(Debug, Clone)]
 pub struct IntegralImage {
+    /// Table width (image width + 1).
     pub w: usize,
+    /// Table height (image height + 1).
     pub h: usize,
+    /// Row-major summed-area buffer of length `w * h`.
     pub data: Vec<f64>,
 }
 

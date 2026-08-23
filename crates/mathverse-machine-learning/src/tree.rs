@@ -134,7 +134,7 @@ fn find_best_split(x: &[Vec<f64>], y: &[f64]) -> Option<(usize, f64, f64)> {
             if (vals[i].0 - vals[i + 1].0).abs() < 1e-10 {
                 continue;
             }
-            let thresh = (vals[i].0 + vals[i + 1].0) / 2.0;
+            let thresh = f64::midpoint(vals[i].0, vals[i + 1].0);
             let left_y: Vec<f64> = vals.iter().take(i + 1).map(|(_, y)| *y).collect();
             let right_y: Vec<f64> = vals.iter().skip(i + 1).map(|(_, y)| *y).collect();
             if left_y.is_empty() || right_y.is_empty() {
@@ -175,8 +175,7 @@ fn majority_class(y: &[f64]) -> f64 {
     counts
         .iter()
         .max_by_key(|(_, c)| *c)
-        .map(|(&v, _)| f64::from_bits(v))
-        .unwrap_or(0.0)
+        .map_or(0.0, |(&v, _)| f64::from_bits(v))
 }
 
 fn get_class_counts(y: &[f64]) -> std::collections::HashMap<u64, usize> {

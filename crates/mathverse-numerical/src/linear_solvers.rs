@@ -4,11 +4,14 @@ use mathverse_core::error::{MathError, MathResult};
 
 /// Jacobi iterative method for solving Ax = b.
 pub struct Jacobi {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the average update.
     pub tolerance: f64,
 }
 
 impl Jacobi {
+    /// Create a Jacobi solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         Jacobi {
             max_iterations,
@@ -23,7 +26,7 @@ impl Jacobi {
             return Err(MathError::InvalidArgument("matrix must be square and compatible with b"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| vec![0.0; n]);
+        let mut x = x0.map_or_else(|| vec![0.0; n], <[f64]>::to_vec);
         
         for _iteration in 0..self.max_iterations {
             let mut x_new = vec![0.0; n];
@@ -61,11 +64,14 @@ impl Jacobi {
 
 /// Gauss-Seidel iterative method.
 pub struct GaussSeidel {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the average update.
     pub tolerance: f64,
 }
 
 impl GaussSeidel {
+    /// Create a Gauss-Seidel solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         GaussSeidel {
             max_iterations,
@@ -80,7 +86,7 @@ impl GaussSeidel {
             return Err(MathError::InvalidArgument("matrix must be square and compatible with b"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| vec![0.0; n]);
+        let mut x = x0.map_or_else(|| vec![0.0; n], <[f64]>::to_vec);
         
         for _iteration in 0..self.max_iterations {
             let x_old = x.clone();
@@ -116,12 +122,16 @@ impl GaussSeidel {
 
 /// Successive Over-Relaxation (SOR) method.
 pub struct SOR {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the average update.
     pub tolerance: f64,
+    /// Over-relaxation factor (typically between 0 and 2).
     pub omega: f64,
 }
 
 impl SOR {
+    /// Create an SOR solver with the given iteration cap, tolerance and relaxation factor.
     pub fn new(max_iterations: usize, tolerance: f64, omega: f64) -> Self {
         SOR {
             max_iterations,
@@ -137,7 +147,7 @@ impl SOR {
             return Err(MathError::InvalidArgument("matrix must be square and compatible with b"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| vec![0.0; n]);
+        let mut x = x0.map_or_else(|| vec![0.0; n], <[f64]>::to_vec);
         
         for _iteration in 0..self.max_iterations {
             let x_old = x.clone();
@@ -175,11 +185,14 @@ impl SOR {
 
 /// Conjugate Gradient method for symmetric positive definite matrices.
 pub struct ConjugateGradient {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the residual norm.
     pub tolerance: f64,
 }
 
 impl ConjugateGradient {
+    /// Create a CG solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         ConjugateGradient {
             max_iterations,
@@ -194,7 +207,7 @@ impl ConjugateGradient {
             return Err(MathError::InvalidArgument("matrix must be square and compatible with b"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| vec![0.0; n]);
+        let mut x = x0.map_or_else(|| vec![0.0; n], <[f64]>::to_vec);
         
         // r = b - Ax
         let mut r = b.to_vec();
@@ -217,12 +230,12 @@ impl ConjugateGradient {
             }
             
             // alpha = rsold / (p^T * Ap)
-            let pAp: f64 = p.iter().zip(&ap).map(|(&pi, &api)| pi * api).sum();
-            if pAp.abs() < 1e-15 {
+            let pap: f64 = p.iter().zip(&ap).map(|(&pi, &api)| pi * api).sum();
+            if pap.abs() < 1e-15 {
                 return Ok(x);
             }
             
-            let alpha = rsold / pAp;
+            let alpha = rsold / pap;
             
             // x = x + alpha * p
             for i in 0..n {
@@ -255,11 +268,14 @@ impl ConjugateGradient {
 
 /// Preconditioned Conjugate Gradient.
 pub struct PreconditionedCG {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the residual norm.
     pub tolerance: f64,
 }
 
 impl PreconditionedCG {
+    /// Create a PCG solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         PreconditionedCG {
             max_iterations,
@@ -274,7 +290,7 @@ impl PreconditionedCG {
             return Err(MathError::InvalidArgument("matrix must be square and compatible with b"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| vec![0.0; n]);
+        let mut x = x0.map_or_else(|| vec![0.0; n], <[f64]>::to_vec);
         
         // Diagonal preconditioner
         let mut m_inv = vec![0.0; n];
@@ -309,12 +325,12 @@ impl PreconditionedCG {
             }
             
             // alpha = rz / (p^T * Ap)
-            let pAp: f64 = p.iter().zip(&ap).map(|(&pi, &api)| pi * api).sum();
-            if pAp.abs() < 1e-15 {
+            let pap: f64 = p.iter().zip(&ap).map(|(&pi, &api)| pi * api).sum();
+            if pap.abs() < 1e-15 {
                 return Ok(x);
             }
             
-            let alpha = rz / pAp;
+            let alpha = rz / pap;
             
             // x = x + alpha * p
             for i in 0..n {
@@ -351,12 +367,16 @@ impl PreconditionedCG {
 
 /// GMRES (Generalized Minimal Residual) method.
 pub struct GMRES {
+    /// Maximum total iterations across all restart cycles.
     pub max_iterations: usize,
+    /// Convergence tolerance on the residual norm.
     pub tolerance: f64,
+    /// Restart cycle length (Arnoldi subspace size).
     pub restart: usize,
 }
 
 impl GMRES {
+    /// Create a restarted GMRES solver.
     pub fn new(max_iterations: usize, tolerance: f64, restart: usize) -> Self {
         GMRES {
             max_iterations,
@@ -372,7 +392,7 @@ impl GMRES {
             return Err(MathError::InvalidArgument("matrix must be square and compatible with b"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| vec![0.0; n]);
+        let mut x = x0.map_or_else(|| vec![0.0; n], <[f64]>::to_vec);
         
         let mut total_iter = 0;
         
@@ -442,7 +462,7 @@ impl GMRES {
                 h[j + 1][j] = 0.0;
                 
                 g[j + 1] = -sn * g[j];
-                g[j] = cs * g[j];
+                g[j] *= cs;
                 
                 if g[j + 1].abs() < self.tolerance {
                     break;
@@ -497,11 +517,14 @@ impl GMRES {
 
 /// BiCGSTAB (Bi-Conjugate Gradient Stabilized) method.
 pub struct BiCGSTAB {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the residual norm.
     pub tolerance: f64,
 }
 
 impl BiCGSTAB {
+    /// Create a BiCGSTAB solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         BiCGSTAB {
             max_iterations,
@@ -516,7 +539,7 @@ impl BiCGSTAB {
             return Err(MathError::InvalidArgument("matrix must be square and compatible with b"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| vec![0.0; n]);
+        let mut x = x0.map_or_else(|| vec![0.0; n], <[f64]>::to_vec);
         
         // r = b - Ax
         let mut r = b.to_vec();
@@ -600,7 +623,9 @@ impl BiCGSTAB {
 
 /// ILU (Incomplete LU) preconditioner.
 pub struct ILUPreconditioner {
+    /// Unit lower triangular factor L.
     pub l: Vec<Vec<f64>>,
+    /// Upper triangular factor U.
     pub u: Vec<Vec<f64>>,
 }
 

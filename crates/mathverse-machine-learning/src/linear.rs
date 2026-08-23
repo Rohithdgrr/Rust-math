@@ -198,7 +198,7 @@ pub fn fit_lasso(
         // Update intercept
         let mean_res: f64 = residual.iter().sum::<f64>() / n as f64;
         intercept += mean_res;
-        for r in residual.iter_mut() {
+        for r in &mut residual {
             *r -= mean_res;
         }
         if max_change < tol {
@@ -284,8 +284,8 @@ mod tests {
 
     #[test]
     fn fit_perfect_linear() {
-        let x: Vec<Vec<f64>> = (0..5).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..5).map(|i| 2.0 * i as f64 + 1.0).collect();
+        let x: Vec<Vec<f64>> = (0..5).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..5).map(|i| 2.0 * f64::from(i) + 1.0).collect();
         let r = fit(&x, &y).unwrap();
         assert!((r.coefficients[0] - 2.0).abs() < E);
         assert!((r.intercept - 1.0).abs() < E);
@@ -309,8 +309,8 @@ mod tests {
 
     #[test]
     fn ridge_test() {
-        let x: Vec<Vec<f64>> = (0..10).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..10).map(|i| 2.0 * i as f64 + 1.0).collect();
+        let x: Vec<Vec<f64>> = (0..10).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..10).map(|i| 2.0 * f64::from(i) + 1.0).collect();
         let r = fit_ridge(&x, &y, 0.1).unwrap();
         // Should be close to OLS
         assert!((r.coefficients[0] - 2.0).abs() < 0.1);

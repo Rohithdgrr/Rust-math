@@ -93,6 +93,9 @@ impl SpectrogramConfig {
     }
 }
 
+/// Spectrogram output: `(frequencies, times, magnitudes)`.
+pub type SpectrogramData = (Vec<f64>, Vec<f64>, Vec<Vec<f64>>);
+
 /// Compute the spectrogram data as a 2D grid of spectral magnitudes.
 ///
 /// Returns `(frequencies, times, magnitudes)` where `magnitudes[freq_idx][time_idx]`
@@ -100,7 +103,7 @@ impl SpectrogramConfig {
 pub fn compute_spectrogram(
     signal: &[f64],
     config: &SpectrogramConfig,
-) -> PlotResult<(Vec<f64>, Vec<f64>, Vec<Vec<f64>>)> {
+) -> PlotResult<SpectrogramData> {
     if signal.is_empty() {
         return Err(PlotError::InvalidData("empty signal".into()));
     }
@@ -160,7 +163,7 @@ pub fn compute_spectrogram(
             let spectrum = fft_real(&padded);
             let df = sr / n_fft as f64;
             let freqs: Vec<f64> = (0..n_fft).map(|k| k as f64 * df).collect();
-            let magnitudes: Vec<f64> = spectrum.iter().map(|c| c.norm()).collect();
+            let magnitudes: Vec<f64> = spectrum.iter().map(mathverse_complex::Complex::norm).collect();
             let times = vec![0.0];
             (freqs, times, vec![magnitudes])
         }
@@ -211,7 +214,7 @@ mod tests {
     #[test]
     fn welch_spectrogram_produces_grid() {
         let sr = 1000.0;
-        let t: Vec<f64> = (0..1000).map(|i| i as f64 / sr).collect();
+        let t: Vec<f64> = (0..1000).map(|i| f64::from(i) / sr).collect();
         let signal: Vec<f64> = t.iter().map(|&t| (2.0 * core::f64::consts::PI * 50.0 * t).sin()).collect();
 
         let config = SpectrogramConfig::new(sr)
@@ -255,7 +258,7 @@ mod tests {
     #[test]
     fn render_spectrogram_svg_contains_svg_tag() {
         let sr = 1000.0;
-        let t: Vec<f64> = (0..500).map(|i| i as f64 / sr).collect();
+        let t: Vec<f64> = (0..500).map(|i| f64::from(i) / sr).collect();
         let signal: Vec<f64> = t.iter().map(|&t| (2.0 * core::f64::consts::PI * 50.0 * t).sin()).collect();
 
         let config = SpectrogramConfig::new(sr);

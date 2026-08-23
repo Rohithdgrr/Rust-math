@@ -78,8 +78,8 @@ fn sample_field(field: &[f64], w: usize, h: usize, x: f64, y: f64) -> f64 {
 /// Halve an image: Gaussian anti-alias blur followed by 2× subsampling.
 fn downsample(img: &GrayImage) -> GrayImage {
     let blurred = img.gaussian_blur(1, 1.0);
-    let nw = ((blurred.w + 1) / 2).max(1);
-    let nh = ((blurred.h + 1) / 2).max(1);
+    let nw = blurred.w.div_ceil(2).max(1);
+    let nh = blurred.h.div_ceil(2).max(1);
     let mut out = GrayImage::new(nw, nh).unwrap();
     for y in (0..blurred.h).step_by(2) {
         for x in (0..blurred.w).step_by(2) {
@@ -117,6 +117,7 @@ fn downsample(img: &GrayImage) -> GrayImage {
 ///
 /// All calculations use `f64` arithmetic. Flow values may exceed one pixel
 /// when multiple pyramid levels are used.
+#[allow(clippy::too_many_lines)]
 pub fn dense_optical_flow(prev: &GrayImage, curr: &GrayImage, pyramid_levels: usize) -> OpticalFlow {
     assert_eq!(prev.w, curr.w, "both frames must have the same width");
     assert_eq!(prev.h, curr.h, "both frames must have the same height");
@@ -327,8 +328,8 @@ mod tests {
         // All flows should be near zero
         let u_sum: f64 = flow.u.iter().sum();
         let v_sum: f64 = flow.v.iter().sum();
-        assert!(u_sum.abs() < 0.1, "identical frames should have zero flow u, sum={}", u_sum);
-        assert!(v_sum.abs() < 0.1, "identical frames should have zero flow v, sum={}", v_sum);
+        assert!(u_sum.abs() < 0.1, "identical frames should have zero flow u, sum={u_sum}");
+        assert!(v_sum.abs() < 0.1, "identical frames should have zero flow v, sum={v_sum}");
     }
 
     #[test]

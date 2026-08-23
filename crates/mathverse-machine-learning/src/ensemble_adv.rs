@@ -41,7 +41,7 @@ impl SimpleDecisionTree {
                 if vals[i].0 == vals[i + 1].0 {
                     continue;
                 }
-                let threshold = (vals[i].0 + vals[i + 1].0) / 2.0;
+                let threshold = f64::midpoint(vals[i].0, vals[i + 1].0);
                 let left: Vec<f64> = vals[..=i].iter().map(|(_, y)| *y).collect();
                 let right: Vec<f64> = vals[i + 1..].iter().map(|(_, y)| *y).collect();
                 let left_mean: f64 = left.iter().sum::<f64>() / left.len() as f64;
@@ -109,8 +109,7 @@ fn majority_vote(labels: &[f64]) -> f64 {
     counts
         .into_iter()
         .max_by_key(|&(_, c)| c)
-        .map(|(k, _)| k as f64 / 1000.0)
-        .unwrap_or(0.0)
+        .map_or(0.0, |(k, _)| k as f64 / 1000.0)
 }
 
 fn bootstrap_sample_indices(n: usize, sample_size: usize, seed: u64) -> Vec<usize> {
@@ -293,7 +292,7 @@ impl AdaBoostClassifier {
 
             let w_sum: f64 = weights.iter().sum();
             if w_sum > 1e-12 {
-                for w in weights.iter_mut() {
+                for w in &mut weights {
                     *w /= w_sum;
                 }
             }
@@ -651,7 +650,7 @@ mod tests {
         let mut model = AdaBoostClassifier::new(3, 0.5);
         model.fit(&x, &y);
         assert!(
-            model.trees.len() >= 1,
+            !model.trees.is_empty(),
             "should have at least 1 tree, got {}",
             model.trees.len()
         );

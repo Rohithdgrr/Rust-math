@@ -37,6 +37,7 @@ impl PieSlice {
 }
 
 /// Configuration for a pie chart.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct PieConfig {
     /// Chart title.
@@ -182,18 +183,14 @@ pub fn render_pie_chart(slices: &[PieSlice], config: &PieConfig) -> PlotResult<S
     svg.push('\n');
 
     // Background
-    svg.push_str(&format!(
-        r#"  <rect width="100%" height="100%" fill="white"/>"#
-    ));
+    svg.push_str(r#"  <rect width="100%" height="100%" fill="white"/>"#);
     svg.push('\n');
 
     // Shadow effect
     if config.shadow {
-        svg.push_str(&format!(
-            r#"  <defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+        svg.push_str(r#"  <defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="3" dy="3" stdDeviation="3" flood-opacity="0.3"/>
-    </filter></defs>"#
-        ));
+    </filter></defs>"#);
         svg.push('\n');
     }
 
@@ -211,7 +208,7 @@ pub fn render_pie_chart(slices: &[PieSlice], config: &PieConfig) -> PlotResult<S
 
         // Calculate arc path
         let end_angle = current_angle + angle;
-        let large_arc = if angle > PI { 1 } else { 0 };
+        let large_arc = i32::from(angle > PI);
 
         // Explode offset
         let mid_angle = current_angle + angle / 2.0;
@@ -230,21 +227,21 @@ pub fn render_pie_chart(slices: &[PieSlice], config: &PieConfig) -> PlotResult<S
         // SVG arc path
         svg.push_str("  <path d=\"M ");
         svg.push_str(&cx.to_string());
-        svg.push_str(",");
+        svg.push(',');
         svg.push_str(&cy.to_string());
         svg.push_str(" L ");
         svg.push_str(&x1.to_string());
-        svg.push_str(",");
+        svg.push(',');
         svg.push_str(&y1.to_string());
         svg.push_str(" A ");
         svg.push_str(&config.radius.to_string());
-        svg.push_str(",");
+        svg.push(',');
         svg.push_str(&config.radius.to_string());
         svg.push_str(" 0 ");
         svg.push_str(&large_arc.to_string());
         svg.push_str(",1 ");
         svg.push_str(&x2.to_string());
-        svg.push_str(",");
+        svg.push(',');
         svg.push_str(&y2.to_string());
         svg.push_str(" Z\" fill=\"");
         svg.push_str(&slice.color.to_hex());
@@ -298,7 +295,7 @@ pub fn render_pie_chart(slices: &[PieSlice], config: &PieConfig) -> PlotResult<S
     if !config.title.is_empty() {
         svg.push_str(&format!(
             r#"  <text x="{}" y="30" text-anchor="middle" font-size="20" font-weight="bold">{}</text>"#,
-            config.width as f64 / 2.0, config.title
+            f64::from(config.width) / 2.0, config.title
         ));
         svg.push('\n');
     }

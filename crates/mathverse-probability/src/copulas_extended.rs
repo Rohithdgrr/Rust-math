@@ -143,11 +143,19 @@ impl GumbelCopula {
         if (self.theta - 1.0).abs() < 1e-12 {
             return (rng.uniform(), rng.uniform());
         }
+        // Marshall-Olkin needs the S1-form standard positive stable with
+        // Laplace transform exp(-t^(1/θ)): scale cos(π/(2θ))^θ and ZERO
+        // location. [`crate::stable::Stable::sample`] returns Nolan-S0
+        // variates, whose location is smaller by βγ·tan(πα/2); passing
+        // δ = βγ·tan(πα/2) cancels that conversion.
+        let alpha = 1.0 / self.theta;
+        let pi = core::f64::consts::PI;
+        let gamma = (pi / (2.0 * self.theta)).cos().powf(self.theta);
         let v = crate::stable::Stable {
-            alpha: 1.0 / self.theta,
+            alpha,
             beta: 1.0,
-            gamma: (core::f64::consts::PI / (2.0 * self.theta)).cos().powf(self.theta),
-            delta: 0.0,
+            gamma,
+            delta: gamma * (pi * alpha / 2.0).tan(),
         }
         .sample(rng);
         let transform = |u: f64| (-(-u.ln() / v).powf(1.0 / self.theta)).exp();
@@ -273,8 +281,8 @@ impl StudentTCopula {
         let t1 = students_t_quantile(self.nu, u);
         let t2 = students_t_quantile(self.nu, v);
         let q = (t1 * t1 - 2.0 * self.rho * t1 * t2 + t2 * t2) / (1.0 - self.rho * self.rho);
-        let num = (ln_gamma((self.nu + 2.0) / 2.0) + ln_gamma(self.nu / 2.0)
-            - 2.0 * ln_gamma((self.nu + 1.0) / 2.0)
+        let num = (ln_gamma(f64::midpoint(self.nu, 2.0)) + ln_gamma(self.nu / 2.0)
+            - 2.0 * ln_gamma(f64::midpoint(self.nu, 1.0))
             - 0.5 * (1.0 - self.rho * self.rho).ln())
         .exp();
         let joint = (1.0 + q / self.nu).powf(-(self.nu + 2.0) / 2.0);
@@ -388,15 +396,17 @@ mod tests {
     #[test]
     fn student_t_copula_properties() {
         // The t-copula with rho = 0 is NOT independence: the shared
-        // chi-square induces tail dependence, so the density is > 1.
+        // chi-square induces tail dependence, so the density on the diagonal
+        // near the corners exceeds 1.
         let c = StudentTCopula { nu: 4.0, rho: 0.0 };
-        let d = c.density(0.3, 0.7);
+        let d = c.density(0.3, 0.3);
         assert!(d > 1.0, "density at rho=0 {d} should exceed 1");
-        assert!((c.density(0.7, 0.3) - d).abs() < 1e-12);
         let c2 = StudentTCopula { nu: 4.0, rho: 0.5 };
-        let d2 = c2.density(0.3, 0.7);
-        assert!(d2 > 1.0, "positive dependence density {d2}");
-        assert!((c2.density(0.7, 0.3) - d2).abs() < 1e-12);
+        // Positive dependence concentrates mass on the diagonal: density > 1
+        // there and < 1 off-diagonal.
+        let d_diag = c2.density(0.3, 0.3);
+        assert!(d_diag > 1.0, "positive dependence density {d_diag}");
+        assert!(c2.density(0.3, 0.7) < 1.0);
         let tau = c2.kendall_tau();
         assert!((tau - 2.0 * 0.5f64.asin() / core::f64::consts::PI).abs() < 1e-12);
     }

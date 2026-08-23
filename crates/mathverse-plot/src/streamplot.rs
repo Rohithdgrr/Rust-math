@@ -134,8 +134,8 @@ pub fn render_streamplot(
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
     let chart_width = width - 2.0 * padding;
     let chart_height = height - 2.0 * padding;
 
@@ -237,8 +237,8 @@ mod tests {
             .map(|j| {
                 (0..n)
                     .map(|i| {
-                        let x = i as f64 / (n - 1) as f64 - 0.5;
-                        let y = j as f64 / (n - 1) as f64 - 0.5;
+                        let _x = f64::from(i) / f64::from(n - 1) - 0.5;
+                        let y = f64::from(j) / f64::from(n - 1) - 0.5;
                         -y
                     })
                     .collect()
@@ -248,8 +248,8 @@ mod tests {
             .map(|j| {
                 (0..n)
                     .map(|i| {
-                        let x = i as f64 / (n - 1) as f64 - 0.5;
-                        let y = j as f64 / (n - 1) as f64 - 0.5;
+                        let x = f64::from(i) / f64::from(n - 1) - 0.5;
+                        let _y = f64::from(j) / f64::from(n - 1) - 0.5;
                         x
                     })
                     .collect()
@@ -288,6 +288,6 @@ mod tests {
         assert!(pts.len() >= 2);
         assert!(pts
             .iter()
-            .all(|&(x, y)| x >= 0.0 && x <= 1.0 && y >= 0.0 && y <= 1.0));
+            .all(|&(x, y)| (0.0..=1.0).contains(&x) && (0.0..=1.0).contains(&y)));
     }
 }

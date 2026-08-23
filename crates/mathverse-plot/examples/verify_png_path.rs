@@ -1,4 +1,5 @@
-use mathverse_plot::*;
+//! Verify PNG export paths.
+use mathverse_plot::{PlotConfig, SvgPlot, DataPoint, DataSeries, PlotSaver, OutputFormat, FormatSet, viridis, Scale};
 
 fn main() {
     std::fs::create_dir_all("target/verify_png").unwrap();
@@ -11,7 +12,7 @@ fn main() {
             .with_y_label("Y Axis Label")
             .with_dimensions(600, 400);
         let mut plot = SvgPlot::new(config);
-        let xs: Vec<f64> = (0..50).map(|i| i as f64 * 0.2).collect();
+        let xs: Vec<f64> = (0..50).map(|i| f64::from(i) * 0.2).collect();
         let ys: Vec<f64> = xs.iter().map(|x| x.sin()).collect();
         let pts: Vec<DataPoint> = xs.iter().zip(ys.iter()).map(|(x, y)| DataPoint::new(*x, *y)).collect();
         plot.add_series(DataSeries::new("sin(x)".to_string(), pts));
@@ -55,7 +56,7 @@ fn main() {
             .with_y_scale(Scale::Log)
             .with_dimensions(600, 400);
         let mut plot = SvgPlot::new(config);
-        let xs: Vec<f64> = (1..=100).map(|i| i as f64).collect();
+        let xs: Vec<f64> = (1..=100).map(f64::from).collect();
         let ys: Vec<f64> = xs.iter().map(|x| x * x).collect();
         let pts: Vec<DataPoint> = xs.iter().zip(ys.iter()).map(|(x, y)| DataPoint::new(*x, *y)).collect();
         plot.add_series(DataSeries::new("x^2".to_string(), pts));

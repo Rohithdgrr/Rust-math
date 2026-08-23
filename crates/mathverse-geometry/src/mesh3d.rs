@@ -16,17 +16,21 @@ pub struct Triangle3 {
 }
 
 impl Triangle3 {
-    pub fn new(a: Point3, b: Point3, c: Point3) -> Self {
+    #[must_use]
+    pub const fn new(a: Point3, b: Point3, c: Point3) -> Self {
         Self { a, b, c }
     }
+    #[must_use]
     pub fn normal(self) -> Point3 {
         let ab = Point3::new(self.b.x - self.a.x, self.b.y - self.a.y, self.b.z - self.a.z);
         let ac = Point3::new(self.c.x - self.a.x, self.c.y - self.a.y, self.c.z - self.a.z);
         cross(ab, ac)
     }
+    #[must_use]
     pub fn area(self) -> f64 {
         norm(self.normal()) / 2.0
     }
+    #[must_use]
     pub fn centroid(self) -> Point3 {
         Point3::new(
             (self.a.x + self.b.x + self.c.x) / 3.0,
@@ -48,20 +52,25 @@ pub struct TriangleMesh {
 }
 
 impl TriangleMesh {
-    pub fn new(vertices: Vec<Point3>, indices: Vec<(usize, usize, usize)>) -> Self {
+    #[must_use]
+    pub const fn new(vertices: Vec<Point3>, indices: Vec<(usize, usize, usize)>) -> Self {
         Self { vertices, indices }
     }
+    #[must_use]
     pub fn triangle(&self, i: usize) -> Triangle3 {
         let (a, b, c) = self.indices[i];
         Triangle3::new(self.vertices[a], self.vertices[b], self.vertices[c])
     }
-    pub fn num_triangles(&self) -> usize {
+    #[must_use]
+    pub const fn num_triangles(&self) -> usize {
         self.indices.len()
     }
+    #[must_use]
     pub fn aabb(&self) -> Option<AABB3> {
         AABB3::from_points(&self.vertices)
     }
     /// Compute normals for each triangle.
+    #[must_use]
     pub fn normals(&self) -> Vec<Point3> {
         (0..self.indices.len())
             .map(|i| self.triangle(i).normal())
@@ -77,12 +86,13 @@ impl TriangleMesh {
 pub struct AABBTreeNode {
     pub bounds: AABB3,
     pub triangle_index: Option<usize>,
-    pub left: Option<Box<AABBTreeNode>>,
-    pub right: Option<Box<AABBTreeNode>>,
+    pub left: Option<Box<Self>>,
+    pub right: Option<Box<Self>>,
 }
 
 impl AABBTreeNode {
-    pub fn leaf(bounds: AABB3, triangle_index: usize) -> Self {
+    #[must_use]
+    pub const fn leaf(bounds: AABB3, triangle_index: usize) -> Self {
         Self {
             bounds,
             triangle_index: Some(triangle_index),
@@ -90,7 +100,8 @@ impl AABBTreeNode {
             right: None,
         }
     }
-    pub fn internal(bounds: AABB3, left: AABBTreeNode, right: AABBTreeNode) -> Self {
+    #[must_use]
+    pub fn internal(bounds: AABB3, left: Self, right: Self) -> Self {
         Self {
             bounds,
             triangle_index: None,
@@ -98,7 +109,8 @@ impl AABBTreeNode {
             right: Some(Box::new(right)),
         }
     }
-    /// Find the closest triangle hit by a ray. Returns (triangle_index, t).
+    /// Find the closest triangle hit by a ray. Returns (`triangle_index`, t).
+    #[must_use]
     pub fn ray_intersect(&self, mesh: &TriangleMesh, origin: Point3, dir: Point3) -> Option<(usize, f64)> {
         if !aabb_ray_intersect(self.bounds, origin, dir) {
             return None;
@@ -128,6 +140,7 @@ impl AABBTreeNode {
 }
 
 /// Build a simple AABB tree from a mesh (median split on longest axis).
+#[must_use]
 pub fn build_aabb_tree(mesh: &TriangleMesh) -> Option<AABBTreeNode> {
     if mesh.indices.is_empty() {
         return None;
@@ -151,7 +164,7 @@ fn build_tree_recursive(tris: &mut [(usize, AABB3)]) -> Option<AABBTreeNode> {
         return Some(AABBTreeNode::leaf(bounds, idx));
     }
     // Merge all bounds
-    let bounds = tris.iter().map(|(_, b)| *b).reduce(|a, b| a.merge(b)).unwrap();
+    let bounds = tris.iter().map(|(_, b)| *b).reduce(super::spatial::AABB3::merge).unwrap();
     // Split on longest axis
     let ext = [
         bounds.max.x - bounds.min.x,
@@ -162,14 +175,14 @@ fn build_tree_recursive(tris: &mut [(usize, AABB3)]) -> Option<AABBTreeNode> {
         else if ext[1] >= ext[2] { 1 } else { 2 };
     tris.sort_by(|a, b| {
         let ca = match axis {
-            0 => (a.1.min.x + a.1.max.x) / 2.0,
-            1 => (a.1.min.y + a.1.max.y) / 2.0,
-            _ => (a.1.min.z + a.1.max.z) / 2.0,
+            0 => f64::midpoint(a.1.min.x, a.1.max.x),
+            1 => f64::midpoint(a.1.min.y, a.1.max.y),
+            _ => f64::midpoint(a.1.min.z, a.1.max.z),
         };
         let cb = match axis {
-            0 => (b.1.min.x + b.1.max.x) / 2.0,
-            1 => (b.1.min.y + b.1.max.y) / 2.0,
-            _ => (b.1.min.z + b.1.max.z) / 2.0,
+            0 => f64::midpoint(b.1.min.x, b.1.max.x),
+            1 => f64::midpoint(b.1.min.y, b.1.max.y),
+            _ => f64::midpoint(b.1.min.z, b.1.max.z),
         };
         ca.partial_cmp(&cb).unwrap()
     });
@@ -189,6 +202,7 @@ fn build_tree_recursive(tris: &mut [(usize, AABB3)]) -> Option<AABBTreeNode> {
 /// (no back-face culling), which is the expected behavior for volume
 /// rendering and collision queries. Callers that need culling should check
 /// `dot(dir, tri.normal())` themselves before trusting the hit.
+#[must_use]
 pub fn ray_triangle_intersect(origin: Point3, dir: Point3, tri: Triangle3) -> Option<f64> {
     let eps = 1e-7;
     let ab = Point3::new(tri.b.x - tri.a.x, tri.b.y - tri.a.y, tri.b.z - tri.a.z);
@@ -201,7 +215,7 @@ pub fn ray_triangle_intersect(origin: Point3, dir: Point3, tri: Triangle3) -> Op
     let f = 1.0 / a;
     let s = Point3::new(origin.x - tri.a.x, origin.y - tri.a.y, origin.z - tri.a.z);
     let u = f * dot(s, h);
-    if u < 0.0 || u > 1.0 {
+    if !(0.0..=1.0).contains(&u) {
         return None;
     }
     let q = cross(s, ab);
@@ -218,6 +232,7 @@ pub fn ray_triangle_intersect(origin: Point3, dir: Point3, tri: Triangle3) -> Op
 }
 
 /// AABB-ray intersection (Slab method). Returns `t_min` if hit.
+#[must_use]
 pub fn aabb_ray_intersect(bb: AABB3, origin: Point3, dir: Point3) -> bool {
     let mut tmin = f64::NEG_INFINITY;
     let mut tmax = f64::INFINITY;
@@ -252,6 +267,7 @@ pub fn aabb_ray_intersect(bb: AABB3, origin: Point3, dir: Point3) -> bool {
 // ---------------------------------------------------------------------------
 
 /// Intersection of two planes: returns a line if they intersect, or None if parallel.
+#[must_use]
 pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
     let n1 = p1.normal;
     let n2 = p2.normal;
@@ -265,10 +281,10 @@ pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
         [n1.y, n1.z, -p1.d],
         [n2.y, n2.z, -p2.d],
     ];
-    let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
+    let det = a[0][1].mul_add(-a[1][0], a[0][0] * a[1][1]);
     if det.abs() > 1e-10 {
-        let y = (a[0][2] * a[1][1] - a[0][1] * a[1][2]) / det;
-        let z = (a[0][0] * a[1][2] - a[0][2] * a[1][0]) / det;
+        let y = a[0][1].mul_add(-a[1][2], a[0][2] * a[1][1]) / det;
+        let z = a[0][2].mul_add(-a[1][0], a[0][0] * a[1][2]) / det;
         return Some(Line3::new(Point3::new(0.0, y, z), dir));
     }
     // Try setting y = 0
@@ -276,10 +292,10 @@ pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
         [n1.x, n1.z, -p1.d],
         [n2.x, n2.z, -p2.d],
     ];
-    let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
+    let det = a[0][1].mul_add(-a[1][0], a[0][0] * a[1][1]);
     if det.abs() > 1e-10 {
-        let x = (a[0][2] * a[1][1] - a[0][1] * a[1][2]) / det;
-        let z = (a[0][0] * a[1][2] - a[0][2] * a[1][0]) / det;
+        let x = a[0][1].mul_add(-a[1][2], a[0][2] * a[1][1]) / det;
+        let z = a[0][2].mul_add(-a[1][0], a[0][0] * a[1][2]) / det;
         return Some(Line3::new(Point3::new(x, 0.0, z), dir));
     }
     // Try setting z = 0
@@ -287,10 +303,10 @@ pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
         [n1.x, n1.y, -p1.d],
         [n2.x, n2.y, -p2.d],
     ];
-    let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
+    let det = a[0][1].mul_add(-a[1][0], a[0][0] * a[1][1]);
     if det.abs() > 1e-10 {
-        let x = (a[0][2] * a[1][1] - a[0][1] * a[1][2]) / det;
-        let y = (a[0][0] * a[1][2] - a[0][2] * a[1][0]) / det;
+        let x = a[0][1].mul_add(-a[1][2], a[0][2] * a[1][1]) / det;
+        let y = a[0][2].mul_add(-a[1][0], a[0][0] * a[1][2]) / det;
         return Some(Line3::new(Point3::new(x, y, 0.0), dir));
     }
     None
@@ -301,12 +317,13 @@ pub fn plane_plane_intersection(p1: Plane, p2: Plane) -> Option<Line3> {
 // ---------------------------------------------------------------------------
 
 /// Ray-sphere intersection. Returns closest `t > 0` or None.
+#[must_use]
 pub fn ray_sphere_intersect(origin: Point3, dir: Point3, center: Point3, radius: f64) -> Option<f64> {
     let oc = Point3::new(origin.x - center.x, origin.y - center.y, origin.z - center.z);
     let a = dot(dir, dir);
     let b = 2.0 * dot(oc, dir);
-    let c = dot(oc, oc) - radius * radius;
-    let disc = b * b - 4.0 * a * c;
+    let c = radius.mul_add(-radius, dot(oc, oc));
+    let disc = (4.0 * a).mul_add(-c, b * b);
     if disc < 0.0 {
         return None;
     }
@@ -323,6 +340,7 @@ pub fn ray_sphere_intersect(origin: Point3, dir: Point3, center: Point3, radius:
 }
 
 /// Ray-AABB intersection. Returns closest `t > 0` or None.
+#[must_use]
 pub fn ray_aabb_intersect(origin: Point3, dir: Point3, bb: AABB3) -> Option<f64> {
     let mut tmin = f64::NEG_INFINITY;
     let mut tmax = f64::INFINITY;
@@ -356,16 +374,17 @@ pub fn ray_aabb_intersect(origin: Point3, dir: Point3, bb: AABB3) -> Option<f64>
 }
 
 /// Ray-cylinder intersection (infinite cylinder along `axis` through `center`).
+#[must_use]
 pub fn ray_cylinder_intersect(origin: Point3, dir: Point3, center: Point3, axis: Point3, radius: f64) -> Option<f64> {
     let oc = Point3::new(origin.x - center.x, origin.y - center.y, origin.z - center.z);
     let d_dot_ax = dot(dir, axis);
     let oc_dot_ax = dot(oc, axis);
-    let proj_d = Point3::new(dir.x - d_dot_ax * axis.x, dir.y - d_dot_ax * axis.y, dir.z - d_dot_ax * axis.z);
-    let proj_oc = Point3::new(oc.x - oc_dot_ax * axis.x, oc.y - oc_dot_ax * axis.y, oc.z - oc_dot_ax * axis.z);
+    let proj_d = Point3::new(d_dot_ax.mul_add(-axis.x, dir.x), d_dot_ax.mul_add(-axis.y, dir.y), d_dot_ax.mul_add(-axis.z, dir.z));
+    let proj_oc = Point3::new(oc_dot_ax.mul_add(-axis.x, oc.x), oc_dot_ax.mul_add(-axis.y, oc.y), oc_dot_ax.mul_add(-axis.z, oc.z));
     let a = dot(proj_d, proj_d);
     let b = 2.0 * dot(proj_oc, proj_d);
-    let c = dot(proj_oc, proj_oc) - radius * radius;
-    let disc = b * b - 4.0 * a * c;
+    let c = radius.mul_add(-radius, dot(proj_oc, proj_oc));
+    let disc = (4.0 * a).mul_add(-c, b * b);
     if disc < 0.0 {
         return None;
     }
@@ -386,14 +405,14 @@ pub fn ray_cylinder_intersect(origin: Point3, dir: Point3, center: Point3, axis:
 // ---------------------------------------------------------------------------
 
 fn dot(a: Point3, b: Point3) -> f64 {
-    a.x * b.x + a.y * b.y + a.z * b.z
+    a.z.mul_add(b.z, a.y.mul_add(b.y, a.x * b.x))
 }
 
 fn cross(a: Point3, b: Point3) -> Point3 {
     Point3::new(
-        a.y * b.z - a.z * b.y,
-        a.z * b.x - a.x * b.z,
-        a.x * b.y - a.y * b.x,
+        a.z.mul_add(-b.y, a.y * b.z),
+        a.x.mul_add(-b.z, a.z * b.x),
+        a.y.mul_add(-b.x, a.x * b.y),
     )
 }
 

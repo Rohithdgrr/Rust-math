@@ -103,7 +103,7 @@ impl TickLocator for FixedLocator {
             .copied()
             .filter(|&v| v >= lo && v <= hi && v.is_finite())
             .collect();
-        out.sort_by(|a, b| a.total_cmp(b));
+        out.sort_by(f64::total_cmp);
         out
     }
 }
@@ -225,7 +225,7 @@ mod tests {
     fn nice_ticks_cover_range() {
         let ticks = nice_ticks(0.0, 10.0, 5);
         assert!(!ticks.is_empty());
-        assert!(ticks.iter().all(|&v| v >= 0.0 && v <= 10.0));
+        assert!(ticks.iter().all(|&v| (0.0..=10.0).contains(&v)));
         assert!(ticks.windows(2).all(|w| w[0] < w[1]));
     }
 

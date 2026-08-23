@@ -393,7 +393,7 @@ impl SvgPlot {
     pub fn add_pdf_overlay(
         &mut self,
         name: impl Into<String>,
-        pdf: Box<dyn Fn(f64) -> f64>,
+        pdf: &dyn Fn(f64) -> f64,
         lo: f64,
         hi: f64,
         n: usize,
@@ -401,7 +401,7 @@ impl SvgPlot {
     ) {
         let series = DataSeries::with_style(
             name.into(),
-            crate::pdf_overlay::sample_pdf(&pdf, lo, hi, n)
+            crate::pdf_overlay::sample_pdf(pdf, lo, hi, n)
                 .into_iter()
                 .map(|(x, y)| crate::common::DataPoint::new(x, y))
                 .collect(),
@@ -430,7 +430,7 @@ impl SvgPlot {
         8 * 1024
             + points * 48
             + cells * 56
-            + self.config.tick_count.saturating_mul(2) as usize * 96
+            + self.config.tick_count.saturating_mul(2) * 96
     }
 
     pub fn generate(&self) -> String {
@@ -477,14 +477,14 @@ impl SvgPlot {
             self.config.title.clone()
         };
         svg.push_str(&format!(
-            r#"  <title>{}</title>"#,
+            r"  <title>{}</title>",
             crate::common::xml_escape(&tooltip_text)
         ));
         svg.push('\n');
 
         // SVG defs: clipPath, filters, gradients
-        let plot_area_width = self.config.width as f64 - 2.0 * self.config.padding as f64;
-        let plot_area_height = self.config.height as f64 - 2.0 * self.config.padding as f64;
+        let plot_area_width = f64::from(self.config.width) - 2.0 * self.config.padding;
+        let plot_area_height = f64::from(self.config.height) - 2.0 * self.config.padding;
         svg.push_str(&format!(
             r##"  <defs>
     <clipPath id="plot-area">
@@ -510,15 +510,14 @@ impl SvgPlot {
 
         // Background
         svg.push_str(&format!(
-            r#"  <rect width="100%" height="100%" fill="{}"/>"#,
-            bg_color
+            r#"  <rect width="100%" height="100%" fill="{bg_color}"/>"#
         ));
         svg.push('\n');
 
         // Calculate plot area
         let padding = self.config.padding;
-        let plot_width = self.config.width as f64 - 2.0 * padding;
-        let plot_height = self.config.height as f64 - 2.0 * padding;
+        let plot_width = f64::from(self.config.width) - 2.0 * padding;
+        let plot_height = f64::from(self.config.height) - 2.0 * padding;
 
         // Calculate data ranges (unpadded; padding happens in kernel space)
         let (xr, yr) = self.calculate_ranges();
@@ -650,7 +649,7 @@ impl SvgPlot {
                 let v = sy_inv(k);
                 let y = padding + plot_height - (k - sy_k.min) / sy_k.span() * plot_height;
                 svg.push_str(&format!(
-                    r##"  <text x="{}" y="{}" text-anchor="start" font-size="11" font-family="Arial, sans-serif" fill="{}">{}</text>"##,
+                    r#"  <text x="{}" y="{}" text-anchor="start" font-size="11" font-family="Arial, sans-serif" fill="{}">{}</text>"#,
                     right + 6.0,
                     y + 3.5,
                     text_color,
@@ -659,16 +658,16 @@ impl SvgPlot {
                 svg.push('\n');
             }
             svg.push_str(&format!(
-                r##"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1.5"/>"##,
+                r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1.5"/>"#,
                 right, padding, right, padding + plot_height, text_color
             ));
             svg.push('\n');
             if let Some(ref label) = self.secondary_label {
-                let cy = self.config.height as f64 / 2.0;
+                let cy = f64::from(self.config.height) / 2.0;
                 svg.push_str(&format!(
                     r#" <text x="{}" y="{cy}" text-anchor="middle" dominant-baseline="central" font-size="14" font-family="{font_family}" fill="{text_color}" transform="rotate(90, {}, {cy})">{escaped}</text>"#,
-                    self.config.width as f64 - 10.0,
-                    self.config.width as f64 - 10.0,
+                    f64::from(self.config.width) - 10.0,
+                    f64::from(self.config.width) - 10.0,
                     escaped = crate::mathtext::render(label),
                 ));
                 svg.push('\n');
@@ -708,7 +707,7 @@ impl SvgPlot {
         };
         svg.push_str(&format!(
             r#" <text x="{cx}" y="{title_y}" text-anchor="middle" font-size="{title_px}" font-family="{title_font}" font-weight="bold" fill="{text_color}">{escaped}</text>"#,
-            cx = self.config.width as f64 / 2.0,
+            cx = f64::from(self.config.width) / 2.0,
             title_y = 32.0,
             escaped = crate::mathtext::render(&self.config.title),
         ));
@@ -719,8 +718,8 @@ impl SvgPlot {
     if !self.config.x_label.is_empty() {
         svg.push_str(&format!(
             r#" <text x="{cx}" y="{label_y}" text-anchor="middle" font-size="{label_size}" font-family="{font_family}" fill="{text_color}">{escaped}</text>"#,
-            cx = self.config.width as f64 / 2.0,
-            label_y = self.config.height as f64 - 2.0,
+            cx = f64::from(self.config.width) / 2.0,
+            label_y = f64::from(self.config.height) - 2.0,
             escaped = crate::mathtext::render(&self.config.x_label),
         ));
         svg.push('\n');
@@ -728,7 +727,7 @@ impl SvgPlot {
 
     // Y-axis label (rotated 90°, centered vertically — matplotlib default)
     if !self.config.y_label.is_empty() {
-        let cy = self.config.height as f64 / 2.0;
+        let cy = f64::from(self.config.height) / 2.0;
         svg.push_str(&format!(
             r#" <text x="14" y="{cy}" text-anchor="middle" dominant-baseline="central" font-size="{label_size}" font-family="{font_family}" fill="{text_color}" transform="rotate(-90, 14, {cy})">{escaped}</text>"#,
             escaped = crate::mathtext::render(&self.config.y_label),
@@ -801,9 +800,7 @@ impl SvgPlot {
     } else {
         (
             self.series
-                .first()
-                .map(|s| s.style.grid_color.to_hex())
-                .unwrap_or_else(|| Color::GRAY.to_hex()),
+                .first().map_or_else(|| Color::GRAY.to_hex(), |s| s.style.grid_color.to_hex()),
             "0.5",
             "none",
         )
@@ -824,7 +821,7 @@ impl SvgPlot {
         let y = y_px_k(*t);
         grid.push_str(&format!(
             r#" <line x1="{padding}" y1="{y}" x2="{right}" y2="{y}" stroke="{grid_color}" stroke-width="0.6" opacity="{grid_opacity}" stroke-dasharray="{dash_array}"/>"#,
-            right = padding + (self.config.width as f64 - 2.0 * padding),
+            right = padding + (f64::from(self.config.width) - 2.0 * padding),
         ));
         grid.push('\n');
     }
@@ -970,19 +967,18 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
                 
                 // Create gradient definition
                 output.push_str(&format!(
-                    r##"  <defs>
-    <linearGradient id="{}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="{}" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="{}" stop-opacity="0.1"/>
+                    r#"  <defs>
+    <linearGradient id="{gradient_id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="{fill_hex}" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="{fill_hex}" stop-opacity="0.1"/>
     </linearGradient>
-  </defs>"##,
-                    gradient_id, fill_hex, fill_hex
+  </defs>"#
                 ));
                 output.push('\n');
                 
                 // Create filled path
                 let padding = self.config.padding;
-                let plot_height = self.config.height as f64 - 2.0 * padding;
+                let plot_height = f64::from(self.config.height) - 2.0 * padding;
                 let baseline_y = padding + plot_height; // Bottom of plot area
                 
                 let mut path_d = format!("M{:.1},{:.1}", points[0].0, baseline_y);
@@ -1008,8 +1004,7 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
                 path_d.push_str(" Z");
                 
                 output.push_str(&format!(
-                    r#"  <path d="{}" fill="url(#{})"/>"#,
-                    path_d, gradient_id
+                    r#"  <path d="{path_d}" fill="url(#{gradient_id})"/>"#
                 ));
                 output.push('\n');
             }
@@ -1045,8 +1040,7 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
                 }
 
                 output.push_str(&format!(
-                    r#"  <path d="{}" fill="none" stroke="{}" stroke-width="{}" stroke-dasharray="{}" stroke-linecap="round" stroke-linejoin="round"/>"#,
-                    path_d, line_color, line_width, dash_array
+                    r#"  <path d="{path_d}" fill="none" stroke="{line_color}" stroke-width="{line_width}" stroke-dasharray="{dash_array}" stroke-linecap="round" stroke-linejoin="round"/>"#
                 ));
             } else {
                 // Fallback to polyline for 2 points
@@ -1074,8 +1068,7 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
                 let marker = match style.marker_style {
                     MarkerStyle::Circle => {
                         format!(
-                            r#"  <circle cx="{}" cy="{}" r="{}" fill="{}" stroke="{}" stroke-width="1"/>"#,
-                            x, y, marker_size, marker_color, marker_color
+                            r#"  <circle cx="{x}" cy="{y}" r="{marker_size}" fill="{marker_color}" stroke="{marker_color}" stroke-width="1"/>"#
                         )
                     }
                     MarkerStyle::Square => {
@@ -1271,14 +1264,14 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
                 crate::annotations::LineOrientation::Horizontal => {
                     let y = y_px(line.position);
                     out.push_str(&format!(
-                        r##"  <line x1="0" y1="{y}" x2="{}" y2="{y}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"##,
+                        r#"  <line x1="0" y1="{y}" x2="{}" y2="{y}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"#,
                         self.config.width
                     ));
                 }
                 crate::annotations::LineOrientation::Vertical => {
                     let x = x_px(line.position);
                     out.push_str(&format!(
-                        r##"  <line x1="{x}" y1="0" x2="{x}" y2="{}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"##,
+                        r#"  <line x1="{x}" y1="0" x2="{x}" y2="{}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"#,
                         self.config.height
                     ));
                 }
@@ -1288,14 +1281,14 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
 
         // Rectangle annotations (origin + size in data coordinates)
         for rect in &self.annotations.rectangles {
-            let fill = rect.fill.map(|c| c.to_hex()).unwrap_or_else(|| "none".to_string());
+            let fill = rect.fill.map_or_else(|| "none".to_string(), |c| c.to_hex());
             let stroke = rect.stroke.to_hex();
             let x = x_px(rect.origin.x);
             let y = y_px(rect.origin.y + rect.height);
             let w = x_px(rect.origin.x + rect.width) - x;
             let h = y - y_px(rect.origin.y);
             out.push_str(&format!(
-                r##"  <rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" stroke="{stroke}" stroke-width="{}" opacity="0.3"/>"##,
+                r#"  <rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" stroke="{stroke}" stroke-width="{}" opacity="0.3"/>"#,
                 rect.stroke_width
             ));
             out.push('\n');
@@ -1317,7 +1310,7 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
             };
             // Line
             out.push_str(&format!(
-                r##"  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"##
+                r#"  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke}" stroke-width="{width}"{dash_attr}/>"#
             ));
             out.push('\n');
             // Arrowhead
@@ -1331,7 +1324,7 @@ fn generate_axes(&self, padding: f64, width: f64, height: f64) -> String {
                 let px = -uy;
                 let py = ux;
 out.push_str(&format!(
-                    r##"  <polygon points="{x2},{y2} {} {} {} {}" fill="{stroke}"/>"##,
+                    r#"  <polygon points="{x2},{y2} {} {} {} {}" fill="{stroke}"/>"#,
                     x2 - hs * ux + hs * 0.4 * px,
                     y2 - hs * uy + hs * 0.4 * py,
                     x2 - hs * ux - hs * 0.4 * px,
@@ -1350,10 +1343,10 @@ out.push_str(&format!(
             let plot_rect = (
                 pad,
                 pad,
-                self.config.width as f64 - 2.0 * pad,
-                self.config.height as f64 - 2.0 * pad,
+                f64::from(self.config.width) - 2.0 * pad,
+                f64::from(self.config.height) - 2.0 * pad,
             );
-            let fig_size = (self.config.width as f64, self.config.height as f64);
+            let fig_size = (f64::from(self.config.width), f64::from(self.config.height));
             let (px, py) = text
                 .position
                 .to_pixel(&x_px, &y_px, plot_rect, fig_size);
@@ -1371,7 +1364,7 @@ out.push_str(&format!(
             if let Some(bg_color) = text.background {
                 let bg = bg_color.to_hex();
                 out.push_str(&format!(
-                    r##"  <rect x="{}" y="{}" width="{}" height="{}" fill="{bg}" rx="3"/>"##,
+                    r#"  <rect x="{}" y="{}" width="{}" height="{}" fill="{bg}" rx="3"/>"#,
                     x - 4.0,
                     y - text.font_size,
                     text.text.len() as f64 * text.font_size * 0.6 + 8.0,
@@ -1380,7 +1373,7 @@ out.push_str(&format!(
                 out.push('\n');
             }
             out.push_str(&format!(
-                r##"  <text x="{x}" y="{y}" text-anchor="{anchor}" font-size="{}" font-weight="{weight}" fill="{fill}">{}</text>"##,
+                r#"  <text x="{x}" y="{y}" text-anchor="{anchor}" font-size="{}" font-weight="{weight}" fill="{fill}">{}</text>"#,
                 text.font_size,
                 crate::mathtext::render(&text.text)
             ));
@@ -1468,9 +1461,7 @@ out.push_str(&format!(
                 .collect::<Vec<_>>()
                 .join(" ");
             let fill = p
-                .fill
-                .map(|c| c.to_hex())
-                .unwrap_or_else(|| "none".to_string());
+                .fill.map_or_else(|| "none".to_string(), |c| c.to_hex());
             let stroke = p
                 .stroke
                 .map(|c| format!(r#" stroke="{}" stroke-width="{}""#, c.to_hex(), p.stroke_width))
@@ -1527,8 +1518,8 @@ out.push_str(&format!(
         .then_some(legend_w + 20.0)
         .unwrap_or(0.0);
 
-        let plot_width = self.config.width as f64;
-        let plot_height = self.config.height as f64;
+        let plot_width = f64::from(self.config.width);
+        let plot_height = f64::from(self.config.height);
         let padding = 50.0; // default padding
 
         let (x, y) = crate::legend::legend_position(
@@ -1577,9 +1568,9 @@ impl crate::backend::Backend for SvgPlot {
         for hm in &data.heatmaps {
             svg.heatmaps.push(hm.clone());
         }
-        svg.images = data.images.clone();
-        svg.paths = data.paths.clone();
-        svg.lines = data.lines.clone();
+        svg.images.clone_from(&data.images);
+        svg.paths.clone_from(&data.paths);
+        svg.lines.clone_from(&data.lines);
         Ok(PlotOutput::Svg(svg.generate()))
     }
 }

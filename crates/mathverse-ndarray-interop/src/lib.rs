@@ -29,23 +29,23 @@ pub fn vector_to_array1(v: Vector) -> Array1<f64> {
 }
 
 /// Convert an `Array1<f64>` into a `Vector`.
-pub fn array1_to_vector(arr: Array1<f64>) -> Vector {
+pub fn array1_to_vector(arr: &Array1<f64>) -> Vector {
     Vector::new(arr.to_vec())
 }
 
 /// Convert a `&Vector` into an `ArrayView1<f64>`.
-pub fn vector_to_view1<'a>(v: &'a Vector) -> ArrayView1<'a, f64> {
+pub fn vector_to_view1(v: &Vector) -> ArrayView1<'_, f64> {
     ArrayView1::from_shape(v.len(), &v.data).expect("valid shape")
 }
 
 /// Convert a `&mut Vector` into an `ArrayViewMut1<f64>`.
-pub fn vector_to_view1_mut<'a>(v: &'a mut Vector) -> ArrayViewMut1<'a, f64> {
+pub fn vector_to_view1_mut(v: &mut Vector) -> ArrayViewMut1<'_, f64> {
     let len = v.len();
     ArrayViewMut1::from_shape(len, &mut v.data).expect("valid shape")
 }
 
 /// Convert an `ArrayView1<f64>` into a `Vector`.
-pub fn view1_to_vector<'a>(arr: ArrayView1<'a, f64>) -> Vector {
+pub fn view1_to_vector(arr: ArrayView1<'_, f64>) -> Vector {
     Vector::new(arr.to_vec())
 }
 
@@ -67,18 +67,18 @@ pub fn array2_to_matrix(arr: Array2<f64>) -> Result<Matrix, ShapeError> {
 }
 
 /// Convert a `&Matrix` into an `ArrayView2<f64>`.
-pub fn matrix_to_view2<'a>(m: &'a Matrix) -> ArrayView2<'a, f64> {
+pub fn matrix_to_view2(m: &Matrix) -> ArrayView2<'_, f64> {
     ArrayView2::from_shape(m.shape(), m.as_slice()).expect("valid shape")
 }
 
 /// Convert a `&mut Matrix` into an `ArrayViewMut2<f64>`.
-pub fn matrix_to_view2_mut<'a>(m: &'a mut Matrix) -> ArrayViewMut2<'a, f64> {
+pub fn matrix_to_view2_mut(m: &mut Matrix) -> ArrayViewMut2<'_, f64> {
     let (rows, cols) = m.shape();
     ArrayViewMut2::from_shape((rows, cols), m.data_mut()).expect("valid shape")
 }
 
 /// Convert an `ArrayView2<f64>` into a `Matrix`.
-pub fn view2_to_matrix<'a>(arr: ArrayView2<'a, f64>) -> Matrix {
+pub fn view2_to_matrix(arr: ArrayView2<'_, f64>) -> Matrix {
     let (rows, cols) = arr.dim();
     Matrix::new(rows, cols, arr.to_owned().into_raw_vec())
         .expect("ArrayView2 shape should be valid")
@@ -87,12 +87,12 @@ pub fn view2_to_matrix<'a>(arr: ArrayView2<'a, f64>) -> Matrix {
 // ─── Slice ↔ ArrayView ────────────────────────────────────────────
 
 /// Convert a slice to an ndarray view.
-pub fn slice_to_view<'a>(data: &'a [f64]) -> ArrayView1<'a, f64> {
+pub fn slice_to_view(data: &[f64]) -> ArrayView1<'_, f64> {
     ArrayView1::from(data)
 }
 
 /// Convert a 2D slice to an ndarray view.
-pub fn slice2d_to_view<'a>(data: &'a [f64], rows: usize, cols: usize) -> ArrayView2<'a, f64> {
+pub fn slice2d_to_view(data: &[f64], rows: usize, cols: usize) -> ArrayView2<'_, f64> {
     ArrayView2::from_shape((rows, cols), data).expect("valid shape")
 }
 
@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn vector_roundtrip() {
         let v = Vector::new(vec![1.0, 2.0, 3.0]);
-        let arr = vector_to_array1(v.clone());
+        let _arr = vector_to_array1(v.clone());
         let v2 = view1_to_vector(vector_to_view1(&v));
         assert_eq!(v, v2);
     }

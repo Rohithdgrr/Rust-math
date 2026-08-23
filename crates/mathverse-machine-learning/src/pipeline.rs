@@ -463,7 +463,7 @@ fn fit_decision_stump(x: &[Vec<f64>], y: &[f64]) -> SimpleTree {
             if vals[i].0 == vals[i + 1].0 {
                 continue;
             }
-            let thresh = (vals[i].0 + vals[i + 1].0) / 2.0;
+            let thresh = f64::midpoint(vals[i].0, vals[i + 1].0);
             let left: Vec<f64> = vals[..=i].iter().map(|&(_, y)| y).collect();
             let right: Vec<f64> = vals[i + 1..].iter().map(|&(_, y)| y).collect();
             let lm = left.iter().sum::<f64>() / left.len() as f64;
@@ -503,7 +503,7 @@ fn fit_svm_simplified(x: &[Vec<f64>], y: &[f64]) -> (Vec<f64>, f64) {
                 }
                 b += lr * C * y_label;
             } else {
-                for wj in w.iter_mut() {
+                for wj in &mut w {
                     *wj -= lr * *wj;
                 }
             }
@@ -605,7 +605,7 @@ fn predict_model(model: &ModelFitted, x: &[Vec<f64>]) -> Vec<f64> {
 /// Serializes a pipeline to a file using Debug format.
 #[must_use]
 pub fn save_pipeline(pipeline: &Pipeline, path: &str) -> std::io::Result<()> {
-    let serialized = format!("{:?}", pipeline);
+    let serialized = format!("{pipeline:?}");
     let mut file = fs::File::create(path)?;
     file.write_all(serialized.as_bytes())?;
     Ok(())

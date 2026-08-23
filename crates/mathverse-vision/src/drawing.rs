@@ -280,7 +280,7 @@ pub fn ellipse(
     let (cos_a, sin_a) = (a.cos(), a.sin());
     let mut pts = Vec::with_capacity(72);
     for i in 0..72 {
-        let t = i as f64 * std::f64::consts::TAU / 72.0;
+        let t = f64::from(i) * std::f64::consts::TAU / 72.0;
         let (ex, ey) = (rx * t.cos(), ry * t.sin());
         let x = (cx + ex * cos_a - ey * sin_a).round() as i64;
         let y = (cy + ex * sin_a + ey * cos_a).round() as i64;
@@ -301,7 +301,7 @@ pub fn fill_ellipse(img: &mut Image, center: (usize, usize), axes: (usize, usize
     let (cos_a, sin_a) = (a.cos(), a.sin());
     let mut pts = Vec::with_capacity(72);
     for i in 0..72 {
-        let t = i as f64 * std::f64::consts::TAU / 72.0;
+        let t = f64::from(i) * std::f64::consts::TAU / 72.0;
         let (ex, ey) = (rx * t.cos(), ry * t.sin());
         let x = (cx + ex * cos_a - ey * sin_a).round() as i64;
         let y = (cy + ex * sin_a + ey * cos_a).round() as i64;

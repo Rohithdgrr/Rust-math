@@ -9,7 +9,7 @@ fn main() -> mathverse_plot::PlotResult<()> {
         "Fish", "Fish", "Dog", "Cat", "Bird", "Cat",
     ];
 
-    let cats: Vec<String> = categories.iter().map(|s| s.to_string()).collect();
+    let cats: Vec<String> = categories.iter().map(std::string::ToString::to_string).collect();
 
     let mut config = CountConfig::new();
     config.plot_config = config.plot_config

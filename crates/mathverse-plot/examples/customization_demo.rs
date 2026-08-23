@@ -1,3 +1,4 @@
+//! Demonstration of plot customization options.
 use mathverse_plot::export::ExportConfig;
 use mathverse_plot::theme::ThemeConfig;
 use mathverse_plot::axis_config::AxisConfig;
@@ -15,7 +16,7 @@ fn main() {
     let theme = ThemeConfig::seaborn();
 
     // Create axis config
-    let axis = AxisConfig::new()
+    let _axis = AxisConfig::new()
         .with_label("x-axis")
         .with_grid()
         .with_tick_rotation(45.0);
@@ -27,7 +28,7 @@ fn main() {
     let (x, y, w, h) = export.plot_area();
 
     println!("SVG dimensions: {}x{}", export.width, export.height);
-    println!("Plot area: ({}, {}, {}, {})", x, y, w, h);
+    println!("Plot area: ({x}, {y}, {w}, {h})");
     println!("Theme header length: {} chars", theme_header.len());
     println!("Header length: {} chars", header.len());
     println!("Footer length: {} chars", footer.len());

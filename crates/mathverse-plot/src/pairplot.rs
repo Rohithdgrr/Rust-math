@@ -53,8 +53,8 @@ pub fn render_pairplot(
         return Err(PlotError::InvalidData("labels length must match data".into()));
     }
 
-    let total_width = config.plot_config.width as f64;
-    let total_height = config.plot_config.height as f64;
+    let total_width = f64::from(config.plot_config.width);
+    let total_height = f64::from(config.plot_config.height);
 
     let margin = 60.0;
     let cell_size = (total_width - margin) / n_vars as f64;

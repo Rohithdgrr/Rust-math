@@ -1286,14 +1286,15 @@ mod tests {
 
         // v = 1 makes the (4vÂ² âˆ’ 1) correction five times larger; a wrong
         // sign there is a 1.8e-2 error, well past the tolerance.
-        let j1_asymp = ComplexSpecialFunctions::bessel_j(Complex::one(), Complex::real(10.0), 50);
-        let j1_series =
+        let first_order_asymp =
+            ComplexSpecialFunctions::bessel_j(Complex::one(), Complex::real(10.0), 50);
+        let first_order_series =
             ComplexSpecialFunctions::bessel_j_series(Complex::one(), Complex::real(10.0), 200);
         assert!(
-            (j1_asymp.re - j1_series.re).abs() < 1e-3,
+            (first_order_asymp.re - first_order_series.re).abs() < 1e-3,
             "J_1(10): got {}, expected {}",
-            j1_asymp.re,
-            j1_series.re
+            first_order_asymp.re,
+            first_order_series.re
         );
 
         // Negative real axis: asymptotic is invalid (branch cut) â€” the series

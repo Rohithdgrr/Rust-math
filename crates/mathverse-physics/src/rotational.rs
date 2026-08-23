@@ -5,23 +5,24 @@
 //! # Example
 //!
 //! ```
-//! use mathverse_physics::rotational::{Torque, MomentOfInertia, AngularVelocity, rotational_kinetic_energy};
-//! use mathverse_units::si::{Radian, Newton, Kilogram, Watt, Second};
+//! use mathverse_physics::rotational::{AngularVelocity, MomentOfInertia, Torque, compute_rotational_kinetic_energy};
+//! use mathverse_physics::dynamics::Force;
 //!
-//! let torque = Torque::from_force_at_distance(1.0.m, Force::new(10.0), 0.0);
-//! let angular_vel = AngularVelocity::new(2.0.rad_s());
-//! let ke = rotational_kinetic_energy(I, angular_vel);
+//! let torque = Torque::from_force_at_distance(1.0, Force::new(10.0), std::f64::consts::FRAC_PI_2);
+//! let io = MomentOfInertia::new(2.0);
+//! let angular_vel = AngularVelocity::new(3.0);
+//! let ke = compute_rotational_kinetic_energy(io, angular_vel);
+//! assert_eq!(ke.value(), 9.0); // KE = ½ · I · ω² = ½ · 2 · 9
 //! ```
 //
 //! #![allow(unused_imports)] // re-exports pull in all submodules
 
 use mathverse_units::quantity::Quantity;
-use mathverse_units::si::{Radian, Meter, Newton, Kilogram, Watt, Second, Joule};
-use mathverse_units::dimensions::{AngleDim, LengthDim, MassDim, TimeDim, ForceDim, EnergyDim, PowerDim};
+use mathverse_units::si::{Radian, Newton, Kilogram, Joule};
+use mathverse_units::dimensions::{AngleDim, EnergyDim};
 use crate::Force;
 use crate::Work;
 use crate::Power;
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, Div};
 
 /// Angle in radians.
 ///
@@ -29,9 +30,8 @@ use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, Div};
 ///
 /// ```
 /// use mathverse_physics::rotational::Angle;
-/// use mathverse_units::si::Radian;
 ///
-/// let angle: Angle = 1.0.radians();
+/// let angle = Angle::new(1.0); // 1 radian
 /// let deg = angle.to_degrees();
 /// assert!((deg - 57.29578).abs() < 1e-6);
 /// ```
@@ -78,9 +78,8 @@ impl From<f64> for Angle {
 ///
 /// ```
 /// use mathverse_physics::rotational::AngularVelocity;
-/// use mathverse_units::si::Radian;
 ///
-/// let av: AngularVelocity = 2.0.rad_s();
+/// let av = AngularVelocity::new(2.0); // 2 rad/s
 /// assert_eq!(av.value(), 2.0);
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -97,9 +96,9 @@ impl AngularVelocity {
         self.0.value()
     }
 
-    /// Convert to revolutions per minute (RPM).
+    /// Convert to revolutions per minute (RPM). 1 revolution = 2π radians.
     pub fn to_rpm(self) -> f64 {
-        self.0.value * 60.0 / std::f64::consts::PI
+        self.0.value * 60.0 / (2.0 * std::f64::consts::PI)
     }
 
     /// Check if angular velocity is finite.
@@ -126,9 +125,8 @@ impl From<f64> for AngularVelocity {
 ///
 /// ```
 /// use mathverse_physics::rotational::AngularAcceleration;
-/// use mathverse_units::si::Radian;
 ///
-/// let aa: AngularAcceleration = 1.0.rad_s2();
+/// let aa = AngularAcceleration::new(1.0); // 1 rad/s²
 /// assert_eq!(aa.value(), 1.0);
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -172,9 +170,8 @@ impl From<f64> for AngularAcceleration {
 ///
 /// ```
 /// use mathverse_physics::rotational::Torque;
-/// use mathverse_units::si::Newton;
 ///
-/// let torque: Torque = 5.0.nm();
+/// let torque = Torque::new(5.0); // 5 N·m
 /// assert_eq!(torque.value(), 5.0);
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -245,7 +242,8 @@ impl Torque {
     /// ```
     /// use mathverse_physics::rotational::{Torque, MomentOfInertia, AngularAcceleration};
     ///
-    /// let torque = Torque::from_moment_of_inertia(I, aa);
+    /// let torque = Torque::from_moment_of_inertia(MomentOfInertia::new(2.0), AngularAcceleration::new(3.0));
+    /// assert_eq!(torque.value(), 6.0); // τ = I · α = 2 · 3
     /// ```
     pub fn from_moment_of_inertia(
         moment_of_inertia: MomentOfInertia,
@@ -277,9 +275,8 @@ impl From<f64> for Torque {
 ///
 /// ```
 /// use mathverse_physics::rotational::MomentOfInertia;
-/// use mathverse_units::si::Kilogram;
 ///
-/// let io: MomentOfInertia = 1.0.kg_m2();
+/// let io = MomentOfInertia::new(1.0); // 1 kg·m²
 /// assert_eq!(io.value(), 1.0);
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -309,9 +306,9 @@ impl MomentOfInertia {
     ///
     /// ```
     /// use mathverse_physics::rotational::MomentOfInertia;
-    /// use mathverse_units::si::Kilogram;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
-    /// let io = MomentOfInertia::solid_cylinder(2.0.kg(), 3.0.m());
+    /// let io = MomentOfInertia::solid_cylinder(2.0.kg(), 3.0);
     /// assert!((io.value() - 9.0).abs() < 1e-6); // 0.5 * 2 * 9 = 9
     /// ```
     pub fn solid_cylinder(
@@ -334,10 +331,10 @@ impl MomentOfInertia {
     ///
     /// ```
     /// use mathverse_physics::rotational::MomentOfInertia;
-    /// use mathverse_units::si::Kilogram;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
-    /// let io = MomentOfInertia::solid_sphere(2.0.kg(), 3.0.m());
-    /// assert!((io.value() - 3.6).abs() < 1e-6); // (2/5) * 2 * 9 = 3.6
+    /// let io = MomentOfInertia::solid_sphere(2.0.kg(), 3.0);
+    /// assert!((io.value() - 7.2).abs() < 1e-6); // (2/5) * 2 * 9 = 7.2
     /// ```
     pub fn solid_sphere(
         mass: mathverse_units::quantity::Quantity<mathverse_units::dimensions::MassDim, Kilogram>,
@@ -359,9 +356,9 @@ impl MomentOfInertia {
     ///
     /// ```
     /// use mathverse_physics::rotational::MomentOfInertia;
-    /// use mathverse_units::si::Kilogram;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
-    /// let io = MomentOfInertia::thin_hoop(2.0.kg(), 3.0.m());
+    /// let io = MomentOfInertia::thin_hoop(2.0.kg(), 3.0);
     /// assert_eq!(io.value(), 18.0); // 2 * 9 = 18
     /// ```
     pub fn thin_hoop(
@@ -384,9 +381,9 @@ impl MomentOfInertia {
     ///
     /// ```
     /// use mathverse_physics::rotational::MomentOfInertia;
-    /// use mathverse_units::si::Kilogram;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
-    /// let io = MomentOfInertia::point_mass(2.0.kg(), 3.0.m());
+    /// let io = MomentOfInertia::point_mass(2.0.kg(), 3.0);
     /// assert_eq!(io.value(), 18.0); // 2 * 9 = 18
     /// ```
     pub fn point_mass(
@@ -408,7 +405,7 @@ impl MomentOfInertia {
     /// # Example
     ///
     /// ```
-    /// use mathverse_physics::rotational::{MomentOfInertia, AngularVelocity, rotational_kinetic_energy};
+    /// use mathverse_physics::rotational::{MomentOfInertia, AngularVelocity};
     ///
     /// let io = MomentOfInertia::new(2.0);
     /// let av = AngularVelocity::new(3.0);
@@ -457,9 +454,8 @@ impl From<f64> for MomentOfInertia {
 ///
 /// ```
 /// use mathverse_physics::rotational::RotationalKineticEnergy;
-/// use mathverse_units::si::Joule;
 ///
-/// let ke: RotationalKineticEnergy = 42.0.joules();
+/// let ke = RotationalKineticEnergy::new(42.0); // 42 J
 /// assert_eq!(ke.value(), 42.0);
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -488,11 +484,11 @@ impl RotationalKineticEnergy {
     /// # Example
     ///
     /// ```
-    /// use mathverse_physics::rotational::{MomentOfInertia, AngularVelocity, rotational_kinetic_energy};
+    /// use mathverse_physics::rotational::{MomentOfInertia, AngularVelocity, RotationalKineticEnergy};
     ///
     /// let io = MomentOfInertia::new(2.0);
     /// let av = AngularVelocity::new(3.0);
-    /// let ke = rotational_kinetic_energy(io, av);
+    /// let ke = RotationalKineticEnergy::from_moment_and_angular_velocity(io, av);
     /// assert_eq!(ke.value(), 9.0); // 0.5 * 2 * 9 = 9
     /// ```
     pub fn from_moment_and_angular_velocity(
@@ -517,11 +513,11 @@ impl RotationalKineticEnergy {
     /// # Example
     ///
     /// ```
-    /// use mathverse_physics::rotational::{RotationalKineticEnergy, MomentOfInertia, AngularVelocity, angular_velocity_from_energy};
+    /// use mathverse_physics::rotational::{RotationalKineticEnergy, MomentOfInertia, AngularVelocity};
     ///
     /// let energy = RotationalKineticEnergy::new(9.0);
     /// let io = MomentOfInertia::new(2.0);
-    /// let av = angular_velocity_from_energy(energy, io);
+    /// let av = RotationalKineticEnergy::angular_velocity_from_energy(energy, io);
     /// assert_eq!(av.value(), 3.0); // sqrt(2*9/2) = sqrt(9) = 3
     /// ```
     pub fn angular_velocity_from_energy(
@@ -561,7 +557,8 @@ impl From<f64> for RotationalKineticEnergy {
 /// ```
 /// use mathverse_physics::rotational::{compute_torque, MomentOfInertia, AngularAcceleration};
 ///
-/// let torque = compute_torque(I, aa);
+/// let torque = compute_torque(MomentOfInertia::new(2.0), AngularAcceleration::new(3.0));
+/// assert_eq!(torque.value(), 6.0); // τ = I · α = 2 · 3
 /// ```
 pub fn compute_torque(
     moment_of_inertia: MomentOfInertia,
@@ -584,8 +581,8 @@ pub fn compute_torque(
 /// ```
 /// use mathverse_physics::rotational::{compute_rotational_kinetic_energy, MomentOfInertia, AngularVelocity};
 ///
-/// let ke = compute_rotational_kinetic_energy(I, av);
-/// assert_eq!(ke.value(), 9.0);
+/// let ke = compute_rotational_kinetic_energy(MomentOfInertia::new(2.0), AngularVelocity::new(3.0));
+/// assert_eq!(ke.value(), 9.0); // 0.5 * 2 * 9 = 9
 /// ```
 pub fn compute_rotational_kinetic_energy(
     moment_of_inertia: MomentOfInertia,
@@ -608,7 +605,8 @@ pub fn compute_rotational_kinetic_energy(
 /// ```
 /// use mathverse_physics::rotational::{compute_work_by_torque, Torque, Angle};
 ///
-/// let work = compute_work_by_torque(torque, angle);
+/// let work = compute_work_by_torque(Torque::new(10.0), Angle::new(0.5));
+/// assert_eq!(work.value(), 5.0); // W = τ · θ = 10 · 0.5
 /// ```
 pub fn compute_work_by_torque(
     torque: Torque,
@@ -633,7 +631,8 @@ pub fn compute_work_by_torque(
 /// ```
 /// use mathverse_physics::rotational::{compute_power_from_torque, Torque, AngularVelocity};
 ///
-/// let power = compute_power_from_torque(torque, av);
+/// let power = compute_power_from_torque(Torque::new(10.0), AngularVelocity::new(3.0));
+/// assert_eq!(power.value(), 30.0); // P = τ · ω = 10 · 3
 /// ```
 pub fn compute_power_from_torque(
     torque: Torque,

@@ -118,6 +118,23 @@ fn accuracy(pred: &[f64], target: &[f64]) -> f64 {
     correct as f64 / pred.len() as f64
 }
 
+/// Z-score standardization per column (mean 0, unit variance).
+fn standardize(x: &[Vec<f64>]) -> Vec<Vec<f64>> {
+    let n = x.len();
+    let d = x.first().map_or(0, Vec::len);
+    let mut out = x.to_vec();
+    for j in 0..d {
+        let col: Vec<f64> = x.iter().map(|r| r[j]).collect();
+        let m = col.iter().sum::<f64>() / n as f64;
+        let var = col.iter().map(|v| (v - m).powi(2)).sum::<f64>() / n as f64;
+        let sd = var.sqrt().max(1e-12);
+        for row in &mut out {
+            row[j] = (row[j] - m) / sd;
+        }
+    }
+    out
+}
+
 // ---------------------------------------------------------------------------
 // linear / elastic_net / logistic
 // ---------------------------------------------------------------------------
@@ -156,10 +173,24 @@ fn logistic_handles_binary_and_multiclass() {
     let ce = logistic::cross_entropy(&x, &y, &lr.coefficients, lr.intercept);
     assert!(ce.is_finite() && ce >= 0.0, "ce: {ce}");
 
-    // Multiclass one-vs-rest on 6 geographies.
-    let (gx, gy) = geo_classification_data();
+    // Multiclass one-vs-rest on the geography labels. Features are
+    // standardized first: gradient descent is scale-sensitive and the raw
+    // `customers` column would otherwise dominate the updates.
+    let (gx_raw, gy) = geo_classification_data();
+    let gx = standardize(&gx_raw);
+    let n_geo_classes = {
+        let mut c = gy.clone();
+        c.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        c.dedup();
+        c.len()
+    };
     let ovr = logistic::fit_ovr(&gx, &gy, 0.05, 150, 1e-6, 1.0).unwrap();
-    assert_eq!(ovr.classes.len(), 6, "classes: {:?}", ovr.classes);
+    assert_eq!(
+        ovr.classes.len(),
+        n_geo_classes,
+        "classes: {:?}",
+        ovr.classes
+    );
     let op = logistic::predict_proba_ovr(&gx, &ovr);
     assert_eq!(op.len(), gx.len());
     assert!(op.iter().all(|row| (row.iter().sum::<f64>() - 1.0).abs() < 1e-3));
@@ -190,7 +221,10 @@ fn tree_variants_classify_geography() {
     let knn_reg = knn::regress(&x, &y, &x, 5).unwrap();
     assert_eq!(knn_reg.len(), x.len());
 
-    let mut tree = tree::DecisionTree::new(6, 4);
+    // Depth 12: the hashed categorical features need a deep tree to isolate
+    // class regions (depth 6 only reaches ~0.40 train accuracy vs a 0.34
+    // majority baseline).
+    let mut tree = tree::DecisionTree::new(12, 4);
     tree.fit(&x, &y);
     let preds = tree.predict(&x);
     assert!(accuracy(&preds, &y) > 0.5, "tree acc: {}", accuracy(&preds, &y));
@@ -250,8 +284,10 @@ fn svm_and_naive_bayes_classify() {
     let _sim = kernel.compute(&x[0], &x[1]);
 
     let mut svm_linear = svm::SVM::linear(1.0);
-    svm_linear.fit(&x, &y_svm);
-    let sp = svm_linear.predict(&x);
+    // SVMs are scale-sensitive; standardize features first (standard practice).
+    let xs = standardize(&x);
+    svm_linear.fit(&xs, &y_svm);
+    let sp = svm_linear.predict(&xs);
     let correct = sp
         .iter()
         .zip(&y_svm)
@@ -260,8 +296,8 @@ fn svm_and_naive_bayes_classify() {
     assert!(correct >= sp.len() / 2, "svm acc: {correct}/{}", sp.len());
 
     let mut svm_rbf = svm::SVM::rbf(1.0, 0.5);
-    svm_rbf.fit(&x, &y_svm);
-    assert_eq!(svm_rbf.predict(&x).len(), x.len());
+    svm_rbf.fit(&xs, &y_svm);
+    assert_eq!(svm_rbf.predict(&xs).len(), x.len());
 
     let nb = naive_bayes::fit(&x, &y).unwrap();
     let nb_pred = naive_bayes::predict(&nb, &x).unwrap();
@@ -274,7 +310,7 @@ fn svm_and_naive_bayes_classify() {
 #[test]
 fn gaussian_process_and_neural_net_regress() {
     let (x, y) = regression_data();
-    let n = x.len();
+    let _n = x.len();
     let x_sub: Vec<Vec<f64>> = x.iter().take(80).cloned().collect();
     let y_sub: Vec<f64> = y.iter().take(80).copied().collect();
 
@@ -447,7 +483,7 @@ fn feature_preprocessing_functions() {
     let (mins, maxs) = feature::min_max(&mut xc);
     assert!(mins.iter().zip(&maxs).all(|(a, b)| a <= b));
     let poly = feature::polynomial_features(&xc, 2);
-    assert!(poly.len() == xc.len());
+    assert_eq!(poly.len(), xc.len());
 
     // feature_selection
     let (idx, filtered) = feature_selection::variance_threshold(&x, 1e-9);
@@ -545,7 +581,7 @@ fn advanced_metrics_all_finite() {
             .sum::<f64>()
             .sqrt()
     });
-    assert!(sil.is_finite() && sil >= -1.1 && sil <= 1.1);
+    assert!(sil.is_finite() && (-1.1..=1.1).contains(&sil));
 
     let cal = metrics_adv::calibration_curve(&probas, &y, 10);
     assert_eq!(cal.len(), 10);
@@ -567,7 +603,7 @@ fn advanced_metrics_all_finite() {
     let tw = metrics_adv::tweedie_deviance(&p, &y_amt, 1.5);
     assert!(tw.is_finite());
 
-    let (gx, gy) = geo_classification_data();
+    let (_gx, gy) = geo_classification_data();
     let cm = metrics_adv::confusion_matrix_detailed(&gy, &gy, 6);
     assert_eq!(cm.tp.len(), 6);
 }
@@ -581,7 +617,7 @@ fn model_selection_evaluation_and_estimator_traits() {
     let (x, y) = regression_data();
 
     // Splits
-    let (xtr, xte, ytr, yte) = model_selection::train_test_split(&x, &y, 0.2, 42);
+    let (xtr, xte, _ytr, _yte) = model_selection::train_test_split(&x, &y, 0.2, 42);
     assert_eq!(xtr.len() + xte.len(), x.len());
     let (str_, ste, ystr, yste) = model_selection::stratified_train_test_split(&x, &y, 0.2, 42);
     assert_eq!(str_.len() + ste.len(), x.len());
@@ -635,7 +671,7 @@ fn model_selection_evaluation_and_estimator_traits() {
     assert!((0.0..=1.0).contains(&acc));
     let cm = model_selection::confusion_matrix(&preds, &y, 5);
     assert_eq!(cm.len(), 5);
-    let (p, r, f1, sup) = model_selection::precision_recall_f1(&preds, &y, 5);
+    let (p, _r, _f1, _sup) = model_selection::precision_recall_f1(&preds, &y, 5);
     assert_eq!(p.len(), 5);
     let rep = model_selection::classification_report(&preds, &y, 5);
     assert_eq!(rep.precision.len(), 5);

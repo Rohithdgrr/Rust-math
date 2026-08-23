@@ -11,32 +11,36 @@ pub struct Point3 {
 }
 
 impl Point3 {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
-        Point3 { x, y, z }
+    #[must_use]
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
+        Self { x, y, z }
     }
-    pub fn distance_to(self, other: Point3) -> f64 {
+    #[must_use]
+    pub fn distance_to(self, other: Self) -> f64 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
         let dz = self.z - other.z;
-        (dx * dx + dy * dy + dz * dz).sqrt()
+        dz.mul_add(dz, dy.mul_add(dy, dx * dx)).sqrt()
     }
-    pub fn translate(self, dx: f64, dy: f64, dz: f64) -> Point3 {
-        Point3::new(self.x + dx, self.y + dy, self.z + dz)
+    #[must_use]
+    pub fn translate(self, dx: f64, dy: f64, dz: f64) -> Self {
+        Self::new(self.x + dx, self.y + dy, self.z + dz)
     }
-    pub fn scale(self, s: f64) -> Point3 {
-        Point3::new(self.x * s, self.y * s, self.z * s)
+    #[must_use]
+    pub fn scale(self, s: f64) -> Self {
+        Self::new(self.x * s, self.y * s, self.z * s)
     }
 }
 
 fn dot(a: Point3, b: Point3) -> f64 {
-    a.x * b.x + a.y * b.y + a.z * b.z
+    a.z.mul_add(b.z, a.y.mul_add(b.y, a.x * b.x))
 }
 
 fn cross(a: Point3, b: Point3) -> Point3 {
     Point3::new(
-        a.y * b.z - a.z * b.y,
-        a.z * b.x - a.x * b.z,
-        a.x * b.y - a.y * b.x,
+        a.z.mul_add(-b.y, a.y * b.z),
+        a.x.mul_add(-b.z, a.z * b.x),
+        a.y.mul_add(-b.x, a.x * b.y),
     )
 }
 
@@ -53,21 +57,26 @@ pub struct Sphere {
 
 impl Sphere {
     /// Panics if `radius < 0`.
-    pub fn new(center: Point3, radius: f64) -> Sphere {
+    #[must_use]
+    pub fn new(center: Point3, radius: f64) -> Self {
         assert!(radius >= 0.0, "sphere radius must be non-negative");
-        Sphere { center, radius }
+        Self { center, radius }
     }
+    #[must_use]
     pub fn volume(&self) -> f64 {
         4.0 / 3.0 * PI * self.radius.powi(3)
     }
+    #[must_use]
     pub fn surface_area(&self) -> f64 {
         4.0 * PI * self.radius.powi(2)
     }
+    #[must_use]
     pub fn contains(&self, p: Point3) -> bool {
         self.center.distance_to(p) <= self.radius
     }
     /// Sphere-sphere collision (touch counts as collision).
-    pub fn collides_with(&self, other: &Sphere) -> bool {
+    #[must_use]
+    pub fn collides_with(&self, other: &Self) -> bool {
         self.center.distance_to(other.center) <= self.radius + other.radius
     }
 }
@@ -81,13 +90,16 @@ pub struct Cube {
 
 impl Cube {
     /// Panics if `side < 0`.
-    pub fn new(center: Point3, side: f64) -> Cube {
+    #[must_use]
+    pub fn new(center: Point3, side: f64) -> Self {
         assert!(side >= 0.0, "cube side must be non-negative");
-        Cube { center, side }
+        Self { center, side }
     }
+    #[must_use]
     pub fn volume(&self) -> f64 {
         self.side.powi(3)
     }
+    #[must_use]
     pub fn surface_area(&self) -> f64 {
         6.0 * self.side.powi(2)
     }
@@ -103,14 +115,17 @@ pub struct Cylinder {
 
 impl Cylinder {
     /// Panics if `radius < 0` or `height < 0`.
-    pub fn new(center: Point3, radius: f64, height: f64) -> Cylinder {
+    #[must_use]
+    pub fn new(center: Point3, radius: f64, height: f64) -> Self {
         assert!(radius >= 0.0 && height >= 0.0, "cylinder dimensions must be non-negative");
-        Cylinder { center, radius, height }
+        Self { center, radius, height }
     }
+    #[must_use]
     pub fn volume(&self) -> f64 {
         PI * self.radius.powi(2) * self.height
     }
     /// Lateral surface plus both caps.
+    #[must_use]
     pub fn surface_area(&self) -> f64 {
         2.0 * PI * self.radius * (self.radius + self.height)
     }
@@ -126,16 +141,19 @@ pub struct Cone {
 
 impl Cone {
     /// Panics if `radius < 0` or `height < 0`.
-    pub fn new(center: Point3, radius: f64, height: f64) -> Cone {
+    #[must_use]
+    pub fn new(center: Point3, radius: f64, height: f64) -> Self {
         assert!(radius >= 0.0 && height >= 0.0, "cone dimensions must be non-negative");
-        Cone { center, radius, height }
+        Self { center, radius, height }
     }
+    #[must_use]
     pub fn volume(&self) -> f64 {
         PI * self.radius.powi(2) * self.height / 3.0
     }
     /// Lateral surface plus base.
+    #[must_use]
     pub fn surface_area(&self) -> f64 {
-        PI * self.radius * (self.radius + (self.radius.powi(2) + self.height.powi(2)).sqrt())
+        PI * self.radius * (self.radius + self.radius.hypot(self.height))
     }
 }
 
@@ -148,19 +166,23 @@ pub struct Plane {
 
 impl Plane {
     /// Panics if `normal` is the zero vector.
-    pub fn new(normal: Point3, d: f64) -> Plane {
+    #[must_use]
+    pub fn new(normal: Point3, d: f64) -> Self {
         assert!(norm(normal) > 0.0, "plane normal must be non-zero");
-        Plane { normal, d }
+        Self { normal, d }
     }
     /// Signed distance (positive on the side the normal points to).
+    #[must_use]
     pub fn signed_distance(&self, p: Point3) -> f64 {
         (dot(self.normal, p) + self.d) / norm(self.normal)
     }
     /// Absolute distance.
+    #[must_use]
     pub fn distance(&self, p: Point3) -> f64 {
         self.signed_distance(p).abs()
     }
     /// Orthogonal projection of `p` onto the plane.
+    #[must_use]
     pub fn project(&self, p: Point3) -> Point3 {
         let n = self.normal.scale(1.0 / norm(self.normal));
         p.translate(-n.x * self.signed_distance(p), -n.y * self.signed_distance(p), -n.z * self.signed_distance(p))
@@ -176,16 +198,19 @@ pub struct Line3 {
 
 impl Line3 {
     /// Panics if `dir` is the zero vector.
-    pub fn new(point: Point3, dir: Point3) -> Line3 {
+    #[must_use]
+    pub fn new(point: Point3, dir: Point3) -> Self {
         assert!(norm(dir) > 0.0, "line direction must be non-zero");
-        Line3 { point, dir }
+        Self { point, dir }
     }
     /// Distance from a point to the line.
+    #[must_use]
     pub fn distance(&self, p: Point3) -> f64 {
         let v = p.translate(-self.point.x, -self.point.y, -self.point.z);
         norm(cross(v, self.dir)) / norm(self.dir)
     }
     /// Orthogonal projection of `p` onto the line.
+    #[must_use]
     pub fn project(&self, p: Point3) -> Point3 {
         let v = p.translate(-self.point.x, -self.point.y, -self.point.z);
         let t = dot(v, self.dir) / dot(self.dir, self.dir);

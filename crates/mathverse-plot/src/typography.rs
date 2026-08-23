@@ -135,7 +135,7 @@ pub fn wrap_text(text: &str, max_chars: usize) -> Vec<String> {
                     if !current.is_empty() {
                         out.push(std::mem::take(&mut current));
                     }
-                    current = rest.clone();
+                    current.clone_from(&rest);
                     current_len = rest.chars().count();
                 }
                 continue;
@@ -185,8 +185,7 @@ pub fn multiline_svg_text(
             ));
         } else {
             out.push_str(&format!(
-                r#"<tspan x="{x:.1}" dy="{dy_off:.1}" text-anchor="{anchor}">{esc}</tspan>"#,
-                dy_off = line_height
+                r#"<tspan x="{x:.1}" dy="{line_height:.1}" text-anchor="{anchor}">{esc}</tspan>"#
             ));
         }
         dy += line_height;

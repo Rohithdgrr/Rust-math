@@ -522,8 +522,8 @@ mod tests {
 
         assert!(svg.contains("<svg"));
         assert!(svg.contains("Test Plot"));
-        assert!(svg.contains("X"));
-        assert!(svg.contains("Y"));
+        assert!(svg.contains('X'));
+        assert!(svg.contains('Y'));
     }
 
     #[test]

@@ -6,8 +6,11 @@ use mathverse_core::error::{MathError, MathResult};
 /// Generalized eigenvalue decomposition result.
 #[derive(Debug, Clone)]
 pub struct GeneralizedEigenDecomposition {
+    /// Generalized eigenvalues of `Ax = λBx`.
     pub eigenvalues: Vec<f64>,
+    /// Eigenvectors as columns.
     pub eigenvectors: Matrix,
+    /// Left eigenvectors as columns, if requested.
     pub left_eigenvectors: Option<Matrix>,
 }
 
@@ -313,7 +316,7 @@ mod tests {
         let decomp = GeneralizedEigen::compute(&a, &b).unwrap();
         
         // Should match standard eigenvalues
-        assert!(decomp.eigenvalues.len() == 2);
+        assert_eq!(decomp.eigenvalues.len(), 2);
     }
 
     #[test]
@@ -323,7 +326,7 @@ mod tests {
         
         let decomp = GeneralizedEigen::compute(&a, &b).unwrap();
         
-        assert!(decomp.eigenvalues.len() == 2);
+        assert_eq!(decomp.eigenvalues.len(), 2);
     }
 
     #[test]
@@ -333,6 +336,6 @@ mod tests {
         
         let frequencies = GeneralizedEigenApplications::natural_frequencies(&k, &m).unwrap();
         
-        assert!(frequencies.len() == 2);
+        assert_eq!(frequencies.len(), 2);
     }
 }

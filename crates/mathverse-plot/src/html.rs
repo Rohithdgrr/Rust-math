@@ -92,9 +92,8 @@ impl crate::backend::Backend for HtmlPlot {
             html.push_str("</h1>\n");
         }
         let svg_string = match svg_content {
-            PlotOutput::Svg(s) => s,
-            PlotOutput::Text(s) => s,
-            _ => String::new(),
+            PlotOutput::Svg(s) | PlotOutput::Text(s) => s,
+            PlotOutput::Binary(..) => String::new(),
         };
         html.push_str("    <div>\n");
         html.push_str(&svg_string);

@@ -28,7 +28,8 @@ pub enum GeometryError {
 
 impl GeometryError {
     /// Returns a new invalid-dimension error.
-    pub fn invalid_dim(value: f64) -> Self {
+    #[must_use]
+    pub const fn invalid_dim(value: f64) -> Self {
         Self::InvalidDimension { value }
     }
 }

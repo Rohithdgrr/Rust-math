@@ -7,24 +7,45 @@ use thiserror::Error;
 pub enum ImageError {
     /// Invalid dimensions provided.
     #[error("invalid dimensions: width {width} and height {height} must be greater than 0")]
-    InvalidDimensions { width: usize, height: usize },
+    InvalidDimensions {
+        /// Image width that was supplied.
+        width: usize,
+        /// Image height that was supplied.
+        height: usize,
+    },
 
     /// Data length mismatch for given dimensions.
     #[error("data length {data_len} does not match expected length {expected_len} for {width}x{height} image")]
     DataLengthMismatch {
+        /// Actual pixel-buffer length.
         data_len: usize,
+        /// Buffer length implied by the dimensions.
         expected_len: usize,
+        /// Image width.
         width: usize,
+        /// Image height.
         height: usize,
     },
 
     /// Pixel coordinates out of bounds.
     #[error("pixel coordinates ({x}, {y}) out of bounds for {width}x{height} image")]
-    OutOfBounds { x: usize, y: usize, width: usize, height: usize },
+    OutOfBounds {
+        /// X coordinate of the offending pixel.
+        x: usize,
+        /// Y coordinate of the offending pixel.
+        y: usize,
+        /// Image width.
+        width: usize,
+        /// Image height.
+        height: usize,
+    },
 
     /// Invalid pixel value (must be in [0, 1]).
     #[error("pixel value {value} is invalid, must be in [0, 1]")]
-    InvalidPixelValue { value: f64 },
+    InvalidPixelValue {
+        /// The rejected pixel value.
+        value: f64,
+    },
 
     /// I/O error when loading or saving images.
     #[error("I/O error: {0}")]

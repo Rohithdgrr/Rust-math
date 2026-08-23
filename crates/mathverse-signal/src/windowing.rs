@@ -42,7 +42,7 @@ fn bessel_i0(x: f64) -> f64 {
     let mut sum = 1.0;
     let mut term = 1.0;
     let x2 = x * x / 4.0;
-    for k in 1..=25 { term *= x2 / (k as f64 * k as f64); sum += term; }
+    for k in 1..=25 { term *= x2 / (f64::from(k) * f64::from(k)); sum += term; }
     sum
 }
 

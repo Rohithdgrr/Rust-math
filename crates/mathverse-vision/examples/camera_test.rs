@@ -25,7 +25,7 @@ fn main() -> Result<(), String> {
     cam.set(properties::FRAME_HEIGHT, 480.0)?;
     
     let width = cam.get(properties::FRAME_WIDTH)?;
-    println!("Width after set: {}", width);
+    println!("Width after set: {width}");
     
     Ok(())
 }

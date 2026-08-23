@@ -114,7 +114,7 @@ pub fn jet_to_gray(img: &Image) -> Image {
 ///
 /// Panics if the width is not a multiple of 3.
 pub fn rgb_to_gray(rgb: &Image) -> Image {
-    assert!(rgb.w % 3 == 0, "rgb_to_gray: width must be a multiple of 3");
+    assert!(rgb.w.is_multiple_of(3), "rgb_to_gray: width must be a multiple of 3");
     let (w, h) = (rgb.w / 3, rgb.h);
     let mut data = vec![0.0; w * h];
     for i in 0..w * h {
@@ -154,7 +154,7 @@ pub fn gray_to_bgr(gray: &Image) -> Image {
 ///
 /// Panics if the width is not a multiple of 3.
 pub fn rgb_to_bgr(rgb: &Image) -> Image {
-    assert!(rgb.w % 3 == 0, "rgb_to_bgr: width must be a multiple of 3");
+    assert!(rgb.w.is_multiple_of(3), "rgb_to_bgr: width must be a multiple of 3");
     let mut out = rgb.clone();
     for i in 0..out.data.len() / 3 {
         out.data.swap(i * 3, i * 3 + 2);
@@ -171,7 +171,7 @@ pub fn rgb_to_bgr(rgb: &Image) -> Image {
 ///
 /// Panics if the width is not a multiple of 3.
 pub fn rgb_to_hsv(rgb: &Image) -> Image {
-    assert!(rgb.w % 3 == 0, "rgb_to_hsv: width must be a multiple of 3");
+    assert!(rgb.w.is_multiple_of(3), "rgb_to_hsv: width must be a multiple of 3");
     let mut data = vec![0.0; rgb.data.len()];
     for i in 0..rgb.data.len() / 3 {
         let (r, g, b) = (rgb.data[i * 3], rgb.data[i * 3 + 1], rgb.data[i * 3 + 2]);
@@ -192,7 +192,7 @@ pub fn rgb_to_hsv(rgb: &Image) -> Image {
 ///
 /// Panics if the width is not a multiple of 3.
 pub fn hsv_to_rgb(hsv: &Image) -> Image {
-    assert!(hsv.w % 3 == 0, "hsv_to_rgb: width must be a multiple of 3");
+    assert!(hsv.w.is_multiple_of(3), "hsv_to_rgb: width must be a multiple of 3");
     let mut data = vec![0.0; hsv.data.len()];
     for i in 0..hsv.data.len() / 3 {
         let (h, s, v) = (hsv.data[i * 3], hsv.data[i * 3 + 1], hsv.data[i * 3 + 2]);

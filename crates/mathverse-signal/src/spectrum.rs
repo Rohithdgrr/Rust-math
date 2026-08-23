@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn periodogram_test() {
-        let x: Vec<f64> = (0..64).map(|i| (2.0 * core::f64::consts::PI * i as f64 / 16.0).sin()).collect();
+        let x: Vec<f64> = (0..64).map(|i| (2.0 * core::f64::consts::PI * f64::from(i) / 16.0).sin()).collect();
         let psd = periodogram(&x);
         assert_eq!(psd.len(), 64);
     }

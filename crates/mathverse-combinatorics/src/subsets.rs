@@ -45,7 +45,7 @@ pub fn permutation_index(n: usize) -> Vec<Vec<usize>> {
 }
 
 pub fn composition(n: u64, k: u64) -> u128 {
-    if k == 0 { return if n == 0 { 1 } else { 0 }; }
+    if k == 0 { return u128::from(n == 0); }
     use mathverse_core::algorithms::binomial;
     binomial(n - 1, k - 1)
 }

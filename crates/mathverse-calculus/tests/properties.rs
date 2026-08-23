@@ -4,7 +4,6 @@
 
 use proptest::prelude::*;
 use mathverse_calculus::prelude::*;
-use core::f64::consts::PI;
 
 proptest! {
     /// Derivative of a constant function is zero.
@@ -128,7 +127,7 @@ proptest! {
         }
         let n = 10;
         let dx = 0.5;
-        let y: Vec<f64> = (0..n).map(|i| slope * (i as f64 * dx) + intercept).collect();
+        let y: Vec<f64> = (0..n).map(|i| slope * (f64::from(i) * dx) + intercept).collect();
         let g = discrete_gradient(&y, dx);
         for &val in &g {
             prop_assert!((val - slope).abs() < 1e-6, "gradient: {val} vs {slope}");

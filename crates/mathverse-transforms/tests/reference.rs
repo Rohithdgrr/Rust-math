@@ -9,7 +9,7 @@
 use mathverse_complex::Complex;
 use mathverse_transforms::{
     dct1, dct2, dct3, dct4, dft, dst1, dst4, fft, goertzel_magnitude,
-    haar_dwt, haar_dwt_multi, haar_idwt_multi, idct2, ifft,
+    haar_dwt, haar_dwt_multi, haar_idwt_multi, idct2,
 };
 
 fn c(re: f64) -> Complex {

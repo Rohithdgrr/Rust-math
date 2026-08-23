@@ -55,6 +55,7 @@ harness = false
 
 [[example]]
 name = "interactive"
+required-features = ["interactive"]
 
 [[example]]
 name = "simple_ml_plots"

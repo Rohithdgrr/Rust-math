@@ -13,6 +13,7 @@
 /// assert_eq!(mod_pow(2, 10, 0), None);
 /// ```
 #[must_use]
+#[allow(clippy::missing_const_for_fn)]
 pub fn mod_pow(base: u64, mut exp: u64, m: u64) -> Option<u64> {
     if m == 0 {
         return None;
@@ -21,8 +22,8 @@ pub fn mod_pow(base: u64, mut exp: u64, m: u64) -> Option<u64> {
         return Some(0);
     }
     let mut result = 1u128;
-    let mut b = base as u128 % m as u128;
-    let mm = m as u128;
+    let mut b = u128::from(base) % u128::from(m);
+    let mm = u128::from(m);
     while exp > 0 {
         if exp & 1 == 1 {
             result = (result * b) % mm;
@@ -37,10 +38,12 @@ pub fn mod_pow(base: u64, mut exp: u64, m: u64) -> Option<u64> {
 /// Faster than [`mod_pow`] for internal use where the modulus is known
 /// to be greater than 1.
 #[inline]
+#[must_use]
+#[allow(clippy::missing_const_for_fn)]
 pub fn mod_pow_unchecked(base: u64, exp: u64, m: u64) -> u64 {
     let mut result = 1u128;
-    let mut b = base as u128 % m as u128;
-    let mm = m as u128;
+    let mut b = u128::from(base) % u128::from(m);
+    let mm = u128::from(m);
     let mut e = exp;
     while e > 0 {
         if e & 1 == 1 {
@@ -63,21 +66,22 @@ pub fn mod_pow_unchecked(base: u64, exp: u64, m: u64) -> u64 {
 /// assert_eq!(mod_inverse(3, 0), None);     // division by zero
 /// ```
 #[must_use]
+#[allow(clippy::missing_const_for_fn)]
 pub fn mod_inverse(a: u64, m: u64) -> Option<u64> {
     if m == 0 {
         return None;
     }
-    let (mut r0, mut r1) = (m as i128, a as i128 % m as i128);
+    let (mut r0, mut r1) = (i128::from(m), i128::from(a) % i128::from(m));
     let (mut t0, mut t1) = (0i128, 1i128);
     while r1 != 0 {
         let q = r0 / r1;
         (r0, r1) = (r1, r0 - q * r1);
         (t0, t1) = (t1, t0 - q * t1);
     }
-    if r0 != 1 {
-        None
+    if r0 == 1 {
+        Some(t0.rem_euclid(i128::from(m)) as u64)
     } else {
-        Some((t0.rem_euclid(m as i128)) as u64)
+        None
     }
 }
 
@@ -91,7 +95,7 @@ pub fn mod_inverse(a: u64, m: u64) -> Option<u64> {
 /// assert_eq!(mod_add(2, 3, 10), 5);
 /// ```
 #[must_use]
-pub fn mod_add(a: u64, b: u64, m: u64) -> u64 {
+pub const fn mod_add(a: u64, b: u64, m: u64) -> u64 {
     if m == 0 {
         return 0;
     }
@@ -114,7 +118,7 @@ pub fn mod_add(a: u64, b: u64, m: u64) -> u64 {
 /// assert_eq!(mod_sub(10, 3, 7), 0);
 /// ```
 #[must_use]
-pub fn mod_sub(a: u64, b: u64, m: u64) -> u64 {
+pub const fn mod_sub(a: u64, b: u64, m: u64) -> u64 {
     if m == 0 {
         return 0;
     }
@@ -135,11 +139,12 @@ pub fn mod_sub(a: u64, b: u64, m: u64) -> u64 {
 /// assert_eq!(mod_mul(3, 4, 5), 2);
 /// ```
 #[must_use]
+#[allow(clippy::missing_const_for_fn)]
 pub fn mod_mul(a: u64, b: u64, m: u64) -> u64 {
     if m == 0 {
         return 0;
     }
-    (a as u128 * b as u128 % m as u128) as u64
+    (u128::from(a) * u128::from(b) % u128::from(m)) as u64
 }
 
 /// Modular division: `a / b mod m` = `a * b^-1 mod m`.
@@ -174,11 +179,11 @@ pub fn crt(rems: &[u64], mods: &[u64]) -> Option<u64> {
     if rems.is_empty() || mods.is_empty() || rems.len() != mods.len() {
         return None;
     }
-    let mut result = rems[0] as i128;
-    let mut lcm = mods[0] as i128;
+    let mut result = i128::from(rems[0]);
+    let mut lcm = i128::from(mods[0]);
     for i in 1..rems.len() {
         let (a1, m1) = (result, lcm);
-        let (a2, m2) = (rems[i] as i128, mods[i] as i128);
+        let (a2, m2) = (i128::from(rems[i]), i128::from(mods[i]));
         let g = gcd_i128(m1, m2);
         if (a2 - a1).rem_euclid(g) != 0 {
             return None;
@@ -191,7 +196,7 @@ pub fn crt(rems: &[u64], mods: &[u64]) -> Option<u64> {
         lcm = lcm.checked_div(g)?.checked_mul(m2)?;
         result = result.rem_euclid(lcm);
     }
-    if result < 0 || result > u64::MAX as i128 {
+    if result < 0 || result > i128::from(u64::MAX) {
         None
     } else {
         Some(result as u64)
@@ -218,7 +223,7 @@ pub fn solve_linear_congruence(a: u64, b: u64, m: u64) -> Option<Vec<u64>> {
         return None;
     }
     let g = gcd(b, m);
-    if a % g != 0 {
+    if !a.is_multiple_of(g) {
         return None;
     }
     let (b_reduced, m_reduced, a_reduced) = (b / g, m / g, a / g);
@@ -245,7 +250,7 @@ pub fn linear_congruence_solvable(a: u64, b: u64, m: u64) -> bool {
         return false;
     }
     let g = gcd(b, m);
-    a % g == 0
+    a.is_multiple_of(g)
 }
 
 #[inline]
@@ -311,8 +316,8 @@ mod tests {
 
     #[test]
     fn mod_add_overflow() {
-        assert_eq!(mod_add(u64::MAX, 1, 100), (u64::MAX % 100 + 1) % 100);
-        assert_eq!(mod_add(u64::MAX, u64::MAX, 7), (u64::MAX % 7 * 2) % 7);
+        assert_eq!(mod_add(u64::MAX, 1, 100), u64::MAX % 100 + 1);
+        assert_eq!(mod_add(u64::MAX, u64::MAX, 7), 2);
         assert_eq!(mod_add(0, 0, 1), 0);
         assert_eq!(mod_add(5, 3, 0), 0);
     }

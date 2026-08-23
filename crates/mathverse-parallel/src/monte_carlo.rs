@@ -85,13 +85,10 @@ pub fn rand_f64() -> f64 {
         static STATE: Cell<Option<u64>> = const { Cell::new(None) };
     }
     STATE.with(|s| {
-        let mut x = match s.get() {
-            Some(seed) => seed,
-            None => {
-                let seed = fresh_seed();
-                s.set(Some(seed));
-                seed
-            }
+        let mut x = if let Some(seed) = s.get() { seed } else {
+            let seed = fresh_seed();
+            s.set(Some(seed));
+            seed
         };
         let z = splitmix64(&mut x);
         s.set(Some(x));
@@ -110,7 +107,7 @@ pub fn par_estimate_pi(n_samples: u64) -> f64 {
         |_| {
             let x = rand_f64();
             let y = rand_f64();
-            if x * x + y * y <= 1.0 { 1u64 } else { 0 }
+            u64::from(x * x + y * y <= 1.0)
         },
         |a, b| a + b,
         || 0u64,
@@ -168,7 +165,7 @@ mod tests {
     #[test]
     fn test_par_monte_carlo_sum() {
         let result = par_monte_carlo(1000, |i| i as f64, |a, b| a + b, || 0.0);
-        let expected: f64 = (0..1000).map(|i| i as f64).sum();
+        let expected: f64 = (0..1000).map(f64::from).sum();
         assert!((result - expected).abs() < 1e-6);
     }
 

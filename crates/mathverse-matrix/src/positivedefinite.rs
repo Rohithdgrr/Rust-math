@@ -89,10 +89,7 @@ impl PositiveDefinite {
             return false;
         }
         
-        let (vals, _) = match m.eigen_symmetric() {
-            Ok(result) => result,
-            Err(_) => return false,
-        };
+        let Ok((vals, _)) = m.eigen_symmetric() else { return false };
         
         vals.iter().all(|&v| v > tolerance)
     }
@@ -130,7 +127,7 @@ impl PositiveDefinite {
         let mut a = m.clone();
         for i in 0..m.rows {
             for j in (i + 1)..m.cols {
-                let avg = (m.get(i, j) + m.get(j, i)) / 2.0;
+                let avg = f64::midpoint(m.get(i, j), m.get(j, i));
                 a.set(i, j, avg);
                 a.set(j, i, avg);
             }
@@ -281,8 +278,7 @@ impl QuadraticForm {
         let min_idx = vals.iter()
             .enumerate()
             .min_by(|(_, a), (_, b)| a.total_cmp(b))
-            .map(|(i, _)| i)
-            .unwrap_or(0);
+            .map_or(0, |(i, _)| i);
         
         let min_val = vals[min_idx];
         let min_vec = vecs.col(min_idx);
@@ -296,8 +292,7 @@ impl QuadraticForm {
         let max_idx = vals.iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| a.total_cmp(b))
-            .map(|(i, _)| i)
-            .unwrap_or(0);
+            .map_or(0, |(i, _)| i);
         
         let max_val = vals[max_idx];
         let max_vec = vecs.col(max_idx);

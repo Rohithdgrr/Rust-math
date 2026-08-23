@@ -7,10 +7,10 @@ use mathverse_plot::save::PlotSaver;
 
 fn main() -> mathverse_plot::PlotResult<()> {
     let morning: Vec<DataPoint> = (0..=12)
-        .map(|h| DataPoint::new(h as f64, 15.0 + h as f64 * 1.5))
+        .map(|h| DataPoint::new(f64::from(h), 15.0 + f64::from(h) * 1.5))
         .collect();
     let afternoon: Vec<DataPoint> = (12..=24)
-        .map(|h| DataPoint::new(h as f64, 33.0 - (h as f64 - 12.0) * 1.2))
+        .map(|h| DataPoint::new(f64::from(h), 33.0 - (f64::from(h) - 12.0) * 1.2))
         .collect();
 
     let series = vec![

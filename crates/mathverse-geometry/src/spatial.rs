@@ -15,9 +15,11 @@ pub struct AABB {
 }
 
 impl AABB {
-    pub fn new(min: Point2, max: Point2) -> Self {
+    #[must_use]
+    pub const fn new(min: Point2, max: Point2) -> Self {
         Self { min, max }
     }
+    #[must_use]
     pub fn from_points(pts: &[Point2]) -> Option<Self> {
         if pts.is_empty() {
             return None;
@@ -34,35 +36,43 @@ impl AABB {
         }
         Some(Self { min: Point2::new(minx, miny), max: Point2::new(maxx, maxy) })
     }
+    #[must_use]
     pub fn width(self) -> f64 {
         self.max.x - self.min.x
     }
+    #[must_use]
     pub fn height(self) -> f64 {
         self.max.y - self.min.y
     }
-    pub fn center(self) -> Point2 {
-        Point2::new((self.min.x + self.max.x) / 2.0, (self.min.y + self.max.y) / 2.0)
+    #[must_use]
+    pub const fn center(self) -> Point2 {
+        Point2::new(f64::midpoint(self.min.x, self.max.x), f64::midpoint(self.min.y, self.max.y))
     }
+    #[must_use]
     pub fn area(self) -> f64 {
         self.width() * self.height()
     }
+    #[must_use]
     pub fn contains(self, p: Point2) -> bool {
         p.x >= self.min.x && p.x <= self.max.x && p.y >= self.min.y && p.y <= self.max.y
     }
-    pub fn intersects(self, other: AABB) -> bool {
+    #[must_use]
+    pub fn intersects(self, other: Self) -> bool {
         self.min.x <= other.max.x
             && self.max.x >= other.min.x
             && self.min.y <= other.max.y
             && self.max.y >= other.min.y
     }
-    pub fn merge(self, other: AABB) -> AABB {
-        AABB {
+    #[must_use]
+    pub const fn merge(self, other: Self) -> Self {
+        Self {
             min: Point2::new(self.min.x.min(other.min.x), self.min.y.min(other.min.y)),
             max: Point2::new(self.max.x.max(other.max.x), self.max.y.max(other.max.y)),
         }
     }
-    pub fn expand(self, padding: f64) -> AABB {
-        AABB {
+    #[must_use]
+    pub fn expand(self, padding: f64) -> Self {
+        Self {
             min: Point2::new(self.min.x - padding, self.min.y - padding),
             max: Point2::new(self.max.x + padding, self.max.y + padding),
         }
@@ -81,9 +91,11 @@ pub struct AABB3 {
 }
 
 impl AABB3 {
-    pub fn new(min: Point3, max: Point3) -> Self {
+    #[must_use]
+    pub const fn new(min: Point3, max: Point3) -> Self {
         Self { min, max }
     }
+    #[must_use]
     pub fn from_points(pts: &[Point3]) -> Option<Self> {
         if pts.is_empty() {
             return None;
@@ -100,13 +112,15 @@ impl AABB3 {
         }
         Some(Self { min, max })
     }
-    pub fn center(self) -> Point3 {
+    #[must_use]
+    pub const fn center(self) -> Point3 {
         Point3::new(
-            (self.min.x + self.max.x) / 2.0,
-            (self.min.y + self.max.y) / 2.0,
-            (self.min.z + self.max.z) / 2.0,
+            f64::midpoint(self.min.x, self.max.x),
+            f64::midpoint(self.min.y, self.max.y),
+            f64::midpoint(self.min.z, self.max.z),
         )
     }
+    #[must_use]
     pub fn half_extents(self) -> Point3 {
         Point3::new(
             (self.max.x - self.min.x) / 2.0,
@@ -114,21 +128,25 @@ impl AABB3 {
             (self.max.z - self.min.z) / 2.0,
         )
     }
+    #[must_use]
     pub fn volume(self) -> f64 {
         (self.max.x - self.min.x) * (self.max.y - self.min.y) * (self.max.z - self.min.z)
     }
+    #[must_use]
     pub fn surface_area(self) -> f64 {
         let dx = self.max.x - self.min.x;
         let dy = self.max.y - self.min.y;
         let dz = self.max.z - self.min.z;
-        2.0 * (dx * dy + dy * dz + dz * dx)
+        2.0 * dz.mul_add(dx, dy.mul_add(dz, dx * dy))
     }
+    #[must_use]
     pub fn contains(self, p: Point3) -> bool {
         p.x >= self.min.x && p.x <= self.max.x
             && p.y >= self.min.y && p.y <= self.max.y
             && p.z >= self.min.z && p.z <= self.max.z
     }
-    pub fn intersects(self, other: AABB3) -> bool {
+    #[must_use]
+    pub fn intersects(self, other: Self) -> bool {
         self.min.x <= other.max.x
             && self.max.x >= other.min.x
             && self.min.y <= other.max.y
@@ -136,8 +154,9 @@ impl AABB3 {
             && self.min.z <= other.max.z
             && self.max.z >= other.min.z
     }
-    pub fn merge(self, other: AABB3) -> AABB3 {
-        AABB3 {
+    #[must_use]
+    pub const fn merge(self, other: Self) -> Self {
+        Self {
             min: Point3::new(
                 self.min.x.min(other.min.x),
                 self.min.y.min(other.min.y),
@@ -166,10 +185,12 @@ pub struct OBB {
 }
 
 impl OBB {
-    pub fn new(center: Point2, half_w: f64, half_h: f64, angle: f64) -> Self {
+    #[must_use]
+    pub const fn new(center: Point2, half_w: f64, half_h: f64, angle: f64) -> Self {
         Self { center, half_w, half_h, angle }
     }
     /// Four corner vertices.
+    #[must_use]
     pub fn corners(self) -> [Point2; 4] {
         let (s, c) = self.angle.sin_cos();
         let dx = Point2::new(c * self.half_w, s * self.half_w);
@@ -181,16 +202,18 @@ impl OBB {
             self.center.translate(-dx.x - dy.x, -dx.y - dy.y),
         ]
     }
+    #[must_use]
     pub fn area(self) -> f64 {
         4.0 * self.half_w * self.half_h
     }
     /// Whether point `p` is inside this OBB (SAT with one axis).
+    #[must_use]
     pub fn contains(self, p: Point2) -> bool {
         let (s, c) = self.angle.sin_cos();
         let dx = p.x - self.center.x;
         let dy = p.y - self.center.y;
-        let local_x = c * dx + s * dy;
-        let local_y = -s * dx + c * dy;
+        let local_x = s.mul_add(dy, c * dx);
+        let local_y = c.mul_add(dy, -s * dx);
         local_x.abs() <= self.half_w && local_y.abs() <= self.half_h
     }
 }
@@ -205,14 +228,15 @@ pub struct Quadtree {
     points: Vec<Point2>,
     capacity: usize,
     divided: bool,
-    ne: Option<Box<Quadtree>>,
-    nw: Option<Box<Quadtree>>,
-    se: Option<Box<Quadtree>>,
-    sw: Option<Box<Quadtree>>,
+    ne: Option<Box<Self>>,
+    nw: Option<Box<Self>>,
+    se: Option<Box<Self>>,
+    sw: Option<Box<Self>>,
 }
 
 impl Quadtree {
-    pub fn new(bounds: AABB, capacity: usize) -> Self {
+    #[must_use]
+    pub const fn new(bounds: AABB, capacity: usize) -> Self {
         Self {
             bounds,
             points: Vec::new(),
@@ -264,10 +288,10 @@ impl Quadtree {
         let hx = self.bounds.width() / 2.0;
         let hy = self.bounds.height() / 2.0;
         let cap = self.capacity;
-        self.ne = Some(Box::new(Quadtree::new(AABB::new(Point2::new(c.x, c.y), Point2::new(c.x + hx, c.y + hy)), cap)));
-        self.nw = Some(Box::new(Quadtree::new(AABB::new(Point2::new(c.x - hx, c.y), Point2::new(c.x, c.y + hy)), cap)));
-        self.se = Some(Box::new(Quadtree::new(AABB::new(Point2::new(c.x, c.y - hy), Point2::new(c.x + hx, c.y)), cap)));
-        self.sw = Some(Box::new(Quadtree::new(AABB::new(Point2::new(c.x - hx, c.y - hy), Point2::new(c.x, c.y)), cap)));
+        self.ne = Some(Box::new(Self::new(AABB::new(Point2::new(c.x, c.y), Point2::new(c.x + hx, c.y + hy)), cap)));
+        self.nw = Some(Box::new(Self::new(AABB::new(Point2::new(c.x - hx, c.y), Point2::new(c.x, c.y + hy)), cap)));
+        self.se = Some(Box::new(Self::new(AABB::new(Point2::new(c.x, c.y - hy), Point2::new(c.x + hx, c.y)), cap)));
+        self.sw = Some(Box::new(Self::new(AABB::new(Point2::new(c.x - hx, c.y - hy), Point2::new(c.x, c.y)), cap)));
         self.divided = true;
     }
 }
@@ -282,11 +306,12 @@ pub struct Octree {
     points: Vec<Point3>,
     capacity: usize,
     divided: bool,
-    children: Option<[Box<Octree>; 8]>,
+    children: Option<[Box<Self>; 8]>,
 }
 
 impl Octree {
-    pub fn new(bounds: AABB3, capacity: usize) -> Self {
+    #[must_use]
+    pub const fn new(bounds: AABB3, capacity: usize) -> Self {
         Self { bounds, points: Vec::new(), capacity, divided: false, children: None }
     }
     pub fn insert(&mut self, p: Point3) -> bool {
@@ -318,7 +343,7 @@ impl Octree {
             }
         }
         if let Some(children) = &self.children {
-            for child in children.iter() {
+            for child in children {
                 child.query(range, result);
             }
         }
@@ -327,25 +352,25 @@ impl Octree {
         let c = self.bounds.center();
         let he = self.bounds.half_extents();
         let cap = self.capacity;
-        let mut children: Vec<Box<Octree>> = Vec::with_capacity(8);
+        let mut children: Vec<Box<Self>> = Vec::with_capacity(8);
         for iz in 0..2 {
             for iy in 0..2 {
                 for ix in 0..2 {
                     let min = Point3::new(
-                        c.x + (ix as f64 - 0.5) * he.x,
-                        c.y + (iy as f64 - 0.5) * he.y,
-                        c.z + (iz as f64 - 0.5) * he.z,
+                        (f64::from(ix) - 0.5).mul_add(he.x, c.x),
+                        (f64::from(iy) - 0.5).mul_add(he.y, c.y),
+                        (f64::from(iz) - 0.5).mul_add(he.z, c.z),
                     );
                     let max = Point3::new(
                         min.x + he.x,
                         min.y + he.y,
                         min.z + he.z,
                     );
-                    children.push(Box::new(Octree::new(AABB3::new(min, max), cap)));
+                    children.push(Box::new(Self::new(AABB3::new(min, max), cap)));
                 }
             }
         }
-        let arr: [Box<Octree>; 8] = [
+        let arr: [Box<Self>; 8] = [
             children.remove(0), children.remove(0), children.remove(0), children.remove(0),
             children.remove(0), children.remove(0), children.remove(0), children.remove(0),
         ];
@@ -366,16 +391,19 @@ pub struct Frustum {
 }
 
 impl Frustum {
-    pub fn new(planes: [(f64, f64, f64, f64); 6]) -> Self {
+    #[must_use]
+    pub const fn new(planes: [(f64, f64, f64, f64); 6]) -> Self {
         Self { planes }
     }
     /// Whether a point is inside (or on) all frustum planes.
+    #[must_use]
     pub fn contains_point(self, p: Point3) -> bool {
         self.planes.iter().all(|(nx, ny, nz, d)| {
             nx * p.x + ny * p.y + nz * p.z + d >= -1e-10
         })
     }
     /// Whether an AABB intersects the frustum.
+    #[must_use]
     pub fn intersects_aabb(self, bb: AABB3) -> bool {
         for (nx, ny, nz, d) in &self.planes {
             let px = if *nx >= 0.0 { bb.max.x } else { bb.min.x };

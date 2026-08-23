@@ -56,7 +56,7 @@ impl GradientBoostingRegressor {
             use_xorshift_shuffle(&mut feats);
             let max_feats = ((p as f64).sqrt().ceil() as usize).max(1);
             feats.truncate(max_feats);
-            feats.sort();
+            feats.sort_unstable();
             self.feature_indices.push(feats.clone());
             // Fit weak learner (stump with feature subset)
             let tree = fit_stump(x, &residuals, &feats);
@@ -116,7 +116,7 @@ fn fit_stump(x: &[Vec<f64>], y: &[f64], feats: &[usize]) -> WeakTree {
             if (vals[i].0 - vals[i + 1].0).abs() < 1e-10 {
                 continue;
             }
-            let thresh = (vals[i].0 + vals[i + 1].0) / 2.0;
+            let thresh = f64::midpoint(vals[i].0, vals[i + 1].0);
             let left_y: Vec<f64> = vals.iter().take(i + 1).map(|(_, y)| *y).collect();
             let right_y: Vec<f64> = vals.iter().skip(i + 1).map(|(_, y)| *y).collect();
             if left_y.is_empty() || right_y.is_empty() {
@@ -247,7 +247,7 @@ impl GradientBoostingClassifier {
             use_xorshift_shuffle(&mut feats);
             let max_feats = ((p as f64).sqrt().ceil() as usize).max(1);
             feats.truncate(max_feats);
-            feats.sort();
+            feats.sort_unstable();
             self.feature_indices.push(feats.clone());
 
             let prob: Vec<f64> = raw.iter().map(|&r| sigmoid(r)).collect();
@@ -317,8 +317,8 @@ mod tests {
 
     #[test]
     fn fit_predict_simple() {
-        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..20).map(|i| i as f64 * 2.0 + 1.0).collect();
+        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..20).map(|i| f64::from(i) * 2.0 + 1.0).collect();
         let mut gb = GradientBoostingRegressor::new(50, 0.1, 3);
         gb.fit(&x, &y);
         let preds = gb.predict(&x);
@@ -333,8 +333,8 @@ mod tests {
 
     #[test]
     fn learns_nonlinear() {
-        let x: Vec<Vec<f64>> = (0..30).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..30).map(|i| (i as f64 * 0.1).sin() * 10.0).collect();
+        let x: Vec<Vec<f64>> = (0..30).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..30).map(|i| (f64::from(i) * 0.1).sin() * 10.0).collect();
         let mut gb = GradientBoostingRegressor::new(100, 0.1, 3);
         gb.fit(&x, &y);
         let preds = gb.predict(&x);
@@ -350,7 +350,7 @@ mod tests {
     #[test]
     fn classifier_separates() {
         let x: Vec<Vec<f64>> = (0..40)
-            .map(|i| vec![(i % 20) as f64 * 0.5, if i < 20 { -1.0 } else { 1.0 }])
+            .map(|i| vec![f64::from(i % 20) * 0.5, if i < 20 { -1.0 } else { 1.0 }])
             .collect();
         let y: Vec<f64> = (0..40).map(|i| if i < 20 { 0.0 } else { 1.0 }).collect();
         let mut gbc = GradientBoostingClassifier::new(50, 0.1, 2);

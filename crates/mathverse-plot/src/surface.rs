@@ -26,6 +26,12 @@ pub struct SurfaceConfig {
     pub resolution: usize,
 }
 
+impl Default for SurfaceConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SurfaceConfig {
     /// Create a new surface config with sensible defaults.
     #[must_use]
@@ -157,7 +163,7 @@ where
             let (sx, sy) = project_point(x, y, z, camera_distance, rotation_y_angle, fovy);
             row_points.push(crate::DataPoint::new(sx, sy));
         }
-        let series = DataSeries::new(format!("row_{}", i), row_points);
+        let series = DataSeries::new(format!("row_{i}"), row_points);
         plot.add_series(series);
     }
 
@@ -170,7 +176,7 @@ where
             let (sx, sy) = project_point(x, y, z, camera_distance, rotation_y_angle, fovy);
             col_points.push(crate::DataPoint::new(sx, sy));
         }
-        let series = DataSeries::new(format!("col_{}", j), col_points);
+        let series = DataSeries::new(format!("col_{j}"), col_points);
         plot.add_series(series);
     }
 

@@ -64,8 +64,8 @@
 //!
 //! # Notes
 //!
-//! - The accumulator uses rho indexing: rho_idx = ((rho + D) / rho_resolution).round() as usize
-//! - Clamps rho_idx to valid range to prevent out-of-bounds access
+//! - The accumulator uses rho indexing: `rho_idx` = ((rho + D) / `rho_resolution).round()` as usize
+//! - Clamps `rho_idx` to valid range to prevent out-of-bounds access
 //! - Returns lines sorted by vote count (highest first)
 //! - For best results, apply Canny edge detection before calling this function
 
@@ -83,7 +83,7 @@ type Line = (f64, f64);
 /// # Algorithm
 ///
 /// 1. Compute image diagonal D = √(w² + h²) to determine rho range [−D, D]
-/// 2. For each theta sample (0 to π, theta_resolution steps):
+/// 2. For each theta sample (0 to π, `theta_resolution` steps):
 ///    - For each pixel above threshold:
 ///      - Compute rho = x·cos(θ) + y·sin(θ)
 ///      - Increment accumulator at rho bin
@@ -275,7 +275,7 @@ mod tests {
         }
 
         // Test with different theta resolutions
-        let lines_coarse = hough_line_transform(&img, 45, 1.0, 10);   // 45 theta steps
+        let _lines_coarse = hough_line_transform(&img, 45, 1.0, 10);   // 45 theta steps
         let lines_fine = hough_line_transform(&img, 180, 1.0, 10);   // 180 theta steps
 
         // Fine resolution should find the line (diagonal = theta=π/4, rho=0)

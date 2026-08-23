@@ -65,7 +65,7 @@ pub fn color_map(t: f64, stops: &[(f64, (u8, u8, u8))]) -> Color {
     let (t0, c0) = stops[i];
     let (t1, c1) = stops[i + 1];
     let f = if t1 == t0 { 0.0 } else { (t - t0) / (t1 - t0) };
-    let lerp = |a: u8, b: u8| (a as f64 + (b as f64 - a as f64) * f).round() as u8;
+    let lerp = |a: u8, b: u8| (f64::from(a) + (f64::from(b) - f64::from(a)) * f).round() as u8;
     Color::rgb(lerp(c0.0, c1.0), lerp(c0.1, c1.1), lerp(c0.2, c1.2))
 }
 
@@ -75,7 +75,7 @@ pub fn color_map(t: f64, stops: &[(f64, (u8, u8, u8))]) -> Color {
 pub fn generate_colormap_256(stops: &[(f64, (u8, u8, u8))]) -> Vec<Color> {
     (0..256)
         .map(|i| {
-            let t = i as f64 / 255.0;
+            let t = f64::from(i) / 255.0;
             color_map(t, stops)
         })
         .collect()
@@ -145,7 +145,6 @@ pub fn cividis_256() -> Vec<Color> {
 #[must_use]
 pub fn colormap_by_name(name: &str) -> fn(f64) -> Color {
     match name.to_lowercase().as_str() {
-        "viridis" => viridis,
         "plasma" => plasma,
         "inferno" => inferno,
         "magma" => magma,
@@ -158,7 +157,6 @@ pub fn colormap_by_name(name: &str) -> fn(f64) -> Color {
 #[must_use]
 pub fn colormap_256_by_name(name: &str) -> Vec<Color> {
     match name.to_lowercase().as_str() {
-        "viridis" => viridis_256(),
         "plasma" => plasma_256(),
         "inferno" => inferno_256(),
         "magma" => magma_256(),
@@ -211,7 +209,7 @@ pub fn normalize(values: &[f64], method: Normalization) -> Vec<f64> {
         }
         Normalization::Quantile => {
             let mut sorted = values.to_vec();
-            sorted.sort_by(|a, b| a.total_cmp(b));
+            sorted.sort_by(f64::total_cmp);
             let n = sorted.len();
             if n <= 1 {
                 return vec![0.5; n];
@@ -316,7 +314,7 @@ pub fn normalize_two_slope(values: &[f64], vmin: f64, vcenter: f64, vmax: f64) -
 #[must_use]
 pub fn normalize_boundary(values: &[f64], boundaries: &[f64]) -> Vec<f64> {
     let mut bounds: Vec<f64> = boundaries.iter().copied().filter(|b| b.is_finite()).collect();
-    bounds.sort_by(|a, b| a.total_cmp(b));
+    bounds.sort_by(f64::total_cmp);
     bounds.dedup();
     if bounds.len() < 2 {
         return vec![0.5; values.len()];
@@ -356,7 +354,7 @@ pub fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f64, f64, f64) {
     );
     let max = r.max(g).max(b);
     let min = r.min(g).min(b);
-    let l = (max + min) / 2.0;
+    let l = f64::midpoint(max, min);
     if max == min {
         return (0.0, 0.0, l);
     }

@@ -6,10 +6,15 @@ use mathverse_core::error::{MathError, MathResult};
 /// Block matrix structure.
 #[derive(Debug, Clone)]
 pub struct BlockMatrix {
+    /// Total number of rows across all block rows.
     pub rows: usize,
+    /// Total number of columns across all block columns.
     pub cols: usize,
+    /// Number of blocks along the vertical partition.
     pub block_rows: usize,
+    /// Number of blocks along the horizontal partition.
     pub block_cols: usize,
+    /// The blocks, stored row-major over the block grid.
     pub blocks: Vec<Matrix>,
 }
 
@@ -195,7 +200,7 @@ pub struct BlockOperations;
 
 impl BlockOperations {
     /// Create block diagonal matrix.
-    pub fn diagonal(blocks: Vec<Matrix>) -> MathResult<BlockMatrix> {
+    pub fn diagonal(blocks: &[Matrix]) -> MathResult<BlockMatrix> {
         let n = blocks.len();
         let mut full_blocks = Vec::new();
         
@@ -215,7 +220,7 @@ impl BlockOperations {
     }
 
     /// Create block triangular matrix.
-    pub fn triangular(blocks: Vec<Matrix>, upper: bool) -> MathResult<BlockMatrix> {
+    pub fn triangular(blocks: &[Matrix], upper: bool) -> MathResult<BlockMatrix> {
         let n = blocks.len();
         let mut full_blocks = Vec::new();
         
@@ -260,7 +265,7 @@ impl BlockOperations {
     pub fn block_lu(m: &BlockMatrix) -> MathResult<(BlockMatrix, BlockMatrix)> {
         let n = m.block_rows;
 
-        let mut l = BlockOperations::diagonal(vec![Matrix::identity(m.get_block(0, 0).rows); n])?;
+        let mut l = BlockOperations::diagonal(&vec![Matrix::identity(m.get_block(0, 0).rows); n])?;
         let mut u = m.clone();
         
         for k in 0..n {
@@ -275,7 +280,7 @@ impl BlockOperations {
                 for j in k..n {
                     let u_ij = u.get_block(i, j);
                     let u_kj = u.get_block(k, j);
-                    let update = l_ik.mul(&u_kj)?;
+                    let update = l_ik.mul(u_kj)?;
                     let new_u_ij = u_ij.sub(&update)?;
                     u.set_block(i, j, new_u_ij)?;
                 }
@@ -288,7 +293,7 @@ impl BlockOperations {
     /// Block Cholesky decomposition.
     pub fn block_cholesky(m: &BlockMatrix) -> MathResult<BlockMatrix> {
         let n = m.block_rows;
-        let mut l = BlockOperations::diagonal(vec![Matrix::zeros(m.get_block(0, 0).rows, m.get_block(0, 0).cols); n])?;
+        let mut l = BlockOperations::diagonal(&vec![Matrix::zeros(m.get_block(0, 0).rows, m.get_block(0, 0).cols); n])?;
         
         for j in 0..n {
             // L_jj = Cholesky(A_jj - sum(L_jk L_jk^T))
@@ -332,7 +337,7 @@ impl BlockOperations {
         let d = m.get_block(block_j, block_j);
         
         let a_inv = a.inverse()?;
-        let a_inv_b = a_inv.mul(&b)?;
+        let a_inv_b = a_inv.mul(b)?;
         let c_a_inv_b = c.mul(&a_inv_b)?;
         d.sub(&c_a_inv_b)
     }
@@ -488,7 +493,7 @@ mod tests {
         let a = Matrix::from_rows(&[&[1.0, 0.0], &[0.0, 1.0]]).unwrap();
         let b = Matrix::from_rows(&[&[2.0]]).unwrap();
         
-        let block_diag = BlockOperations::diagonal(vec![a, b]).unwrap();
+        let block_diag = BlockOperations::diagonal(&[a, b]).unwrap();
         let full = block_diag.to_full();
         
         assert!((full.get(0, 0) - 1.0).abs() < 1e-10);

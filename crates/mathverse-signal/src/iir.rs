@@ -17,7 +17,7 @@ impl Biquad {
         let (sn, cs) = w.sin_cos();
         let alpha = sn / 2.0f64.sqrt();
         let a0 = 1.0 + alpha;
-        let b0 = (1.0 + cs) / 2.0 / a0;
+        let b0 = f64::midpoint(1.0, cs) / a0;
         Self { b0, b1: -2.0 * b0, b2: b0, a1: -2.0 * cs / a0, a2: (1.0 - alpha) / a0 }
     }
     pub fn bandpass(fs: f64, fc: f64, q: f64) -> Self {

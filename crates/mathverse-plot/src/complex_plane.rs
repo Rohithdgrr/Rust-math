@@ -95,7 +95,7 @@ pub fn render_argand(
 
     let _points_str = filtered
         .iter()
-        .map(|(x, y)| format!("{},{}", x, y))
+        .map(|(x, y)| format!("{x},{y}"))
         .collect::<Vec<_>>()
         .join(" ");
 

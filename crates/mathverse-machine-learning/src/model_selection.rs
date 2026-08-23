@@ -296,8 +296,8 @@ mod tests {
 
     #[test]
     fn train_test_split_sizes() {
-        let x: Vec<Vec<f64>> = (0..100).map(|i| vec![i as f64]).collect();
-        let y: Vec<f64> = (0..100).map(|i| i as f64).collect();
+        let x: Vec<Vec<f64>> = (0..100).map(|i| vec![f64::from(i)]).collect();
+        let y: Vec<f64> = (0..100).map(|i| f64::from(i)).collect();
         let (xt, xte, yt, yte) = train_test_split(&x, &y, 0.2, 42);
         assert_eq!(xt.len() + xte.len(), 100);
         assert_eq!(yt.len() + yte.len(), 100);
@@ -322,7 +322,7 @@ mod tests {
 
     #[test]
     fn k_fold_cv_runs() {
-        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![i as f64]).collect();
+        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![f64::from(i)]).collect();
         let y: Vec<f64> = (0..20).map(|i| if i < 10 { 0.0 } else { 1.0 }).collect();
         let accs = k_fold_cv(&x, &y, 5, 42, |_xtr, _ytr, xte| {
             xte.iter()

@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create some data
     let points: Vec<DataPoint> = (0..=50)
         .map(|i| {
-            let x = i as f64 * 0.1;
+            let x = f64::from(i) * 0.1;
             DataPoint::new(x, x.sin() * (-x * 0.1).exp())
         })
         .collect();
@@ -43,9 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Add viewBox attribute for resolution independence
     svg_high = svg_high.replace(
         "<svg",
-        &format!(
-            "<svg viewBox=\"0 0 800 600\"",
-        ),
+        "<svg viewBox=\"0 0 800 600\"",
     );
 
     PlotSaver::new(&svg_high).save_png("highdpi_300.png")?;
@@ -55,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let meta = mathverse_plot::PngMetadata::new(300, 2400, 1800);
     let (w_in, h_in) = meta.physical_size_inches();
     let (w_mm, h_mm) = meta.physical_size_mm();
-    println!("300 DPI image: {:.1}\" x {:.1}\" ({:.0}mm x {:.0}mm)", w_in, h_in, w_mm, h_mm);
+    println!("300 DPI image: {w_in:.1}\" x {h_in:.1}\" ({w_mm:.0}mm x {h_mm:.0}mm)");
 
     Ok(())
 }

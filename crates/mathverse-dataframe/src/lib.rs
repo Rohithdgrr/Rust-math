@@ -1,8 +1,8 @@
-//! MathVerse DataFrame: pandas-like tabular data structures.
+//! `MathVerse` `DataFrame`: pandas-like tabular data structures.
 //!
 //! This crate provides a `DataFrame` — a two-dimensional, column-oriented
 //! data structure with named, typed columns. It is the primary way to work
-//! with tabular data in the MathVerse ecosystem.
+//! with tabular data in the `MathVerse` ecosystem.
 //!
 //! # Quick Start
 //!
@@ -909,7 +909,7 @@ mod tests {
 
     #[test]
     fn cast_utf8_to_bool() {
-        let c = AnyColumn::Utf8(Series::new("a", vec!["".into(), "x".into()]));
+        let c = AnyColumn::Utf8(Series::new("a", vec![String::new(), "x".into()]));
         let r = c.cast(DType::Bool).unwrap();
         assert_eq!(r.as_bool().unwrap().data(), &[false, true]);
     }
@@ -933,22 +933,22 @@ mod tests {
     fn dataframe_display() {
         let df = sample_df();
         let s = format!("{df}");
-        assert!(s.contains("a"));
-        assert!(s.contains("b"));
+        assert!(s.contains('a'));
+        assert!(s.contains('b'));
     }
 
     #[test]
     fn column_display() {
         let c = AnyColumn::Float64(Series::new("x", vec![1.0, 2.0]));
         let s = format!("{c}");
-        assert!(s.contains("x"));
+        assert!(s.contains('x'));
     }
 
     #[test]
     fn index_display() {
         let idx = Index::labels(vec!["a".into(), "b".into()]);
         let s = format!("{idx}");
-        assert!(s.contains("a"));
+        assert!(s.contains('a'));
     }
 
     // ── Security tests ──────────────────────────────────────────────
@@ -960,7 +960,7 @@ mod tests {
         for _ in 0..200 {
             input.push('[');
         }
-        input.push_str("1");
+        input.push('1');
         for _ in 0..200 {
             input.push(']');
         }

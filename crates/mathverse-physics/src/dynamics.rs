@@ -7,22 +7,23 @@
 //! # Example
 //!
 //! ```
-//! use mathverse_physics::dynamics::{Force, Work, Power, compute_force, compute_work};
-//! use mathverse_units::si::{Newton, Joule, Watt, Kilogram};
+//! use mathverse_physics::dynamics::{Force, Work};
+//! use mathverse_physics::kinematics::Position;
+//! use mathverse_physics::FluentPhysicsUnits;
 //!
 //! let force = Force::from_mass_acceleration(1.0.kg(), 2.0.mps2());
-//! let work = Work::from_force_displacement(force, 3.0.m());
-//! let power = Work::power_from_time(work, 1.0.s);
+//! let displacement = Position::new(3.0);
+//! let work = Work::from_force_displacement(force, displacement);
+//! let power = Work::power_from_time(&work, 1.0.s());
+//! assert_eq!(work.value(), 6.0);
 //! ```
 //
 //! #![allow(unused_imports)] // re-exports pull in all submodules
 
 use mathverse_units::quantity::Quantity;
 use mathverse_units::si::{Meter, Kilogram, Newton, Joule, Watt};
-use mathverse_units::dimensions::{LengthDim, MassDim, TimeDim, ForceDim, EnergyDim, PowerDim, AccelerationDim};
-use crate::Position;
-use crate::Velocity;
-use crate::Time;
+use mathverse_units::dimensions::{LengthDim, MassDim, ForceDim, EnergyDim, PowerDim, AccelerationDim};
+pub use crate::{Position, Time, Velocity};
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, Div};
 
 /// Force in newtons.
@@ -34,7 +35,7 @@ use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, Div};
 ///
 /// ```
 /// use mathverse_physics::dynamics::Force;
-/// use mathverse_units::si::{Kilogram, mps2};
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
 /// let force = Force::from_mass_acceleration(1.0.kg(), 2.0.mps2());
 /// assert_eq!(force.value(), 2.0);
@@ -66,7 +67,7 @@ impl Force {
     ///
     /// ```
     /// use mathverse_physics::dynamics::Force;
-    /// use mathverse_units::si::{Kilogram, mps2};
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
     /// let force = Force::from_mass_acceleration(1.0.kg(), 2.0.mps2());
     /// assert_eq!(force.value(), 2.0);
@@ -230,9 +231,9 @@ impl SubAssign for Force {
 ///
 /// ```
 /// use mathverse_physics::dynamics::Work;
-/// use mathverse_units::si::Joule;
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
-/// let work: Work = 100.0.joules();
+/// let work = Work::from(100.0.joules().value());
 /// assert_eq!(work.value(), 100.0);
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -321,12 +322,12 @@ impl Work {
     /// # Example
     ///
     /// ```
-    /// use mathverse_physics::dynamics::{Work};
+    /// use mathverse_physics::dynamics::Work;
     ///
     /// let initial = Work::new(0.0);
     /// let net = Work::new(50.0);
-    /// let final = Work::from_kinetic_energy_change(initial, net);
-    /// assert_eq!(final.value(), 50.0);
+    /// let final_ke = Work::from_kinetic_energy_change(initial, net);
+    /// assert_eq!(final_ke.value(), 50.0);
     /// ```
     pub fn from_kinetic_energy_change(
         initial_kinetic_energy: Work,
@@ -350,10 +351,10 @@ impl Work {
     ///
     /// ```
     /// use mathverse_physics::dynamics::{Work, Power};
-    /// use mathverse_units::si::Watt;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
     /// let work = Work::new(100.0);
-    /// let power = Work::power_from_time(work, 10.0);
+    /// let power = Work::power_from_time(&work, 10.0.s());
     /// assert_eq!(power.value(), 10.0);
     /// ```
     pub fn power_from_time(&self, time: Time) -> Power {
@@ -378,10 +379,10 @@ impl Work {
     ///
     /// ```
     /// use mathverse_physics::dynamics::{Power, Work};
-    /// use mathverse_units::si::Joule;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
     /// let power = Power::new(10.0);
-    /// let work = Power::work_from_time(power, 10.0);
+    /// let work = Power::work_from_time(power, 10.0.s());
     /// assert_eq!(work.value(), 100.0);
     /// ```
     pub fn work_from_time(
@@ -406,10 +407,10 @@ impl Work {
     ///
     /// ```
     /// use mathverse_physics::dynamics::{Power, Work};
-    /// use mathverse_units::si::Joule;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
     /// let power = Power::new(10.0);
-    /// let energy = Power::energy_from_time(power, 10.0);
+    /// let energy = Power::energy_from_time(power, 10.0.s());
     /// assert_eq!(energy.value(), 100.0);
     /// ```
     pub fn energy_from_time(
@@ -514,9 +515,9 @@ impl SubAssign for Work {
 ///
 /// ```
 /// use mathverse_physics::dynamics::Power;
-/// use mathverse_units::si::Watt;
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
-/// let power: Power = 60.0.watts();
+/// let power = Power::from(60.0.watts().value());
 /// assert_eq!(power.value(), 60.0);
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -546,7 +547,7 @@ impl Power {
     ///
     /// ```
     /// use mathverse_physics::dynamics::{Work, Power};
-    /// use mathverse_units::si::Watt;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
     /// let work = Work::new(100.0);
     /// let time = 10.0.s();
@@ -575,7 +576,7 @@ impl Power {
     ///
     /// ```
     /// use mathverse_physics::dynamics::{Power, Work};
-    /// use mathverse_units::si::Joule;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
     /// let power = Power::new(10.0);
     /// let time = 10.0.s();
@@ -604,7 +605,7 @@ impl Power {
     ///
     /// ```
     /// use mathverse_physics::dynamics::{Power, Work};
-    /// use mathverse_units::si::Joule;
+    /// use mathverse_physics::FluentPhysicsUnits;
     ///
     /// let power = Power::new(10.0);
     /// let time = 10.0.s();
@@ -722,8 +723,8 @@ pub type TimeQuant = mathverse_units::quantity::Quantity<mathverse_units::dimens
 /// # Example
 ///
 /// ```
-/// use mathverse_physics::dynamics::{compute_force, MassQuant, Acceleration};
-/// use mathverse_units::si::{Kilogram, mps2};
+/// use mathverse_physics::dynamics::compute_force;
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
 /// let force = compute_force(1.0.kg(), 2.0.mps2());
 /// assert_eq!(force.value(), 2.0);
@@ -777,7 +778,7 @@ pub fn compute_work(
 ///
 /// ```
 /// use mathverse_physics::dynamics::{compute_power, Work};
-/// use mathverse_units::si::Watt;
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
 /// let work = Work::new(100.0);
 /// let time = 10.0.s();
@@ -804,10 +805,10 @@ pub fn compute_power(
 ///
 /// ```
 /// use mathverse_physics::dynamics::{compute_work_from_power, Power};
-/// use mathverse_units::si::Joule;
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
 /// let power = Power::new(10.0);
-/// let work = compute_work_from_power(power, 10.0);
+/// let work = compute_work_from_power(power, 10.0.s());
 /// assert_eq!(work.value(), 100.0);
 /// ```
 pub fn compute_work_from_power(
@@ -830,8 +831,8 @@ pub fn compute_work_from_power(
 /// # Example
 ///
 /// ```
-/// use mathverse_physics::dynamics::{compute_kinetic_energy};
-/// use mathverse_units::si::{Kilogram, mps};
+/// use mathverse_physics::dynamics::compute_kinetic_energy;
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
 /// let ke = compute_kinetic_energy(1.0.kg(), 10.0.mps());
 /// assert_eq!(ke.value(), 50.0);
@@ -858,10 +859,10 @@ pub fn compute_kinetic_energy(
 /// # Example
 ///
 /// ```
-/// use mathverse_physics::dynamics::{compute_potential_energy_gravitational};
-/// use mathverse_units::si::{Kilogram, mps2, Meter};
+/// use mathverse_physics::dynamics::{compute_potential_energy_gravitational, Position};
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
-/// let pe = compute_potential_energy_gravitational(1.0.kg(), 9.81.mps2(), 5.0.m());
+/// let pe = compute_potential_energy_gravitational(1.0.kg(), 9.81.mps2(), Position::new(5.0));
 /// assert!((pe.value() - 49.05).abs() < 1e-6);
 /// ```
 pub fn compute_potential_energy_gravitational(
@@ -887,7 +888,7 @@ pub fn compute_potential_energy_gravitational(
 ///
 /// ```
 /// use mathverse_physics::dynamics::compute_momentum;
-/// use mathverse_units::si::{Kilogram, mps};
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
 /// let momentum = compute_momentum(1.0.kg(), 10.0.mps());
 /// assert_eq!(momentum, 10.0);
@@ -911,8 +912,8 @@ pub fn compute_momentum(
 /// # Example
 ///
 /// ```
-/// use mathverse_physics::dynamics::compute_impulse;
-/// use mathverse_units::si::{Newton, s};
+/// use mathverse_physics::dynamics::{compute_impulse, Force};
+/// use mathverse_physics::FluentPhysicsUnits;
 ///
 /// let impulse = compute_impulse(Force::new(10.0), 5.0.s());
 /// assert_eq!(impulse, 50.0);

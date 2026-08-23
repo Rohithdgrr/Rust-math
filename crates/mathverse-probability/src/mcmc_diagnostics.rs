@@ -193,8 +193,8 @@ pub fn geweke(samples: &[f64], fraction_a: f64, fraction_b: f64) -> f64 {
 /// Batch-means variance estimator: split the sample into ~16 batches, compute
 /// the variance of batch means, and rescale by batch size.
 fn batch_variance(samples: &[f64], overall_mean: f64) -> f64 {
-    let n = samples.len();
     const BATCHES: usize = 16;
+    let n = samples.len();
     if n < 2 * BATCHES {
         return samples
             .iter()
@@ -225,12 +225,7 @@ fn batch_variance(samples: &[f64], overall_mean: f64) -> f64 {
 pub fn thinning_interval(samples: &[f64], threshold: f64) -> Option<usize> {
     let n = samples.len();
     let max_lag = (n - 1).min(1000);
-    for lag in 1..=max_lag {
-        if autocorrelation(samples, lag).abs() < threshold {
-            return Some(lag);
-        }
-    }
-    None
+    (1..=max_lag).find(|&lag| autocorrelation(samples, lag).abs() < threshold)
 }
 
 /// Descriptive summary of one scalar chain.
@@ -252,7 +247,6 @@ pub struct ChainSummary {
 }
 
 /// Summary statistics for a scalar chain.
-#[must_use]
 pub fn summarize(samples: &[f64]) -> ChainSummary {
     let n = samples.len();
     let mean = samples.iter().sum::<f64>() / n as f64;
@@ -397,7 +391,7 @@ mod tests {
 
     #[test]
     fn geweke_rejects_drift() {
-        let x: Vec<f64> = (0..4000).map(|i| i as f64 * 0.01).collect();
+        let x: Vec<f64> = (0..4000).map(f64::from).map(|v| v * 0.01).collect();
         let z = geweke(&x, 0.1, 0.5);
         assert!(z.abs() > 3.0, "Geweke z {z} should detect drift");
     }

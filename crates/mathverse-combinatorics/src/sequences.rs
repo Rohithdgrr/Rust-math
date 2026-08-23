@@ -20,7 +20,7 @@ pub fn lucas(n: u64) -> u128 {
 
 pub fn catalan(n: u64) -> u128 {
     use mathverse_core::algorithms::binomial;
-    binomial(2 * n, n) / (n + 1) as u128
+    binomial(2 * n, n) / u128::from(n + 1)
 }
 
 pub fn tribonacci(n: u64) -> u128 {
@@ -32,7 +32,7 @@ pub fn tribonacci(n: u64) -> u128 {
 }
 
 pub fn tetranacci(n: u64) -> u128 {
-    match n { 0 | 1 | 2 => 0, 3 => 1, _ => {
+    match n { 0..=2 => 0, 3 => 1, _ => {
         let (mut a, mut b, mut c, mut d) = (0u128, 0u128, 0u128, 1u128);
         for _ in 4..=n { let t = a + b + c + d; a = b; b = c; c = d; d = t; }
         d
@@ -40,7 +40,7 @@ pub fn tetranacci(n: u64) -> u128 {
 }
 
 pub fn fibonacci_binet(n: u64) -> f64 {
-    let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
+    let phi = f64::midpoint(1.0, 5.0_f64.sqrt());
     let psi = (1.0 - 5.0_f64.sqrt()) / 2.0;
     (phi.powi(n as i32) - psi.powi(n as i32)) / 5.0_f64.sqrt()
 }
@@ -54,7 +54,7 @@ pub fn nth_fibonacci_mod(n: u64, m: u64) -> u64 {
 
 pub fn collatz_steps(mut n: u64) -> u64 {
     let mut steps = 0;
-    while n != 1 { n = if n % 2 == 0 { n / 2 } else { 3 * n + 1 }; steps += 1; }
+    while n != 1 { n = if n.is_multiple_of(2) { n / 2 } else { 3 * n + 1 }; steps += 1; }
     steps
 }
 

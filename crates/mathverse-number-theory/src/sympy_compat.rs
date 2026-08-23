@@ -2,7 +2,7 @@
 //!
 //! This module provides function names and return shapes that match
 //! the Python `sympy` library's `ntheory` module, making it easier to
-//! port code from SymPy to Rust.
+//! port code from `SymPy` to Rust.
 //!
 //! ## Mapping
 //!

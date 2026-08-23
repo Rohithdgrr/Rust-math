@@ -210,28 +210,6 @@ pub fn convert_temperature(val: f64, from: &str, to: &str) -> Result<f64, Consta
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_physical_constant_relative_uncertainty() {
-        assert!((G_CONST.relative_uncertainty() - 0.000_15e-11 / 6.674_30e-11).abs() < 1e-12);
-        assert_eq!(C_CONST.relative_uncertainty(), 0.0);
-        assert_eq!(PHYSICAL_CONSTANTS.len(), 18);
-    }
-
-    #[test]
-    fn test_temperature_conversions() {
-        assert!((convert_temperature(0.0, "Celsius", "Kelvin").unwrap() - 273.15).abs() < 1e-10);
-        assert!((convert_temperature(273.15, "Kelvin", "Celsius").unwrap() - 0.0).abs() < 1e-10);
-        assert!((convert_temperature(32.0, "Fahrenheit", "Celsius").unwrap() - 0.0).abs() < 1e-9);
-        assert!((convert_temperature(32.0, "Fahrenheit", "Kelvin").unwrap() - 273.15).abs() < 1e-9);
-        assert!((convert_temperature(491.67, "Rankine", "Fahrenheit").unwrap() - 32.0).abs() < 1e-9);
-        assert!(convert_temperature(0.0, "Banana", "Kelvin").is_err());
-    }
-}
-
 /// All defined `PhysicalConstant` instances, for iteration in consumers.
 pub const PHYSICAL_CONSTANTS: &[PhysicalConstant] = &[
     C_CONST,
@@ -253,3 +231,25 @@ pub const PHYSICAL_CONSTANTS: &[PhysicalConstant] = &[
     ALPHA_CONST,
     SIGMA_CONST,
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_physical_constant_relative_uncertainty() {
+        assert!((G_CONST.relative_uncertainty() - 0.000_15e-11 / 6.674_30e-11).abs() < 1e-12);
+        assert_eq!(C_CONST.relative_uncertainty(), 0.0);
+        assert_eq!(PHYSICAL_CONSTANTS.len(), 18);
+    }
+
+    #[test]
+    fn test_temperature_conversions() {
+        assert!((convert_temperature(0.0, "Celsius", "Kelvin").unwrap() - 273.15).abs() < 1e-10);
+        assert!((convert_temperature(273.15, "Kelvin", "Celsius").unwrap() - 0.0).abs() < 1e-10);
+        assert!((convert_temperature(32.0, "Fahrenheit", "Celsius").unwrap() - 0.0).abs() < 1e-9);
+        assert!((convert_temperature(32.0, "Fahrenheit", "Kelvin").unwrap() - 273.15).abs() < 1e-9);
+        assert!((convert_temperature(491.67, "Rankine", "Fahrenheit").unwrap() - 32.0).abs() < 1e-9);
+        assert!(convert_temperature(0.0, "Banana", "Kelvin").is_err());
+    }
+}

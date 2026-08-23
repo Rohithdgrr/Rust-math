@@ -84,7 +84,7 @@ impl AggOp {
     }
 }
 
-impl<'a> GroupBy<'a> {
+impl GroupBy<'_> {
     /// Returns the key column names used for grouping.
     #[must_use]
     pub fn keys(&self) -> &[String] {
@@ -204,8 +204,8 @@ impl<'a> GroupBy<'a> {
     }
 
     /// Transforms each non-key numeric column by broadcasting the group
-    /// aggregation back to the original DataFrame's shape. Returns a new
-    /// DataFrame with the same number of rows as the original, where each
+    /// aggregation back to the original `DataFrame`'s shape. Returns a new
+    /// `DataFrame` with the same number of rows as the original, where each
     /// row's value is the aggregated value for its group.
     ///
     /// # Errors
@@ -296,7 +296,7 @@ impl<'a> GroupBy<'a> {
 }
 
 impl DataFrame {
-    /// Groups the DataFrame by the given key columns.
+    /// Groups the `DataFrame` by the given key columns.
     ///
     /// # Errors
     ///
@@ -317,7 +317,7 @@ impl DataFrame {
     /// Creates a pivot table by aggregating `values_col` grouped by
     /// `index_col` (rows) and `columns_col` (columns).
     ///
-    /// Returns a new DataFrame where:
+    /// Returns a new `DataFrame` where:
     /// - The first column contains unique `index_col` values (named `index_col`)
     /// - Each subsequent column is named `{columns_col}={value}` and contains
     ///   the aggregated value for that (index, column) combination
@@ -381,7 +381,7 @@ impl DataFrame {
         }
 
         // Build result DataFrame.
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
 
         // Index column.
         let idx_values: Vec<String> = idx_keys_seen.values().cloned().collect();
@@ -411,6 +411,11 @@ impl DataFrame {
     }
 }
 
+/// Appends an order-preserving byte encoding of an integer to `out`.
+fn push_ordered_int(out: &mut Vec<u8>, v: i64) {
+    out.extend_from_slice(&(v ^ i64::MIN).to_be_bytes());
+}
+
 /// Appends an order-preserving byte encoding of a cell to `out`.
 fn encode_key_value(col: &AnyColumn, row: usize, out: &mut Vec<u8>) {
     match col {
@@ -423,12 +428,10 @@ fn encode_key_value(col: &AnyColumn, row: usize, out: &mut Vec<u8>) {
             out.extend_from_slice(&order_preserving_f64(bits).to_be_bytes());
         }
         AnyColumn::Int64(s) => {
-            let v = s.data()[row];
-            out.extend_from_slice(&(v ^ i64::MIN).to_be_bytes());
+            push_ordered_int(out, s.data()[row]);
         }
         AnyColumn::Int32(s) => {
-            let v = i64::from(s.data()[row]);
-            out.extend_from_slice(&(v ^ i64::MIN).to_be_bytes());
+            push_ordered_int(out, i64::from(s.data()[row]));
         }
         AnyColumn::Bool(s) => out.push(u8::from(s.data()[row])),
         AnyColumn::Utf8(s) => {
@@ -596,7 +599,7 @@ mod tests {
         assert_eq!(t.ncols(), df.ncols());
         let temps = t.column("temp_mean").unwrap().as_f64().unwrap();
         // NYC mean = (20 + 22) / 2 = 21, LA mean = (25 + 30) / 2 = 27.5
-        let mut vals: Vec<f64> = temps.data().iter().copied().collect();
+        let mut vals: Vec<f64> = temps.data().to_vec();
         vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
         assert!((vals[0] - 21.0).abs() < 1e-12);
         assert!((vals[3] - 27.5).abs() < 1e-12);

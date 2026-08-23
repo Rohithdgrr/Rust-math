@@ -36,8 +36,8 @@ impl PngBackend {
         let pad = data.config.padding;
         let plot_left = pad;
         let plot_top = pad;
-        let plot_w = self.width as f64 - 2.0 * pad;
-        let plot_h = self.height as f64 - 2.0 * pad;
+        let plot_w = f64::from(self.width) - 2.0 * pad;
+        let plot_h = f64::from(self.height) - 2.0 * pad;
 
         if plot_w <= 0.0 || plot_h <= 0.0 {
             return Err(PlotError::InvalidData(
@@ -318,14 +318,17 @@ impl PngBackend {
             .map_err(|e| PlotError::InvalidData(format!("png encode: {e}")))
     }
 
+    #[allow(clippy::unused_self)]
     fn compute_x_range(&self, data: &PlotData) -> Range {
         crate::common::compute_x_range(data)
     }
 
+    #[allow(clippy::unused_self)]
     fn compute_y_range(&self, data: &PlotData) -> Range {
         crate::common::compute_y_range(data)
     }
 
+    #[allow(clippy::unused_self)]
     fn render_heatmap(
         &self,
         pixmap: &mut tiny_skia::Pixmap,
@@ -386,14 +389,14 @@ fn circle_path(cx: f32, cy: f32, r: f32) -> PlotResult<tiny_skia::Path> {
 fn color_to_skia(c: Color) -> tiny_skia::Color {
     match c {
         Color::Rgb(r, g, b) => {
-            tiny_skia::Color::from_rgba(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0)
+            tiny_skia::Color::from_rgba(f32::from(r) / 255.0, f32::from(g) / 255.0, f32::from(b) / 255.0, 1.0)
                 .unwrap_or(tiny_skia::Color::BLACK)
         }
         Color::Rgba(r, g, b, a) => tiny_skia::Color::from_rgba(
-            r as f32 / 255.0,
-            g as f32 / 255.0,
-            b as f32 / 255.0,
-            a as f32 / 255.0,
+            f32::from(r) / 255.0,
+            f32::from(g) / 255.0,
+            f32::from(b) / 255.0,
+            f32::from(a) / 255.0,
         )
         .unwrap_or(tiny_skia::Color::BLACK),
         Color::Named(name) => match name {
@@ -403,7 +406,7 @@ fn color_to_skia(c: Color) -> tiny_skia::Color {
             "yellow" => tiny_skia::Color::from_rgba(1.0, 1.0, 0.0, 1.0).unwrap(),
             "cyan" => tiny_skia::Color::from_rgba(0.0, 1.0, 1.0, 1.0).unwrap(),
             "magenta" => tiny_skia::Color::from_rgba(1.0, 0.0, 1.0, 1.0).unwrap(),
-            "black" => tiny_skia::Color::from_rgba(0.0, 0.0, 0.0, 1.0).unwrap(),
+
             "white" => tiny_skia::Color::from_rgba(1.0, 1.0, 1.0, 1.0).unwrap(),
             "gray" => tiny_skia::Color::from_rgba(0.5, 0.5, 0.5, 1.0).unwrap(),
             "orange" => tiny_skia::Color::from_rgba(1.0, 0.65, 0.0, 1.0).unwrap(),

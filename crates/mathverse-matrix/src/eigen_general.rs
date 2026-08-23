@@ -6,9 +6,13 @@ use mathverse_core::error::{MathError, MathResult};
 /// General eigenvalue decomposition result.
 #[derive(Debug, Clone)]
 pub struct GeneralEigenDecomposition {
-    pub eigenvalues: Vec<f64>,  // May include complex pairs
-    pub eigenvectors: Matrix,   // Right eigenvectors as columns
-    pub left_eigenvectors: Option<Matrix>,  // Left eigenvectors
+    /// Eigenvalues; complex conjugate pairs contribute their real parts
+    /// twice (one entry per member of the pair).
+    pub eigenvalues: Vec<f64>,
+    /// Right eigenvectors as columns.
+    pub eigenvectors: Matrix,
+    /// Left eigenvectors as columns, if requested.
+    pub left_eigenvectors: Option<Matrix>,
 }
 
 /// General eigenvalue decomposition using QR algorithm.
@@ -24,8 +28,8 @@ impl GeneralEigen {
         let n = m.rows;
         
         // First reduce to Hessenberg form, accumulating Q
-        let mut h = Self::hessenberg(m)?;
-        let mut q = Self::hessenberg_q(m)?;
+        let mut h = Self::hessenberg(m);
+        let mut q = Self::hessenberg_q(m);
         
         // QR iteration with shifts
         for _ in 0..100 {
@@ -35,7 +39,7 @@ impl GeneralEigen {
             let det = submatrix.get(0, 0) * submatrix.get(1, 1) - submatrix.get(0, 1) * submatrix.get(1, 0);
             let discriminant = trace * trace - 4.0 * det;
             let shift = if discriminant >= 0.0 {
-                (trace + discriminant.sqrt()) / 2.0
+                f64::midpoint(trace, discriminant.sqrt())
             } else {
                 trace / 2.0
             };
@@ -65,7 +69,7 @@ impl GeneralEigen {
     }
 
     /// Reduce to upper Hessenberg form (similarity transform only).
-    fn hessenberg(m: &Matrix) -> MathResult<Matrix> {
+    fn hessenberg(m: &Matrix) -> Matrix {
         let n = m.rows;
         let mut h = m.clone();
         
@@ -108,11 +112,11 @@ impl GeneralEigen {
             }
         }
         
-        Ok(h)
+        h
     }
 
     /// Compute the accumulated orthogonal factor Q from Hessenberg reduction.
-    fn hessenberg_q(m: &Matrix) -> MathResult<Matrix> {
+    fn hessenberg_q(m: &Matrix) -> Matrix {
         let n = m.rows;
         let mut h = m.clone();
         let mut q = Matrix::identity(n);
@@ -169,7 +173,7 @@ impl GeneralEigen {
             }
         }
         
-        Ok(q)
+        q
     }
 
     fn extract_submatrix(m: &Matrix, row: usize, col: usize, rows: usize, cols: usize) -> Matrix {
@@ -298,8 +302,7 @@ impl EigenvalueSensitivity {
     /// Spectral abscissa (maximum real part of eigenvalues).
     pub fn spectral_abscissa(m: &Matrix) -> MathResult<f64> {
         let decomp = GeneralEigen::compute(m)?;
-        Ok(decomp.eigenvalues.iter()
-            .map(|&lambda| lambda)
+        Ok(decomp.eigenvalues.iter().copied()
             .fold(f64::NEG_INFINITY, f64::max))
     }
 
@@ -321,7 +324,7 @@ mod tests {
         let m = Matrix::from_rows(&[&[2.0, 1.0], &[1.0, 2.0]]).unwrap();
         let decomp = GeneralEigen::compute(&m).unwrap();
         
-        assert!(decomp.eigenvalues.len() == 2);
+        assert_eq!(decomp.eigenvalues.len(), 2);
         // Should be approximately 3 and 1
         assert!((decomp.eigenvalues[0] - 3.0).abs() < 0.1 || (decomp.eigenvalues[1] - 3.0).abs() < 0.1);
     }

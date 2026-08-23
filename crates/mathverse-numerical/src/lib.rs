@@ -240,7 +240,7 @@ mod tests {
         assert!(bisection(&|x| x * x + 1.0, 0.0, 2.0, 1e-12).is_err());
         // cos(x) = x
         let r = newton_raphson(&|x| x.cos() - x, &|x| -x.sin() - 1.0, 0.5, 1e-12, 50).unwrap();
-        assert!((r - 0.7390851332151607).abs() < 1e-10);
+        assert!((r - 0.739_085_133_215_160_7).abs() < 1e-10);
         assert!(newton_raphson(&|_| 1.0, &|_| 0.0, 0.0, 1e-12, 10).is_err());
     }
 

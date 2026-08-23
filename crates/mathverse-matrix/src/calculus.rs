@@ -6,7 +6,9 @@ use mathverse_core::error::MathResult;
 /// Matrix derivative result.
 #[derive(Debug, Clone)]
 pub struct MatrixDerivative {
+    /// Derivative matrix of the function with respect to `variable`.
     pub derivative: Matrix,
+    /// Name of the variable the derivative was taken with respect to.
     pub variable: String,
 }
 
@@ -253,7 +255,6 @@ impl AutoDiff {
 
     /// Derivative of determinant: d(det(A))/dA.
     pub fn determinant_derivative(a: &Matrix) -> MathResult<Matrix> {
-        let _n = a.rows;
         let det = a.det()?;
         let adj = a.inverse()?.scale(det);
         
@@ -481,7 +482,7 @@ mod tests {
     fn test_gradient() {
         let f = |x: &[f64]| x[0].powi(2) + x[1].powi(2);
         let x = vec![1.0, 2.0];
-        let grad = MatrixCalculus::gradient(&f, &x, 1e-6);
+        let grad = MatrixCalculus::gradient(f, &x, 1e-6);
         
         assert!((grad[0] - 2.0).abs() < 1e-5);
         assert!((grad[1] - 4.0).abs() < 1e-5);
@@ -491,7 +492,7 @@ mod tests {
     fn test_jacobian() {
         let f = |x: &[f64]| vec![x[0] + x[1], x[0] * x[1]];
         let x = vec![2.0, 3.0];
-        let jac = MatrixCalculus::jacobian(&f, &x, 1e-6);
+        let jac = MatrixCalculus::jacobian(f, &x, 1e-6);
         
         assert!((jac.get(0, 0) - 1.0).abs() < 1e-5);
         assert!((jac.get(0, 1) - 1.0).abs() < 1e-5);
@@ -503,7 +504,7 @@ mod tests {
     fn test_hessian() {
         let f = |x: &[f64]| x[0].powi(2) + x[1].powi(2);
         let x = vec![1.0, 2.0];
-        let hess = MatrixCalculus::hessian(&f, &x, 1e-5);
+        let hess = MatrixCalculus::hessian(f, &x, 1e-5);
         
         assert!((hess.get(0, 0) - 2.0).abs() < 1e-4);
         assert!((hess.get(1, 1) - 2.0).abs() < 1e-4);
@@ -516,7 +517,7 @@ mod tests {
         let grad = |x: &[f64]| vec![2.0 * (x[0] - 1.0), 2.0 * (x[1] - 2.0)];
         let x0 = vec![0.0, 0.0];
         
-        let (x, iterations, _) = GradientOptimization::gradient_descent(&f, &grad, &x0, 0.1, 200, 1e-10);
+        let (x, iterations, _) = GradientOptimization::gradient_descent(f, grad, &x0, 0.1, 200, 1e-10);
         
         assert!(iterations < 200);
         assert!((x[0] - 1.0).abs() < 0.1);

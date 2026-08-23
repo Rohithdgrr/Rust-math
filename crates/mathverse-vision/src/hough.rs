@@ -92,7 +92,7 @@ pub fn hough_circles(
         for r in min_radius..=max_radius {
             let rf = r as f64;
             for deg in 0..360 {
-                let th = (deg as f64).to_radians();
+                let th = f64::from(deg).to_radians();
                 let a = (*ex as f64 - rf * th.cos()).round() as i64;
                 let b = (*ey as f64 - rf * th.sin()).round() as i64;
                 if a >= 0 && b >= 0 && (a as usize) < w && (b as usize) < h {

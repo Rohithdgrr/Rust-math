@@ -2,14 +2,14 @@
 
 /// Computes `n!` (factorial).
 pub fn factorial(n: u64) -> u128 {
-    (1..=n as u128).product()
+    (1..=u128::from(n)).product()
 }
 
 pub fn double_factorial(n: u64) -> u128 {
     if n == 0 || n == 1 { return 1; }
     let mut acc = 1u128;
-    let mut i = if n % 2 == 0 { 2 } else { 3 };
-    while i <= n { acc *= i as u128; i += 2; }
+    let mut i = if n.is_multiple_of(2) { 2 } else { 3 };
+    while i <= n { acc *= u128::from(i); i += 2; }
     acc
 }
 
@@ -18,19 +18,19 @@ pub fn super_factorial(n: u64) -> u128 {
 }
 
 pub fn hyper_factorial(n: u64) -> u128 {
-    (1..=n).fold(1u128, |acc, i| acc * (i as u128).pow(i as u32))
+    (1..=n).fold(1u128, |acc, i| acc * u128::from(i).pow(i as u32))
 }
 
 pub fn primorial(n: u64) -> u128 {
     use mathverse_core::algorithms::is_prime;
-    (2..=n).filter(|&p| is_prime(p)).map(|p| p as u128).product()
+    (2..=n).filter(|&p| is_prime(p)).map(|p| u128::from(p)).product()
 }
 
 pub fn subfactorial(n: u64) -> u128 {
     if n == 0 { return 1; }
     let (mut a, mut b) = (1u128, 0u128);
     for i in 2..=n {
-        let t = (i as u128 - 1) * (a + b);
+        let t = (u128::from(i) - 1) * (a + b);
         a = b;
         b = t;
     }
@@ -39,8 +39,8 @@ pub fn subfactorial(n: u64) -> u128 {
 
 pub fn tetration(a: u64, n: u64) -> u128 {
     if n == 0 { return 1; }
-    let mut result = a as u128;
-    for _ in 1..n { result = (a as u128).pow(result as u32); }
+    let mut result = u128::from(a);
+    for _ in 1..n { result = u128::from(a).pow(result as u32); }
     result
 }
 

@@ -11,7 +11,7 @@
 
 //! # mathverse-vector
 //!
-//! Comprehensive vector operations for the MathVerse ecosystem.
+//! Comprehensive vector operations for the `MathVerse` ecosystem.
 //!
 //! Provides a dense `f64` [`Vector`] type with support for:
 //! - **Element-wise operations**: addition, subtraction, scalar multiply/divide
@@ -25,24 +25,34 @@
 //! # Optional acceleration features
 //!
 //! - `simd`: accelerates the O(n) reductions with safe 128-bit SIMD lanes
-//!   (via the `wide` crate; SSE2 on x86-64, NEON on AArch64).
+//!   (via the `wide` crate; SSE2 on x86-64, NEON on `AArch64`).
 //! - `parallel`: accelerates the same reductions with `rayon` parallel
 //!   iterators when inputs are large enough to amortize thread-pool overhead.
 //!
 //! Both features are opt-in and additive; the default build is fully scalar.
 
+/// Core [`Vector`] type and constructors.
 pub mod vector;
+/// Element-wise arithmetic operations.
 pub mod operations;
+/// L1/L2/L∞/p norms.
 pub mod norms;
+/// Geometric operations: dot, cross, angle, projection.
 pub mod geometry;
+/// Matrix-vector products and linear independence helpers.
 pub mod linear_algebra;
+/// Statistical reductions over vectors.
 pub mod statistics;
+/// Distance metrics between vectors.
 pub mod distance;
+/// Utility functions: normalization, clamping, interpolation.
 pub mod utils;
 
+/// Optional SIMD acceleration (feature `simd`).
 #[cfg(feature = "simd")]
 pub mod simd;
 
+/// Optional rayon-based parallel reductions (feature `parallel`).
 #[cfg(feature = "parallel")]
 pub mod parallel;
 

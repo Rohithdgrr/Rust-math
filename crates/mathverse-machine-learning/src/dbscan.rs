@@ -75,11 +75,11 @@ mod tests {
         let mut x: Vec<Vec<f64>> = Vec::new();
         // Cluster 0
         for i in 0..10 {
-            x.push(vec![i as f64, 0.0]);
+            x.push(vec![f64::from(i), 0.0]);
         }
         // Cluster 1
         for i in 0..10 {
-            x.push(vec![i as f64 + 100.0, 0.0]);
+            x.push(vec![f64::from(i) + 100.0, 0.0]);
         }
         // Noise point
         x.push(vec![500.0, 500.0]);
@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn all_noise() {
-        let x: Vec<Vec<f64>> = (0..5).map(|i| vec![i as f64 * 100.0]).collect();
+        let x: Vec<Vec<f64>> = (0..5).map(|i| vec![f64::from(i) * 100.0]).collect();
         let r = dbscan(&x, 1.0, 3);
         assert_eq!(r.n_clusters, 0);
         assert!(r.labels.iter().all(|&l| l == -1));

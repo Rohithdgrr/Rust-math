@@ -6,9 +6,13 @@ use mathverse_core::error::{MathError, MathResult};
 /// Iterative solver result.
 #[derive(Debug, Clone)]
 pub struct IterativeResult {
+    /// Approximate solution of the linear system.
     pub solution: mathverse_vector::Vector,
+    /// Number of iterations performed.
     pub iterations: usize,
+    /// Norm of the final residual `b - A x`.
     pub residual_norm: f64,
+    /// Whether the solver met the tolerance within the iteration budget.
     pub converged: bool,
 }
 
@@ -161,7 +165,7 @@ impl Gmres {
         let mut x = mathverse_vector::Vector::new(vec![0.0; n]);
         let mut total_iterations = 0;
         
-        for _ in 0..(max_iterations / restart + 1) {
+        for _ in 0..=(max_iterations / restart) {
             let ax = a.mul_vec(&x)?;
             let r = b.sub(&ax);
             let beta = r.data.iter().map(|x| x * x).sum::<f64>().sqrt();
@@ -201,13 +205,13 @@ impl Gmres {
                 }
 
                 q.push(v.scale(1.0 / h_k[k + 1]));
-                h[k] = h_k.clone();
+                h[k].clone_from(&h_k);
 
                 // Solve least squares problem (simplified)
                 let residual = h_k[k + 1];
                 if residual < tolerance {
                     // Update solution
-                    let y = Self::solve_least_squares(&h, k + 1, beta)?;
+                    let y = Self::solve_least_squares(&h, k + 1, beta);
                     for (j, &yj) in y.iter().enumerate() {
                         let qj_scaled = q[j].scale(yj);
                         x = x.add(&qj_scaled);
@@ -234,9 +238,9 @@ impl Gmres {
     }
     
     /// Solve least squares problem min ||beta*e1 - H*y|| using Givens rotations.
-    fn solve_least_squares(h: &[Vec<f64>], k: usize, beta: f64) -> MathResult<Vec<f64>> {
+    fn solve_least_squares(h: &[Vec<f64>], k: usize, beta: f64) -> Vec<f64> {
         if k == 0 {
-            return Ok(vec![]);
+            return vec![];
         }
         
         // Build (k+1) x k Hessenberg matrix and apply Givens rotations
@@ -283,7 +287,7 @@ impl Gmres {
             }
         }
         
-        Ok(y)
+        y
     }
 }
 
@@ -453,10 +457,8 @@ impl IterativeUtils {
                 if diag <= row_sum {
                     return false;
                 }
-            } else {
-                if diag < row_sum {
-                    return false;
-                }
+            } else if diag < row_sum {
+                return false;
             }
         }
         
@@ -537,7 +539,7 @@ impl IterativeUtils {
         let i_minus_omega_u = Matrix::identity(n).sub(&u.scale(omega))?;
 
         // Simple approximation: use matrix multiplication instead of solve
-        Ok(i_minus_omega_l.mul(&d_inv_omega)?.mul(&i_minus_omega_u)?)
+        i_minus_omega_l.mul(&d_inv_omega)?.mul(&i_minus_omega_u)
     }
 }
 

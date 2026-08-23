@@ -23,7 +23,7 @@ impl DpiConfig {
     pub fn new(dpi: u32) -> Self {
         Self {
             dpi,
-            scale: dpi as f64 / 96.0,
+            scale: f64::from(dpi) / 96.0,
         }
     }
 
@@ -50,8 +50,8 @@ impl DpiConfig {
     /// Compute scaled dimensions.
     pub fn scale_dimensions(&self, width: u32, height: u32) -> (u32, u32) {
         (
-            (width as f64 * self.scale).round() as u32,
-            (height as f64 * self.scale).round() as u32,
+            (f64::from(width) * self.scale).round() as u32,
+            (f64::from(height) * self.scale).round() as u32,
         )
     }
 
@@ -123,8 +123,8 @@ pub fn svg_header_physical(
     height: u32,
     dpi_config: &DpiConfig,
 ) -> String {
-    let width_in = width as f64 / dpi_config.dpi as f64;
-    let height_in = height as f64 / dpi_config.dpi as f64;
+    let width_in = f64::from(width) / f64::from(dpi_config.dpi);
+    let height_in = f64::from(height) / f64::from(dpi_config.dpi);
 
     format!(
         r#"<svg width="{width_in}in" height="{height_in}in" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#,
@@ -160,8 +160,8 @@ impl PngMetadata {
     /// Get the physical dimensions in inches.
     pub fn physical_size_inches(&self) -> (f64, f64) {
         (
-            self.width as f64 / self.dpi as f64,
-            self.height as f64 / self.dpi as f64,
+            f64::from(self.width) / f64::from(self.dpi),
+            f64::from(self.height) / f64::from(self.dpi),
         )
     }
 

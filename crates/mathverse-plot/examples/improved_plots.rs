@@ -6,8 +6,9 @@
 
 use std::f64::consts::PI;
 
-use mathverse_plot::*;
+use mathverse_plot::{ThemeConfig, PlotConfig, SvgPlot, DataPoint, DataSeries, PlotStyle, Color, MarkerStyle, SmoothConfig, smooth_points};
 
+#[allow(clippy::too_many_lines)]
 fn main() {
     let out = "target/plot_images";
     std::fs::create_dir_all(out).expect("create output dir");
@@ -32,7 +33,7 @@ fn main() {
             .with_dimensions(900, 500);
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let pts: Vec<DataPoint> = (0..300)
-            .map(|i| DataPoint::new(i as f64 * 0.05, (i as f64 * 0.05).sin()))
+            .map(|i| DataPoint::new(f64::from(i) * 0.05, (f64::from(i) * 0.05).sin()))
             .collect();
         plot.add_series(DataSeries::new("sin(x)", pts));
         save!("01_sine_wave", plot);
@@ -47,10 +48,10 @@ fn main() {
             .with_dimensions(900, 500);
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let temp: Vec<DataPoint> = (0..24)
-            .map(|i| DataPoint::new(i as f64, 20.0 + 10.0 * ((i as f64 - 6.0) * PI / 12.0).cos()))
+            .map(|i| DataPoint::new(f64::from(i), 20.0 + 10.0 * ((f64::from(i) - 6.0) * PI / 12.0).cos()))
             .collect();
         let humid: Vec<DataPoint> = (0..24)
-            .map(|i| DataPoint::new(i as f64, 60.0 + 20.0 * ((i as f64 - 12.0) * PI / 12.0).sin()))
+            .map(|i| DataPoint::new(f64::from(i), 60.0 + 20.0 * ((f64::from(i) - 12.0) * PI / 12.0).sin()))
             .collect();
         plot.add_series(DataSeries::new("Temperature °C", temp));
         plot.add_series(DataSeries::new("Humidity %", humid));
@@ -64,10 +65,10 @@ fn main() {
             .with_dimensions(900, 500);
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let growth: Vec<DataPoint> = (0..100)
-            .map(|i| DataPoint::new(i as f64 * 0.1, (i as f64 * 0.05).exp()))
+            .map(|i| DataPoint::new(f64::from(i) * 0.1, (f64::from(i) * 0.05).exp()))
             .collect();
         let decay: Vec<DataPoint> = (0..100)
-            .map(|i| DataPoint::new(i as f64 * 0.1, (-i as f64 * 0.05).exp()))
+            .map(|i| DataPoint::new(f64::from(i) * 0.1, (f64::from(-i) * 0.05).exp()))
             .collect();
         plot.add_series(DataSeries::new("Growth  e^(0.05x)", growth));
         plot.add_series(DataSeries::new("Decay  e^(-0.05x)", decay));
@@ -84,8 +85,8 @@ fn main() {
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let pts: Vec<DataPoint> = (0..50)
             .map(|i| {
-                let hours = i as f64 * 0.2;
-                let score = 40.0 + hours * 5.0 + ((i as f64 * 1.7).sin() * 10.0);
+                let hours = f64::from(i) * 0.2;
+                let score = 40.0 + hours * 5.0 + ((f64::from(i) * 1.7).sin() * 10.0);
                 DataPoint::new(hours, score)
             })
             .collect();
@@ -107,8 +108,8 @@ fn main() {
         let mut plot = SvgPlot::new(cfg).with_theme(seaborn.clone());
         let raw: Vec<DataPoint> = (0..30)
             .map(|i| {
-                let x = i as f64 * 0.2;
-                let y = x.sin() + ((i as f64 * 1.7).sin() * 0.3);
+                let x = f64::from(i) * 0.2;
+                let y = x.sin() + ((f64::from(i) * 1.7).sin() * 0.3);
                 DataPoint::new(x, y)
             })
             .collect();
@@ -129,7 +130,7 @@ fn main() {
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let pts: Vec<DataPoint> = (0..400)
             .map(|i| {
-                let t = i as f64 * 0.05;
+                let t = f64::from(i) * 0.05;
                 DataPoint::new(t, (-t * 0.15).sin() * (-t * 0.08).exp())
             })
             .collect();
@@ -147,7 +148,7 @@ fn main() {
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let pts: Vec<DataPoint> = (0..200)
             .map(|i| {
-                let f = i as f64 * 0.5;
+                let f = f64::from(i) * 0.5;
                 let mag = 10.0 * (-((f - 50.0).powi(2)) / 200.0).exp()
                     + 5.0 * (-((f - 120.0).powi(2)) / 100.0).exp()
                     + 3.0 * (-((f - 80.0).powi(2)) / 50.0).exp();
@@ -189,7 +190,7 @@ fn main() {
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let pts: Vec<DataPoint> = (0..600)
             .map(|i| {
-                let t = i as f64 * 0.05;
+                let t = f64::from(i) * 0.05;
                 DataPoint::new((3.0 * t).sin(), (2.0 * t).cos())
             })
             .collect();
@@ -205,7 +206,7 @@ fn main() {
         let mut plot = SvgPlot::new(cfg).with_theme(seaborn.clone());
         let pts: Vec<DataPoint> = (0..720)
             .map(|i| {
-                let theta = i as f64 * PI / 180.0;
+                let theta = f64::from(i) * PI / 180.0;
                 let r = (3.0 * theta).cos();
                 DataPoint::new(r * theta.cos(), r * theta.sin())
             })
@@ -223,13 +224,13 @@ fn main() {
             .with_dimensions(900, 450);
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let baseline: Vec<DataPoint> = (0..20)
-            .map(|i| DataPoint::new(i as f64, 50.0 + (i as f64 * 0.5).sin() * 5.0))
+            .map(|i| DataPoint::new(f64::from(i), 50.0 + (f64::from(i) * 0.5).sin() * 5.0))
             .collect();
         let upper: Vec<DataPoint> = (0..20)
-            .map(|i| DataPoint::new(i as f64, 50.0 + (i as f64 * 0.5).sin() * 5.0 + 8.0))
+            .map(|i| DataPoint::new(f64::from(i), 50.0 + (f64::from(i) * 0.5).sin() * 5.0 + 8.0))
             .collect();
         let lower: Vec<DataPoint> = (0..20)
-            .map(|i| DataPoint::new(i as f64, 50.0 + (i as f64 * 0.5).sin() * 5.0 - 8.0))
+            .map(|i| DataPoint::new(f64::from(i), 50.0 + (f64::from(i) * 0.5).sin() * 5.0 - 8.0))
             .collect();
         plot.add_series(DataSeries::new("Mean", baseline));
         plot.add_series(DataSeries::new("+2σ", upper));
@@ -246,13 +247,13 @@ fn main() {
             .with_dimensions(900, 450);
         let mut plot = SvgPlot::new(cfg).with_theme(seaborn.clone());
         let f1: Vec<DataPoint> = (0..200)
-            .map(|i| DataPoint::new(i as f64, (i as f64 * 0.1).sin()))
+            .map(|i| DataPoint::new(f64::from(i), (f64::from(i) * 0.1).sin()))
             .collect();
         let f2: Vec<DataPoint> = (0..200)
-            .map(|i| DataPoint::new(i as f64, 0.5 * (i as f64 * 0.2).sin()))
+            .map(|i| DataPoint::new(f64::from(i), 0.5 * (f64::from(i) * 0.2).sin()))
             .collect();
         let f3: Vec<DataPoint> = (0..200)
-            .map(|i| DataPoint::new(i as f64, 0.33 * (i as f64 * 0.3).sin()))
+            .map(|i| DataPoint::new(f64::from(i), 0.33 * (f64::from(i) * 0.3).sin()))
             .collect();
         plot.add_series(DataSeries::new("Fundamental", f1));
         plot.add_series(DataSeries::new("2nd Harmonic", f2));
@@ -267,10 +268,10 @@ fn main() {
             .with_dimensions(900, 500);
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let ln: Vec<DataPoint> = (1..100)
-            .map(|i| DataPoint::new(i as f64, (i as f64).ln()))
+            .map(|i| DataPoint::new(f64::from(i), f64::from(i).ln()))
             .collect();
         let sq: Vec<DataPoint> = (1..100)
-            .map(|i| DataPoint::new(i as f64, (i as f64).sqrt()))
+            .map(|i| DataPoint::new(f64::from(i), f64::from(i).sqrt()))
             .collect();
         plot.add_series(DataSeries::new("ln(x)", ln));
         plot.add_series(DataSeries::new("√x", sq));
@@ -287,9 +288,9 @@ fn main() {
         let mut plot = SvgPlot::new(cfg).with_theme(seaborn.clone());
         let price: Vec<DataPoint> = (0..60)
             .map(|i| {
-                let base = 150.0 + i as f64 * 0.8;
-                let noise = (i as f64 * 2.3).sin() * 10.0 + ((i * 7) % 5) as f64;
-                DataPoint::new(i as f64, base + noise)
+                let base = 150.0 + f64::from(i) * 0.8;
+                let noise = (f64::from(i) * 2.3).sin() * 10.0 + f64::from((i * 7) % 5);
+                DataPoint::new(f64::from(i), base + noise)
             })
             .collect();
         plot.add_series(DataSeries::new("AAPL", price));
@@ -306,7 +307,7 @@ fn main() {
         let mut plot = SvgPlot::new(cfg).with_theme(theme.clone());
         let pts: Vec<DataPoint> = (0..200)
             .map(|i| {
-                let x = (i as f64 - 100.0) * 0.1;
+                let x = (f64::from(i) - 100.0) * 0.1;
                 let t = x / std::f64::consts::SQRT_2;
                 // Approximate CDF via tanh (smooth, monotonic, no erf needed)
                 let cdf = 0.5 * (1.0 + t.tanh());

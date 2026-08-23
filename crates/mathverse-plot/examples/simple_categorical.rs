@@ -1,7 +1,6 @@
 //! Categorical axis example with string labels.
 
 use mathverse_plot::{CategoryMap, DataPoint, DataSeries, PlotConfig, SvgPlot};
-use mathverse_plot::style::PlotStyle;
 use mathverse_plot::save::PlotSaver;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -9,7 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let categories = CategoryMap::from_labels(vec!["Apple", "Banana", "Cherry", "Date", "Elderberry"]);
 
     // Data: fruit sales
-    let sales = vec![45.0, 32.0, 58.0, 21.0, 39.0];
+    let sales = [45.0, 32.0, 58.0, 21.0, 39.0];
 
     // Create series with categorical x positions
     let points: Vec<DataPoint> = sales
@@ -48,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect::<Vec<_>>()
         .join("\n");
 
-    labeled_svg = labeled_svg.replace("</svg>", &format!("{}\n</svg>", category_labels));
+    labeled_svg = labeled_svg.replace("</svg>", &format!("{category_labels}\n</svg>"));
 
     PlotSaver::new(&labeled_svg).save_png("categorical.png")?;
     println!("Wrote categorical.svg ({} bytes)", labeled_svg.len());

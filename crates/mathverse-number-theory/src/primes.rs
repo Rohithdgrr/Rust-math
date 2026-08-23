@@ -1,7 +1,7 @@
 //! Primality testing, sieve of Eratosthenes, twin primes, Goldbach, Mersenne primes.
 //!
 //! All primality tests use **deterministic Miller-Rabin** for `u64`,
-//! which is O(log³ n) — no DoS risk from trial division.
+//! which is O(log³ n) — no `DoS` risk from trial division.
 
 /// Tests whether `n` is prime using deterministic Miller-Rabin.
 ///
@@ -40,36 +40,36 @@ pub fn is_prime(n: u64) -> bool {
 /// ```
 #[must_use]
 pub fn miller_rabin(n: u64) -> bool {
-    if n < 2 {
-        return false;
-    }
     const SMALL_PRIMES: [u64; 24] = [
         2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89,
     ];
+    const BASES: [u64; 12] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+    if n < 2 {
+        return false;
+    }
     for &p in &SMALL_PRIMES {
-        if n % p == 0 {
+        if n.is_multiple_of(p) {
             return n == p;
         }
     }
-    let mut d = n - 1;
-    let mut s = 0u32;
-    while d % 2 == 0 {
-        d /= 2;
-        s += 1;
+    let mut odd_part = n - 1;
+    let mut two_count = 0u32;
+    while odd_part.is_multiple_of(2) {
+        odd_part /= 2;
+        two_count += 1;
     }
-    const BASES: [u64; 12] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
-    'witness: for &a in &BASES {
-        let a = a % n;
-        if a == 0 {
+    'witness: for &raw_base in &BASES {
+        let base = raw_base % n;
+        if base == 0 {
             continue;
         }
-        let mut x = mod_pow_u128(a, d, n);
-        if x == 1 || x == n - 1 {
+        let mut value = mod_pow_u128(base, odd_part, n);
+        if value == 1 || value == n - 1 {
             continue;
         }
-        for _ in 0..s - 1 {
-            x = mod_pow_u128(x as u64, 2, n);
-            if x == n - 1 {
+        for _ in 0..two_count - 1 {
+            value = mod_pow_u128(value, 2, n);
+            if value == n - 1 {
                 continue 'witness;
             }
         }
@@ -79,10 +79,11 @@ pub fn miller_rabin(n: u64) -> bool {
 }
 
 #[inline]
+#[allow(clippy::missing_const_for_fn)]
 fn mod_pow_u128(base: u64, mut exp: u64, m: u64) -> u64 {
     let mut result = 1u128;
-    let mut b = base as u128 % m as u128;
-    let mm = m as u128;
+    let mut b = u128::from(base) % u128::from(m);
+    let mm = u128::from(m);
     while exp > 0 {
         if exp & 1 == 1 {
             result = (result * b) % mm;
@@ -119,7 +120,9 @@ pub fn sieve(limit: usize) -> Vec<u64> {
             }
         }
     }
-    (2..=limit as u64).filter(|&p| is_prime[p as usize]).collect()
+    (2..=limit as u64)
+        .filter(|&p| is_prime[p as usize])
+        .collect()
 }
 
 /// Alias for [`sieve`], matching the naming in `mathverse-core`.
@@ -153,14 +156,13 @@ pub fn segmented_sieve(low: u64, high: u64) -> Vec<u64> {
     let segment_size = (high - low + 1) as usize;
     let mut is_prime = vec![true; segment_size];
     for &p in &base_primes {
-        let p = p as u64;
         if p * p > high {
             break;
         }
         let start = if low <= p {
             p * p
         } else {
-            ((low + p - 1) / p) * p
+            low.div_ceil(p) * p
         };
         let start = start.max(p * p);
         if start > high {
@@ -250,7 +252,7 @@ pub fn twin_primes(limit: u64) -> Vec<(u64, u64)> {
 /// ```
 #[must_use]
 pub fn goldbach(n: u64) -> Option<(u64, u64)> {
-    if n < 4 || n % 2 != 0 {
+    if n < 4 || !n.is_multiple_of(2) {
         return None;
     }
     if n <= 10_000_000 {
@@ -267,7 +269,7 @@ pub fn goldbach(n: u64) -> Option<(u64, u64)> {
         return None;
     }
     let mut p = n / 2;
-    if p % 2 == 0 {
+    if p.is_multiple_of(2) {
         p -= 1;
     }
     while p >= 2 {
@@ -279,11 +281,11 @@ pub fn goldbach(n: u64) -> Option<(u64, u64)> {
     None
 }
 
-/// Checks if the Mersenne number M_p = 2^p - 1 is prime, using the
+/// Checks if the Mersenne number `M_p` = 2^p - 1 is prime, using the
 /// Lucas-Lehmer test.
 ///
 /// Returns `None` if `p` is not prime (Mersenne primes require prime exponents).
-/// Returns `Some(m)` where `m = 2^p - 1` if M_p is prime.
+/// Returns `Some(m)` where `m = 2^p - 1` if `M_p` is prime.
 ///
 /// For `p ≥ 64`, `2^p - 1` overflows `u64`; with the `bigint` feature,
 /// the result is returned as a decimal string.
@@ -298,7 +300,7 @@ pub fn goldbach(n: u64) -> Option<(u64, u64)> {
 /// ```
 #[must_use]
 pub fn mersenne_prime(p: u32) -> Option<u64> {
-    if p < 2 || !is_prime(p as u64) {
+    if p < 2 || !is_prime(u64::from(p)) {
         return None;
     }
     if p >= 64 {
@@ -311,9 +313,9 @@ pub fn mersenne_prime(p: u32) -> Option<u64> {
     }
 }
 
-/// Lucas-Lehmer primality test for the Mersenne number M_p = 2^p - 1.
+/// Lucas-Lehmer primality test for the Mersenne number `M_p` = 2^p - 1.
 ///
-/// Returns `true` iff M_p is prime (requires p to be an odd prime).
+/// Returns `true` iff `M_p` is prime (requires p to be an odd prime).
 /// This is the standard deterministic test for Mersenne primes —
 /// much faster than Miller-Rabin for numbers of this special form.
 ///
@@ -328,7 +330,7 @@ pub fn lucas_lehmer(p: u32) -> bool {
     if p == 2 {
         return true;
     }
-    if p < 2 || p % 2 == 0 {
+    if p < 2 || p.is_multiple_of(2) {
         return false;
     }
     let mut s = 4u128;
@@ -411,7 +413,7 @@ pub fn next_prime(n: u64) -> u64 {
     if n < 2 {
         return 2;
     }
-    let mut candidate = if n % 2 == 0 { n + 1 } else { n + 2 };
+    let mut candidate = if n.is_multiple_of(2) { n + 1 } else { n + 2 };
     while !is_prime(candidate) {
         candidate += 2;
     }
@@ -436,7 +438,7 @@ pub fn prev_prime(n: u64) -> Option<u64> {
         return None;
     }
     let mut candidate = if n <= 3 { 2 } else { n - 1 };
-    if candidate % 2 == 0 && candidate > 2 {
+    if candidate.is_multiple_of(2) && candidate > 2 {
         candidate -= 1;
     }
     while candidate >= 2 {

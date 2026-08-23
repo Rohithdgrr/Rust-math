@@ -1,10 +1,10 @@
-use alloc::string::String;
+﻿use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt;
 
 use crate::errors::{DataFrameError, DataFrameResult};
 
-/// Row index for a DataFrame.
+/// Row index for a `DataFrame`.
 ///
 /// An index maps logical row positions to labels. It can be:
 /// - `Range`: implicit 0..n (most memory-efficient)
@@ -93,12 +93,12 @@ impl Index {
     /// `ordered=False`).
     #[must_use]
     pub fn categorical_from_labels(labels: Vec<String>) -> Self {
-        let mut cats: Vec<String> = labels.iter().cloned().collect();
+        let mut cats: Vec<String> = labels.clone();
         cats.sort();
         cats.dedup();
         let codes: Vec<i64> = labels
-            .iter()
-            .map(|label| cats.binary_search(label).unwrap_or(0) as i64)
+            .into_iter()
+            .map(|label| cats.binary_search(&label).unwrap_or(0) as i64)
             .collect();
         Self::Categorical {
             categories: cats,
@@ -114,7 +114,7 @@ impl Index {
             Self::Int64(v) => v.len(),
             Self::Labels(v) => v.len(),
             Self::Categorical { codes, .. } => codes.len(),
-            Self::MultiIndex(levels) => levels.first().map_or(0, |l| l.len()),
+            Self::MultiIndex(levels) => levels.first().map_or(0, std::vec::Vec::len),
         }
     }
 
@@ -128,15 +128,13 @@ impl Index {
     ///
     /// For string labels, returns the position as i64.
     /// For categorical labels, returns the category code.
-    #[must_use]
     pub fn get_int(&self, pos: usize) -> DataFrameResult<i64> {
         self.bounds_check(pos)?;
         match self {
             Self::Range { start, step, .. } => Ok(start + pos as i64 * step),
             Self::Int64(v) => Ok(v[pos]),
-            Self::Labels(_) => Ok(pos as i64),
+            Self::Labels(_) | Self::MultiIndex(_) => Ok(pos as i64),
             Self::Categorical { codes, .. } => Ok(codes[pos]),
-            Self::MultiIndex(_) => Ok(pos as i64),
         }
     }
 
@@ -144,7 +142,6 @@ impl Index {
     ///
     /// For numeric labels, formats them as strings.
     /// For categorical labels, returns the category name.
-    #[must_use]
     pub fn get_str(&self, pos: usize) -> DataFrameResult<String> {
         self.bounds_check(pos)?;
         match self {
@@ -217,7 +214,6 @@ impl Index {
     }
 
     /// Creates a new index by selecting positions.
-    #[must_use]
     pub fn select(&self, positions: &[usize]) -> DataFrameResult<Self> {
         match self {
             Self::Range { start, step, .. } => {

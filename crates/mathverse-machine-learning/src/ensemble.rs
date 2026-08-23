@@ -53,8 +53,7 @@ impl VotingClassifier {
                 let best = votes
                     .iter()
                     .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Less))
-                    .map(|(k, _)| *k)
-                    .unwrap_or(0.0f64.to_bits());
+                    .map_or(0.0f64.to_bits(), |(k, _)| *k);
                 f64::from_bits(best)
             })
             .collect()

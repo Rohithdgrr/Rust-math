@@ -27,6 +27,7 @@ impl Default for FlierProps {
 }
 
 /// Configuration for a styled box plot.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct BoxPlotConfig {
     /// Chart configuration (dimensions, padding, title...).
@@ -163,8 +164,8 @@ pub fn render_styled_boxplot(
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
     let chart_w = width - 2.0 * padding;
     let chart_h = height - 2.0 * padding;
 
@@ -194,7 +195,7 @@ pub fn render_styled_boxplot(
         positions.iter().copied().fold(f64::NEG_INFINITY, f64::max),
     );
     let pos_span = (pos_hi - pos_lo).max(1.0);
-    let box_w = (chart_w / n as f64).min(80.0).max(12.0) * 0.5;
+    let box_w = (chart_w / n as f64).clamp(12.0, 80.0) * 0.5;
 
     let to_data_x = |v: f64| padding + (v - lo) / (hi - lo) * chart_w;
     let to_data_y = |v: f64| padding + chart_h * (1.0 - (v - lo) / (hi - lo));
@@ -358,8 +359,7 @@ pub fn render_styled_boxplot(
                 svg.push('\n');
             }
             svg.push_str(&format!(
-                r#"  <text x="14" y="{yc}" text-anchor="middle" font-size="11" transform="rotate(-90, 14, {yc})">{label}</text>"#,
-                yc = yc
+                r#"  <text x="14" y="{yc}" text-anchor="middle" font-size="11" transform="rotate(-90, 14, {yc})">{label}</text>"#
             ));
             svg.push('\n');
         }

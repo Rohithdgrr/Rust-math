@@ -46,7 +46,7 @@ impl RandomForest {
             let mut feats: Vec<usize> = (0..p).collect();
             use_xorshift_shuffle(&mut feats);
             feats.truncate(mf);
-            feats.sort();
+            feats.sort_unstable();
             self.feature_indices.push(feats.clone());
             // Subset features
             let bx_sub: Vec<Vec<f64>> = bx
@@ -84,8 +84,7 @@ impl RandomForest {
                 counts
                     .iter()
                     .max_by_key(|(_, c)| *c)
-                    .map(|(bits, _)| f64::from_bits(*bits))
-                    .unwrap_or(0.0)
+                    .map_or(0.0, |(bits, _)| f64::from_bits(*bits))
             })
             .collect()
     }

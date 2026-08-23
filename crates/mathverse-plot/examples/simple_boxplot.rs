@@ -14,17 +14,17 @@ fn main() -> mathverse_plot::PlotResult<()> {
     );
 
     // Group A: narrow spread, one outlier
-    let mut a: Vec<f64> = (0..50).map(|i| (i as f64 / 10.0).sin() * 2.0).collect();
+    let mut a: Vec<f64> = (0..50).map(|i| (f64::from(i) / 10.0).sin() * 2.0).collect();
     a.push(9.0);
     plot.add_box_plot("sin", &a, Color::BLUE)?;
 
     // Group B: uniform spread
-    let b: Vec<f64> = (0..50).map(|i| (i % 7) as f64).collect();
+    let b: Vec<f64> = (0..50).map(|i| f64::from(i % 7)).collect();
     plot.add_box_plot("uniform", &b, Color::RED)?;
 
     // Group C: narrow data with one far outlier
     let mut c: Vec<f64> = (0..50)
-        .map(|i| 5.0 + ((i % 3) as f64 - 1.0) * 0.5)
+        .map(|i| 5.0 + (f64::from(i % 3) - 1.0) * 0.5)
         .collect();
     c.push(11.0);
     plot.add_box_plot("narrow", &c, Color::GREEN)?;

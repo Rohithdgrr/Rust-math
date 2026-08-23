@@ -10,16 +10,18 @@ use super::transforms::Transform2D;
 // ---------------------------------------------------------------------------
 
 /// Angle between two vectors in radians [0, π].
+#[must_use]
 pub fn angle_between(a: Point2, b: Point2) -> f64 {
-    let dot = a.x * b.x + a.y * b.y;
-    let cross = a.x * b.y - a.y * b.x;
+    let dot = a.y.mul_add(b.y, a.x * b.x);
+    let cross = a.y.mul_add(-b.x, a.x * b.y);
     cross.atan2(dot).abs()
 }
 
 /// Signed angle from vector `a` to vector `b` in radians (-π, π].
+#[must_use]
 pub fn signed_angle(a: Point2, b: Point2) -> f64 {
-    let cross = a.x * b.y - a.y * b.x;
-    let dot = a.x * b.x + a.y * b.y;
+    let cross = a.y.mul_add(-b.x, a.x * b.y);
+    let dot = a.y.mul_add(b.y, a.x * b.x);
     cross.atan2(dot)
 }
 
@@ -28,8 +30,9 @@ pub fn signed_angle(a: Point2, b: Point2) -> f64 {
 // ---------------------------------------------------------------------------
 
 /// Signed area of the parallelogram formed by vectors `a` and `b`.
+#[must_use]
 pub fn cross_product_area_2d(a: Point2, b: Point2) -> f64 {
-    a.x * b.y - a.y * b.x
+    a.y.mul_add(-b.x, a.x * b.y)
 }
 
 // ---------------------------------------------------------------------------
@@ -37,28 +40,32 @@ pub fn cross_product_area_2d(a: Point2, b: Point2) -> f64 {
 // ---------------------------------------------------------------------------
 
 /// Signed area of a polygon (positive = counterclockwise).
+#[must_use]
 pub fn signed_area(poly: &Polygon) -> f64 {
     let pts = &poly.points;
     let n = pts.len();
     let mut s = 0.0;
     for i in 0..n {
         let (a, b) = (pts[i], pts[(i + 1) % n]);
-        s += a.x * b.y - b.x * a.y;
+        s += b.x.mul_add(-a.y, a.x * b.y);
     }
     s / 2.0
 }
 
 /// Whether polygon vertices are in counterclockwise order.
+#[must_use]
 pub fn is_counterclockwise(poly: &Polygon) -> bool {
     signed_area(poly) > 0.0
 }
 
 /// Whether polygon vertices are in clockwise order.
+#[must_use]
 pub fn is_clockwise(poly: &Polygon) -> bool {
     signed_area(poly) < 0.0
 }
 
 /// Force polygon to be counterclockwise by reversing if needed.
+#[must_use]
 pub fn ensure_counterclockwise(poly: &Polygon) -> Polygon {
     if signed_area(poly) < 0.0 {
         let mut pts = poly.points.clone();
@@ -74,6 +81,7 @@ pub fn ensure_counterclockwise(poly: &Polygon) -> Polygon {
 // ---------------------------------------------------------------------------
 
 /// Winding number of polygon around point `p`. 0 = outside.
+#[must_use]
 pub fn winding_number(p: Point2, poly: &Polygon) -> i32 {
     let pts = &poly.points;
     let n = pts.len();
@@ -83,13 +91,13 @@ pub fn winding_number(p: Point2, poly: &Polygon) -> i32 {
         let b = pts[(i + 1) % n];
         if a.y <= p.y {
             if b.y > p.y {
-                let cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+                let cross = (b.y - a.y).mul_add(-(p.x - a.x), (b.x - a.x) * (p.y - a.y));
                 if cross > 0.0 {
                     wn += 1;
                 }
             }
         } else if b.y <= p.y {
-            let cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+            let cross = (b.y - a.y).mul_add(-(p.x - a.x), (b.x - a.x) * (p.y - a.y));
             if cross < 0.0 {
                 wn -= 1;
             }
@@ -104,6 +112,7 @@ pub fn winding_number(p: Point2, poly: &Polygon) -> i32 {
 
 /// Moment of inertia of a uniform polygon about the origin.
 /// For a polygon with vertices in order, using the shoelace-based formula.
+#[must_use]
 pub fn moment_of_inertia_origin(poly: &Polygon) -> f64 {
     let pts = &poly.points;
     let n = pts.len();
@@ -111,14 +120,15 @@ pub fn moment_of_inertia_origin(poly: &Polygon) -> f64 {
     let mut moi = 0.0;
     for i in 0..n {
         let (a, b) = (pts[i], pts[(i + 1) % n]);
-        let cross = a.x * b.y - b.x * a.y;
+        let cross = b.x.mul_add(-a.y, a.x * b.y);
         area2 += cross;
-        moi += cross * (a.x * a.x + a.x * b.x + b.x * b.x + a.y * a.y + a.y * b.y + b.y * b.y);
+        moi += cross * (a.y.mul_add(b.y, a.y.mul_add(a.y, b.x.mul_add(b.x, a.x.mul_add(b.x, a.x * a.x)))) + b.y * b.y);
     }
     moi / (6.0 * area2.abs())
 }
 
 /// Moment of inertia of a uniform polygon about its centroid.
+#[must_use]
 pub fn moment_of_inertia_centroid(poly: &Polygon) -> f64 {
     let c = poly.centroid();
     let translated = poly.clone().translate(-c.x, -c.y);
@@ -126,16 +136,19 @@ pub fn moment_of_inertia_centroid(poly: &Polygon) -> f64 {
 }
 
 /// Moment of inertia of a circle of radius `r` about the origin.
+#[must_use]
 pub fn moment_of_inertia_circle(radius: f64) -> f64 {
     PI * radius.powi(4) / 2.0
 }
 
 /// Moment of inertia of a rectangle about its centroid.
+#[must_use]
 pub fn moment_of_inertia_rectangle(width: f64, height: f64) -> f64 {
-    width * height * (width * width + height * height) / 12.0
+    width * height * height.mul_add(height, width * width) / 12.0
 }
 
 /// Moment of inertia of a triangle about its centroid.
+#[must_use]
 pub fn moment_of_inertia_triangle(a: Point2, b: Point2, c: Point2) -> f64 {
     let poly = Polygon::new(vec![a, b, c]);
     moment_of_inertia_centroid(&poly)
@@ -146,6 +159,7 @@ pub fn moment_of_inertia_triangle(a: Point2, b: Point2, c: Point2) -> f64 {
 // ---------------------------------------------------------------------------
 
 /// Approximate area of polygon by Monte Carlo sampling inside `bounds`.
+#[must_use]
 pub fn monte_carlo_area(poly: &Polygon, bounds: (Point2, Point2), samples: usize) -> f64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -160,8 +174,8 @@ pub fn monte_carlo_area(poly: &Polygon, bounds: (Point2, Point2), samples: usize
         let h1 = hasher.finish();
         i.wrapping_add(1).hash(&mut hasher);
         let h2 = hasher.finish();
-        let x = min.x + (h1 as f64 / u64::MAX as f64) * width;
-        let y = min.y + (h2 as f64 / u64::MAX as f64) * height;
+        let x = (h1 as f64 / u64::MAX as f64).mul_add(width, min.x);
+        let y = (h2 as f64 / u64::MAX as f64).mul_add(height, min.y);
         let p = Point2::new(x, y);
         let mut j = poly.points.len() - 1;
         let mut inside_ray = false;

@@ -54,7 +54,7 @@ fn pendulum_simulation() {
     let result = runge_kutta_4_system(&f, 0.0, &[PI / 4.0, 0.0], 10.0, 1000).unwrap();
 
     // Print every 100th step
-    for (i, (t, state)) in result.iter().step_by(100).enumerate() {
+    for (t, state) in result.iter().step_by(100) {
         let energy = 0.5 * state[1] * state[1] + (1.0 - state[0].cos());
         println!("   t={:5.2}: θ={:8.5}, ω={:8.5}, E={:.6}", t, state[0], state[1], energy);
     }
@@ -72,8 +72,8 @@ fn newton_fractals() {
 
     for x0 in starts {
         match newton_raphson_auto(&f, x0, 1e-12, 100) {
-            Ok(root) => println!("   x₀={:5.2} → root={:.12}", x0, root),
-            Err(e) => println!("   x₀={:5.2} → failed: {}", x0, e),
+            Ok(root) => println!("   x₀={x0:5.2} → root={root:.12}"),
+            Err(e) => println!("   x₀={x0:5.2} → failed: {e}"),
         }
     }
     println!();
@@ -94,7 +94,7 @@ fn verify_fundamental_theorem() {
         let lhs = derivative(&integral, x);
         let rhs = f(x);
         let error = (lhs - rhs).abs();
-        println!("   x={:.1}: d/dx∫f={:.8}, f(x)={:.8}, error={:.2e}", x, lhs, rhs, error);
+        println!("   x={x:.1}: d/dx∫f={lhs:.8}, f(x)={rhs:.8}, error={error:.2e}");
     }
     println!();
 }

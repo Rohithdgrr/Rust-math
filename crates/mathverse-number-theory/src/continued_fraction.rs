@@ -12,12 +12,12 @@ pub fn continued_fraction(n: u64, d: u64) -> Vec<u64> {
         return if n == 0 { vec![0] } else { vec![n] };
     }
     let mut result = Vec::new();
-    let (mut a, mut b) = (n, d);
-    while b != 0 {
-        result.push(a / b);
-        let r = a % b;
-        a = b;
-        b = r;
+    let (mut num, mut den) = (n, d);
+    while den != 0 {
+        result.push(num / den);
+        let rem = num % den;
+        num = den;
+        den = rem;
     }
     result
 }
@@ -38,8 +38,8 @@ pub fn convergents(cf: &[u64]) -> Vec<(u128, u128)> {
     let (mut h0, mut h1) = (0i128, 1i128);
     let (mut k0, mut k1) = (1i128, 0i128);
     for &a in cf {
-        let h = a as i128 * h1 + h0;
-        let k = a as i128 * k1 + k0;
+        let h = i128::from(a) * h1 + h0;
+        let k = i128::from(a) * k1 + k0;
         result.push((h as u128, k as u128));
         h0 = h1;
         h1 = h;
@@ -121,8 +121,8 @@ pub fn e_cf(terms: usize) -> Vec<u64> {
 #[must_use]
 pub fn pi_cf(terms: usize) -> Vec<u64> {
     const KNOWN: [u64; 40] = [
-        3, 7, 15, 1, 292, 1, 1, 1, 2, 1, 3, 1, 14, 2, 1, 1, 2, 2, 2, 2, 1, 84, 2, 1, 1, 15, 3, 13, 1,
-        4, 2, 6, 6, 99, 1, 2, 2, 6, 3, 5,
+        3, 7, 15, 1, 292, 1, 1, 1, 2, 1, 3, 1, 14, 2, 1, 1, 2, 2, 2, 2, 1, 84, 2, 1, 1, 15, 3, 13,
+        1, 4, 2, 6, 6, 99, 1, 2, 2, 6, 3, 5,
     ];
     KNOWN.iter().copied().take(terms).collect()
 }
@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn golden() {
         let phi = cf_to_value(&golden_ratio_cf(20));
-        let exact_phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
+        let exact_phi = f64::midpoint(1.0, 5.0_f64.sqrt());
         assert!((phi - exact_phi).abs() < 1e-6);
     }
 

@@ -24,7 +24,7 @@ use std::path::Path;
 /// ```
 pub fn load<P: AsRef<Path>>(path: P) -> Result<GrayImage> {
     let dyn_img = image::open(path)?;
-    convert_to_grayimage(dyn_img)
+    convert_to_grayimage(&dyn_img)
 }
 
 /// Save a `GrayImage` to a file.
@@ -53,7 +53,7 @@ pub fn save<P: AsRef<Path>>(img: &GrayImage, path: P) -> Result<()> {
 }
 
 /// Convert a `DynamicImage` to our `GrayImage`.
-fn convert_to_grayimage(dyn_img: DynamicImage) -> Result<GrayImage> {
+fn convert_to_grayimage(dyn_img: &DynamicImage) -> Result<GrayImage> {
     let gray_img = dyn_img.to_luma8();
     let (width, height) = gray_img.dimensions();
     let w = width as usize;
@@ -61,7 +61,7 @@ fn convert_to_grayimage(dyn_img: DynamicImage) -> Result<GrayImage> {
     
     let data: Vec<f64> = gray_img
         .pixels()
-        .map(|p| p[0] as f64 / 255.0)
+        .map(|p| f64::from(p[0]) / 255.0)
         .collect();
     
     GrayImage::from_data(w, h, data)
@@ -88,7 +88,7 @@ fn convert_from_grayimage(img: &GrayImage) -> Result<ImageBuffer<Luma<u8>, Vec<u
 /// Returns an error if the bytes cannot be decoded as a valid image.
 pub fn load_from_bytes(bytes: &[u8]) -> Result<GrayImage> {
     let dyn_img = image::load_from_memory(bytes)?;
-    convert_to_grayimage(dyn_img)
+    convert_to_grayimage(&dyn_img)
 }
 
 /// Save to bytes in the specified format (PNG, JPEG, etc.).
@@ -117,7 +117,7 @@ mod tests {
         }
 
     let gray_img = convert_from_grayimage(&original).unwrap();
-    let converted = convert_to_grayimage(DynamicImage::ImageLuma8(gray_img)).unwrap();
+    let converted = convert_to_grayimage(&DynamicImage::ImageLuma8(gray_img)).unwrap();
 
         assert_eq!(original.w, converted.w);
         assert_eq!(original.h, converted.h);

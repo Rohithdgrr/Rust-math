@@ -3,6 +3,7 @@
 use crate::style::Color;
 
 /// Export configuration for SVG.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct ExportConfig {
     /// Width in pixels.
@@ -83,6 +84,7 @@ impl Default for Margin {
 
 /// SVG metadata.
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct Metadata {
     /// Document title.
     pub title: String,
@@ -96,17 +98,6 @@ pub struct Metadata {
     pub properties: std::collections::HashMap<String, String>,
 }
 
-impl Default for Metadata {
-    fn default() -> Self {
-        Self {
-            title: String::new(),
-            description: String::new(),
-            author: String::new(),
-            keywords: vec![],
-            properties: std::collections::HashMap::new(),
-        }
-    }
-}
 
 /// Watermark configuration.
 #[derive(Debug, Clone)]
@@ -240,7 +231,7 @@ impl ExportConfig {
         svg.push_str(&self.height.to_string());
         svg.push_str("\" viewBox=\"0 0 ");
         svg.push_str(&self.width.to_string());
-        svg.push_str(" ");
+        svg.push(' ');
         svg.push_str(&self.height.to_string());
         svg.push_str("\">\n");
 
@@ -308,8 +299,8 @@ impl ExportConfig {
                     svg.push_str("  <rect width=\"100%\" height=\"100%\" fill=\"url(#watermark)\"/>\n");
                 }
                 WatermarkPosition::Center => {
-                    let cx = self.width as f64 / 2.0;
-                    let cy = self.height as f64 / 2.0;
+                    let cx = f64::from(self.width) / 2.0;
+                    let cy = f64::from(self.height) / 2.0;
                     svg.push_str("  <text x=\"");
                     svg.push_str(&cx.to_string());
                     svg.push_str("\" y=\"");
@@ -343,7 +334,7 @@ impl ExportConfig {
                 }
                 WatermarkPosition::TopRight => {
                     svg.push_str("  <text x=\"");
-                    svg.push_str(&(self.width as f64 - 20.0).to_string());
+                    svg.push_str(&(f64::from(self.width) - 20.0).to_string());
                     svg.push_str("\" y=\"30\" text-anchor=\"end\" font-size=\"");
                     svg.push_str(&wm.font_size.to_string());
                     svg.push_str("\" fill=\"");
@@ -356,7 +347,7 @@ impl ExportConfig {
                 }
                 WatermarkPosition::BottomLeft => {
                     svg.push_str("  <text x=\"20\" y=\"");
-                    svg.push_str(&(self.height as f64 - 20.0).to_string());
+                    svg.push_str(&(f64::from(self.height) - 20.0).to_string());
                     svg.push_str("\" font-size=\"");
                     svg.push_str(&wm.font_size.to_string());
                     svg.push_str("\" fill=\"");
@@ -369,9 +360,9 @@ impl ExportConfig {
                 }
                 WatermarkPosition::BottomRight => {
                     svg.push_str("  <text x=\"");
-                    svg.push_str(&(self.width as f64 - 20.0).to_string());
+                    svg.push_str(&(f64::from(self.width) - 20.0).to_string());
                     svg.push_str("\" y=\"");
-                    svg.push_str(&(self.height as f64 - 20.0).to_string());
+                    svg.push_str(&(f64::from(self.height) - 20.0).to_string());
                     svg.push_str("\" text-anchor=\"end\" font-size=\"");
                     svg.push_str(&wm.font_size.to_string());
                     svg.push_str("\" fill=\"");
@@ -388,7 +379,7 @@ impl ExportConfig {
         // Title
         if self.show_title && !self.title.is_empty() {
             svg.push_str("  <text x=\"");
-            svg.push_str(&(self.width as f64 / 2.0).to_string());
+            svg.push_str(&(f64::from(self.width) / 2.0).to_string());
             svg.push_str("\" y=\"25\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"bold\">");
             svg.push_str(&self.title);
             svg.push_str("</text>\n");
@@ -397,9 +388,9 @@ impl ExportConfig {
         // Footer
         if self.show_footer && !self.footer.is_empty() {
             svg.push_str("  <text x=\"");
-            svg.push_str(&(self.width as f64 / 2.0).to_string());
+            svg.push_str(&(f64::from(self.width) / 2.0).to_string());
             svg.push_str("\" y=\"");
-            svg.push_str(&(self.height as f64 - 10.0).to_string());
+            svg.push_str(&(f64::from(self.height) - 10.0).to_string());
             svg.push_str("\" text-anchor=\"middle\" font-size=\"10\" fill=\"gray\">");
             svg.push_str(&self.footer);
             svg.push_str("</text>\n");
@@ -415,8 +406,8 @@ impl ExportConfig {
     pub fn plot_area(&self) -> (f64, f64, f64, f64) {
         let x = self.margin.left;
         let y = self.margin.top;
-        let w = self.width as f64 - self.margin.total_width();
-        let h = self.height as f64 - self.margin.total_height();
+        let w = f64::from(self.width) - self.margin.total_width();
+        let h = f64::from(self.height) - self.margin.total_height();
         (x, y, w, h)
     }
 }

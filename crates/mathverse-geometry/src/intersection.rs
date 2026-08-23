@@ -9,6 +9,7 @@ use super::primitives2d::LineSegment2;
 // ---------------------------------------------------------------------------
 
 /// Ray-casting algorithm: does a horizontal ray from `p` cross the polygon edge an odd number of times?
+#[must_use]
 pub fn point_in_polygon(p: Point2, poly: &Polygon) -> bool {
     let pts = &poly.points;
     let n = pts.len();
@@ -30,6 +31,7 @@ pub fn point_in_polygon(p: Point2, poly: &Polygon) -> bool {
 
 /// Winding number algorithm: returns winding number of polygon around `p`.
 /// 0 = outside, nonzero = inside (with winding semantics).
+#[must_use]
 pub fn winding_number(p: Point2, poly: &Polygon) -> i32 {
     let pts = &poly.points;
     let n = pts.len();
@@ -38,22 +40,20 @@ pub fn winding_number(p: Point2, poly: &Polygon) -> i32 {
         let a = pts[i];
         let b = pts[(i + 1) % n];
         if a.y <= p.y {
-            if b.y > p.y {
-                if cross_2d(a, b, p) > 0.0 {
+            if b.y > p.y
+                && cross_2d(a, b, p) > 0.0 {
                     wn += 1;
                 }
-            }
-        } else if b.y <= p.y {
-            if cross_2d(a, b, p) < 0.0 {
+        } else if b.y <= p.y
+            && cross_2d(a, b, p) < 0.0 {
                 wn -= 1;
             }
-        }
     }
     wn
 }
 
 fn cross_2d(a: Point2, b: Point2, c: Point2) -> f64 {
-    (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+    (b.y - a.y).mul_add(-(c.x - a.x), (b.x - a.x) * (c.y - a.y))
 }
 
 // ---------------------------------------------------------------------------
@@ -61,6 +61,7 @@ fn cross_2d(a: Point2, b: Point2, c: Point2) -> f64 {
 // ---------------------------------------------------------------------------
 
 /// Whether a line segment intersects a polygon.
+#[must_use]
 pub fn segment_intersects_polygon(seg: LineSegment2, poly: &Polygon) -> bool {
     let pts = &poly.points;
     let n = pts.len();
@@ -74,6 +75,7 @@ pub fn segment_intersects_polygon(seg: LineSegment2, poly: &Polygon) -> bool {
 }
 
 /// Whether two line segments intersect (proper or improper).
+#[must_use]
 pub fn segments_intersect(a: LineSegment2, b: LineSegment2) -> bool {
     let d1 = cross_2d(a.a, a.b, b.a);
     let d2 = cross_2d(a.a, a.b, b.b);
@@ -104,6 +106,7 @@ fn on_segment(seg: LineSegment2, p: Point2) -> bool {
 // ---------------------------------------------------------------------------
 
 /// Whether a circle intersects a polygon (edge or interior).
+#[must_use]
 pub fn circle_intersects_polygon(circ: Circle, poly: &Polygon) -> bool {
     if point_in_polygon(circ.center, poly) {
         return true;
@@ -126,6 +129,7 @@ pub fn circle_intersects_polygon(circ: Circle, poly: &Polygon) -> bool {
 
 /// Separating Axis Theorem: do two convex polygons overlap?
 /// Panics if either polygon is concave (SAT is only valid for convex polygons).
+#[must_use]
 pub fn polygons_intersect(poly_a: &Polygon, poly_b: &Polygon) -> bool {
     assert!(is_convex(poly_a), "polygons_intersect requires convex polygons (SAT)");
     assert!(is_convex(poly_b), "polygons_intersect requires convex polygons (SAT)");
@@ -161,10 +165,10 @@ fn project_polygon(pts: &[Point2], axis: Point2) -> Option<(f64, f64)> {
     if pts.is_empty() {
         return None;
     }
-    let mut min = pts[0].x * axis.x + pts[0].y * axis.y;
+    let mut min = pts[0].y.mul_add(axis.y, pts[0].x * axis.x);
     let mut max = min;
     for p in &pts[1..] {
-        let proj = p.x * axis.x + p.y * axis.y;
+        let proj = p.y.mul_add(axis.y, p.x * axis.x);
         if proj < min { min = proj; }
         if proj > max { max = proj; }
     }
@@ -176,6 +180,7 @@ fn project_polygon(pts: &[Point2], axis: Point2) -> Option<(f64, f64)> {
 // ---------------------------------------------------------------------------
 
 /// Andrew's monotone chain convex hull algorithm.
+#[must_use]
 pub fn convex_hull(points: &[Point2]) -> Vec<Point2> {
     let mut pts = points.to_vec();
     if pts.len() <= 2 {
@@ -220,6 +225,7 @@ pub fn convex_hull(points: &[Point2]) -> Vec<Point2> {
 // ---------------------------------------------------------------------------
 
 /// Whether a simple polygon is convex.
+#[must_use]
 pub fn is_convex(poly: &Polygon) -> bool {
     let pts = &poly.points;
     let n = pts.len();
@@ -231,7 +237,7 @@ pub fn is_convex(poly: &Polygon) -> bool {
         let a = pts[i];
         let b = pts[(i + 1) % n];
         let c = pts[(i + 2) % n];
-        let cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+        let cross = (b.y - a.y).mul_add(-(c.x - b.x), (b.x - a.x) * (c.y - b.y));
         if cross.abs() < 1e-12 {
             continue;
         }

@@ -365,10 +365,10 @@ mod tests {
         // Fixed data: cluster A around (0,0), cluster B around (5,5)
         let mut x = Vec::new();
         for i in 0..20 {
-            x.push(vec![i as f64 * 0.1, i as f64 * 0.1]);
+            x.push(vec![f64::from(i) * 0.1, f64::from(i) * 0.1]);
         }
         for i in 0..20 {
-            x.push(vec![5.0 + i as f64 * 0.1, 5.0 + i as f64 * 0.1]);
+            x.push(vec![5.0 + f64::from(i) * 0.1, 5.0 + f64::from(i) * 0.1]);
         }
         
         let r = fit_gmm(&x, 2, 50, 1e-6).unwrap();
@@ -381,7 +381,7 @@ mod tests {
 
     fn randn() -> f64 {
         use std::cell::Cell;
-        thread_local! { static S: Cell<u64> = Cell::new(0x1234_5678); }
+        thread_local! { static S: Cell<u64> = const { Cell::new(0x1234_5678) }; }
         S.with(|s| {
             let mut x = s.get();
             x ^= x << 13;

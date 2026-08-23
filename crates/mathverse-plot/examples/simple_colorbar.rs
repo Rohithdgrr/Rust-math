@@ -10,8 +10,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|i| {
             (0..10)
                 .map(|j| {
-                    let x = i as f64 / 9.0;
-                    let y = j as f64 / 9.0;
+                    let x = f64::from(i) / 9.0;
+                    let y = f64::from(j) / 9.0;
                     (x * y * 100.0).sin()
                 })
                 .collect()
@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Insert colorbar before closing </svg>
-    svg = svg.replace("</svg>", &format!("{}\n</svg>", colorbar_svg));
+    svg = svg.replace("</svg>", &format!("{colorbar_svg}\n</svg>"));
 
     PlotSaver::new(&svg).save_png("colorbar.png")?;
     println!("Wrote colorbar.svg ({} bytes)", svg.len());

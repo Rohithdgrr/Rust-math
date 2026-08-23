@@ -2,28 +2,43 @@
 
 use typenum::{Integer, Z0, P1, N1, P2, N2, P3, N3};
 
-/// Base dimension markers
+/// Length exponent marker (positive).
 pub type Length = P1;
+/// Mass exponent marker (positive).
 pub type Mass = P1;
+/// Time exponent marker (positive).
 pub type Time = P1;
+/// Electric current exponent marker (positive).
 pub type ElectricCurrent = P1;
+/// Temperature exponent marker (positive).
 pub type Temperature = P1;
+/// Amount of substance exponent marker (positive).
 pub type Amount = P1;
+/// Luminous intensity exponent marker (positive).
 pub type LuminousIntensity = P1;
 
-/// Negative dimension markers
+/// Inverse length exponent marker.
 pub type LengthInv = N1;
+/// Inverse mass exponent marker.
 pub type MassInv = N1;
+/// Inverse time exponent marker.
 pub type TimeInv = N1;
 
 /// Dimension trait
 pub trait Dimension {
+    /// Length exponent.
     type L: Integer;
+    /// Mass exponent.
     type M: Integer;
+    /// Time exponent.
     type T: Integer;
+    /// Electric current exponent.
     type I: Integer;
+    /// Thermodynamic temperature exponent.
     type Th: Integer;
+    /// Amount of substance exponent.
     type N: Integer;
+    /// Luminous intensity exponent.
     type J: Integer;
 }
 

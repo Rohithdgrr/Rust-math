@@ -11,12 +11,19 @@
 //! All matrices use [`mathverse_matrix::Matrix`] with flat row-major storage
 //! (`data[row * cols + col]`).
 
+/// Matrix decompositions: LU, QR, Cholesky, eigenvalue algorithms.
 pub mod decomposition;
+/// Linear system solvers and least-squares.
 pub mod solve;
+/// Vector and matrix norms, condition numbers.
 pub mod norm;
+/// Eigenvalue computation.
 pub mod eigen;
+/// Matrix inversion.
 pub mod inverse;
+/// Matrix rank.
 pub mod rank;
+/// Least-squares fitting.
 pub mod least_squares;
 
 // Selective re-exports to avoid ambiguity

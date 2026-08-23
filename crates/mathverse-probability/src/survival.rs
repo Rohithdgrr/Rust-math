@@ -70,6 +70,9 @@ pub fn kaplan_meier_survival(times: &[f64], events: &[bool], t: f64) -> f64 {
 
 /// Nelson-Aalen cumulative hazard estimate. Returns `(event_time, H(t))`
 /// pairs at every distinct event time.
+///
+/// # Panics
+/// Panics if `times.len() != events.len()`.
 #[must_use]
 pub fn nelson_aalen(times: &[f64], events: &[bool]) -> Vec<(f64, f64)> {
     assert_eq!(times.len(), events.len(), "times and events must be equal length");
@@ -101,6 +104,10 @@ pub fn nelson_aalen(times: &[f64], events: &[bool]) -> Vec<(f64, f64)> {
 
 /// Two-sample log-rank test. Returns `(chi-square statistic, p-value)`.
 /// Large statistics reject the null hypothesis of equal survival curves.
+///
+/// # Panics
+/// Panics if `times_a.len() != events_a.len()` or
+/// `times_b.len() != events_b.len()`.
 #[must_use]
 pub fn log_rank_test(
     times_a: &[f64],
@@ -119,8 +126,8 @@ pub fn log_rank_test(
     let (mut n1, mut n2) = (a.len() as f64, b.len() as f64);
     let (mut z, mut v) = (0.0, 0.0);
     while ia < a.len() || ib < b.len() {
-        let ta = a.get(ia).map(|p| p.0).unwrap_or(f64::INFINITY);
-        let tb = b.get(ib).map(|p| p.0).unwrap_or(f64::INFINITY);
+        let ta = a.get(ia).map_or(f64::INFINITY, |p| p.0);
+        let tb = b.get(ib).map_or(f64::INFINITY, |p| p.0);
         let t = ta.min(tb);
         let (mut d1, mut d2) = (0.0, 0.0);
         let (mut c1, mut c2) = (0.0, 0.0);
@@ -179,6 +186,9 @@ pub struct CoxPHResult {
 /// # Errors
 /// Returns an error if the input shapes are inconsistent, no events are
 /// observed, or the Hessian is singular.
+///
+/// # Panics
+/// Panics if any event time is `NaN`.
 pub fn cox_ph(
     times: &[f64],
     events: &[bool],
@@ -215,9 +225,8 @@ pub fn cox_ph(
             break;
         }
         // Solve HÂ·d = -g by Gaussian elimination (H is negative semi-definite).
-        let d = match solve_negative(&h, &g, p) {
-            Some(d) => d,
-            None => break,
+        let Some(d) = solve_negative(&h, &g, p) else {
+            break;
         };
         let mut step = 1.0;
         let mut improved = false;
@@ -367,8 +376,12 @@ fn solve_negative(h: &[Vec<f64>], g: &[f64], p: usize) -> Option<Vec<f64>> {
         a.swap(col, pivot);
         for r in col + 1..p {
             let factor = a[r][col] / a[col][col];
-            for c in col..=p {
-                a[r][c] -= factor * a[col][c];
+            let (lo, hi) = a.split_at_mut(r);
+            for (ac, &ar) in hi[0][col..=p]
+                .iter_mut()
+                .zip(&lo[col][col..=p])
+            {
+                *ac -= factor * ar;
             }
         }
     }
@@ -496,10 +509,9 @@ fn weibull_grad(params: &[f64], times: &[f64], events: &[bool], covariates: &[Ve
         let zk = z.powf(k);
         let delta = events[i];
         // d l / d(ln k) = k Â· d l / dk
-        grad[0] += k
-            * (delta as i32 as f64 * (1.0 / k - eta + t.ln()) - zk * z.ln());
+        grad[0] += k * (f64::from(i32::from(delta)) * (1.0 / k - eta + t.ln()) - zk * z.ln());
         for j in 0..p - 1 {
-            grad[j + 1] += k * (zk - delta as i32 as f64) * covariates[i][j];
+            grad[j + 1] += k * (zk - f64::from(i32::from(delta))) * covariates[i][j];
         }
     }
     grad
@@ -528,14 +540,18 @@ mod tests {
 
     #[test]
     fn kaplan_meier_hand_computation() {
-        // t: 1(e), 2(e), 2(c), 3(e): S = 3/4 Â· 1/2 Â· 1/2 = 0.1875
+        // t: 1(e), 2(e), 2(c), 3(e).
+        // At t=1: 1/4 of 4 at risk -> S = 3/4.
+        // At t=2: 1 event of 3 at risk (the censoring does not reduce S)
+        //         -> S = 3/4 · 2/3 = 1/2.
+        // At t=3: the single remaining subject dies -> S = 1/2 · (1 − 1/1) = 0.
         let times = vec![1.0, 2.0, 2.0, 3.0];
         let events = vec![true, true, false, true];
         let steps = kaplan_meier(&times, &events);
         assert_eq!(steps.len(), 3);
         assert!((steps[0].1 - 0.75).abs() < 1e-12);
         assert!((steps[1].1 - 0.5).abs() < 1e-12);
-        assert!((steps[2].1 - 0.1875).abs() < 1e-12);
+        assert!((steps[2].1 - 0.0).abs() < 1e-12);
         let h = nelson_aalen(&times, &events);
         assert!((h[0].1 - 0.25).abs() < 1e-12);
         assert!((h[1].1 - 0.25 - 1.0 / 3.0).abs() < 1e-12);
@@ -596,12 +612,27 @@ mod tests {
 
     #[test]
     fn weibull_aft_exponential_is_mean_time() {
-        let times = vec![2.0, 4.0, 6.0];
-        let events = vec![true, true, true];
-        let covs = vec![Vec::new(), Vec::new(), Vec::new()];
+        // Exponential(mean 4) is Weibull with shape k = 1; the AFT intercept
+        // should recover ln(mean) = ln 4. An explicit intercept column of
+        // ones is required — without it λ would be fixed at exp(0) = 1 —
+        // and a reasonably large sample is needed because the shape MLE is
+        // very noisy for tiny n.
+        let mut rng = crate::rng::Rng::new(17);
+        let n = 3000;
+        let times: Vec<f64> = (0..n).map(|_| -4.0 * rng.uniform().ln()).collect();
+        let events: Vec<bool> = vec![true; n];
+        let covs: Vec<Vec<f64>> = (0..n).map(|_| vec![1.0]).collect();
         let fit = weibull_aft(&times, &events, &covs).unwrap();
-        assert!((fit.shape - 1.0).abs() < 0.2, "shape {}", fit.shape);
-        assert!((fit.coefficients[0] - 4.0f64.ln()).abs() < 0.2, "beta0 {}", fit.coefficients[0]);
+        assert!(
+            (fit.shape - 1.0).abs() < 0.15,
+            "shape {}",
+            fit.shape
+        );
+        assert!(
+            (fit.coefficients[0] - 4.0f64.ln()).abs() < 0.08,
+            "beta0 {}",
+            fit.coefficients[0]
+        );
     }
 
     #[test]

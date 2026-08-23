@@ -24,7 +24,7 @@ fn main() {
     // Render the bracket as SVG
     let svg = bracket.render_svg(0.0, 1.0);
     println!("\nSVG output:");
-    println!("{}", svg);
+    println!("{svg}");
 
     // Create a collection of annotations
     let annotations = StatAnnotations::new()

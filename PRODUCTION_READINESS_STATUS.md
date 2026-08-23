@@ -377,3 +377,84 @@ The workspace is now suitable for:
 - Phased crates.io publication starting with highest-quality crates
 
 **Estimated time to "production-grade" (8.0+ average):** 6-8 weeks of focused effort across documentation, consolidation, and testing phases.
+
+---
+
+# SESSION LOG: Quality Push to 9.8+ (2026-08-22, commit 746756a+)
+
+Goal: bring the 21 highest-rated crates (complex 9.2 ... benches 7.0) to a
+score above 9.8/10 by fixing all test failures, hangs, correctness bugs,
+clippy warnings and doc gaps.
+
+## COMPLETED THIS SESSION
+
+### A. Workspace test suite is now fully green (was: broken)
+1. **plot**: examples/simple_annotations.rs used nonexistent DataPoint::data_xy() -> fixed;
+   broken interactive example target now gated behind its interactive feature.
+2. **machine-learning**: svm.rs SMO was O(n^3) per pass and effectively hung on
+   200-sample inputs (svm_and_naive_bayes_classify ran >60s). Rewritten with an
+   exact cached-decision-value update (O(n) refresh per SMO step). Fit that used
+   to hang now finishes in ~0.05s. Also fixed 4 failing integration tests in
+   sales_data.rs (data-derived class counts, feature standardization for SVM/OvR,
+   deeper tree), and added gradient clipping + divergence guard to
+   
+eural_net::fit so a bad learning rate can no longer poison weights with NaNs.
+3. **probability** (15 failing tests -> 235/235 green):
+   - stable.rs: characteristic function had wrong skew-sign and missed the S0
+     correction term; NaN at t=0 (0*ln 0); CDF Gil-Pelaez integrand had wrong sign
+     on the imaginary part; CMS sampler had wrong exponent sign, missing
+     (1+zeta^2)^(1/2a) normalization and missing S1->S0 location conversion.
+     All rewritten against the canonical formulas (Wikipedia/Nolan).
+   - copulas_extended.rs: Gumbel Marshall-Olkin sampling compensated for the new
+     S0 sampler (delta = beta*gamma*tan(pi*alpha/2)); t-copula test corrected
+     (positive dependence => density > 1 on-diagonal).
+   - online_stats.rs: sample skewness coefficient was short by sqrt(n)
+     (sqrt(n(n-1))/(n-2) instead of 
+*sqrt(n-1)/(n-2)); kurtosis formula
+     replaced with the bias-corrected Fisher-Pearson form (Gaussian->0,
+     exponential->6 verified); skewness-sign test used symmetric data -> replaced
+     with u^2 data.
+   - survival.rs: KM hand-computation expectation treated censored obs as at risk
+     (correct S(3)=0); Weibull-AFT exponential test needed an explicit intercept
+     column + realistic n=3000 sample.
+   - em_algorithm.rs: GMM monotonicity tolerance accounts for Cholesky float
+     noise; generic-EM Bernoulli test rewritten with d=2 observations (d=1 is
+     unidentifiable) and direct weight parameterization (logit/softmax round trip
+     silently broke EM monotonicity).
+   - andom_graphs.rs: BA edge count is (n-m)m+(m-1) with path seed (test was off
+     by one); P(deg=1)=0 for m=2 (test asserted >0.1); graph_edge_helpers degree
+     distribution assertions corrected.
+4. **physics**: all 47 previously-failing doctests repaired against the real API
+   (new fluent FluentPhysicsUnits trait: .kg()/.m()/.mps2()/... returning
+   dimension-checked Quantity values); Position/Time/Velocity re-exported from
+   dynamics; **two real bugs fixed**: 	o_rpm was off by exactly 2x (used 60/pi
+   instead of 60/(2pi)) and stopping_distance returned negative distances
+   (sign error, previously masked by .abs()).
+
+### B. Clippy cleanup progress (target: zero warnings in all 21 crates)
+- **mathverse-complex**: 3 -> 0 warnings. Tests green.
+- **mathverse-core**: 28 -> 0 warnings. Tests green.
+- **mathverse-probability**: 53 lib (+14 test) -> 0 warnings. 235 tests green.
+- mathverse-statistics: already clean (its warnings were probability's).
+
+## REMAINING WORK (in order)
+
+1. Clippy to zero for: arithmetic, dataframe, image (batch re-run needed),
+   trigonometry, special, units, ndarray-interop, benches (criterion black_box
+   deprecation), numerical, calculus, number-theory, transforms, equations, plot,
+   parallel, views, statistics re-check.
+2. **graph crate hardening** (audit findings):
+   - recursive DFS causes stack overflow on ~100k-node chains -> make iterative.
+   - reject NaN edge weights (currently accepted silently).
+3. Docs pass: fix remaining missing_docs warnings across the 21 crates so
+   -D warnings builds cleanly; verify crate-level //! docs everywhere.
+4. Final verification sweep: cargo test --workspace, cargo clippy --workspace
+   --all-targets -p <each of 21> zero-warning check, then re-score crates.
+
+## HOW TO RESUME
+
+Work through "REMAINING WORK" top-down. For clippy batches run:
+    cargo clippy -p <crate> --all-targets 2>&1
+and fix each warning at the source (no blanket #[allow]). Re-run
+    cargo test -p <crate>
+after every crate. Keep this file updated as items complete.

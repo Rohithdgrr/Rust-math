@@ -4,7 +4,7 @@
 ///
 /// Uses the Rec. 601 luma weights: `Y = 0.299R + 0.587G + 0.114B`.
 pub fn rgb_to_gray(r: u8, g: u8, b: u8) -> f64 {
-    (0.299 * r as f64 + 0.587 * g as f64 + 0.114 * b as f64) / 255.0
+    (0.299 * f64::from(r) + 0.587 * f64::from(g) + 0.114 * f64::from(b)) / 255.0
 }
 
 /// Convert an RGB triple with normalised `f64` components in `[0, 1]` to
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_black_hsv() {
-        let (h, s, v) = rgb_to_hsv(0.0, 0.0, 0.0);
+        let (_h, s, v) = rgb_to_hsv(0.0, 0.0, 0.0);
         assert_relative_eq!(v, 0.0, epsilon = 1e-10);
         assert_relative_eq!(s, 0.0, epsilon = 1e-10);
     }

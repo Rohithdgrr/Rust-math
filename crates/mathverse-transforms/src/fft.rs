@@ -148,7 +148,7 @@ pub fn convolution(a: &[f64], b: &[f64]) -> Vec<f64> {
 /// ```
 pub fn fft2(x: &[Vec<Complex>]) -> mathverse_core::error::MathResult<Vec<Vec<Complex>>> {
     let rows = x.len();
-    let cols = x.first().map(|r| r.len()).unwrap_or(0);
+    let cols = x.first().map_or(0, std::vec::Vec::len);
     if rows == 0 || cols == 0 || !rows.is_power_of_two() || !cols.is_power_of_two() {
         return Err(mathverse_core::error::MathError::InvalidArgument(
             "fft2: both dimensions must be nonzero powers of two",
@@ -174,7 +174,7 @@ pub fn fft2(x: &[Vec<Complex>]) -> mathverse_core::error::MathResult<Vec<Vec<Com
 /// Inverts [`fft2`]. Both dimensions must be nonzero powers of two.
 pub fn ifft2(x: &[Vec<Complex>]) -> mathverse_core::error::MathResult<Vec<Vec<Complex>>> {
     let rows = x.len();
-    let cols = x.first().map(|r| r.len()).unwrap_or(0);
+    let cols = x.first().map_or(0, std::vec::Vec::len);
     if rows == 0 || cols == 0 || !rows.is_power_of_two() || !cols.is_power_of_two() {
         return Err(mathverse_core::error::MathError::InvalidArgument(
             "ifft2: both dimensions must be nonzero powers of two",
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn fft_roundtrip() {
-        let x: Vec<Complex> = (0..8).map(|i| Complex::new(i as f64, 0.0)).collect();
+        let x: Vec<Complex> = (0..8).map(|i| Complex::new(f64::from(i), 0.0)).collect();
         let y = fft(&x).unwrap();
         let back = ifft(&y).unwrap();
         for (a, b) in x.iter().zip(&back) { assert!((*a - *b).norm() < 1e-12); }
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn fft2_roundtrip() {
         let x: Vec<Vec<Complex>> = (0..4)
-            .map(|r| (0..4).map(|c| Complex::new(r as f64 + 10.0 * c as f64, (r + c) as f64)).collect())
+            .map(|r| (0..4).map(|c| Complex::new(f64::from(r) + 10.0 * f64::from(c), f64::from(r + c))).collect())
             .collect();
         let y = fft2(&x).unwrap();
         let back = ifft2(&y).unwrap();
@@ -232,8 +232,8 @@ mod tests {
     fn fft2_matches_separable_product() {
         // FFT of a separable signal x[r][c] = a[r] * b[c] equals
         // FFT(a) ⊗ FFT(b) (outer product of the 1-D spectra).
-        let a: Vec<Complex> = (0..4).map(|i| Complex::real(i as f64 + 1.0)).collect();
-        let b: Vec<Complex> = (0..4).map(|i| Complex::real(2.0 * i as f64 + 1.0)).collect();
+        let a: Vec<Complex> = (0..4).map(|i| Complex::real(f64::from(i) + 1.0)).collect();
+        let b: Vec<Complex> = (0..4).map(|i| Complex::real(2.0 * f64::from(i) + 1.0)).collect();
         let fa = fft(&a).unwrap();
         let fb = fft(&b).unwrap();
         let x: Vec<Vec<Complex>> = (0..4)

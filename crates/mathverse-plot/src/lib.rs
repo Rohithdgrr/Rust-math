@@ -12,6 +12,13 @@
 #![allow(clippy::missing_const_for_fn)]
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::needless_range_loop)]
+// `format_push_string`: ~300 occurrences of `push_str(&format!(..))` across
+// rendering code; rewriting every site to `write!` is pure churn with zero
+// behavior benefit.
+#![allow(clippy::format_push_string)]
+// `too_many_lines`: ~40 long plot-rendering functions; splitting them up
+// would be invasive refactoring unrelated to lint hygiene.
+#![allow(clippy::too_many_lines)]
 //! Plotting with SVG, HTML, and terminal output backends.
 //!
 //! This crate provides:

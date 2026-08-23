@@ -1,6 +1,6 @@
 //! Automatic colorbar for heatmaps and colormapped data.
 
-use crate::axes::{Range, Scale};
+use crate::axes::Scale;
 use crate::heatmap::Colormap;
 
 /// Configuration for a colorbar.
@@ -100,11 +100,6 @@ pub fn render_colorbar(
     ));
     svg.push('\n');
 
-    // Draw tick marks and labels
-    let _data_range = Range {
-        min: data_min,
-        max: data_max,
-    };
     let ticks = Scale::Linear.ticks(data_min, data_max, config.tick_count);
 
     for tick_value in &ticks {
@@ -149,11 +144,11 @@ pub fn render_colorbar(
 /// Format a tick label with appropriate precision.
 fn format_tick_label(value: f64) -> String {
     if value.abs() >= 1e6 || (value.abs() < 1e-3 && value != 0.0) {
-        format!("{:.2e}", value)
+        format!("{value:.2e}")
     } else if value == value.round() {
         format!("{}", value as i64)
     } else {
-        format!("{:.2}", value)
+        format!("{value:.2}")
     }
 }
 

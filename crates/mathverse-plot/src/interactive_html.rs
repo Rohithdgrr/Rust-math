@@ -6,6 +6,7 @@ use crate::error::PlotResult;
 use crate::style::Color;
 
 /// Configuration for the interactive HTML backend.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct InteractiveConfig {
     /// Enable mouse wheel zoom.
@@ -396,7 +397,7 @@ init();
     // Inject the user callbacks (post-format to avoid brace escaping).
     let wrap = |code: &Option<String>| -> String {
         match code {
-            Some(code) => format!("try {{ {code} }} catch (err) {{ console.error(err); }}", code = code),
+            Some(code) => format!("try {{ {code} }} catch (err) {{ console.error(err); }}"),
             None => String::new(),
         }
     };

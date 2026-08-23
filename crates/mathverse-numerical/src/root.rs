@@ -176,7 +176,6 @@ pub fn brent(
     let mut c = a;
     let mut fc = fa;
     let mut d = c;
-    let _e = b;
     let mut mflag = true;
     
     for _ in 0..max_iters {
@@ -202,7 +201,7 @@ pub fn brent(
             || !mflag && (c - d).abs() < tol
         {
             // Bisection
-            s = (a + b) / 2.0;
+            s = f64::midpoint(a, b);
             mflag = true;
         } else {
             mflag = false;
@@ -463,13 +462,13 @@ mod tests {
 
     #[test]
     fn test_halley() {
-        let root = halley(&|x| x * x - 4.0, &|x| 2.0 * x, &|x| 2.0, 2.5, 1e-10, 100).unwrap();
+        let root = halley(&|x| x * x - 4.0, &|x| 2.0 * x, &|_x| 2.0, 2.5, 1e-10, 100).unwrap();
         assert!((root - 2.0).abs() < 1e-10);
     }
 
     #[test]
     fn test_fixed_point() {
-        let root = fixed_point(&|x| (x + 2.0 / x) / 2.0, 1.0, 1e-10, 100).unwrap();
+        let root = fixed_point(&|x| f64::midpoint(x, 2.0 / x), 1.0, 1e-10, 100).unwrap();
         assert!((root - 2.0_f64.sqrt()).abs() < 1e-8);
     }
 

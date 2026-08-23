@@ -99,9 +99,9 @@ fn compute_swarm_positions(values: &[f64], max_radius: f64, _width: f64) -> Vec<
             // Try offset positions
             attempts += 1;
             if attempts % 2 == 1 {
-                x = (attempts as f64 + 1.0) / 2.0 * max_radius * 2.0;
+                x = f64::midpoint(f64::from(attempts), 1.0) * max_radius * 2.0;
             } else {
-                x = -(attempts as f64) / 2.0 * max_radius * 2.0;
+                x = -f64::from(attempts) / 2.0 * max_radius * 2.0;
             }
 
             if attempts > 100 {
@@ -133,8 +133,8 @@ pub fn render_swarm_plot(categories: &[SwarmCategory], config: &SwarmConfig) -> 
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     // Find global y range
     let all_min = categories.iter().flat_map(|c| &c.values).fold(f64::INFINITY, |a, &b| a.min(b));
@@ -160,7 +160,7 @@ pub fn render_swarm_plot(categories: &[SwarmCategory], config: &SwarmConfig) -> 
     // Grid
     if config.show_grid {
         for i in 0..=5 {
-            let y = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let y = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");

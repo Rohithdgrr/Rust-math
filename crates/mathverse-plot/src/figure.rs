@@ -41,8 +41,7 @@ impl Axes {
                 None => Some((x, x)),
                 Some((lo, hi)) => Some((lo.min(x), hi.max(x))),
             })
-            .map(|(lo, hi)| Range { min: lo, max: hi })
-            .unwrap_or(Range { min: 0.0, max: 1.0 })
+            .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range { min: lo, max: hi })
     }
 
     /// Y range over all series (empty → `0..1`).
@@ -54,8 +53,7 @@ impl Axes {
                 None => Some((y, y)),
                 Some((lo, hi)) => Some((lo.min(y), hi.max(y))),
             })
-            .map(|(lo, hi)| Range { min: lo, max: hi })
-            .unwrap_or(Range { min: 0.0, max: 1.0 })
+            .map_or(Range { min: 0.0, max: 1.0 }, |(lo, hi)| Range { min: lo, max: hi })
     }
 }
 
@@ -118,13 +116,11 @@ impl Figure {
         let mut seen = std::collections::HashSet::new();
         let mut legend = Vec::new();
         for row in &self.axes {
-            for axes in row {
-                if let Some(a) = axes {
-                    for s in a.series() {
-                        if seen.insert(s.name.clone()) {
-                            let color = s.style.line_color;
-                            legend.push((s.name.clone(), color));
-                        }
+            for a in row.iter().flatten() {
+                for s in a.series() {
+                    if seen.insert(s.name.clone()) {
+                        let color = s.style.line_color;
+                        legend.push((s.name.clone(), color));
                     }
                 }
             }

@@ -24,7 +24,7 @@ impl Transform2D for Point2 {
         self.translate(dx, dy)
     }
     fn scale_xy(self, sx: f64, sy: f64) -> Self {
-        Point2::new(self.x * sx, self.y * sy)
+        Self::new(self.x * sx, self.y * sy)
     }
     fn rotate(self, angle: f64) -> Self {
         self.rotate(angle)

@@ -236,7 +236,7 @@ mod tests {
 
     fn separable_data() -> (Vec<Vec<f64>>, Vec<f64>) {
         // Class 0: x < 0, Class 1: x > 0
-        let x: Vec<Vec<f64>> = (-10..10).map(|i| vec![i as f64]).collect();
+        let x: Vec<Vec<f64>> = (-10..10).map(|i| vec![f64::from(i)]).collect();
         let y: Vec<f64> = (-10..10).map(|i| if i > 0 { 1.0 } else { 0.0 }).collect();
         (x, y)
     }

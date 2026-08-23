@@ -79,8 +79,8 @@ pub fn render_pointplot(categories: &[PointCategory], config: &PointConfig) -> P
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     // Compute means
     let means: Vec<f64> = categories.iter()
@@ -99,10 +99,10 @@ pub fn render_pointplot(categories: &[PointCategory], config: &PointConfig) -> P
 
     let all_min = means.iter().zip(ses.iter())
         .map(|(&m, &s)| m - 2.0 * s)
-        .fold(f64::INFINITY, |a, b| a.min(b));
+        .fold(f64::INFINITY, f64::min);
     let all_max = means.iter().zip(ses.iter())
         .map(|(&m, &s)| m + 2.0 * s)
-        .fold(f64::NEG_INFINITY, |a, b| a.max(b));
+        .fold(f64::NEG_INFINITY, f64::max);
 
     let chart_width = width - padding * 2.0;
     let chart_height = height - padding * 2.0 - 30.0;
@@ -124,7 +124,7 @@ pub fn render_pointplot(categories: &[PointCategory], config: &PointConfig) -> P
     // Grid
     if config.show_grid {
         for i in 0..=5 {
-            let y = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let y = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");

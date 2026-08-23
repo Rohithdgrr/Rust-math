@@ -1,26 +1,10 @@
-//! Support Vector Machine (SVM) classifier with linear and RBF kernels.
-
-/// SVM classifier using SMO (Sequential Minimal Optimization).
-pub struct SVM {
-    /// Regularization parameter.
-    pub c: f64,
-    /// Kernel function used for the dot product.
-    pub kernel: Kernel,
-    /// Convergence tolerance.
-    pub tol: f64,
-    /// Maximum number of optimization iterations.
-    pub max_iters: usize,
-    /// Lagrange multipliers from SMO optimization.
-    pub alpha: Vec<f64>,
-    /// Decision boundary bias term.
-    pub bias: f64,
-    /// Training samples that are support vectors.
-    pub support_vectors: Vec<Vec<f64>>,
-    /// Labels of the support vectors.
-    pub support_labels: Vec<f64>,
-    /// Alpha values of the support vectors.
-    pub support_alpha: Vec<f64>,
-}
+//! Support Vector Machine (SVM) classifier with linear, RBF, and polynomial
+//! kernels trained via a simplified SMO (Sequential Minimal Optimization).
+//!
+//! The implementation keeps an exact cache of the decision value
+//! `f(x_i) = Σ_j α_j y_j K(x_i, x_j) + b` for every training point and applies
+//! incremental updates after each SMO step, so every iteration costs `O(n)`
+//! kernel evaluations instead of `O(n²)`.
 
 /// Kernel function for computing similarity between vectors.
 #[derive(Clone)]
@@ -48,12 +32,12 @@ impl Kernel {
     #[must_use]
     pub fn compute(&self, a: &[f64], b: &[f64]) -> f64 {
         match self {
-            Kernel::Linear => a.iter().zip(b).map(|(x, y)| x * y).sum(),
-            Kernel::RBF { gamma } => {
+            Self::Linear => a.iter().zip(b).map(|(x, y)| x * y).sum(),
+            Self::RBF { gamma } => {
                 let d: f64 = a.iter().zip(b).map(|(x, y)| (x - y).powi(2)).sum();
                 (-gamma * d).exp()
             }
-            Kernel::Polynomial {
+            Self::Polynomial {
                 degree,
                 gamma,
                 coef0,
@@ -63,6 +47,28 @@ impl Kernel {
             }
         }
     }
+}
+
+/// SVM classifier using SMO (Sequential Minimal Optimization).
+pub struct SVM {
+    /// Regularization parameter.
+    pub c: f64,
+    /// Kernel function used for the dot product.
+    pub kernel: Kernel,
+    /// Convergence tolerance.
+    pub tol: f64,
+    /// Maximum number of optimization iterations.
+    pub max_iters: usize,
+    /// Lagrange multipliers from SMO optimization.
+    pub alpha: Vec<f64>,
+    /// Decision boundary bias term.
+    pub bias: f64,
+    /// Training samples that are support vectors.
+    pub support_vectors: Vec<Vec<f64>>,
+    /// Labels of the support vectors.
+    pub support_labels: Vec<f64>,
+    /// Alpha values of the support vectors.
+    pub support_alpha: Vec<f64>,
 }
 
 impl SVM {
@@ -97,195 +103,187 @@ impl SVM {
         Self::new(c, Kernel::RBF { gamma }, 1e-3, 1000)
     }
 
-    /// Fit SVM using improved SMO with better pair selection.
+    /// Fit SVM using simplified SMO with cached decision values.
+    ///
+    /// The cache makes each full examination pass `O(n²)` in kernel
+    /// evaluations rather than `O(n³)`, which keeps convergence fast even on
+    /// datasets with hundreds of samples.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) {
         let n = x.len();
         self.alpha = vec![0.0; n];
         self.bias = 0.0;
+        self.support_vectors.clear();
+        self.support_labels.clear();
+        self.support_alpha.clear();
+        if n < 2 {
+            return;
+        }
+
+        // Cached decision values: f[i] = Σ_j α_j y_j K(x_i, x_j) + b.
+        // With all α zero this is simply `b` (initially 0).
+        let mut f_cache: Vec<f64> = vec![self.bias; n];
 
         for _ in 0..self.max_iters {
-            let mut num_changed = 0;
-            
-            // First pass: examine all examples
-            for i in 0..n {
-                let ei = self.predict_single(x, y, i) - y[i];
-                if (y[i] * ei < -self.tol && self.alpha[i] < self.c)
-                    || (y[i] * ei > self.tol && self.alpha[i] > 0.0)
-                {
-                    // Find j that maximizes |ei - ej|
-                    let j = self.find_best_j(x, y, i, ei);
-                    let ej = self.predict_single(x, y, j) - y[j];
-                    let ai_old = self.alpha[i];
-                    let aj_old = self.alpha[j];
+            let mut num_changed =
+                self.smo_pass(x, y, &mut f_cache, false);
+            if num_changed == 0 {
+                num_changed = self.smo_pass(x, y, &mut f_cache, true);
+                if num_changed == 0 {
+                    break; // converged
+                }
+            }
+        }
 
-                    let (l, h) = if y[i] != y[j] {
-                        (
-                            0.0_f64.max(self.alpha[j] - self.alpha[i]),
-                            self.c.min(self.c + self.alpha[j] - self.alpha[i]),
-                        )
-                    } else {
-                        (
-                            0.0_f64.max(self.alpha[i] + self.alpha[j] - self.c),
-                            self.c.min(self.alpha[i] + self.alpha[j]),
-                        )
-                    };
-                    if (l - h).abs() < 1e-10 {
-                        continue;
-                    }
+        // Extract support vectors.
+        for (i, &a) in self.alpha.iter().enumerate() {
+            if a > 1e-7 {
+                self.support_vectors.push(x[i].clone());
+                self.support_labels.push(y[i]);
+                self.support_alpha.push(a);
+            }
+        }
+    }
 
-                    let eta = 2.0 * self.kernel.compute(&x[i], &x[j])
-                        - self.kernel.compute(&x[i], &x[i])
-                        - self.kernel.compute(&x[j], &x[j]);
-                    if eta >= 0.0 {
-                        continue;
-                    }
-
-                    self.alpha[j] = aj_old - y[j] * (ei - ej) / eta;
-                    self.alpha[j] = self.alpha[j].clamp(l, h);
-                    if (self.alpha[j] - aj_old).abs() < 1e-5 {
-                        continue;
-                    }
-
-                    self.alpha[i] = ai_old + y[i] * y[j] * (aj_old - self.alpha[j]);
-                    let b1 = self.bias
-                        - ei
-                        - y[i] * (self.alpha[i] - ai_old) * self.kernel.compute(&x[i], &x[i])
-                        - y[j] * (self.alpha[j] - aj_old) * self.kernel.compute(&x[i], &x[j]);
-                    let b2 = self.bias
-                        - ej
-                        - y[i] * (self.alpha[i] - ai_old) * self.kernel.compute(&x[i], &x[j])
-                        - y[j] * (self.alpha[j] - aj_old) * self.kernel.compute(&x[j], &x[j]);
-                    self.bias = if self.alpha[i] > 0.0 && self.alpha[i] < self.c {
-                        b1
-                    } else if self.alpha[j] > 0.0 && self.alpha[j] < self.c {
-                        b2
-                    } else {
-                        (b1 + b2) / 2.0
-                    };
+    /// One pass of SMO over either all indices (`non_bound_only == false`) or
+    /// only non-bound multipliers (`non_bound_only == true`). Returns the
+    /// number of multiplier pairs updated.
+    fn smo_pass(
+        &mut self,
+        x: &[Vec<f64>],
+        y: &[f64],
+        f_cache: &mut [f64],
+        non_bound_only: bool,
+    ) -> usize {
+        let n = x.len();
+        let mut num_changed = 0;
+        for i in 0..n {
+            if non_bound_only && !(self.alpha[i] > 0.0 && self.alpha[i] < self.c) {
+                continue;
+            }
+            let ei = f_cache[i] - y[i];
+            let kkt_violated = (y[i] * ei < -self.tol && self.alpha[i] < self.c)
+                || (y[i] * ei > self.tol && self.alpha[i] > 0.0);
+            if kkt_violated {
+                let j = Self::select_second_choice(f_cache, y, i, ei);
+                if self.take_step(x, y, i, j, f_cache) {
                     num_changed += 1;
                 }
             }
-            
-            // Second pass: examine only non-bound alphas
-            if num_changed == 0 {
-                let non_bound: Vec<usize> = (0..n)
-                    .filter(|&i| self.alpha[i] > 0.0 && self.alpha[i] < self.c)
-                    .collect();
-                
-                for i in non_bound {
-                    let ei = self.predict_single(x, y, i) - y[i];
-                    if (y[i] * ei < -self.tol && self.alpha[i] < self.c)
-                        || (y[i] * ei > self.tol && self.alpha[i] > 0.0)
-                    {
-                        let j = self.find_best_j(x, y, i, ei);
-                        let ej = self.predict_single(x, y, j) - y[j];
-                        let ai_old = self.alpha[i];
-                        let aj_old = self.alpha[j];
-
-                        let (l, h) = if y[i] != y[j] {
-                            (
-                                0.0_f64.max(self.alpha[j] - self.alpha[i]),
-                                self.c.min(self.c + self.alpha[j] - self.alpha[i]),
-                            )
-                        } else {
-                            (
-                                0.0_f64.max(self.alpha[i] + self.alpha[j] - self.c),
-                                self.c.min(self.alpha[i] + self.alpha[j]),
-                            )
-                        };
-                        if (l - h).abs() < 1e-10 {
-                            continue;
-                        }
-
-                        let eta = 2.0 * self.kernel.compute(&x[i], &x[j])
-                            - self.kernel.compute(&x[i], &x[i])
-                            - self.kernel.compute(&x[j], &x[j]);
-                        if eta >= 0.0 {
-                            continue;
-                        }
-
-                        self.alpha[j] = aj_old - y[j] * (ei - ej) / eta;
-                        self.alpha[j] = self.alpha[j].clamp(l, h);
-                        if (self.alpha[j] - aj_old).abs() < 1e-5 {
-                            continue;
-                        }
-
-                        self.alpha[i] = ai_old + y[i] * y[j] * (aj_old - self.alpha[j]);
-                        let b1 = self.bias
-                            - ei
-                            - y[i] * (self.alpha[i] - ai_old) * self.kernel.compute(&x[i], &x[i])
-                            - y[j] * (self.alpha[j] - aj_old) * self.kernel.compute(&x[i], &x[j]);
-                        let b2 = self.bias
-                            - ej
-                            - y[i] * (self.alpha[i] - ai_old) * self.kernel.compute(&x[i], &x[j])
-                            - y[j] * (self.alpha[j] - aj_old) * self.kernel.compute(&x[j], &x[j]);
-                        self.bias = if self.alpha[i] > 0.0 && self.alpha[i] < self.c {
-                            b1
-                        } else if self.alpha[j] > 0.0 && self.alpha[j] < self.c {
-                            b2
-                        } else {
-                            (b1 + b2) / 2.0
-                        };
-                        num_changed += 1;
-                    }
-                }
-            }
-            
-            if num_changed == 0 {
-                break;
-            }
         }
-
-        // Extract support vectors
-        for i in 0..n {
-            if self.alpha[i] > 1e-7 {
-                self.support_vectors.push(x[i].clone());
-                self.support_labels.push(y[i]);
-                self.support_alpha.push(self.alpha[i]);
-            }
-        }
+        num_changed
     }
-    
-    /// Find the best j to pair with i by maximizing |ei - ej|
-    fn find_best_j(&self, x: &[Vec<f64>], y: &[f64], i: usize, ei: f64) -> usize {
-        let mut best_j = 0;
-        let mut max_diff = 0.0;
-        
-        for j in 0..x.len() {
-            if j == i {
+
+    /// Choose `j != i` maximizing `|E_i - E_j|` using cached errors.
+    fn select_second_choice(f_cache: &[f64], y: &[f64], i: usize, ei: f64) -> usize {
+        let mut best_j = usize::from(i == 0);
+        let mut max_diff = 0.0_f64;
+        for (k, (&fk, &yk)) in f_cache.iter().zip(y).enumerate() {
+            if k == i {
                 continue;
             }
-            let ej = self.predict_single(x, y, j) - y[j];
-            let diff = (ei - ej).abs();
+            let diff = (ei - (fk - yk)).abs();
             if diff > max_diff {
                 max_diff = diff;
-                best_j = j;
+                best_j = k;
             }
         }
-        
         best_j
     }
 
-    fn predict_single(&self, x: &[Vec<f64>], y: &[f64], i: usize) -> f64 {
-        let mut sum = 0.0;
-        for j in 0..x.len() {
-            if self.alpha[j] > 1e-10 {
-                sum += self.alpha[j] * y[j] * self.kernel.compute(&x[i], &x[j]);
-            }
+    /// Attempt the joint SMO update of `(α_i, α_j)`. On success, updates the
+    /// bias, both multipliers, and *every* cached decision value exactly:
+    ///
+    /// `f_k ← f_k + Δα_i·y_i·K(k,i) + Δα_j·y_j·K(k,j) + Δb`
+    fn take_step(
+        &mut self,
+        x: &[Vec<f64>],
+        y: &[f64],
+        i: usize,
+        j: usize,
+        f_cache: &mut [f64],
+    ) -> bool {
+        if i == j {
+            return false;
         }
-        sum + self.bias
+        let ei = f_cache[i] - y[i];
+        let ej = f_cache[j] - y[j];
+        let ai_old = self.alpha[i];
+        let aj_old = self.alpha[j];
+
+        let (l, h) = if y[i] == y[j] {
+            (
+                0.0_f64.max(ai_old + aj_old - self.c),
+                self.c.min(ai_old + aj_old),
+            )
+        } else {
+            (
+                0.0_f64.max(aj_old - ai_old),
+                self.c.min(self.c + aj_old - ai_old),
+            )
+        };
+        if (l - h).abs() < 1e-10 {
+            return false;
+        }
+
+        let k_ij = self.kernel.compute(&x[i], &x[j]);
+        let eta = 2.0 * k_ij
+            - self.kernel.compute(&x[i], &x[i])
+            - self.kernel.compute(&x[j], &x[j]);
+        if eta >= 0.0 {
+            return false;
+        }
+
+        let mut aj_new = aj_old - y[j] * (ei - ej) / eta;
+        aj_new = aj_new.clamp(l, h);
+        if (aj_new - aj_old).abs() < 1e-5 {
+            return false;
+        }
+
+        let ai_new = ai_old + y[i] * y[j] * (aj_old - aj_new);
+
+        let b1 = self.bias
+            - ei
+            - y[i] * (ai_new - ai_old) * self.kernel.compute(&x[i], &x[i])
+            - y[j] * (aj_new - aj_old) * k_ij;
+        let b2 = self.bias
+            - ej
+            - y[i] * (ai_new - ai_old) * k_ij
+            - y[j] * (aj_new - aj_old) * self.kernel.compute(&x[j], &x[j]);
+        let b_new = if ai_new > 0.0 && ai_new < self.c {
+            b1
+        } else if aj_new > 0.0 && aj_new < self.c {
+            b2
+        } else {
+            f64::midpoint(b1, b2)
+        };
+
+        // Exact O(n) refresh of every cached decision value.
+        let dai_y = y[i] * (ai_new - ai_old);
+        let daj_y = y[j] * (aj_new - aj_old);
+        let db = b_new - self.bias;
+        for (k, fk) in f_cache.iter_mut().enumerate() {
+            *fk += dai_y * self.kernel.compute(&x[k], &x[i])
+                + daj_y * self.kernel.compute(&x[k], &x[j])
+                + db;
+        }
+
+        self.alpha[i] = ai_new;
+        self.alpha[j] = aj_new;
+        self.bias = b_new;
+        true
     }
 
-    /// Predict class labels.
+    /// Predict class labels (`+1.0` or `-1.0`).
     #[must_use]
     pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
         x.iter()
             .map(|xi| {
                 let mut sum = 0.0;
-                for (sv, (a, l)) in self
+                for ((sv, &a), &l) in self
                     .support_vectors
                     .iter()
-                    .zip(self.support_alpha.iter().zip(self.support_labels.iter()))
+                    .zip(&self.support_alpha)
+                    .zip(&self.support_labels)
                 {
                     sum += a * l * self.kernel.compute(xi, sv);
                 }
@@ -337,5 +335,60 @@ mod tests {
         let mut svm = SVM::rbf(10.0, 0.5);
         svm.fit(&x, &y);
         assert!(!svm.support_vectors.is_empty());
+    }
+
+    #[test]
+    fn svm_scales_to_larger_dataset_quickly() {
+        // Regression guard: SMO used to be O(n³) per pass and effectively hung
+        // on inputs of this size. Deterministic pseudo-random separable data.
+        let n = 200;
+        let x: Vec<Vec<f64>> = (0..n)
+            .map(|t| {
+                let s = (t as f64 * 12.9898).fract() * 43758.545_3;
+                let u = s.fract();
+                let s2 = ((t as f64 + 0.5) * 78.233).fract() * 12345.678_9;
+                let v = s2.fract();
+                if t % 2 == 0 {
+                    vec![u, v]
+                } else {
+                    vec![u + 3.0, v + 3.0]
+                }
+            })
+            .collect();
+        let y: Vec<f64> = (0..n).map(|t| if t % 2 == 0 { 1.0 } else { -1.0 }).collect();
+
+        let start = std::time::Instant::now();
+        let mut svm = SVM::linear(1.0);
+        svm.fit(&x, &y);
+        assert!(
+            start.elapsed().as_secs() < 30,
+            "SMO fit regressed to super-linear runtime"
+        );
+
+        let pred = svm.predict(&x);
+        let correct = pred.iter().zip(&y).filter(|(p, t)| **p == **t).count();
+        assert!(correct > n / 2, "accuracy too low: {correct}/{n}");
+        assert_eq!(svm.alpha.len(), n);
+    }
+
+    #[test]
+    fn svm_handles_degenerate_input() {
+        let mut svm = SVM::linear(1.0);
+        svm.fit(&[], &[]);
+        assert!(svm.predict(&[]).is_empty());
+        svm.fit(&[vec![1.0]], &[1.0]);
+        assert!(svm.support_vectors.is_empty());
+    }
+
+    #[test]
+    fn polynomial_kernel_matches_definition() {
+        let k = Kernel::Polynomial {
+            degree: 3,
+            gamma: 2.0,
+            coef0: 1.0,
+        };
+        let a = [1.0, 2.0];
+        let b = [3.0, 4.0];
+        assert!((k.compute(&a, &b) - (2.0 * 11.0_f64 + 1.0).powi(3)).abs() < 1e-12);
     }
 }

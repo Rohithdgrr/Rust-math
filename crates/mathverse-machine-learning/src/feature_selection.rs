@@ -84,8 +84,8 @@ pub fn correlation_filter(x: &[Vec<f64>], threshold: f64) -> (Vec<usize>, Vec<Ve
 
 /// Discretize a continuous vector into bins for mutual information.
 fn discretize(values: &[f64], n_bins: usize) -> Vec<usize> {
-    let min = values.iter().cloned().fold(f64::INFINITY, f64::min);
-    let max = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let min = values.iter().copied().fold(f64::INFINITY, f64::min);
+    let max = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let range = max - min;
     if range < 1e-15 {
         return vec![0; values.len()];

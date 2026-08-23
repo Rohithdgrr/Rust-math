@@ -221,8 +221,8 @@ fn cubic_bezier_path(points: &[DataPoint], subdivisions: usize) -> String {
         // Compute control points
         let cp1 = if i > 0 {
             DataPoint {
-                x: (points[i - 1].x + p1.x) / 2.0,
-                y: (points[i - 1].y + p1.y) / 2.0,
+                x: f64::midpoint(points[i - 1].x, p1.x),
+                y: f64::midpoint(points[i - 1].y, p1.y),
             }
         } else {
             DataPoint {
@@ -233,8 +233,8 @@ fn cubic_bezier_path(points: &[DataPoint], subdivisions: usize) -> String {
 
         let cp2 = if i + 2 < n {
             DataPoint {
-                x: (p0.x + points[i + 2].x) / 2.0,
-                y: (p0.y + points[i + 2].y) / 2.0,
+                x: f64::midpoint(p0.x, points[i + 2].x),
+                y: f64::midpoint(p0.y, points[i + 2].y),
             }
         } else {
             DataPoint {
@@ -292,8 +292,8 @@ fn cubic_bezier_points(points: &[DataPoint], subdivisions: usize) -> Vec<DataPoi
 
         let cp1 = if i > 0 {
             DataPoint {
-                x: (points[i - 1].x + p1.x) / 2.0,
-                y: (points[i - 1].y + p1.y) / 2.0,
+                x: f64::midpoint(points[i - 1].x, p1.x),
+                y: f64::midpoint(points[i - 1].y, p1.y),
             }
         } else {
             DataPoint {
@@ -304,8 +304,8 @@ fn cubic_bezier_points(points: &[DataPoint], subdivisions: usize) -> Vec<DataPoi
 
         let cp2 = if i + 2 < n {
             DataPoint {
-                x: (p0.x + points[i + 2].x) / 2.0,
-                y: (p0.y + points[i + 2].y) / 2.0,
+                x: f64::midpoint(p0.x, points[i + 2].x),
+                y: f64::midpoint(p0.y, points[i + 2].y),
             }
         } else {
             DataPoint {
@@ -332,8 +332,8 @@ mod tests {
         let points = vec![DataPoint::new(0.0, 0.0), DataPoint::new(1.0, 1.0)];
         let config = SmoothConfig::new().with_interpolation(Interpolation::Linear);
         let path = smooth_path(&points, &config);
-        assert!(path.starts_with("M"));
-        assert!(path.contains("L"));
+        assert!(path.starts_with('M'));
+        assert!(path.contains('L'));
     }
 
     #[test]
@@ -345,9 +345,9 @@ mod tests {
         ];
         let config = SmoothConfig::new();
         let path = smooth_path(&points, &config);
-        assert!(path.starts_with("M"));
+        assert!(path.starts_with('M'));
         // Should have many L commands (subdivisions)
-        assert!(path.matches("L").count() > 2);
+        assert!(path.matches('L').count() > 2);
     }
 
     #[test]

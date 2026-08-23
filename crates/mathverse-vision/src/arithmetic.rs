@@ -108,7 +108,7 @@ pub fn divide(a: &Image, b: &Image) -> Image {
     assert_eq!((a.w, a.h), (b.w, b.h), "divide: image dimensions must match");
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
-        out.data[i] = if *y != 0.0 { (x / y).clamp(0.0, 1.0) } else { 0.0 };
+        out.data[i] = if *y == 0.0 { 0.0 } else { (x / y).clamp(0.0, 1.0) };
     }
     out
 }
@@ -117,7 +117,7 @@ pub fn divide(a: &Image, b: &Image) -> Image {
 pub fn divide_scalar(img: &Image, s: f64) -> Image {
     let mut out = img.clone();
     for v in &mut out.data {
-        *v = if s != 0.0 { (*v / s).clamp(0.0, 1.0) } else { 0.0 };
+        *v = if s == 0.0 { 0.0 } else { (*v / s).clamp(0.0, 1.0) };
     }
     out
 }
@@ -185,7 +185,7 @@ pub fn bitwise_xor(a: &Image, b: &Image) -> Image {
     assert_eq!((a.w, a.h), (b.w, b.h), "bitwise_xor: image dimensions must match");
     let mut out = Image::new(a.w, a.h);
     for (i, (x, y)) in a.data.iter().zip(&b.data).enumerate() {
-        out.data[i] = if (*x > 0.5) != (*y > 0.5) { 1.0 } else { 0.0 };
+        out.data[i] = if (*x > 0.5) == (*y > 0.5) { 0.0 } else { 1.0 };
     }
     out
 }

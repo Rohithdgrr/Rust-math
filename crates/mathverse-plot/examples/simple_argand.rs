@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Argand diagram with complex numbers on the unit circle
     let points: Vec<Complex> = (0..36)
         .map(|i| {
-            let angle = 2.0 * std::f64::consts::PI * i as f64 / 36.0;
+            let angle = 2.0 * std::f64::consts::PI * f64::from(i) / 36.0;
             Complex::new(angle.cos(), angle.sin())
         })
         .collect();

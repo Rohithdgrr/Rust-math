@@ -6,8 +6,10 @@ use mathverse_core::error::{MathError, MathResult};
 /// Polar decomposition result.
 #[derive(Debug, Clone)]
 pub struct PolarDecomposition {
-    pub u: Matrix,  // Orthogonal/unitary matrix
-    pub p: Matrix,  // Positive semi-definite matrix
+    /// Orthogonal factor `U` with `A = U P`.
+    pub u: Matrix,
+    /// Symmetric positive semi-definite factor `P`.
+    pub p: Matrix,
 }
 
 /// Polar decomposition implementation.
@@ -35,7 +37,6 @@ impl PolarDecompositionImpl {
             return Err(MathError::DimensionMismatch);
         }
         
-        let _n = m.rows;
         let mut x = m.clone();
         let mut x_inv = m.inverse()?;
         

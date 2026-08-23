@@ -60,15 +60,14 @@ pub fn render_jointplot(
         return Err(PlotError::InvalidData("no data provided".into()));
     }
 
-    let total_width = config.plot_config.width as f64;
-    let total_height = config.plot_config.height as f64;
+    let total_width = f64::from(config.plot_config.width);
+    let total_height = f64::from(config.plot_config.height);
 
     let margin_size = 100.0;
     let main_size = total_width - margin_size - 20.0;
 
     let main_x = margin_size + 10.0;
     let main_y = 10.0;
-    let _top_y = 10.0;
     let right_x = main_x + main_size + 10.0;
 
     let x_min = x_data.iter().fold(f64::INFINITY, |a, &b| a.min(b));
@@ -197,8 +196,8 @@ mod tests {
 
     #[test]
     fn jointplot_renders() {
-        let x: Vec<f64> = (0..50).map(|i| i as f64 * 0.1).collect();
-        let y: Vec<f64> = (0..50).map(|i| (i as f64 * 0.1).sin()).collect();
+        let x: Vec<f64> = (0..50).map(|i| f64::from(i) * 0.1).collect();
+        let y: Vec<f64> = (0..50).map(|i| (f64::from(i) * 0.1).sin()).collect();
         let config = JointConfig::new();
         let svg = render_jointplot(&x, &y, &config).unwrap();
         assert!(svg.contains("<svg"));

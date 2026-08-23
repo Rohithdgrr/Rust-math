@@ -112,7 +112,7 @@ fn main() -> Result<(), String> {
         WIDTH,
         HEIGHT,
         WindowOptions::default(),
-    ).map_err(|e| format!("Failed to create window: {}", e))?;
+    ).map_err(|e| format!("Failed to create window: {e}"))?;
     
     window.set_target_fps(30);
     
@@ -164,7 +164,7 @@ fn main() -> Result<(), String> {
         // Update window
         window
             .update_with_buffer(&buffer, WIDTH, HEIGHT)
-            .map_err(|e| format!("Window update failed: {}", e))?;
+            .map_err(|e| format!("Window update failed: {e}"))?;
         
         state.update_fps();
     }
@@ -247,8 +247,8 @@ fn process_frame(frame: &Image, state: &AppState) -> Image {
         ViewMode::Original => frame.clone(),
         
         ViewMode::EdgeCanny => {
-            let edges = canny(frame, 0.1, 0.3);
-            edges
+            
+            canny(frame, 0.1, 0.3)
         },
         
         ViewMode::CornerHarris => {
@@ -406,7 +406,7 @@ fn grayscale_to_rgb_buffer(img: &Image) -> Vec<u32> {
     
     for (i, &val) in img.data.iter().enumerate() {
         let byte = (val.clamp(0.0, 1.0) * 255.0) as u8;
-        buffer[i] = ((byte as u32) << 16) | ((byte as u32) << 8) | (byte as u32);
+        buffer[i] = (u32::from(byte) << 16) | (u32::from(byte) << 8) | u32::from(byte);
     }
     
     buffer

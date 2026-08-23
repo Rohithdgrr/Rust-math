@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     while t <= end.timestamp {
         // Simulate temperature: base 20 + seasonal variation + noise
-        let temp = 20.0 + 5.0 * (day as f64 * 0.2).sin() + (day as f64 * 0.7).cos() * 2.0;
+        let temp = 20.0 + 5.0 * (f64::from(day) * 0.2).sin() + (f64::from(day) * 0.7).cos() * 2.0;
         points.push(DataPoint::new(DateTime::from_timestamp(t).to_f64(), temp));
         t += 86400; // 1 day
         day += 1;
@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .join("\n");
 
     let mut labeled_svg = svg;
-    labeled_svg = labeled_svg.replace("</svg>", &format!("{}\n</svg>", date_labels));
+    labeled_svg = labeled_svg.replace("</svg>", &format!("{date_labels}\n</svg>"));
 
 PlotSaver::new(&labeled_svg).save_png("datetime.png")?;
 println!("Wrote datetime.png ({} bytes)", labeled_svg.len());

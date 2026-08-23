@@ -3,6 +3,7 @@
 use crate::style::Color;
 
 /// Axis configuration for x or y axis.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct AxisConfig {
     /// Axis label.
@@ -80,8 +81,7 @@ impl GridStyle {
     /// Get SVG stroke-dasharray.
     pub fn to_svg(&self) -> &str {
         match self {
-            GridStyle::None => "none",
-            GridStyle::Solid => "none",
+            GridStyle::None | GridStyle::Solid => "none",
             GridStyle::Dashed => "6,4",
             GridStyle::Dotted => "2,2",
             GridStyle::DashDot => "6,2,2,2",
@@ -240,21 +240,21 @@ impl AxisConfig {
         if value.abs() < 1e-10 {
             "0".to_string()
         } else if value.abs() >= 1e6 || value.abs() < 1e-3 {
-            format!("{:.2e}", value)
+            format!("{value:.2e}")
         } else if value == (value as i64) as f64 {
             format!("{}", value as i64)
         } else {
-            format!("{:.2}", value)
+            format!("{value:.2}")
         }
     }
 
     /// Format tick value with rotation.
     pub fn format_tick_svg(&self, value: f64, x: f64, y: f64) -> String {
         let text = Self::format_tick(value);
-        let rotation = if self.tick_rotation != 0.0 {
-            format!(" transform=\"rotate({}, {}, {})\"", self.tick_rotation, x, y)
-        } else {
+        let rotation = if self.tick_rotation == 0.0 {
             String::new()
+        } else {
+            format!(" transform=\"rotate({}, {}, {})\"", self.tick_rotation, x, y)
         };
 
         format!(
@@ -291,6 +291,6 @@ mod tests {
         assert_eq!(AxisConfig::format_tick(0.0), "0");
         assert_eq!(AxisConfig::format_tick(1.0), "1");
         assert_eq!(AxisConfig::format_tick(1.5), "1.50");
-        assert!(AxisConfig::format_tick(1e6).contains("e"));
+        assert!(AxisConfig::format_tick(1e6).contains('e'));
     }
 }

@@ -42,7 +42,7 @@ fn init_centroids(x: &[Vec<f64>], k: usize) -> Vec<Vec<f64>> {
             state ^= state << 13;
             state ^= state >> 7;
             state ^= state << 17;
-            (state as f64 / u32::MAX as f64) * total
+            (f64::from(state) / f64::from(u32::MAX)) * total
         };
         let mut pushed = false;
         let mut cumsum = 0.0;
@@ -110,8 +110,7 @@ pub fn kmeans(x: &[Vec<f64>], k: usize, max_iters: usize, tol: f64) -> MathResul
                         .partial_cmp(&euclidean(&x[i], b.1))
                         .unwrap_or(Ordering::Equal)
                 })
-                .map(|(idx, _)| idx)
-                .unwrap_or(0);
+                .map_or(0, |(idx, _)| idx);
             if labels[i] != best {
                 changed = true;
             }
@@ -172,10 +171,10 @@ mod tests {
     fn two_clusters() {
         let mut x: Vec<Vec<f64>> = Vec::new();
         for i in 0..10 {
-            x.push(vec![i as f64, 0.0]);
+            x.push(vec![f64::from(i), 0.0]);
         }
         for i in 0..10 {
-            x.push(vec![i as f64 + 100.0, 0.0]);
+            x.push(vec![f64::from(i) + 100.0, 0.0]);
         }
         let r = kmeans(&x, 2, 100, 1e-6).unwrap();
         assert_eq!(r.labels[0], r.labels[1]);
@@ -184,7 +183,7 @@ mod tests {
 
     #[test]
     fn inertia_decreases() {
-        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![i as f64]).collect();
+        let x: Vec<Vec<f64>> = (0..20).map(|i| vec![f64::from(i)]).collect();
         let r1 = kmeans(&x, 3, 1, 1e-6).unwrap();
         let r2 = kmeans(&x, 3, 10, 1e-6).unwrap();
         assert!(r2.inertia <= r1.inertia + 1e-6);

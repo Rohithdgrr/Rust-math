@@ -96,6 +96,9 @@ pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
 /// Returns `true` if `a` and `b` are approximately equal relative to their magnitude.
 #[must_use]
 pub fn approx_eq_rel(a: f64, b: f64, rel_tol: f64) -> bool {
+    // Exact equality is intentional: it short-circuits identical values
+    // (including infinities) before computing the relative tolerance.
+    #[allow(clippy::float_cmp)]
     if a == b { return true; }
     let diff = (a - b).abs();
     let largest = a.abs().max(b.abs());
@@ -104,14 +107,14 @@ pub fn approx_eq_rel(a: f64, b: f64, rel_tol: f64) -> bool {
 
 /// Clamps `x` to `[lo, hi]`.
 #[must_use]
-pub fn clamp(x: f64, lo: f64, hi: f64) -> f64 {
+pub const fn clamp(x: f64, lo: f64, hi: f64) -> f64 {
     x.clamp(lo, hi)
 }
 
 /// Linear interpolation: `a + t * (b - a)`.
 #[must_use]
 pub fn lerp(a: f64, b: f64, t: f64) -> f64 {
-    a + t * (b - a)
+    t.mul_add(b - a, a)
 }
 
 /// Inverse linear interpolation: given `y` in `[lerp(a, b, 0), lerp(a, b, 1)]`, returns `t`.
@@ -140,8 +143,8 @@ mod tests {
 
     #[test]
     fn saturating_ops_test() {
-        assert_eq!(saturating_add(1.0, 2.0), 3.0);
-        assert_eq!(saturating_mul(f64::MAX, 2.0), f64::MAX);
+        assert!((saturating_add(1.0, 2.0) - 3.0).abs() < 1e-12);
+        assert!((saturating_mul(f64::MAX, 2.0) - f64::MAX).abs() / f64::MAX < 1e-12);
     }
 
     #[test]

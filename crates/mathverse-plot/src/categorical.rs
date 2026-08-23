@@ -47,7 +47,7 @@ impl CategoryMap {
     /// Get the label at a numeric position, or `None` if out of bounds.
     pub fn label_at(&self, position: f64) -> Option<&str> {
         let idx = position.round() as usize;
-        self.labels.get(idx).map(|s| s.as_str())
+        self.labels.get(idx).map(std::string::String::as_str)
     }
 
     /// Get all labels in order.

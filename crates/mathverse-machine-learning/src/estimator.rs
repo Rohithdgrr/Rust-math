@@ -1012,7 +1012,7 @@ mod tests {
     #[test]
     fn permutation_importance_ranks_relevant_feature() {
         let x: Vec<Vec<f64>> = (0..60)
-            .map(|i| vec![i as f64, ((i * 7) as f64).sin()])
+            .map(|i| vec![f64::from(i), f64::from(i * 7).sin()])
             .collect();
         let y: Vec<f64> = x.iter().map(|row| row[0]).collect(); // y = col0 exactly
         let mut m = LinearRegression::new();

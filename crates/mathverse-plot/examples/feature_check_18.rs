@@ -19,6 +19,7 @@ use mathverse_plot::{
     AnimationConfig, VideoCodec as VC, encode_frames_to_video, ffmpeg_available,
 };
 
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out = std::path::Path::new("target/feature_check_18");
     std::fs::create_dir_all(out)?;
@@ -112,8 +113,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|j| {
             (0..n)
                 .map(|i| {
-                    let x = i as f64 / (n - 1) as f64 * 6.0 - 3.0;
-                    let y = j as f64 / (n - 1) as f64 * 6.0 - 3.0;
+                    let x = f64::from(i) / f64::from(n - 1) * 6.0 - 3.0;
+                    let y = f64::from(j) / f64::from(n - 1) * 6.0 - 3.0;
                     (x * x + y * y).exp().recip()
                 })
                 .collect()
@@ -134,10 +135,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ---- #12 streamplot ----
     let m = 20;
     let u: Vec<Vec<f64>> = (0..m)
-        .map(|j| (0..m).map(|i| (i as f64 / (m - 1) as f64 - 0.5) * -1.0).collect())
+        .map(|_j| (0..m).map(|i| -(f64::from(i) / f64::from(m - 1) - 0.5)).collect())
         .collect();
     let v: Vec<Vec<f64>> = (0..m)
-        .map(|j| (0..m).map(|i| i as f64 / (m - 1) as f64 - 0.5).collect())
+        .map(|_j| (0..m).map(|i| f64::from(i) / f64::from(m - 1) - 0.5).collect())
         .collect();
     let sp = render_streamplot(&u, &v, (0.0, 1.0), (0.0, 1.0), &StreamConfig::new().with_seeds(5))?;
     assert!(sp.contains("<polyline"), "streamlines as polylines");
@@ -148,7 +149,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut pdata = mathverse_plot::polar::PolarData::new();
     let pts: Vec<mathverse_plot::polar::PolarPoint> = (0..72)
         .map(|i| {
-            let t = i as f64 * std::f64::consts::TAU / 72.0;
+            let t = f64::from(i) * std::f64::consts::TAU / 72.0;
             mathverse_plot::polar::PolarPoint::new(t, 1.0 + (t * 3.0).cos() * 0.3)
         })
         .collect();
@@ -235,7 +236,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write(out.join("styled_boxplot.svg"), &bp)?;
 
     // Horizontal + markerless error bar (capsize).
-    let mut axb = Axes::new();
+    let _axb = Axes::new();
     let bar = mathverse_plot::errorbar::ErrorBar::ci(&[1.0, 2.0, 3.0, 4.0, 5.0], 1.96)?;
     // axb.add_error_bar_styled is on SvgPlot; use the SvgPlot directly:
     let mut sp2 = mathverse_plot::svg::SvgPlot::new(PlotConfig::new());

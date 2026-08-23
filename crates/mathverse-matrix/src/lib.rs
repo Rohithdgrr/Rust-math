@@ -172,7 +172,7 @@ impl Matrix {
         }
         let cols = rows[0].len();
         let mut data = Vec::with_capacity(rows.len() * cols);
-        for r in rows.iter() {
+        for r in rows {
             if r.len() != cols {
                 return Err(MathError::InvalidArgument("ragged rows: all rows must have equal length"));
             }
@@ -181,16 +181,28 @@ impl Matrix {
         Ok(Matrix { rows: rows.len(), cols, data })
     }
 
+    /// Get the element at `(r, c)` without bounds checking.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `(r, c)` is out of bounds.
     pub fn get(&self, r: usize, c: usize) -> f64 {
         debug_assert!(r < self.rows && c < self.cols, "matrix index ({r}, {c}) out of bounds");
         self.data[r * self.cols + c]
     }
 
+    /// Set the element at `(r, c)` without bounds checking.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds if `(r, c)` is out of bounds.
     pub fn set(&mut self, r: usize, c: usize, v: f64) {
         debug_assert!(r < self.rows && c < self.cols, "matrix index ({r}, {c}) out of bounds");
         self.data[r * self.cols + c] = v;
     }
 
+    /// Whether the matrix has equally many rows and columns.
+    #[must_use]
     pub fn is_square(&self) -> bool {
         self.rows == self.cols
     }
@@ -279,6 +291,8 @@ impl Matrix {
         Ok(Vector::new(out))
     }
 
+    /// Transpose: element `(i, j)` moves to `(j, i)`.
+    #[must_use]
     pub fn transpose(&self) -> Matrix {
         let mut t = Matrix::zeros(self.cols, self.rows);
         for i in 0..self.rows {
@@ -428,7 +442,7 @@ mod tests {
         ])
         .unwrap();
         let det = h.det().unwrap();
-        assert!((det - 1.0 / 6048000.0).abs() < 1e-13, "det = {det}");
+        assert!((det - 1.0 / 6_048_000.0).abs() < 1e-13, "det = {det}");
         let prod = h.mul(&h.inverse().unwrap()).unwrap();
         for i in 0..4 {
             for j in 0..4 {

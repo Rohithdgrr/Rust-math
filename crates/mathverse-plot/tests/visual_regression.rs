@@ -11,10 +11,10 @@ use mathverse_plot::svg::SvgPlot;
 
 /// FNV-1a 64-bit — deterministic across platforms and Rust versions.
 fn fnv1a(s: &str) -> u64 {
-    let mut h: u64 = 0xcbf29ce484222325;
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for b in s.as_bytes() {
-        h ^= *b as u64;
-        h = h.wrapping_mul(0x100000001b3);
+        h ^= u64::from(*b);
+        h = h.wrapping_mul(0x100_0000_01b3);
     }
     h
 }
@@ -30,7 +30,7 @@ fn line_plot_svg(title: &str, x_label: &str, y_label: &str, name: &str) -> Strin
     let mut sp = SvgPlot::new(cfg);
     let pts: Vec<DataPoint> = (0..=20)
         .map(|i| {
-            let x = i as f64 / 10.0;
+            let x = f64::from(i) / 10.0;
             DataPoint::new(x, (x * std::f64::consts::PI).sin())
         })
         .collect();
@@ -107,7 +107,7 @@ fn line_plot_regression() {
     let hash = fnv1a(&svg);
     assert_eq!(
         hash,
-        0xf7e4d60fb3fa1002,
+        0xf7e4_d60f_b3fa_1002,
         "line plot SVG changed (hash {hash:#x}) — update after intentional change"
     );
 }
@@ -124,7 +124,7 @@ fn styled_boxplot_regression() {
     let hash = fnv1a(&svg);
     assert_eq!(
         hash,
-        0x16a002b0b6c63555,
+        0x16a0_02b0_b6c6_3555,
         "styled boxplot SVG changed (hash {hash:#x}) — update after intentional change"
     );
 }
@@ -135,22 +135,22 @@ fn contourf_regression() {
     let mut ys = Vec::new();
     for i in 0..12 {
         for j in 0..12 {
-            xs.push(i as f64 / 11.0);
-            ys.push(j as f64 / 11.0);
+            xs.push(f64::from(i) / 11.0);
+            ys.push(f64::from(j) / 11.0);
         }
     }
     let zs: Vec<f64> = xs
         .iter()
         .zip(&ys)
-        .map(|(x, y)| ((x * 4.0).sin() * (y * 4.0).cos()))
+        .map(|(x, y)| (x * 4.0).sin() * (y * 4.0).cos())
         .collect();
-    let grid: Vec<Vec<f64>> = zs.chunks(12).map(|row| row.to_vec()).collect();
+    let grid: Vec<Vec<f64>> = zs.chunks(12).map(<[f64]>::to_vec).collect();
     let cfg = mathverse_plot::ContourConfig::new();
     let svg = mathverse_plot::contour::render_contour(&grid, (0.0, 1.0), (0.0, 1.0), &cfg).unwrap();
     let hash = fnv1a(&svg);
     assert_eq!(
         hash,
-        0x272543f2ea048bcb,
+        0x2725_43f2_ea04_8bcb,
         "contour SVG changed (hash {hash:#x}) — update after intentional change"
     );
 }

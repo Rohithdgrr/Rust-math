@@ -117,7 +117,7 @@ impl<T> Series<T> {
         );
         self.validity
             .as_ref()
-            .map_or(false, |bm| bm.is_null(pos))
+            .is_some_and(|bm| bm.is_null(pos))
     }
 
     /// Returns the number of null elements.
@@ -125,7 +125,7 @@ impl<T> Series<T> {
     pub fn null_count(&self) -> usize {
         self.validity
             .as_ref()
-            .map_or(0, |bm| bm.null_count())
+            .map_or(0, super::null::NullBitmap::null_count)
     }
 
     /// Returns the number of non-null elements.
@@ -145,12 +145,12 @@ impl<T> Series<T> {
             "index {pos} out of bounds for length {}",
             self.len()
         );
-        if self.validity.is_none() {
+        if let Some(bm) = self.validity.as_mut() {
+            bm.set_null(pos);
+        } else {
             let mut bm = NullBitmap::all_valid(self.len());
             bm.set_null(pos);
             self.validity = Some(bm);
-        } else {
-            self.validity.as_mut().unwrap().set_null(pos);
         }
     }
 
@@ -171,7 +171,7 @@ impl<T> Series<T> {
     /// Returns `true` if the series has no null values.
     #[must_use]
     pub fn has_no_nulls(&self) -> bool {
-        self.validity.is_none() || self.validity.as_ref().map_or(false, |bm| bm.all_valid_flag())
+        self.validity.is_none() || self.validity.as_ref().is_some_and(super::null::NullBitmap::all_valid_flag)
     }
 
     /// Returns a new series with nulls removed (elements shifted left).
@@ -264,7 +264,7 @@ impl<T> Series<T> {
         self.data
             .iter()
             .enumerate()
-            .map(move |(i, v)| (i, Some(v).filter(|_| !self.is_null(i))))
+            .map(move |(i, v)| (i, (!self.is_null(i)).then_some(v)))
     }
 
     /// Creates a new series by applying a function to each element.

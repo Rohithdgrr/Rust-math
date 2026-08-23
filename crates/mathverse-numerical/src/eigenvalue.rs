@@ -1,14 +1,20 @@
 //! Eigenvalue solvers: power method, inverse iteration, QR algorithm, Lanczos.
 
+/// Dense square matrix stored as nested row-major vectors.
+type DMatrix = Vec<Vec<f64>>;
+
 use mathverse_core::error::{MathError, MathResult};
 
 /// Power method for finding dominant eigenvalue.
 pub struct PowerMethod {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the eigenvalue.
     pub tolerance: f64,
 }
 
 impl PowerMethod {
+    /// Create a power method solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         PowerMethod {
             max_iterations,
@@ -23,9 +29,9 @@ impl PowerMethod {
             return Err(MathError::InvalidArgument("matrix must be square"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| {
+        let mut x = x0.map_or_else(|| {
             (0..n).map(|_| rand::random::<f64>()).collect()
-        });
+        }, <[f64]>::to_vec);
         
         // Normalize initial vector
         let norm: f64 = x.iter().map(|&xi| xi * xi).sum::<f64>().sqrt();
@@ -68,12 +74,16 @@ impl PowerMethod {
 
 /// Inverse power method for finding eigenvalue closest to shift.
 pub struct InversePowerMethod {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the eigenvalue.
     pub tolerance: f64,
+    /// Shift sigma; the eigenvalue closest to it is found.
     pub shift: f64,
 }
 
 impl InversePowerMethod {
+    /// Create an inverse power method solver with the given iteration cap, tolerance and shift.
     pub fn new(max_iterations: usize, tolerance: f64, shift: f64) -> Self {
         InversePowerMethod {
             max_iterations,
@@ -95,9 +105,9 @@ impl InversePowerMethod {
             a_shift[i][i] -= self.shift;
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| {
+        let mut x = x0.map_or_else(|| {
             (0..n).map(|_| rand::random::<f64>()).collect()
-        });
+        }, <[f64]>::to_vec);
         
         let norm: f64 = x.iter().map(|&xi| xi * xi).sum::<f64>().sqrt();
         x = x.iter().map(|&xi| xi / norm).collect();
@@ -175,11 +185,14 @@ impl InversePowerMethod {
 
 /// Rayleigh quotient iteration (accelerated inverse iteration).
 pub struct RayleighQuotientIteration {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the eigenvalue.
     pub tolerance: f64,
 }
 
 impl RayleighQuotientIteration {
+    /// Create a Rayleigh quotient iterator with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         RayleighQuotientIteration {
             max_iterations,
@@ -194,9 +207,9 @@ impl RayleighQuotientIteration {
             return Err(MathError::InvalidArgument("matrix must be square"));
         }
         
-        let mut x = x0.map(|v| v.to_vec()).unwrap_or_else(|| {
+        let mut x = x0.map_or_else(|| {
             (0..n).map(|_| rand::random::<f64>()).collect()
-        });
+        }, <[f64]>::to_vec);
         
         let norm: f64 = x.iter().map(|&xi| xi * xi).sum::<f64>().sqrt();
         x = x.iter().map(|&xi| xi / norm).collect();
@@ -230,9 +243,8 @@ impl RayleighQuotientIteration {
             
             // Solve (A - lambda*I) * y = x. A singular shifted matrix means
             // lambda has converged to an eigenvalue, so treat that as success.
-            let y = match InversePowerMethod::solve_linear(&a_shift, &x) {
-                Ok(y) => y,
-                Err(_) => break,
+            let Ok(y) = InversePowerMethod::solve_linear(&a_shift, &x) else {
+                break;
             };
             
             let norm: f64 = y.iter().map(|&yi| yi * yi).sum::<f64>().sqrt();
@@ -248,11 +260,14 @@ impl RayleighQuotientIteration {
 
 /// QR algorithm for computing all eigenvalues.
 pub struct QRAlgorithm {
+    /// Maximum number of QR iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance for off-diagonal entries.
     pub tolerance: f64,
 }
 
 impl QRAlgorithm {
+    /// Create a QR algorithm solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         QRAlgorithm {
             max_iterations,
@@ -297,7 +312,7 @@ impl QRAlgorithm {
         Ok(eigenvalues)
     }
 
-    fn qr_decomposition(a: &[Vec<f64>]) -> MathResult<(Vec<Vec<f64>>, Vec<Vec<f64>>)> {
+    fn qr_decomposition(a: &DMatrix) -> MathResult<(DMatrix, DMatrix)> {
         let n = a.len();
         let mut q = vec![vec![0.0; n]; n];
         let mut r = vec![vec![0.0; n]; n];
@@ -349,11 +364,14 @@ impl QRAlgorithm {
 
 /// Lanczos algorithm for symmetric matrices.
 pub struct Lanczos {
+    /// Maximum Krylov subspace size (number of iterations).
     pub max_iterations: usize,
+    /// Convergence tolerance passed to the tridiagonal solver.
     pub tolerance: f64,
 }
 
 impl Lanczos {
+    /// Create a Lanczos solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         Lanczos {
             max_iterations,
@@ -458,12 +476,16 @@ impl Lanczos {
 
 /// Subspace iteration for computing multiple eigenvalues.
 pub struct SubspaceIteration {
+    /// Maximum number of iterations.
     pub max_iterations: usize,
+    /// Convergence tolerance on the subspace change.
     pub tolerance: f64,
+    /// Number of eigenvalues (subspace dimension) to compute.
     pub subspace_size: usize,
 }
 
 impl SubspaceIteration {
+    /// Create a subspace iterator with the given caps and subspace size.
     pub fn new(max_iterations: usize, tolerance: f64, subspace_size: usize) -> Self {
         SubspaceIteration {
             max_iterations,
@@ -554,11 +576,14 @@ impl SubspaceIteration {
 
 /// Jacobi method for symmetric eigenvalue problems.
 pub struct JacobiEigenvalue {
+    /// Maximum number of rotation sweeps.
     pub max_iterations: usize,
+    /// Convergence tolerance on the largest off-diagonal entry.
     pub tolerance: f64,
 }
 
 impl JacobiEigenvalue {
+    /// Create a Jacobi eigenvalue solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
         JacobiEigenvalue {
             max_iterations,

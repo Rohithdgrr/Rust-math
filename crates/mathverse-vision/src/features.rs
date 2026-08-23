@@ -57,7 +57,7 @@ pub fn shi_tomasi(img: &Image) -> Image {
         let trace = a + b;
         let det = a * b - c * c;
         let disc = (trace * trace - 4.0 * det).max(0.0).sqrt();
-        let l1 = (trace + disc) / 2.0;
+        let l1 = f64::midpoint(trace, disc);
         let l2 = (trace - disc) / 2.0;
         r.data[i] = l2.min(l1);
     }

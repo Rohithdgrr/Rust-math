@@ -158,8 +158,11 @@ impl<'a> MatView<'a> {
 /// Owned matrix data (from submatrix/transpose operations).
 #[derive(Debug, Clone)]
 pub struct MatViewData {
+    /// Row-major matrix elements.
     pub data: Vec<f64>,
+    /// Number of rows.
     pub rows: usize,
+    /// Number of columns.
     pub cols: usize,
 }
 
@@ -246,10 +249,10 @@ mod tests {
 
     #[test]
     fn trace() {
+        static SQ: [f64; 4] = [1.0, 2.0, 3.0, 4.0];
         let m = test_matrix();
         assert!(m.trace().is_err()); // not square
 
-        static SQ: [f64; 4] = [1.0, 2.0, 3.0, 4.0];
         let sq = MatView::new(&SQ, 2, 2);
         assert!((sq.trace().unwrap() - 5.0).abs() < 1e-12);
     }

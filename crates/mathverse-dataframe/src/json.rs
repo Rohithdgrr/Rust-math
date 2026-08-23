@@ -49,10 +49,7 @@ pub fn to_json_string(df: &DataFrame) -> String {
             }
             out.push_str(&json_escape(name));
             out.push(':');
-            let col = match df.column_by_index(ci) {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
+            let Ok(col) = df.column_by_index(ci) else { continue };
             if col.is_null(row) {
                 out.push_str("null");
                 continue;
@@ -115,14 +112,13 @@ pub fn from_json_str(input: &str) -> DataFrameResult<DataFrame> {
                             let cell = fields
                                 .iter()
                                 .find(|(k, _)| *k == name)
-                                .map(|(_, v)| json_scalar_from_value(v))
-                                .flatten();
+                                .and_then(|(_, v)| json_scalar_from_value(v));
                             raw.push(cell);
                         }
                         _ => raw.push(None),
                     }
                 }
-                df.add_any_column(build_column(&name, &raw)?)?;
+                df.add_any_column(build_column(&name, &raw))?;
             }
             Ok(df)
         }
@@ -135,7 +131,7 @@ pub fn from_json_str(input: &str) -> DataFrameResult<DataFrame> {
 
 #[cfg(feature = "std")]
 mod file_io {
-    use super::*;
+    use super::{DataFrameResult, DataFrame, DataFrameError, from_json_str, to_json_string};
 
     /// Reads a JSON file into a [`DataFrame`].
     ///
@@ -168,8 +164,8 @@ enum Value {
     Bool(bool),
     Number(f64),
     String(String),
-    Array(Vec<Value>),
-    Object(Vec<(String, Value)>),
+    Array(Vec<Self>),
+    Object(Vec<(String, Self)>),
 }
 
 /// A scalar cell extracted from a JSON value (numbers/bools/strings).
@@ -182,7 +178,6 @@ enum JsonScalar {
 
 fn json_scalar_from_value(v: &Value) -> Option<JsonScalar> {
     match v {
-        Value::Null => None,
         Value::Bool(b) => Some(JsonScalar::Bool(*b)),
         Value::Number(f) => {
             if f.fract() == 0.0 && f.is_finite() && *f >= i64::MIN as f64 && *f <= i64::MAX as f64 {
@@ -197,7 +192,7 @@ fn json_scalar_from_value(v: &Value) -> Option<JsonScalar> {
 }
 
 /// Builds a typed column from raw scalar cells.
-fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> DataFrameResult<AnyColumn> {
+fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> AnyColumn {
     let has_non_null = raw.iter().any(Option::is_some);
 
     if !has_non_null {
@@ -205,14 +200,11 @@ fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> DataFrameResult<AnyCo
         for i in 0..raw.len() {
             series.set_null(i);
         }
-        return Ok(AnyColumn::Float64(series));
+        return AnyColumn::Float64(series);
     }
 
     // All integers → Int64.
-    if raw.iter().all(|c| match c {
-        None | Some(JsonScalar::Int(_)) => true,
-        _ => false,
-    }) {
+    if raw.iter().all(|c| matches!(c, None | Some(JsonScalar::Int(_)))) {
         let data: Vec<i64> = raw
             .iter()
             .map(|c| match c {
@@ -226,14 +218,11 @@ fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> DataFrameResult<AnyCo
                 series.set_null(i);
             }
         }
-        return Ok(AnyColumn::Int64(series));
+        return AnyColumn::Int64(series);
     }
 
     // All numeric → Float64.
-    if raw.iter().all(|c| match c {
-        None | Some(JsonScalar::Int(_)) | Some(JsonScalar::Float(_)) => true,
-        _ => false,
-    }) {
+    if raw.iter().all(|c| matches!(c, None | Some(JsonScalar::Int(_) | JsonScalar::Float(_)))) {
         let data: Vec<f64> = raw
             .iter()
             .map(|c| match c {
@@ -248,14 +237,11 @@ fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> DataFrameResult<AnyCo
                 series.set_null(i);
             }
         }
-        return Ok(AnyColumn::Float64(series));
+        return AnyColumn::Float64(series);
     }
 
     // All bool → Bool.
-    if raw.iter().all(|c| match c {
-        None | Some(JsonScalar::Bool(_)) => true,
-        _ => false,
-    }) {
+    if raw.iter().all(|c| matches!(c, None | Some(JsonScalar::Bool(_)))) {
         let data: Vec<bool> = raw
             .iter()
             .map(|c| matches!(c, Some(JsonScalar::Bool(true))))
@@ -266,7 +252,7 @@ fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> DataFrameResult<AnyCo
                 series.set_null(i);
             }
         }
-        return Ok(AnyColumn::Bool(series));
+        return AnyColumn::Bool(series);
     }
 
     // Mixed → Utf8.
@@ -286,7 +272,7 @@ fn build_column(name: &str, raw: &[Option<JsonScalar>]) -> DataFrameResult<AnyCo
             series.set_null(i);
         }
     }
-    Ok(AnyColumn::Utf8(series))
+    AnyColumn::Utf8(series)
 }
 
 /// Recursive-descent JSON parser (RFC 8259 subset). Returns the parsed tree.
@@ -314,7 +300,7 @@ struct Parser<'a> {
     depth: usize,
 }
 
-impl<'a> Parser<'a> {
+impl Parser<'_> {
     fn err(&self, msg: &str) -> DataFrameError {
         DataFrameError::ParseError {
             value: format!("JSON error at byte {}: {msg}", self.pos),
@@ -365,7 +351,7 @@ impl<'a> Parser<'a> {
             Some(b'"') => self.parse_string().map(Value::String),
             Some(b'[') => self.parse_array(),
             Some(b'{') => self.parse_object(),
-            Some(b'-') | Some(b'0'..=b'9') => self.parse_number(),
+            Some(b'-' | b'0'..=b'9') => self.parse_number(),
             _ => Err(self.err("unexpected character")),
         }
     }
@@ -466,7 +452,7 @@ impl<'a> Parser<'a> {
             items.push(self.parse_value()?);
             self.skip_ws();
             match self.next() {
-                Some(b',') => continue,
+                Some(b',') => {}
                 Some(b']') => {
                     self.depth -= 1;
                     return Ok(Value::Array(items));
@@ -499,7 +485,7 @@ impl<'a> Parser<'a> {
             fields.push((key, value));
             self.skip_ws();
             match self.next() {
-                Some(b',') => continue,
+                Some(b',') => {}
                 Some(b'}') => {
                     self.depth -= 1;
                     return Ok(Value::Object(fields));
@@ -534,7 +520,10 @@ fn json_escape(s: &str) -> String {
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c if (c as u32) < 0x20 => {
+                use core::fmt::Write;
+                let _ = write!(out, "\\u{:04x}", c as u32);
+            }
             c => out.push(c),
         }
     }

@@ -49,7 +49,7 @@ impl Categorical {
     /// Log probability of category `k`.
     #[must_use]
     pub fn log_pmf(&self, k: usize) -> f64 {
-        self.probs.get(k).map(|&p| p.ln()).unwrap_or(f64::NEG_INFINITY)
+        self.probs.get(k).map_or(f64::NEG_INFINITY, |&p| p.ln())
     }
 
     /// The probability vector itself.
@@ -183,6 +183,9 @@ impl Dirichlet {
     }
 
     /// Log density at `x` (must lie on the simplex).
+    ///
+    /// # Panics
+    /// Panics if `x.len() != self.alphas.len()`.
     #[must_use]
     pub fn log_pdf(&self, x: &[f64]) -> f64 {
         assert_eq!(x.len(), self.alphas.len(), "dirichlet x has wrong dimension");
@@ -344,7 +347,7 @@ mod tests {
         let d = Dirichlet::new(vec![1.0, 1.0, 1.0]).unwrap();
         assert!((d.pdf(&[1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0]) - 2.0).abs() < 1e-9);
         assert!((d.pdf(&[0.1, 0.2, 0.7]) - 2.0).abs() < 1e-9);
-        assert!(d.pdf(&[0.0, 0.5, 0.5]) == 0.0);
+        assert_eq!(d.pdf(&[0.0, 0.5, 0.5]), 0.0);
     }
 
     #[test]

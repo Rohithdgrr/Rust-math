@@ -7,8 +7,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     // Generate data with a linear trend and heteroscedastic noise
     let points: Vec<DataPoint> = (0..40)
         .map(|i| {
-            let x = i as f64 * 0.3;
-            let noise = (i as f64 * 0.4).sin() * (1.0 + x * 0.2);
+            let x = f64::from(i) * 0.3;
+            let noise = (f64::from(i) * 0.4).sin() * (1.0 + x * 0.2);
             let y = 2.0 * x + 1.0 + noise;
             DataPoint::new(x, y)
         })

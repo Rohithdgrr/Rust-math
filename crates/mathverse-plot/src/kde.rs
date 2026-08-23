@@ -115,7 +115,7 @@ fn kde_color(t: f64) -> String {
         ((0.7 - (t - 0.5) * 2.0 * 0.3) * 255.0) as u8
     };
     let b = ((0.329 - t * 0.329) * 255.0) as u8;
-    format!("#{:02x}{:02x}{:02x}", r, g, b)
+    format!("#{r:02x}{g:02x}{b:02x}")
 }
 
 /// Render a 2D KDE plot as SVG.
@@ -132,8 +132,8 @@ pub fn render_kde_plot(
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     let x_min = x_data.iter().fold(f64::INFINITY, |a, &b| a.min(b));
     let x_max = x_data.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
@@ -245,8 +245,8 @@ mod tests {
 
     #[test]
     fn kde_plot_renders() {
-        let x: Vec<f64> = (0..50).map(|i| i as f64 * 0.1 + (i % 3) as f64 * 0.5).collect();
-        let y: Vec<f64> = (0..50).map(|i| (i as f64 * 0.1).sin() + (i % 5) as f64 * 0.3).collect();
+        let x: Vec<f64> = (0..50).map(|i| f64::from(i) * 0.1 + f64::from(i % 3) * 0.5).collect();
+        let y: Vec<f64> = (0..50).map(|i| (f64::from(i) * 0.1).sin() + f64::from(i % 5) * 0.3).collect();
         let config = KdeConfig::new();
         let svg = render_kde_plot(&x, &y, &config).unwrap();
         assert!(svg.contains("<svg"));

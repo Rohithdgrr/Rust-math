@@ -1,4 +1,5 @@
 //! Annotation system example with text, arrows, and reference lines.
+#![allow(clippy::format_push_string)]
 
 use mathverse_plot::{
     Annotations, Arrow, DataPoint, DataSeries, PlotConfig, ReferenceLine, SvgPlot,
@@ -11,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create some data
     let points: Vec<DataPoint> = (0..=100)
         .map(|i| {
-            let x = i as f64 * 0.1;
+            let x = f64::from(i) * 0.1;
             DataPoint::new(x, x.sin())
         })
         .collect();
@@ -78,8 +79,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Arrows
     for arrow in &annotations.arrows {
-        let (x1d, y1d) = arrow.from.data_xy().unwrap_or((0.0, 0.0));
-        let (x2d, y2d) = arrow.to.data_xy().unwrap_or((0.0, 0.0));
+        let (x1d, y1d) = (arrow.from.x, arrow.from.y);
+        let (x2d, y2d) = (arrow.to.x, arrow.to.y);
         let x1 = 50.0 + x1d * 70.0;
         let y1 = 300.0 - y1d * 250.0;
         let x2 = 50.0 + x2d * 70.0;
@@ -124,8 +125,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     </marker>
   </defs>"#;
 
-    svg = svg.replace("<svg", &format!("<svg\n{}", marker_def));
-    svg = svg.replace("</svg>", &format!("{}\n</svg>", annotation_svg));
+    svg = svg.replace("<svg", &format!("<svg\n{marker_def}"));
+    svg = svg.replace("</svg>", &format!("{annotation_svg}\n</svg>"));
 
     PlotSaver::new(&svg).save_png("annotations.png")?;
     println!("Wrote annotations.svg ({} bytes)", svg.len());

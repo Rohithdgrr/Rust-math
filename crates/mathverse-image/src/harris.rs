@@ -80,6 +80,8 @@ pub fn harris(img: &GrayImage, k: f64, threshold: f64) -> Vec<(f64, f64, f64)> {
     // Compute raw Sobel gradients (not magnitude)
     const GX: [f64; 9] = [-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0];
     const GY: [f64; 9] = [-1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0];
+    // Structure-tensor accumulation window (5×5) around each pixel.
+    const WIN_RADIUS: i64 = 2;
 
     let mut gx_img = GrayImage::new(img.w, img.h).unwrap();
     let mut gy_img = GrayImage::new(img.w, img.h).unwrap();
@@ -102,9 +104,7 @@ pub fn harris(img: &GrayImage, k: f64, threshold: f64) -> Vec<(f64, f64, f64)> {
         }
     }
 
-    // Structure-tensor accumulation window (5×5) around each pixel.
-    const WIN_RADIUS: i64 = 2;
-
+    // Accumulate the structure tensor in a window around each pixel.
     let mut candidates: Vec<(usize, usize, f64)> = Vec::new();
     for y in 0..img.h {
         for x in 0..img.w {

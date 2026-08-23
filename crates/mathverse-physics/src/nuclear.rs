@@ -46,8 +46,8 @@ pub fn binding_energy_per_nucleon(a: u32, z: u32) -> f64 {
     if a == 0 {
         return 0.0;
     }
-    let a = a as f64;
-    let z = z as f64;
+    let a = f64::from(a);
+    let z = f64::from(z);
     let volume = 15.75;
     let surface = -17.8 * a.powf(-1.0 / 3.0);
     let coulomb = -0.711 * z * z / a.powf(4.0 / 3.0);
@@ -57,8 +57,8 @@ pub fn binding_energy_per_nucleon(a: u32, z: u32) -> f64 {
     let asymmetry = -23.7 * (a - 2.0 * z).powi(2) / a.powi(2);
     let pairing = {
         let a_usize = a as usize;
-        if a_usize % 2 == 0 {
-            if z as usize % 2 == 0 {
+        if a_usize.is_multiple_of(2) {
+            if (z as usize).is_multiple_of(2) {
                 12.0 / a // even-even → +δ
             } else {
                 -12.0 / a // odd-odd → −δ
@@ -110,7 +110,7 @@ mod tests {
         // Light nuclei have lower binding energy per nucleon
         let be_hydrogen = binding_energy_per_nucleon(1, 1);
         assert!(be_hydrogen < be_iron);
-        assert!(binding_energy_per_nucleon(0, 0) == 0.0);
+        assert_eq!(binding_energy_per_nucleon(0, 0), 0.0);
     }
 
     #[test]

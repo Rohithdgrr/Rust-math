@@ -23,7 +23,7 @@ pub fn prime_factors(mut n: u64) -> Vec<u64> {
         n /= 2;
     }
     let mut d = 3u64;
-    while (d as u128) * (d as u128) <= n as u128 {
+    while u128::from(d) * u128::from(d) <= u128::from(n) {
         while n.is_multiple_of(d) {
             out.push(d);
             n /= d;
@@ -49,7 +49,7 @@ pub fn divisors(n: u64) -> Vec<u64> {
     }
     let mut divs = Vec::new();
     let mut i = 1u64;
-    while (i as u128) * (i as u128) <= n as u128 {
+    while u128::from(i) * u128::from(i) <= u128::from(n) {
         if n.is_multiple_of(i) {
             divs.push(i);
             if i != n / i {
@@ -84,7 +84,7 @@ pub fn divisor_count(n: u64) -> u64 {
             count += 1;
             i += 1;
         }
-        result = result.saturating_mul(count as u64 + 1);
+        result = result.saturating_mul(u64::from(count) + 1);
     }
     result
 }
@@ -100,11 +100,11 @@ pub fn divisor_sum(n: u64) -> u64 {
     sigma_k(n, 1).unwrap_or(0)
 }
 
-/// Sum of the k-th powers of divisors of `n` (divisor function σ_k).
+/// Sum of the k-th powers of divisors of `n` (divisor function `σ_k`).
 ///
 /// Returns `None` on overflow.
 ///
-/// σ_k(n) = Σ_{d|n} d^k
+/// `σ_k(n)` = Σ_{d|n} d^k
 ///
 /// ```
 /// use mathverse_number_theory::sigma_k;
@@ -271,27 +271,29 @@ pub fn pollard_rho(n: u64) -> Option<u64> {
     if n.is_multiple_of(2) {
         return Some(2);
     }
-    let mut seed = n.wrapping_mul(0x5DEECE66D);
+    let mut seed = n.wrapping_mul(0x0005_DEEC_E66D);
     'retry: loop {
-        let c = 2 + (seed % (n - 3)) as u64;
+        let increment = 2 + (seed % (n - 3));
         seed = seed
             .wrapping_mul(6_364_136_223_846_793_005)
             .wrapping_add(1_442_695_040_888_963_407);
-        let f = |x: u64| ((x as u128 * x as u128 + c as u128) % n as u128) as u64;
-        let mut x = f(2u64);
-        let mut y = f(f(2u64));
-        let mut d = 1u64;
-        while d == 1 {
-            let diff = (x as i128 - y as i128).unsigned_abs() as u64;
-            d = crate::gcd(diff, n);
-            if d == n {
+        let rho_step = |x: u64| {
+            ((u128::from(x) * u128::from(x) + u128::from(increment)) % u128::from(n)) as u64
+        };
+        let mut tortoise = rho_step(2u64);
+        let mut hare = rho_step(rho_step(2u64));
+        let mut factor = 1u64;
+        while factor == 1 {
+            let diff = (i128::from(tortoise) - i128::from(hare)).unsigned_abs() as u64;
+            factor = crate::gcd(diff, n);
+            if factor == n {
                 continue 'retry;
             }
-            if d != 1 {
-                return Some(d);
+            if factor != 1 {
+                return Some(factor);
             }
-            x = f(x);
-            y = f(f(y));
+            tortoise = rho_step(tortoise);
+            hare = rho_step(rho_step(hare));
         }
     }
 }
@@ -346,7 +348,7 @@ fn trial_division_collect(mut n: u64, acc: &mut Vec<u64>) {
         n /= 2;
     }
     let mut d = 3u64;
-    while (d as u128) * (d as u128) <= n as u128 {
+    while u128::from(d) * u128::from(d) <= u128::from(n) {
         while n.is_multiple_of(d) {
             acc.push(d);
             n /= d;
@@ -439,7 +441,7 @@ mod tests {
         assert_eq!(factorize(13), vec![13]);
         assert!(factorize(1).is_empty());
         assert_eq!(factorize(100), vec![2, 2, 5, 5]);
-        assert_eq!(factorize(9999991), vec![9999991]); // large prime
+        assert_eq!(factorize(9_999_991), vec![9_999_991]); // large prime
     }
 
     #[test]

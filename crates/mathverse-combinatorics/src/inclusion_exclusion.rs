@@ -47,7 +47,7 @@ pub fn coupon_collector_expected(n: usize) -> f64 {
 
 pub fn pigeonhole_min(n_items: usize, n_holes: usize) -> usize {
     if n_holes == 0 { return 0; }
-    (n_items + n_holes - 1) / n_holes
+    n_items.div_ceil(n_holes)
 }
 
 #[cfg(test)]

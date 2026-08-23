@@ -8,8 +8,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     // Generate sample data from a normal-like distribution
     let values: Vec<f64> = (0..100)
         .map(|i| {
-            let x = i as f64 * 0.1;
-            5.0 + (x.sin() * 2.0) + ((i % 7) as f64 - 3.0) * 0.3
+            let x = f64::from(i) * 0.1;
+            5.0 + (x.sin() * 2.0) + (f64::from(i % 7) - 3.0) * 0.3
         })
         .collect();
 

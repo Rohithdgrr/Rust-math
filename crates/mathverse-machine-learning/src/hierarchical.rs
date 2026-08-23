@@ -118,7 +118,7 @@ fn compute_linkage(a: &[usize], b: &[usize], dist: &[Vec<f64>], linkage: Linkage
                     count += 1;
                 }
             }
-            sum / count as f64
+            sum / f64::from(count)
         }
     }
 }
@@ -131,10 +131,10 @@ mod tests {
     fn two_clusters() {
         let mut x: Vec<Vec<f64>> = Vec::new();
         for i in 0..5 {
-            x.push(vec![i as f64, 0.0]);
+            x.push(vec![f64::from(i), 0.0]);
         }
         for i in 0..5 {
-            x.push(vec![i as f64 + 100.0, 0.0]);
+            x.push(vec![f64::from(i) + 100.0, 0.0]);
         }
         let r = agglomerative(&x, 2, Linkage::Single);
         assert_eq!(r.n_clusters, 2);

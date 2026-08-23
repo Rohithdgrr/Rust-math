@@ -23,7 +23,7 @@ impl MatrixExponential {
         };
         
         let a_scaled = if s > 0 {
-            m.scale(1.0 / (1 << s) as f64)
+            m.scale(1.0 / f64::from(1 << s))
         } else {
             m.clone()
         };
@@ -34,7 +34,7 @@ impl MatrixExponential {
         let mut coeff = 1.0;
         for k in 1..=20 {
             term = term.mul(&a_scaled)?;
-            coeff /= k as f64;
+            coeff /= f64::from(k);
             result = result.add(&term.scale(coeff))?;
         }
         
@@ -129,7 +129,7 @@ impl MatrixLogarithm {
         let mut sign = 1.0;
         
         for k in 1..=20 {
-            let coeff = sign / k as f64;
+            let coeff = sign / f64::from(k);
             result = result.add(&term.scale(coeff))?;
             term = term.mul(&x)?;
             sign = -sign;
@@ -368,7 +368,7 @@ impl MatrixFunctions {
 
     /// Matrix sign function (element-wise).
     pub fn sign(m: &Matrix) -> Matrix {
-        Self::elementwise(m, |x| x.signum())
+        Self::elementwise(m, f64::signum)
     }
 
     /// Matrix floor (element-wise).

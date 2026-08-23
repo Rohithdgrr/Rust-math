@@ -126,7 +126,7 @@ impl<'a> From<&'a [f64]> for VecView<'a> {
     }
 }
 
-impl<'a> Index<usize> for VecView<'a> {
+impl Index<usize> for VecView<'_> {
     type Output = f64;
 
     fn index(&self, i: usize) -> &f64 {
@@ -134,7 +134,7 @@ impl<'a> Index<usize> for VecView<'a> {
     }
 }
 
-impl<'a> Index<Range<usize>> for VecView<'a> {
+impl Index<Range<usize>> for VecView<'_> {
     type Output = [f64];
 
     fn index(&self, range: Range<usize>) -> &[f64] {
@@ -142,7 +142,7 @@ impl<'a> Index<Range<usize>> for VecView<'a> {
     }
 }
 
-impl<'a> Index<RangeFrom<usize>> for VecView<'a> {
+impl Index<RangeFrom<usize>> for VecView<'_> {
     type Output = [f64];
 
     fn index(&self, range: RangeFrom<usize>) -> &[f64] {
@@ -150,7 +150,7 @@ impl<'a> Index<RangeFrom<usize>> for VecView<'a> {
     }
 }
 
-impl<'a> Index<RangeInclusive<usize>> for VecView<'a> {
+impl Index<RangeInclusive<usize>> for VecView<'_> {
     type Output = [f64];
 
     fn index(&self, range: RangeInclusive<usize>) -> &[f64] {
@@ -159,6 +159,15 @@ impl<'a> Index<RangeInclusive<usize>> for VecView<'a> {
 }
 
 impl<'a> IntoIterator for VecView<'a> {
+    type Item = f64;
+    type IntoIter = core::iter::Copied<core::slice::Iter<'a, f64>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.iter().copied()
+    }
+}
+
+impl<'a> IntoIterator for &'a VecView<'_> {
     type Item = f64;
     type IntoIter = core::iter::Copied<core::slice::Iter<'a, f64>>;
 

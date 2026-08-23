@@ -26,7 +26,7 @@ pub fn goertzel(x: &[f64], k: usize) -> Option<(f64, f64)> {
 ///
 /// Returns `0.0` when the bin is out of range.
 pub fn goertzel_magnitude(x: &[f64], k: usize) -> f64 {
-    goertzel(x, k).map(|(re, im)| (re * re + im * im).sqrt()).unwrap_or(0.0)
+    goertzel(x, k).map_or(0.0, |(re, im)| (re * re + im * im).sqrt())
 }
 
 /// Batch form of [`goertzel`] for multiple frequency bins.

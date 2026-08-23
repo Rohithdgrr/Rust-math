@@ -4,8 +4,10 @@ use crate::style::Color;
 
 /// Legend position relative to the plot.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Default)]
 pub enum LegendPosition {
     /// Top-right corner (default).
+    #[default]
     UpperRight,
     /// Top-left corner.
     UpperLeft,
@@ -27,28 +29,20 @@ pub enum LegendPosition {
     Custom(f64, f64),
 }
 
-impl Default for LegendPosition {
-    fn default() -> Self {
-        Self::UpperRight
-    }
-}
 
 /// Legend layout direction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum LegendLayout {
     /// Vertical list (default).
     Vertical,
     /// Horizontal row.
     Horizontal,
     /// Auto: horizontal if few items, vertical if many.
+    #[default]
     Auto,
 }
 
-impl Default for LegendLayout {
-    fn default() -> Self {
-        Self::Auto
-    }
-}
 
 /// Configuration for legend rendering.
 #[derive(Debug, Clone)]
@@ -236,7 +230,7 @@ pub fn estimate_legend_size(
 
     if is_horizontal {
         let cols = config.columns.min(items.len());
-        let rows = (items.len() + cols - 1) / cols;
+        let rows = items.len().div_ceil(cols);
         let width = cols as f64 * item_width + (cols - 1) as f64 * config.column_spacing;
         let height = rows as f64 * item_height;
         (

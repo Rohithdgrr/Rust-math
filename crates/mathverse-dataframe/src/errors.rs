@@ -1,7 +1,7 @@
 use alloc::string::{String, ToString};
 use core::fmt;
 
-/// Errors that can occur in DataFrame operations.
+/// Errors that can occur in `DataFrame` operations.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum DataFrameError {
@@ -30,7 +30,7 @@ pub enum DataFrameError {
     DuplicateColumn(String),
     /// Join key not found.
     JoinKeyNotFound(String),
-    /// Empty DataFrame where a non-empty one is required.
+    /// Empty `DataFrame` where a non-empty one is required.
     EmptyDataFrame,
     /// Parse error for a value.
     ParseError {
@@ -93,10 +93,10 @@ impl From<std::io::Error> for DataFrameError {
 }
 
 impl From<DataFrameError> for String {
-    fn from(e: DataFrameError) -> String {
+    fn from(e: DataFrameError) -> Self {
         e.to_string()
     }
 }
 
-/// Convenience alias for DataFrame operations.
+/// Convenience alias for `DataFrame` operations.
 pub type DataFrameResult<T> = Result<T, DataFrameError>;

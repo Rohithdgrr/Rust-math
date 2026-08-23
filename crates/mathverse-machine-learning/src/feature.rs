@@ -85,8 +85,7 @@ pub(crate) fn one_hot_decode(encoded: &[Vec<f64>]) -> Vec<f64> {
             row.iter()
                 .enumerate()
                 .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Less))
-                .map(|(i, _)| i as f64)
-                .unwrap_or(0.0)
+                .map_or(0.0, |(i, _)| i as f64)
         })
         .collect()
 }

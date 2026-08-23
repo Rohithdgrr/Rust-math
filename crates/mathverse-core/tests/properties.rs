@@ -9,8 +9,8 @@ use proptest::test_runner::Config;
 fn lerp_boundary() {
     let config = Config::with_cases(100);
     proptest!(config, |(a in -1000i32..1000i32, b in -1000i32..1000i32)| {
-        let a = a as f64;
-        let b = b as f64;
+        let a = f64::from(a);
+        let b = f64::from(b);
         let result_0 = mathverse_core::ops::lerp(a, b, 0.0);
         let result_1 = mathverse_core::ops::lerp(a, b, 1.0);
         prop_assert!((result_0 - a).abs() < 1e-10, "lerp(a,b,0) should equal a");
@@ -68,7 +68,10 @@ fn is_prime_matches_sieve() {
     let config = Config::with_cases(100);
     proptest!(config, |(n in 2u64..200u64)| {
         let prime = mathverse_core::algorithms::is_prime(n);
-        let sieve = mathverse_core::algorithms::sieve_of_eratosthenes(n as usize).contains(&n);
+        let sieve = mathverse_core::algorithms::sieve_of_eratosthenes(
+            usize::try_from(n).expect("sieve bound fits in usize"),
+        )
+        .contains(&n);
         prop_assert_eq!(prime, sieve);
     });
 }
@@ -81,7 +84,7 @@ fn factorial_positive() {
         prop_assert!(f > 0, "factorial should be positive for n >= 0");
         if n >= 2u64 {
             let f_prev = mathverse_core::algorithms::factorial(n - 1);
-            prop_assert_eq!(f, f_prev * n as u128, "n! = (n-1)! * n");
+            prop_assert_eq!(f, f_prev * u128::from(n), "n! = (n-1)! * n");
         }
     });
 }
@@ -141,7 +144,7 @@ fn div_by_gcd_coprime() {
 #[test]
 fn digit_sum_bounded() {
     let config = Config::with_cases(100);
-    proptest!(config, |(n in 0u64..1000000u64)| {
+    proptest!(config, |(n in 0u64..1_000_000u64)| {
         let s = mathverse_core::algorithms::digit_sum(n);
         let dc = mathverse_core::algorithms::digit_count(n);
         prop_assert!(s <= 9 * dc as u64, "digit_sum should be bounded by 9 * digit_count");
@@ -171,7 +174,7 @@ fn euler_phi_upper_bound() {
 #[test]
 fn is_palindrome_reverse() {
     let config = Config::with_cases(100);
-    proptest!(config, |(n in 0u64..100000u64)| {
+    proptest!(config, |(n in 0u64..100_000u64)| {
         let p = mathverse_core::algorithms::is_palindrome(n);
         let rev = mathverse_core::algorithms::reverse_digits(n);
         prop_assert_eq!(p, n == rev, "is_palindrome should match n == reverse_digits(n)");
@@ -236,7 +239,7 @@ fn hyperbolic_tanh_bounded() {
     let config = Config::with_cases(100);
     proptest!(config, |(x in -100.0f64..100.0f64)| {
         let t = x.tanh();
-        prop_assert!(t >= -1.0 && t <= 1.0, "tanh should be in [-1,1], got {t}");
+        prop_assert!((-1.0..=1.0).contains(&t), "tanh should be in [-1,1], got {t}");
     });
 }
 

@@ -71,29 +71,29 @@ mod tests {
 
     #[test]
     fn rounding_modes() {
-        assert_eq!(round_with_mode(1.5, RoundingMode::Nearest), 2.0);
-        assert_eq!(round_with_mode(1.5, RoundingMode::TowardZero), 1.0);
-        assert_eq!(round_with_mode(-1.5, RoundingMode::Down), -2.0);
-        assert_eq!(round_with_mode(-1.5, RoundingMode::Up), -1.0);
+        assert!((round_with_mode(1.5, RoundingMode::Nearest) - 2.0).abs() < 1e-12);
+        assert!((round_with_mode(1.5, RoundingMode::TowardZero) - 1.0).abs() < 1e-12);
+        assert!((round_with_mode(-1.5, RoundingMode::Down) - -2.0).abs() < 1e-12);
+        assert!((round_with_mode(-1.5, RoundingMode::Up) - -1.0).abs() < 1e-12);
     }
 
     #[test]
     fn round_to_places() {
-        assert!((round_to_with_mode(3.14159, 2, RoundingMode::Nearest) - 3.14).abs() < 1e-12);
+        assert!((round_to_with_mode(2.678, 2, RoundingMode::Nearest) - 2.68).abs() < 1e-12);
         assert!((round_to_with_mode(2.5, 0, RoundingMode::TowardZero) - 2.0).abs() < 1e-12);
     }
 
     #[test]
     fn bankers_rounding() {
-        assert_eq!(round_with_mode(0.5, RoundingMode::Bankers), 0.0);
-        assert_eq!(round_with_mode(1.5, RoundingMode::Bankers), 2.0);
-        assert_eq!(round_with_mode(2.5, RoundingMode::Bankers), 2.0);
-        assert_eq!(round_with_mode(3.5, RoundingMode::Bankers), 4.0);
+        assert!((round_with_mode(0.5, RoundingMode::Bankers) - 0.0).abs() < 1e-12);
+        assert!((round_with_mode(1.5, RoundingMode::Bankers) - 2.0).abs() < 1e-12);
+        assert!((round_with_mode(2.5, RoundingMode::Bankers) - 2.0).abs() < 1e-12);
+        assert!((round_with_mode(3.5, RoundingMode::Bankers) - 4.0).abs() < 1e-12);
     }
 
     #[test]
     fn quantize_test() {
-        assert_eq!(quantize(1.2345, 0.01), 1.23);
-        assert_eq!(quantize(1.2345, 1.0), 1.0);
+        assert!((quantize(1.2345, 0.01) - 1.23).abs() < 1e-12);
+        assert!((quantize(1.2345, 1.0) - 1.0).abs() < 1e-12);
     }
 }

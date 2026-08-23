@@ -8,8 +8,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut rng = 1u64;
     let mut next = move || {
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         (rng >> 33) as f64 / (1u64 << 31) as f64
     };
     let data: Vec<f64> = (0..200)
@@ -34,8 +34,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let (lo, hi) = (hist.edges()[i], hist.edges()[i + 1]);
             plot.add_bar(lo, hi, count as f64, Color::BLUE);
         }
-  let file = format!("histogram_{:?}.png", method).to_lowercase();
-  PlotSaver::new(&plot.generate()).save_png(&file)?;
+  let file = format!("histogram_{method:?}.png").to_lowercase();
+  PlotSaver::new(plot.generate()).save_png(&file)?;
   println!("{method:?}: {} bins -> {file}", hist.counts().len());
     }
 

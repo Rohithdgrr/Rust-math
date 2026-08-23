@@ -1,3 +1,6 @@
+//! Exercise suite for the dataframe crate, run via `cargo run --example test_dataframe`.
+#![allow(clippy::too_many_lines)]
+
 use mathverse_dataframe::{DataFrame, Series, AnyColumn};
 
 fn main() {
@@ -7,7 +10,7 @@ fn main() {
     df.add_column("age", vec![25.0, 30.0, 35.0]).unwrap();
     df.add_column("score", vec![88.5, 92.3, 76.1]).unwrap();
     println!("=== Test 1: Basic DataFrame ===");
-    println!("{}", df);
+    println!("{df}");
     assert_eq!(df.shape(), (3, 3));
     assert_eq!(df.column_names(), vec!["name", "age", "score"]);
     println!("PASS: shape and columns\n");
@@ -42,11 +45,11 @@ fn main() {
     let scaled = x.mul_scalar(2.0).unwrap();
     let sum_f64 = sum.to_f64().unwrap();
     let scaled_f64 = scaled.to_f64().unwrap();
-    let sum_data: Vec<f64> = sum_f64.data().into_iter().map(|&v| v).collect();
-    let scaled_data: Vec<f64> = scaled_f64.data().into_iter().map(|&v| v).collect();
+    let sum_data: Vec<f64> = sum_f64.data().to_vec();
+    let scaled_data: Vec<f64> = scaled_f64.data().to_vec();
     println!("=== Test 5: Arithmetic ===");
-    println!("sum: {:?}", sum_data);
-    println!("scaled: {:?}", scaled_data);
+    println!("sum: {sum_data:?}");
+    println!("scaled: {scaled_data:?}");
     assert_eq!(sum_data, vec![5.0, 7.0, 9.0]);
     assert_eq!(scaled_data, vec![2.0, 4.0, 6.0]);
     println!("PASS: arithmetic works\n");
@@ -58,9 +61,9 @@ fn main() {
     let median = score_col.median().unwrap();
     let q25 = score_col.quantile(0.25).unwrap();
     let desc = score_col.describe_numeric().unwrap();
-    let (min, max, mean_val, std_val, count) = desc;
+    let (min, max, _mean_val, _std_val, count) = desc;
     println!("=== Test 6: Aggregations ===");
-    println!("mean={}, std={}, median={}, q25={}, min={}, max={}, n={}", mean, std, median, q25, min, max, count);
+    println!("mean={mean}, std={std}, median={median}, q25={q25}, min={min}, max={max}, n={count}");
     assert!((mean - 85.6333).abs() < 0.01);
     println!("PASS: aggregations work\n");
 
@@ -69,7 +72,7 @@ fn main() {
     df2.add_column("value", vec![3.0, 1.0, 2.0]).unwrap();
     let sorted = df2.sort_by("value", true).unwrap();
     let sorted_f64 = sorted.column("value").unwrap().to_f64().unwrap();
-    let sorted_data: Vec<f64> = sorted_f64.data().into_iter().map(|&v| v).collect();
+    let sorted_data: Vec<f64> = sorted_f64.data().to_vec();
     assert_eq!(sorted_data, vec![1.0, 2.0, 3.0]);
     println!("=== Test 7: Sorting ===");
     println!("PASS: sort_by works\n");
@@ -80,7 +83,7 @@ fn main() {
     df3.add_column("b", vec![4.0, 5.0, 6.0]).unwrap();
     let t = df3.transpose().unwrap();
     println!("=== Test 8: Transpose ===");
-    println!("Transposed:\n{}", t);
+    println!("Transposed:\n{t}");
     assert_eq!(t.shape(), (2, 3));
     println!("PASS: transpose works\n");
 
@@ -90,7 +93,7 @@ fn main() {
     let i64_col = i64_df.column("id").unwrap();
     let i64_data: Vec<f64> = i64_col.valid_f64().unwrap();
     println!("=== Test 9: i64 column ===");
-    println!("PASS: i64 column valid_f64 works (values: {:?})", i64_data);
+    println!("PASS: i64 column valid_f64 works (values: {i64_data:?})");
 
     // Test 10: JSON roundtrip (with json feature)
     #[cfg(feature = "json")]
@@ -111,8 +114,8 @@ fn main() {
     let s = Series::new("x", vec![1.0, 2.0, 3.0, 4.0, 5.0]);
     let head = s.head(2);
     let tail = s.tail(2);
-    let head_data: Vec<f64> = head.data().into_iter().map(|&v| v).collect();
-    let tail_data: Vec<f64> = tail.data().into_iter().map(|&v| v).collect();
+    let head_data: Vec<f64> = head.data().to_vec();
+    let tail_data: Vec<f64> = tail.data().to_vec();
     assert_eq!(head_data, vec![1.0, 2.0]);
     assert_eq!(tail_data, vec![4.0, 5.0]);
     println!("=== Test 11: Head/Tail ===");
@@ -121,7 +124,7 @@ fn main() {
     // Test 12: Series map
     let s = Series::new("x", vec![1.0, 2.0, 3.0]);
     let doubled = s.map(|&v| v * 2.0);
-    let d_data: Vec<f64> = doubled.data().into_iter().map(|&v| v).collect();
+    let d_data: Vec<f64> = doubled.data().to_vec();
     assert_eq!(d_data, vec![2.0, 4.0, 6.0]);
     println!("=== Test 12: Map ===");
     println!("PASS: map works\n");
@@ -129,7 +132,7 @@ fn main() {
     // Test 13: DataFrame describe
     let desc_df = df.describe().unwrap();
     println!("=== Test 13: DataFrame describe ===");
-    println!("{}", desc_df);
+    println!("{desc_df}");
     assert_eq!(desc_df.ncols(), 3); // score, age (numeric cols)
     println!("PASS: describe works\n");
 

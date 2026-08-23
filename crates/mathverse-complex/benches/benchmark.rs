@@ -8,7 +8,9 @@
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
     clippy::unreadable_literal,
-    clippy::needless_range_loop
+    clippy::needless_range_loop,
+    // `criterion_group!` expands to undocumented functions; they cannot be documented directly.
+    missing_docs
 )]
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};

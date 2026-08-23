@@ -132,7 +132,6 @@ impl InsetAxes {
         let (ix, iy) = self.config.position;
         let w = self.config.width;
         let h = self.config.height;
-        let _pad = self.config.padding;
 
         // Connector lines from main plot region to inset
         if self.config.show_connector {
@@ -272,7 +271,7 @@ impl Insets {
     }
 
     /// Add an inset.
-    pub fn add(mut self, inset: InsetAxes) -> Self {
+    pub fn add_inset(mut self, inset: InsetAxes) -> Self {
         self.insets.push(inset);
         self
     }
@@ -313,8 +312,8 @@ mod tests {
     #[test]
     fn insets_collection() {
         let insets = Insets::new()
-            .add(InsetAxes::new(InsetConfig::new((0.0, 1.0), (0.0, 1.0))))
-            .add(InsetAxes::new(InsetConfig::new((2.0, 3.0), (2.0, 3.0))));
+            .add_inset(InsetAxes::new(InsetConfig::new((0.0, 1.0), (0.0, 1.0))))
+            .add_inset(InsetAxes::new(InsetConfig::new((2.0, 3.0), (2.0, 3.0))));
         assert_eq!(insets.insets.len(), 2);
     }
 }

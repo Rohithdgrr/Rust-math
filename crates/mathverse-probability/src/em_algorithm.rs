@@ -63,7 +63,7 @@ pub fn em<M: EMModel>(
             let log_rho = model.log_responsibilities(&params, obs);
             let max_r = log_rho
                 .iter()
-                .cloned()
+                .copied()
                 .fold(f64::NEG_INFINITY, f64::max);
             let sum_exp: f64 = log_rho.iter().map(|&lr| (lr - max_r).exp()).sum();
             let log_z = max_r + sum_exp.ln();
@@ -106,10 +106,10 @@ impl CovChol {
         let d = m.len();
         let l = cholesky(m)?;
         let mut out = Self::new(d);
-        for i in 0..d {
-            out.log_diag[i] = l[i][i].ln();
-            for j in 0..i {
-                out.lower[i][j] = l[i][j];
+        for (i, li) in l.iter().enumerate().take(d) {
+            out.log_diag[i] = li[i].ln();
+            for (j, &lij) in li.iter().enumerate().take(i) {
+                out.lower[i][j] = lij;
             }
         }
         Ok(out)
@@ -127,8 +127,8 @@ impl CovChol {
         let mut y = vec![0.0; d];
         for i in 0..d {
             let mut s = b[i];
-            for j in 0..i {
-                s -= self.lower[i][j] * y[j];
+            for (j, &yj) in y.iter().enumerate().take(i) {
+                s -= self.lower[i][j] * yj;
             }
             y[i] = s / self.log_diag[i].exp();
         }
@@ -219,12 +219,15 @@ impl GaussianMixture {
 
         let mut ll_hist = result.log_likelihoods;
         let flat = GMMModel::unflatten(&params, n_components, d);
-        if ll_hist.last().map_or(false, |&ll| ll.is_nan() || ll.is_infinite()) {
+        if ll_hist
+            .last()
+            .is_some_and(|&ll| ll.is_nan() || ll.is_infinite())
+        {
             return Err("gmm fit diverged".into());
         }
-        self.weights = flat.0.clone();
-        self.means = flat.1.clone();
-        self.covariances = flat.2.clone();
+        self.weights.clone_from(&flat.0);
+        self.means.clone_from(&flat.1);
+        self.covariances.clone_from(&flat.2);
         // Recompute the exact log-likelihood at the final parameters.
         let ll = self.log_score_multi(data);
         ll_hist.push(ll);
@@ -244,7 +247,7 @@ impl GaussianMixture {
             }
             log_rho.push(s);
         }
-        let max_r = log_rho.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let max_r = log_rho.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let sum_exp: f64 = log_rho.iter().map(|&lr| (lr - max_r).exp()).sum();
         log_rho
             .iter()
@@ -313,8 +316,8 @@ impl GaussianMixture {
             let mut x = self.means[k].clone();
             for i in 0..d {
                 let z = Normal { mu: 0.0, sigma: 1.0 }.sample(rng);
-                for j in 0..d {
-                    x[j] += l[j][i] * z;
+                for (xj, lj) in x.iter_mut().zip(&l).take(d) {
+                    *xj += lj[i] * z;
                 }
             }
             x
@@ -347,15 +350,15 @@ impl GMMModel {
         for cov in covs {
             let l = cholesky(cov).unwrap_or_else(|_| {
                 let mut eye = vec![vec![0.0; d]; d];
-                for i in 0..d {
-                    eye[i][i] = 1.0;
+                for (i, e) in eye.iter_mut().enumerate().take(d) {
+                    e[i] = 1.0;
                 }
                 eye
             });
-            for i in 0..d {
-                params.push(l[i][i].ln());
-                for j in 0..i {
-                    params.push(l[i][j]);
+            for (i, li) in l.iter().enumerate().take(d) {
+                params.push(li[i].ln());
+                for &v in li.iter().take(i) {
+                    params.push(v);
                 }
             }
         }
@@ -369,7 +372,7 @@ impl GMMModel {
             *ai = params[idx];
             idx += 1;
         }
-        let max_a = a.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let max_a = a.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let sum_exp: f64 = a.iter().map(|&v| (v - max_a).exp()).sum();
         let weights: Vec<f64> = a.iter().map(|&v| (v - max_a).exp() / sum_exp).collect();
         let mut means = vec![vec![0.0; d]; k];
@@ -379,11 +382,11 @@ impl GMMModel {
         }
         let mut covs = vec![vec![vec![0.0; d]; d]; k];
         for c in &mut covs {
-            for i in 0..d {
-                c[i][i] = params[idx].exp();
+            for (i, ci) in c.iter_mut().enumerate().take(d) {
+                ci[i] = params[idx].exp();
                 idx += 1;
-                for j in 0..i {
-                    c[i][j] = params[idx];
+                for cj in ci.iter_mut().take(i) {
+                    *cj = params[idx];
                     idx += 1;
                 }
             }
@@ -468,9 +471,9 @@ impl EMModel for GMMModel {
         }
         for j in 0..k {
             if r_sum[j] > 0.0 {
-                for a in 0..d {
-                    for b in 0..d {
-                        covs[j][a][b] /= r_sum[j];
+                for row in &mut covs[j] {
+                    for v in row.iter_mut().take(d) {
+                        *v /= r_sum[j];
                     }
                 }
                 // Keep the covariance positive definite: jitter the diagonal
@@ -478,8 +481,8 @@ impl EMModel for GMMModel {
                 // EM monotonicity in the regular case).
                 if cholesky(&covs[j]).is_err() {
                     let jitter = 1e-9 * (1.0 + covs[j][0][0].abs());
-                    for a in 0..d {
-                        covs[j][a][a] += jitter;
+                    for (a, row) in covs[j].iter_mut().enumerate().take(d) {
+                        row[a] += jitter;
                     }
                 }
             }
@@ -589,8 +592,10 @@ mod tests {
         };
         let ll_hist = gmm.fit(&data, 3, 100, 0.0).unwrap();
         for w in ll_hist.windows(2).take(50) {
+            // EM is theoretically monotone; the Cholesky round-trip through
+            // the flattened parameterization adds ~1e-7 relative float noise.
             assert!(
-                w[1] >= w[0] - 1e-9,
+                w[1] >= w[0] - 1e-6 * (1.0 + w[0].abs()),
                 "log-likelihood decreased: {} -> {}",
                 w[0],
                 w[1]
@@ -602,28 +607,36 @@ mod tests {
     }
 
     /// Bernoulli mixture used to test the generic EM driver.
-    /// Params: `[a_0, a_1, logit(p_0), logit(p_1)]`, weights `softmax(a)`.
+    ///
+    /// Each observation is a `d`-dim binary vector; component `j` has
+    /// independent per-feature success probabilities. Params are
+    /// `[w_0..w_{k-1}, logit(p_{0,0}), ..., logit(p_{k-1,d-1})]`, where the
+    /// mixture weights `w_j` are stored directly (already normalized). A
+    /// logit/softmax round trip must NOT be used for the weights: softmax of
+    /// per-component logits is not the identity and silently breaks EM's
+    /// monotonicity.
     struct BernoulliMixture {
         k: usize,
+        d: usize,
     }
 
     impl BernoulliMixture {
-        fn weight(j: usize, a: &[f64]) -> f64 {
-            let max_a = a.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-            let sum: f64 = a.iter().map(|&v| (v - max_a).exp()).sum();
-            (a[j] - max_a).exp() / sum
+        fn prob_of(logit: f64) -> f64 {
+            let e = logit.exp();
+            e / (1.0 + e).max(1e-300)
         }
     }
 
     impl EMModel for BernoulliMixture {
         fn log_responsibilities(&self, params: &[f64], observation: &[f64]) -> Vec<f64> {
-            let x = observation[0];
             (0..self.k)
                 .map(|j| {
-                    let w = Self::weight(j, &params[..self.k]);
-                    let logit = params[self.k + j];
-                    let p = logit.exp() / (1.0 + logit.exp()).max(1e-300);
-                    w.ln() + x * p.ln() + (1.0 - x) * (1.0 - p).ln()
+                    let mut ll = params[j].max(1e-300).ln();
+                    for (f, &x) in observation.iter().enumerate() {
+                        let p = Self::prob_of(params[self.k + j * self.d + f]);
+                        ll += x * p.ln() + (1.0 - x) * (1.0 - p).ln();
+                    }
+                    ll
                 })
                 .collect()
         }
@@ -641,21 +654,22 @@ mod tests {
                     r_sum[j] += rj;
                 }
             }
-            let mut params = Vec::with_capacity(2 * self.k);
+            let mut params = Vec::with_capacity(self.k + self.k * self.d);
             for &s in &r_sum {
-                let w = (s / n as f64).clamp(1e-9, 1.0 - 1e-9);
-                params.push((w / (1.0 - w)).ln());
+                params.push((s / n as f64).clamp(1e-9, 1.0));
             }
             for j in 0..self.k {
-                let mut num = 0.0;
-                for (i, obs) in observations.iter().enumerate() {
-                    num += responsibilities[i][j] * obs[0];
-                }
-                if r_sum[j] > 0.0 {
-                    let p = (num / r_sum[j]).clamp(1e-9, 1.0 - 1e-9);
-                    params.push((p / (1.0 - p)).ln());
-                } else {
-                    params.push(0.0);
+                for f in 0..self.d {
+                    let mut num = 0.0;
+                    for (i, obs) in observations.iter().enumerate() {
+                        num += responsibilities[i][j] * obs[f];
+                    }
+                    if r_sum[j] > 0.0 {
+                        let p = (num / r_sum[j]).clamp(1e-9, 1.0 - 1e-9);
+                        params.push((p / (1.0 - p)).ln());
+                    } else {
+                        params.push(0.0);
+                    }
                 }
             }
             params
@@ -664,31 +678,55 @@ mod tests {
 
     #[test]
     fn generic_em_fits_bernoulli_mixture() {
+        // Two components over two features:
+        //   A: p = (0.15, 0.85), B: p = (0.8, 0.2), equal weights.
+        // With d >= 2 the model is identifiable and EM separates it.
+        // (With d == 1 the marginal only depends on E[p] and no algorithm
+        // could recover the components.)
         let mut rng = Rng::new(19);
+        let pa = [0.15_f64, 0.85];
+        let pb = [0.8_f64, 0.2];
         let mut data = Vec::new();
-        for _ in 0..600 {
-            let p = if rng.uniform() < 0.5 { 0.1 } else { 0.8 };
-            let x = if rng.uniform() < p { 1.0 } else { 0.0 };
-            data.push(vec![x]);
+        for _ in 0..800 {
+            let comp_a = rng.uniform() < 0.5;
+            let row: Vec<f64> = if comp_a {
+                pa.iter().map(|&p| if rng.uniform() < p { 1.0 } else { 0.0 }).collect()
+            } else {
+                pb.iter().map(|&p| if rng.uniform() < p { 1.0 } else { 0.0 }).collect()
+            };
+            data.push(row);
         }
-        let model = BernoulliMixture { k: 2 };
-        let result = em(&model, vec![0.0, 0.0, 0.0, 0.0], &data, 200, 1e-9).unwrap();
+        let model = BernoulliMixture { k: 2, d: 2 };
+        // Asymmetric init is essential: identical components sit on a saddle.
+        let init = vec![0.5, 0.5, -1.5, 1.5, 1.5, -1.5];
+        let result = em(&model, init, &data, 200, 1e-9).unwrap();
         assert!(result.iterations > 1);
-        // p values recovered near 0.1 and 0.8 (order may swap).
-        let mut ps: Vec<f64> = result
-            .params
-            .iter()
-            .map(|&logit| logit.exp() / (1.0 + logit.exp()))
+        // Recovered probabilities near truth (component order may swap).
+        let ps: Vec<Vec<f64>> = (0..2)
+            .map(|j| {
+                (0..2)
+                    .map(|f| {
+                        let l = result.params[2 + j * 2 + f];
+                        l.exp() / (1.0 + l.exp())
+                    })
+                    .collect()
+            })
             .collect();
-        ps.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        assert!((ps[0] - 0.1).abs() < 0.05, "p0 {}", ps[0]);
-        assert!((ps[1] - 0.8).abs() < 0.05, "p1 {}", ps[1]);
-        // Monotone log-likelihood.
+        let (first, second) = if (ps[0][0] - pa[0]).abs() < (ps[1][0] - pa[0]).abs() {
+            (&ps[0], &ps[1])
+        } else {
+            (&ps[1], &ps[0])
+        };
+        assert!((first[0] - pa[0]).abs() < 0.05, "pa {}", first[0]);
+        assert!((first[1] - pa[1]).abs() < 0.05, "pa1 {}", first[1]);
+        assert!((second[0] - pb[0]).abs() < 0.05, "pb {}", second[0]);
+        assert!((second[1] - pb[1]).abs() < 0.05, "pb1 {}", second[1]);
+        // Monotone log-likelihood up to float noise.
         assert!(
             result
                 .log_likelihoods
                 .windows(2)
-                .all(|w| w[1] >= w[0] - 1e-9)
+                .all(|w| w[1] >= w[0] - 1e-6 * (1.0 + w[0].abs()))
         );
     }
 

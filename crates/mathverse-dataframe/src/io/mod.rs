@@ -1,4 +1,4 @@
-//! CSV and JSON I/O for [`crate::DataFrame`].
+﻿//! CSV and JSON I/O for [`crate::DataFrame`].
 //!
 //! The `csv` feature provides RFC 4180-compliant reading and writing with
 //! per-column type inference. The `json` feature provides JSON serialization
@@ -30,7 +30,7 @@ pub struct CsvReadOptions {
     pub delimiter: u8,
     /// Whether the first record is a header row (default `true`).
     pub has_header: bool,
-    /// String representing a missing value (default `""` — empty fields).
+    /// String representing a missing value (default `""` â€” empty fields).
     pub null_value: String,
     /// If `true`, columns are kept as strings instead of type-inferred.
     pub keep_strings: bool,
@@ -117,11 +117,11 @@ pub fn read_csv_with_options(input: &str, options: &CsvReadOptions) -> DataFrame
     for (ci, name) in header.iter().enumerate() {
         let raw: Vec<&str> = body.iter().map(|r| r[ci].as_str()).collect();
         if options.keep_strings {
-            let data: Vec<String> = raw.iter().map(|s| s.to_string()).collect();
+            let data: Vec<String> = raw.iter().map(std::string::ToString::to_string).collect();
             df.add_any_column(AnyColumn::Utf8(Series::new(name, data)))?;
             continue;
         }
-        df.add_any_column(infer_column(name, &raw, &options.null_value)?)?;
+        df.add_any_column(infer_column(name, &raw, &options.null_value))?;
     }
     Ok(df)
 }
@@ -157,23 +157,20 @@ pub fn write_csv_with_options(df: &DataFrame, options: &CsvWriteOptions) -> Stri
             if ci > 0 {
                 out.push(delim);
             }
-            let col = match df.column_by_index(ci) {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
+            let Ok(col) = df.column_by_index(ci) else { continue };
             if col.is_null(row) {
                 out.push_str(&options.null_value);
             } else {
                 let cell = match col {
                     AnyColumn::Float64(s) => s.data()[row].to_string(),
                     AnyColumn::Float32(s) => s.data()[row].to_string(),
-                    AnyColumn::Int64(s) => s.data()[row].to_string(),
+                    AnyColumn::Int64(s)
+                    | AnyColumn::Date(s)
+                    | AnyColumn::DateTime(s)
+                    | AnyColumn::Duration(s) => s.data()[row].to_string(),
                     AnyColumn::Int32(s) => s.data()[row].to_string(),
                     AnyColumn::Bool(s) => s.data()[row].to_string(),
                     AnyColumn::Utf8(s) => s.data()[row].clone(),
-                    AnyColumn::Date(s) => s.data()[row].to_string(),
-                    AnyColumn::DateTime(s) => s.data()[row].to_string(),
-                    AnyColumn::Duration(s) => s.data()[row].to_string(),
                 };
                 out.push_str(&escape_field(&cell, options.delimiter));
             }
@@ -185,7 +182,7 @@ pub fn write_csv_with_options(df: &DataFrame, options: &CsvWriteOptions) -> Stri
 
 #[cfg(feature = "std")]
 mod file_io {
-    use super::*;
+    use super::{DataFrameResult, DataFrame, DataFrameError, read_csv_from_str, to_csv_string};
 
     /// Reads a CSV file into a [`DataFrame`] (default options).
     ///
@@ -275,7 +272,7 @@ fn parse_records(input: &str, delimiter: u8) -> DataFrameResult<Vec<Vec<String>>
 }
 
 /// Infers the best-fit column dtype and builds the corresponding [`AnyColumn`].
-fn infer_column(name: &str, raw: &[&str], null_value: &str) -> DataFrameResult<AnyColumn> {
+fn infer_column(name: &str, raw: &[&str], null_value: &str) -> AnyColumn {
     let is_null = |s: &str| s == null_value;
     if raw.iter().all(|s| is_null(s)) {
         // All-missing column: store as Float64 with all-null validity.
@@ -283,7 +280,7 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> DataFrameResult<A
         for i in 0..raw.len() {
             series.set_null(i);
         }
-        return Ok(AnyColumn::Float64(series));
+        return AnyColumn::Float64(series);
     }
 
     // Integer inference.
@@ -301,7 +298,7 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> DataFrameResult<A
                 series.set_null(i);
             }
         }
-        return Ok(AnyColumn::Int64(series));
+        return AnyColumn::Int64(series);
     }
 
     // Float inference (must contain a decimal point or exponent marker to
@@ -322,7 +319,7 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> DataFrameResult<A
                 series.set_null(i);
             }
         }
-        return Ok(AnyColumn::Float64(series));
+        return AnyColumn::Float64(series);
     }
 
     // Bool inference.
@@ -344,7 +341,7 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> DataFrameResult<A
                 series.set_null(i);
             }
         }
-        return Ok(AnyColumn::Bool(series));
+        return AnyColumn::Bool(series);
     }
 
     // Fallback: strings.
@@ -358,7 +355,7 @@ fn infer_column(name: &str, raw: &[&str], null_value: &str) -> DataFrameResult<A
             series.set_null(i);
         }
     }
-    Ok(AnyColumn::Utf8(series))
+    AnyColumn::Utf8(series)
 }
 
 /// Escapes a field if it contains the delimiter, quotes, or newlines.

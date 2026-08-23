@@ -45,15 +45,15 @@ impl StatTest {
     /// Get the p-value.
     pub fn p_value(&self) -> f64 {
         match self {
-            StatTest::TTest { p_value } => *p_value,
-            StatTest::PairedTTest { p_value } => *p_value,
-            StatTest::MannWhitney { p_value } => *p_value,
-            StatTest::Wilcoxon { p_value } => *p_value,
-            StatTest::Anova { p_value, .. } => *p_value,
-            StatTest::KruskalWallis { p_value } => *p_value,
-            StatTest::ChiSquared { p_value } => *p_value,
-            StatTest::FisherExact { p_value } => *p_value,
-            StatTest::Custom { p_value, .. } => *p_value,
+            StatTest::TTest { p_value }
+            | StatTest::PairedTTest { p_value }
+            | StatTest::MannWhitney { p_value }
+            | StatTest::Wilcoxon { p_value }
+            | StatTest::Anova { p_value, .. }
+            | StatTest::KruskalWallis { p_value }
+            | StatTest::ChiSquared { p_value }
+            | StatTest::FisherExact { p_value }
+            | StatTest::Custom { p_value, .. } => *p_value,
         }
     }
 
@@ -76,9 +76,9 @@ impl StatTest {
     pub fn format_p(&self) -> String {
         let p = self.p_value();
         if p < 0.001 {
-            format!("{:.2e}", p)
+            format!("{p:.2e}")
         } else {
-            format!("{:.3}", p)
+            format!("{p:.3}")
         }
     }
 
@@ -334,7 +334,7 @@ impl StatAnnotation {
             }
             BracketLineStyle::Rounded => {
                 // Rounded bracket using path
-                let mid_x = (x1 + x2) / 2.0;
+                let mid_x = f64::midpoint(x1, x2);
                 svg.push_str(&format!(
                     "  <path d=\"M{},{} L{},{} L{},{}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n",
                     x1, y - tick_len, x1, y, mid_x, y, color_hex, self.line_width
@@ -348,7 +348,7 @@ impl StatAnnotation {
 
         // Text label
         let text = self.display_text();
-        let text_x = (x1 + x2) / 2.0;
+        let text_x = f64::midpoint(x1, x2);
         let text_y = y - tick_len - 2.0;
         svg.push_str(&format!(
             "  <text x=\"{}\" y=\"{}\" text-anchor=\"middle\" font-size=\"{}\" fill=\"{}\">{}</text>\n",
@@ -469,11 +469,9 @@ impl StatAnnotations {
 /// Format a p-value for display (convenience function).
 pub fn format_pvalue(p: f64) -> String {
     if p < 0.001 {
-        format!("{:.2e}", p)
-    } else if p < 0.01 {
-        format!("{:.3}", p)
+        format!("{p:.2e}")
     } else {
-        format!("{:.3}", p)
+        format!("{p:.3}")
     }
 }
 

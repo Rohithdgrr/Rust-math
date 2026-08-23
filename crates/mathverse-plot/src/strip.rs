@@ -82,8 +82,8 @@ pub fn render_strip_plot(categories: &[StripCategory], config: &StripConfig) -> 
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     // Find global y range
     let all_min = categories.iter().flat_map(|c| &c.values).fold(f64::INFINITY, |a, &b| a.min(b));
@@ -115,7 +115,7 @@ pub fn render_strip_plot(categories: &[StripCategory], config: &StripConfig) -> 
     // Grid
     if config.show_grid {
         for i in 0..=5 {
-            let y = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let y = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");

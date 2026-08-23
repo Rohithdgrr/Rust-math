@@ -14,7 +14,6 @@ pub struct Graph {
 
 impl Graph {
     /// Empty graph on `n` vertices.
-    #[must_use]
     pub fn new(n: usize) -> Self {
         Self {
             n,
@@ -76,7 +75,7 @@ impl Graph {
     #[must_use]
     pub fn degree_distribution(&self) -> Vec<f64> {
         let adj = self.adjacency();
-        let max_deg = adj.iter().map(|n| n.len()).max().unwrap_or(0);
+        let max_deg = adj.iter().map(Vec::len).max().unwrap_or(0);
         let mut hist = vec![0.0; max_deg + 1];
         for v in &adj {
             hist[v.len()] += 1.0;
@@ -142,7 +141,6 @@ impl Graph {
 
 /// Erdős-Rényi `G(n, p)`: every pair is an edge independently with
 /// probability `p`.
-#[must_use]
 pub fn erdos_renyi(n: usize, p: f64, rng: &mut Rng) -> Graph {
     let mut g = Graph::new(n);
     for i in 0..n {
@@ -156,7 +154,6 @@ pub fn erdos_renyi(n: usize, p: f64, rng: &mut Rng) -> Graph {
 }
 
 /// Erdős-Rényi `G(n, m)`: exactly `m` distinct edges chosen uniformly.
-#[must_use]
 pub fn erdos_renyi_edges(n: usize, m: usize, rng: &mut Rng) -> Graph {
     let max_edges = n.saturating_mul(n.saturating_sub(1)) / 2;
     let m = m.min(max_edges);
@@ -225,7 +222,7 @@ pub fn configuration_model(degrees: &[usize], rng: &mut Rng) -> Result<Graph, St
     if n == 0 {
         return Err("configuration model needs at least one vertex".into());
     }
-    if sum % 2 != 0 {
+    if !sum.is_multiple_of(2) {
         return Err("degree sequence must have even sum".into());
     }
     let mut stubs: Vec<usize> = Vec::with_capacity(sum);
@@ -269,7 +266,6 @@ pub fn configuration_model(degrees: &[usize], rng: &mut Rng) -> Result<Graph, St
 }
 
 /// Bond percolation: keep each edge independently with probability `p`.
-#[must_use]
 pub fn percolate(g: &Graph, p: f64, rng: &mut Rng) -> Graph {
     let mut out = Graph::new(g.n);
     for &(a, b) in &g.edges {
@@ -325,14 +321,17 @@ mod tests {
         let mut rng = Rng::new(4);
         let (n, m) = (400, 2);
         let g = barabasi_albert(n, m, &mut rng).unwrap();
-        assert_eq!(g.edge_count(), (n - 1) * m);
+        // Seed path contributes m−1 edges; each of the n−m later nodes adds
+        // exactly m.
+        assert_eq!(g.edge_count(), (n - m) * m + (m - 1));
         assert_eq!(g.connected_components(), 1);
         let dist = g.degree_distribution();
         let max_deg = dist.len() - 1;
         let mean = g.average_degree();
         assert!(max_deg as f64 > 4.0 * mean, "max degree {max_deg} vs mean {mean}");
-        // Degree-1 mass is large (scale-free).
-        assert!(dist[1] > 0.1, "P(deg=1) {}", dist[1]);
+        // With m=2 no vertex can end at degree 1 except a seed node, so the
+        // degree-1 mass is negligible; scale-free shape shows in the tail.
+        assert!(dist[1] < 0.05, "P(deg=1) {}", dist[1]);
         assert!(barabasi_albert(5, 5, &mut rng).is_err());
     }
 
@@ -381,8 +380,9 @@ mod tests {
         assert!(g.has_edge(1, 0));
         assert!(!g.has_edge(0, 2));
         assert_eq!(g.degree(1), 1);
+        // Every vertex is an endpoint of one of the two edges.
         let dist = g.degree_distribution();
-        assert_eq!(dist[0], 0.5); // two isolated vertices
-        assert_eq!(dist[1], 0.5);
+        assert_eq!(dist[0], 0.0);
+        assert_eq!(dist[1], 1.0);
     }
 }

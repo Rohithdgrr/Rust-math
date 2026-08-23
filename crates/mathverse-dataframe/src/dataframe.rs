@@ -1,4 +1,4 @@
-use alloc::format;
+﻿use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::fmt;
@@ -12,7 +12,7 @@ use crate::series::Series;
 /// A two-dimensional, column-oriented data structure with named, typed columns.
 ///
 /// A `DataFrame` is the primary data structure for working with tabular data,
-/// analogous to a pandas DataFrame or an R data frame.
+/// analogous to a pandas `DataFrame` or an R data frame.
 ///
 /// # Examples
 ///
@@ -35,7 +35,7 @@ pub struct DataFrame {
 }
 
 impl DataFrame {
-    /// Creates an empty DataFrame.
+    /// Creates an empty `DataFrame`.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -45,7 +45,7 @@ impl DataFrame {
         }
     }
 
-    /// Creates a DataFrame from a list of `AnyColumn`s.
+    /// Creates a `DataFrame` from a list of `AnyColumn`s.
     ///
     /// # Errors
     ///
@@ -70,14 +70,12 @@ impl DataFrame {
         }
 
         let mut schema = Schema::empty();
-        let mut names = Vec::with_capacity(columns.len());
         for col in &columns {
             let name = col.name().to_string();
             if schema.contains(&name) {
                 return Err(DataFrameError::DuplicateColumn(name));
             }
             schema.add_field(crate::schema::Field::new(&name, col.dtype()))?;
-            names.push(name);
         }
 
         Ok(Self {
@@ -90,7 +88,7 @@ impl DataFrame {
     /// Returns the number of rows.
     #[must_use]
     pub fn nrows(&self) -> usize {
-        self.columns.first().map_or(0, |c| c.len())
+        self.columns.first().map_or(0, super::column::AnyColumn::len)
     }
 
     /// Returns the number of columns.
@@ -105,7 +103,7 @@ impl DataFrame {
         (self.nrows(), self.ncols())
     }
 
-    /// Returns `true` if the DataFrame has no rows or columns.
+    /// Returns `true` if the `DataFrame` has no rows or columns.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.nrows() == 0 || self.ncols() == 0
@@ -129,38 +127,34 @@ impl DataFrame {
         self.schema.names().collect()
     }
 
-    /// Returns `true` if the DataFrame has a column with the given name.
+    /// Returns `true` if the `DataFrame` has a column with the given name.
     #[must_use]
     pub fn has_column(&self, name: &str) -> bool {
         self.schema.contains(name)
     }
 
     /// Returns the index of a column by name.
-    #[must_use]
     pub fn column_index(&self, name: &str) -> DataFrameResult<usize> {
         self.schema.index_of(name)
     }
 
     /// Returns a reference to the column at the given index.
-    #[must_use]
     pub fn column_by_index(&self, index: usize) -> DataFrameResult<&AnyColumn> {
         self.columns
             .get(index)
-            .ok_or_else(|| DataFrameError::IndexOutOfBounds {
+            .ok_or(DataFrameError::IndexOutOfBounds {
                 index,
                 length: self.columns.len(),
             })
     }
 
     /// Returns a reference to a column by name.
-    #[must_use]
     pub fn column(&self, name: &str) -> DataFrameResult<&AnyColumn> {
         let idx = self.schema.index_of(name)?;
         Ok(&self.columns[idx])
     }
 
     /// Returns a typed reference to a column's series.
-    #[must_use]
     pub fn column_as<T: 'static>(&self, name: &str) -> DataFrameResult<&Series<T>> {
         let col = self.column(name)?;
         col.as_any().downcast_ref::<Series<T>>().ok_or_else(|| {
@@ -235,7 +229,7 @@ impl DataFrame {
         Ok(())
     }
 
-    /// Returns the first `n` rows as a new DataFrame.
+    /// Returns the first `n` rows as a new `DataFrame`.
     #[must_use]
     pub fn head(&self, n: usize) -> Self {
         let n = n.min(self.nrows());
@@ -243,7 +237,7 @@ impl DataFrame {
             .expect("head positions are always in bounds")
     }
 
-    /// Returns the last `n` rows as a new DataFrame.
+    /// Returns the last `n` rows as a new `DataFrame`.
     #[must_use]
     pub fn tail(&self, n: usize) -> Self {
         let n = n.min(self.nrows());
@@ -252,8 +246,7 @@ impl DataFrame {
             .expect("tail positions are always in bounds")
     }
 
-    /// Returns a new DataFrame with only the specified columns.
-    #[must_use]
+    /// Returns a new `DataFrame` with only the specified columns.
     pub fn select_columns(&self, names: &[&str]) -> DataFrameResult<Self> {
         let mut result = Self::new();
         for &name in names {
@@ -263,7 +256,7 @@ impl DataFrame {
         Ok(result)
     }
 
-    /// Returns a new DataFrame with only the specified row positions.
+    /// Returns a new `DataFrame` with only the specified row positions.
     ///
     /// # Errors
     ///
@@ -295,8 +288,7 @@ impl DataFrame {
         })
     }
 
-    /// Returns a new DataFrame with rows where the boolean column is `true`.
-    #[must_use]
+    /// Returns a new `DataFrame` with rows where the boolean column is `true`.
     pub fn filter(&self, mask: &Series<bool>) -> DataFrameResult<Self> {
         if mask.len() != self.nrows() {
             return Err(DataFrameError::DimensionMismatch {
@@ -319,16 +311,15 @@ impl DataFrame {
         self.select_rows(&positions)
     }
 
-    /// Returns a transposed version of this DataFrame.
+    /// Returns a transposed version of this `DataFrame`.
     ///
     /// All columns are cast to `f64` for the transpose.
-    #[must_use]
     pub fn transpose(&self) -> DataFrameResult<Self> {
         let nrows = self.nrows();
         let ncols = self.ncols();
         let col_names: Vec<String> = (0..nrows).map(|i| format!("{i}")).collect();
 
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         for (ci, col_name) in col_names.iter().enumerate() {
             let mut row_data = Vec::with_capacity(ncols);
             for ri in 0..ncols {
@@ -359,8 +350,7 @@ impl DataFrame {
         Ok(result)
     }
 
-    /// Sorts the DataFrame by a single column.
-    #[must_use]
+    /// Sorts the `DataFrame` by a single column.
     pub fn sort_by(&self, column_name: &str, ascending: bool) -> DataFrameResult<Self> {
         let col = self.column(column_name)?;
 
@@ -410,8 +400,7 @@ impl DataFrame {
         self.select_rows(&positions)
     }
 
-    /// Returns a new DataFrame with duplicate rows removed.
-    #[must_use]
+    /// Returns a new `DataFrame` with duplicate rows removed.
     pub fn drop_duplicates(&self, column_names: &[&str]) -> DataFrameResult<Self> {
         let mut seen = alloc::collections::BTreeSet::new();
         let mut positions = Vec::new();
@@ -454,8 +443,7 @@ impl DataFrame {
         self.select_rows(&positions)
     }
 
-    /// Returns a new DataFrame with null values in the specified column dropped.
-    #[must_use]
+    /// Returns a new `DataFrame` with null values in the specified column dropped.
     pub fn drop_nulls(&self, column_name: &str) -> DataFrameResult<Self> {
         let col = self.column(column_name)?;
         let positions: Vec<usize> = (0..col.len())
@@ -464,7 +452,7 @@ impl DataFrame {
         self.select_rows(&positions)
     }
 
-    /// Fills null values in the specified column with a constant value (as f64) — in-place.
+    /// Fills null values in the specified column with a constant value (as f64) â€” in-place.
     ///
     /// # Errors
     ///
@@ -493,7 +481,7 @@ impl DataFrame {
         Ok(())
     }
 
-    /// Forward-fills null values in the specified column — in-place.
+    /// Forward-fills null values in the specified column â€” in-place.
     ///
     /// # Errors
     ///
@@ -588,7 +576,7 @@ impl DataFrame {
     pub fn reset_index(&self) -> DataFrameResult<Self> {
         match &self.index {
             crate::index::Index::MultiIndex(levels) => {
-                let mut result = DataFrame::new();
+                let mut result = Self::new();
                 let nrows = self.nrows();
                 // Add index columns first.
                 for (i, level) in levels.iter().enumerate() {
@@ -617,7 +605,7 @@ impl DataFrame {
     ///
     /// Returns an error if the index is not a `MultiIndex` or if
     /// `level_a`/`level_b` are out of range.
-    /// Swaps two MultiIndex levels — in-place.
+    /// Swaps two `MultiIndex` levels â€” in-place.
     pub fn swaplevel(&mut self, level_a: usize, level_b: usize) -> DataFrameResult<()> {
         match &mut self.index {
             crate::index::Index::MultiIndex(levels) => {
@@ -636,7 +624,7 @@ impl DataFrame {
         }
     }
 
-    /// Sets a labels index — in-place.
+    /// Sets a labels index â€” in-place.
     pub fn set_labels_index(&mut self, labels: Vec<String>) -> DataFrameResult<()> {
         if labels.len() != self.nrows() {
             return Err(DataFrameError::DimensionMismatch {
@@ -673,21 +661,19 @@ impl DataFrame {
         }
         let col = self.column(date_col)?;
         let timestamps: Vec<i64> = match col {
-            AnyColumn::Date(s) => s.data().to_vec(),
+            AnyColumn::Date(s) | AnyColumn::Int64(s) => s.data().to_vec(),
             AnyColumn::DateTime(s) => {
                 // Convert microseconds to days (integer division).
                 s.data().iter().map(|&us| us / 86_400_000_000).collect()
             }
-            AnyColumn::Int64(s) => s.data().to_vec(),
             _ => {
                 return Err(DataFrameError::InvalidOperation(alloc::format!(
-                    "resample column '{}' must be Date, DateTime, or Int64",
-                    date_col
+                    "resample column '{date_col}' must be Date, DateTime, or Int64"
                 )));
             }
         };
         if timestamps.is_empty() {
-            return Ok(DataFrame::new());
+            return Ok(Self::new());
         }
         // Compute bucket id for each row: floor(ts / bucket_days).
         let bucket_ids: Vec<i64> = timestamps
@@ -705,7 +691,7 @@ impl DataFrame {
         unique_buckets.sort_unstable();
         unique_buckets.dedup();
         // Build result: one row per bucket.
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         let bucket_col = AnyColumn::Int64(Series::new("bucket", unique_buckets.clone()));
         result.add_any_column(bucket_col)?;
         // For each numeric column, aggregate by bucket.
@@ -749,16 +735,15 @@ impl DataFrame {
         Ok(result)
     }
 
-    // ── ML / AI / Data Science methods ────────────────────────────
+    // â”€â”€ ML / AI / Data Science methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    /// Returns a new DataFrame with `n` randomly sampled rows (without replacement).
+    /// Returns a new `DataFrame` with `n` randomly sampled rows (without replacement).
     /// If `n` exceeds row count, returns all rows shuffled.
     /// Uses a simple LCG PRNG seeded by `seed` for reproducibility.
-    #[must_use]
     pub fn sample(&self, n: usize, seed: u64) -> DataFrameResult<Self> {
         let nrows = self.nrows();
         if nrows == 0 {
-            return Ok(DataFrame::new());
+            return Ok(Self::new());
         }
         let n = n.min(nrows);
         // Fisher-Yates shuffle on indices via LCG.
@@ -771,9 +756,9 @@ impl DataFrame {
         }
         indices.truncate(n);
         indices.sort_unstable();
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         for col in &self.columns {
-            let gathered = crate::ops::join::gather(col, &indices.iter().map(|&i| (Some(i), Some(0))).collect::<Vec<_>>(), true)?;
+            let gathered = crate::ops::join::gather(col, &indices.iter().map(|&i| (Some(i), Some(0))).collect::<Vec<_>>(), true);
             result.add_any_column(gathered)?;
         }
         result.index = Index::labels(
@@ -782,14 +767,13 @@ impl DataFrame {
         Ok(result)
     }
 
-    /// Returns a new DataFrame with all rows shuffled.
+    /// Returns a new `DataFrame` with all rows shuffled.
     /// Uses a simple LCG PRNG seeded by `seed` for reproducibility.
-    #[must_use]
     pub fn shuffle(&self, seed: u64) -> DataFrameResult<Self> {
         self.sample(self.nrows(), seed)
     }
 
-    /// Returns the quantile value at `q` (0.0–1.0) for the given column.
+    /// Returns the quantile value at `q` (0.0â€“1.0) for the given column.
     /// Uses linear interpolation.
     pub fn percentile(&self, column_name: &str, q: f64) -> DataFrameResult<f64> {
         let col = self.column(column_name)?;
@@ -806,7 +790,7 @@ impl DataFrame {
             Ok(vals[lo])
         } else {
             let frac = rank - lo as f64;
-            Ok(vals[lo] * (1.0 - frac) + vals[hi] * frac)
+            Ok(vals[hi].mul_add(frac, vals[lo] * (1.0 - frac)))
         }
     }
 
@@ -828,11 +812,11 @@ impl DataFrame {
         }
         let mut w_sum = 0.0f64;
         let mut vw_sum = 0.0f64;
-        for i in 0..self.nrows() {
+        for (i, &w) in weights.iter().enumerate() {
             if !col.is_null(i) {
                 let v = vals.get(i).copied().unwrap_or(0.0);
-                vw_sum += v * weights[i];
-                w_sum += weights[i];
+                vw_sum += v * w;
+                w_sum += w;
             }
         }
         if w_sum == 0.0 {
@@ -844,11 +828,11 @@ impl DataFrame {
     }
 
     /// Returns the Pearson correlation matrix for all numeric columns.
-    /// Result is a square DataFrame with column names as both row and column labels.
+    /// Result is a square `DataFrame` with column names as both row and column labels.
     pub fn corr(&self) -> DataFrameResult<Self> {
         let names: Vec<&str> = self.column_names();
         let numeric: Vec<&str> = names.iter()
-            .filter(|&&n| self.column(n).map(|c| c.dtype().is_numeric()).unwrap_or(false))
+            .filter(|&&n| self.column(n).is_ok_and(|c| c.dtype().is_numeric()))
             .copied()
             .collect();
         let n = numeric.len();
@@ -883,9 +867,9 @@ impl DataFrame {
                 for k in 0..xi.len() {
                     let di = xi[k] - mean_i;
                     let dj = xj[k] - mean_j;
-                    cov += di * dj;
-                    var_i += di * di;
-                    var_j += dj * dj;
+                    cov = di.mul_add(dj, cov);
+                    var_i = di.mul_add(di, var_i);
+                    var_j = dj.mul_add(dj, var_j);
                 }
                 let corr = if var_i == 0.0 || var_j == 0.0 {
                     0.0
@@ -898,7 +882,7 @@ impl DataFrame {
         }
 
         // Build output DataFrame.
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         for (i, &name) in numeric.iter().enumerate() {
             let col: Vec<f64> = matrix[i].clone();
             result.add_column(name, col)?;
@@ -911,7 +895,7 @@ impl DataFrame {
     pub fn cov(&self) -> DataFrameResult<Self> {
         let names: Vec<&str> = self.column_names();
         let numeric: Vec<&str> = names.iter()
-            .filter(|&&n| self.column(n).map(|c| c.dtype().is_numeric()).unwrap_or(false))
+            .filter(|&&n| self.column(n).is_ok_and(|c| c.dtype().is_numeric()))
             .copied()
             .collect();
         let n = numeric.len();
@@ -945,7 +929,7 @@ impl DataFrame {
             }
         }
 
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         for (i, &name) in numeric.iter().enumerate() {
             let col: Vec<f64> = matrix[i].clone();
             result.add_column(name, col)?;
@@ -954,7 +938,7 @@ impl DataFrame {
         Ok(result)
     }
 
-    /// One-hot encodes the given categorical column. Returns a new DataFrame
+    /// One-hot encodes the given categorical column. Returns a new `DataFrame`
     /// with the original columns (minus the source column) plus one Bool column
     /// per unique value named `{column}_{value}`.
     pub fn one_hot_encode(&self, column_name: &str) -> DataFrameResult<Self> {
@@ -964,7 +948,7 @@ impl DataFrame {
         let mut order = Vec::new();
         for i in 0..self.nrows() {
             if !col.is_null(i) {
-                let val = col.get_str(i).unwrap_or_default().to_string();
+                let val = col.get_str(i).unwrap_or_default().clone();
                 if !seen.contains_key(&val) {
                     seen.insert(val.clone(), order.len());
                     order.push(val);
@@ -972,7 +956,7 @@ impl DataFrame {
             }
         }
 
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         // Copy non-source columns.
         for name in self.column_names() {
             if name != column_name {
@@ -991,7 +975,7 @@ impl DataFrame {
         Ok(result)
     }
 
-    /// Fixed-width binning. Returns a new DataFrame with the specified column replaced by bin indices (0-based).
+    /// Fixed-width binning. Returns a new `DataFrame` with the specified column replaced by bin indices (0-based).
     /// `bins` specifies the number of equal-width bins. Values outside the range
     /// are assigned to the first/last bin.
     pub fn cut(&self, column_name: &str, bins: usize) -> DataFrameResult<AnyColumn> {
@@ -1005,8 +989,8 @@ impl DataFrame {
         if vals.is_empty() {
             return Err(DataFrameError::EmptyDataFrame);
         }
-        let min = vals.iter().cloned().fold(f64::INFINITY, f64::min);
-        let max = vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let min = vals.iter().copied().fold(f64::INFINITY, f64::min);
+        let max = vals.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let width = (max - min) / bins as f64;
         let s = col.to_f64()?;
         let bin_indices: Vec<i64> = s.data().iter().enumerate().map(|(i, &v)| {
@@ -1020,7 +1004,7 @@ impl DataFrame {
         Ok(AnyColumn::Int64(Series::new(column_name, bin_indices)))
     }
 
-    /// Quantile binning. Returns a new DataFrame with the specified column replaced by quantile indices (0-based).
+    /// Quantile binning. Returns a new `DataFrame` with the specified column replaced by quantile indices (0-based).
     /// `q` specifies the number of equal-frequency bins.
     pub fn qcut(&self, column_name: &str, q: usize) -> DataFrameResult<AnyColumn> {
         if q == 0 {
@@ -1116,7 +1100,7 @@ impl DataFrame {
                                     (last_valid_val, last_valid_idx, next_val, next_idx)
                                 {
                                     let t = (i - lf) as f64 / (ni - lf) as f64;
-                                    s.data_mut()[i] = lv + t * (nv - lv);
+                                    s.data_mut()[i] = t.mul_add(nv - lv, lv);
                                     s.set_valid(i);
                                 } else if let Some(lv) = last_valid_val {
                                     // Forward fill from last valid.
@@ -1151,24 +1135,21 @@ impl DataFrame {
     }
 
     /// Extended describe with custom quantile percentiles.
-    /// Returns a DataFrame with rows for each stat: count, mean, std, min,
+    /// Returns a `DataFrame` with rows for each stat: count, mean, std, min,
     /// then each custom quantile, then max.
     pub fn describe_with_quantiles(&self, quantiles: &[f64]) -> DataFrameResult<Self> {
         let numeric_cols: Vec<&str> = self.column_names().iter()
-            .filter(|&&n| self.column(n).map(|c| c.dtype().is_numeric()).unwrap_or(false))
+            .filter(|&&n| self.column(n).is_ok_and(|c| c.dtype().is_numeric()))
             .copied()
             .collect();
-        let mut stat_names: Vec<String> = Vec::new();
-        stat_names.push("count".into());
-        stat_names.push("mean".into());
-        stat_names.push("std".into());
-        stat_names.push("min".into());
+        let mut stat_names: Vec<String> =
+            vec!["count".into(), "mean".into(), "std".into(), "min".into()];
         for &q in quantiles {
             stat_names.push(alloc::format!("q{:.0}%", q * 100.0));
         }
         stat_names.push("max".into());
 
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         for &col_name in &numeric_cols {
             let vals = self.column(col_name)?.valid_f64()?;
             let n = vals.len();
@@ -1191,7 +1172,7 @@ impl DataFrame {
                     sorted.get(lo).copied().unwrap_or(0.0)
                 } else {
                     let frac = rank - lo as f64;
-                    sorted[lo] * (1.0 - frac) + sorted[hi] * frac
+                    sorted[hi].mul_add(frac, sorted[lo] * (1.0 - frac))
                 };
                 stats.push(val);
             }
@@ -1204,9 +1185,9 @@ impl DataFrame {
 
     /// Extracts date components from Date/DateTime/Duration columns.
     /// `parts` is a list of: `"year"`, `"month"`, `"day"`, `"hour"`, `"dow"`.
-    /// Returns a new DataFrame with one Int64 column per part per date column.
+    /// Returns a new `DataFrame` with one Int64 column per part per date column.
     pub fn dt_extract(&self, parts: &[&str]) -> DataFrameResult<Self> {
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         // Copy non-date columns.
         for name in self.column_names() {
             let col = self.column(name)?;
@@ -1269,10 +1250,10 @@ impl DataFrame {
         Ok(result)
     }
 
-    /// Matrix dot product: `self` × `other`. Both must be all-numeric.
-    /// `self` has shape (m × n), `other` has shape (n × p).
-    /// Returns DataFrame of shape (m × p) with columns named `col_0`, `col_1`, etc.
-    pub fn dot(&self, other: &DataFrame) -> DataFrameResult<Self> {
+    /// Matrix dot product: `self` Ã— `other`. Both must be all-numeric.
+    /// `self` has shape (m Ã— n), `other` has shape (n Ã— p).
+    /// Returns `DataFrame` of shape (m Ã— p) with columns named `col_0`, `col_1`, etc.
+    pub fn dot(&self, other: &Self) -> DataFrameResult<Self> {
         let m = self.nrows();
         let n = self.ncols();
         if other.nrows() != n {
@@ -1289,8 +1270,8 @@ impl DataFrame {
         for (ci, name) in self.column_names().iter().enumerate() {
             let col = self.column(name)?;
             let f64col = col.to_f64()?;
-            for ri in 0..m {
-                left[ri][ci] = f64col.data()[ri];
+            for (row, &v) in left.iter_mut().zip(f64col.data()) {
+                row[ci] = v;
             }
         }
         // Convert other to row-major f64 matrix.
@@ -1298,28 +1279,31 @@ impl DataFrame {
         for (ci, name) in other.column_names().iter().enumerate() {
             let col = other.column(name)?;
             let f64col = col.to_f64()?;
-            for ri in 0..n {
-                right[ri][ci] = f64col.data()[ri];
+            for (row, &v) in right.iter_mut().zip(f64col.data()) {
+                row[ci] = v;
             }
         }
         // Compute result.
-        let mut result = DataFrame::new();
-        for col_j in 0..p {
-            let mut out_col = vec![0.0f64; m];
-            for row_i in 0..m {
-                let mut sum = 0.0f64;
-                for k in 0..n {
-                    sum += left[row_i][k] * right[k][col_j];
-                }
-                out_col[row_i] = sum;
-            }
+        let mut result = Self::new();
+        let rhs_cols: Vec<Vec<f64>> = (0..p)
+            .map(|j| right.iter().map(|row| row[j]).collect::<Vec<_>>())
+            .collect();
+        for (col_j, rhs_col) in rhs_cols.iter().enumerate() {
+            let out_col: Vec<f64> = left
+                .iter()
+                .map(|lrow| {
+                    lrow.iter()
+                        .zip(rhs_col)
+                        .fold(0.0f64, |acc, (l, r)| l.mul_add(*r, acc))
+                })
+                .collect();
             result.add_column(&alloc::format!("col_{col_j}"), out_col)?;
         }
         Ok(result)
     }
 
-    /// Column profiling: returns a DataFrame with per-column statistics.
-    /// For each column: dtype, count, null_count, unique_count, min, max, mean, std, skew.
+    /// Column profiling: returns a `DataFrame` with per-column statistics.
+    /// For each column: dtype, count, `null_count`, `unique_count`, min, max, mean, std, skew.
     pub fn profile(&self) -> DataFrameResult<Self> {
         let mut col_names = Vec::new();
         let mut dtypes = Vec::new();
@@ -1347,9 +1331,15 @@ impl DataFrame {
                     .map(|v| v.to_bits())
                     .collect();
                 unique_counts.push(uniq.len() as f64);
-                if !vals.is_empty() {
-                    let min = vals.iter().cloned().fold(f64::INFINITY, f64::min);
-                    let max = vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+                if vals.is_empty() {
+                    mins.push(0.0);
+                    maxs.push(0.0);
+                    means.push(0.0);
+                    stds.push(0.0);
+                    skews.push(0.0);
+                } else {
+                    let min = vals.iter().copied().fold(f64::INFINITY, f64::min);
+                    let max = vals.iter().copied().fold(f64::NEG_INFINITY, f64::max);
                     let mean = vals.iter().sum::<f64>() / vals.len() as f64;
                     let variance = vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>()
                         / (vals.len() as f64 - 1.0).max(1.0);
@@ -1363,12 +1353,6 @@ impl DataFrame {
                     means.push(mean);
                     stds.push(std);
                     skews.push(skew);
-                } else {
-                    mins.push(0.0);
-                    maxs.push(0.0);
-                    means.push(0.0);
-                    stds.push(0.0);
-                    skews.push(0.0);
                 }
             } else {
                 unique_counts.push(0.0);
@@ -1380,7 +1364,7 @@ impl DataFrame {
             }
         }
 
-        let mut result = DataFrame::new();
+        let mut result = Self::new();
         result.add_column("column", col_names)?;
         result.add_column("dtype", dtypes)?;
         result.add_column("count", counts)?;
@@ -1395,7 +1379,7 @@ impl DataFrame {
     }
 
     /// Random train/test split. Returns `(train, test)`.
-    /// `test_size` is the fraction of rows for the test set (0.0–1.0).
+    /// `test_size` is the fraction of rows for the test set (0.0â€“1.0).
     /// Uses Fisher-Yates shuffle via LCG seeded by `seed`.
     pub fn train_test_split(&self, test_size: f64, seed: u64) -> DataFrameResult<(Self, Self)> {
         if !(0.0..1.0).contains(&test_size) {
@@ -1419,20 +1403,20 @@ impl DataFrame {
         let train_indices = &indices[..n_train];
         let test_indices = &indices[n_train..];
 
-        let mut train = DataFrame::new();
-        let mut test = DataFrame::new();
+        let mut train = Self::new();
+        let mut test = Self::new();
         for col in &self.columns {
             let train_gathered = crate::ops::join::gather(
                 col,
                 &train_indices.iter().map(|&i| (Some(i), Some(0))).collect::<Vec<_>>(),
                 true,
-            )?;
+            );
             train.add_any_column(train_gathered)?;
             let test_gathered = crate::ops::join::gather(
                 col,
                 &test_indices.iter().map(|&i| (Some(i), Some(0))).collect::<Vec<_>>(),
                 true,
-            )?;
+            );
             test.add_any_column(test_gathered)?;
         }
         Ok((train, test))
@@ -1465,7 +1449,7 @@ impl fmt::Display for DataFrame {
                         AnyColumn::Int64(s) => format!("{}", s.data()[ri]),
                         AnyColumn::Int32(s) => format!("{}", s.data()[ri]),
                         AnyColumn::Bool(s) => format!("{}", s.data()[ri]),
-                        AnyColumn::Utf8(s) => format!("{}", s.data()[ri]),
+                        AnyColumn::Utf8(s) => s.data()[ri].clone(),
                         AnyColumn::Date(s) => format!("Date({})", s.data()[ri]),
                         AnyColumn::DateTime(s) => format!("DateTime({})", s.data()[ri]),
                         AnyColumn::Duration(s) => format!("Duration({})", s.data()[ri]),
@@ -1511,7 +1495,7 @@ impl fmt::Display for DataFrame {
                         AnyColumn::Int64(s) => format!("{}", s.data()[ri]),
                         AnyColumn::Int32(s) => format!("{}", s.data()[ri]),
                         AnyColumn::Bool(s) => format!("{}", s.data()[ri]),
-                        AnyColumn::Utf8(s) => format!("{}", s.data()[ri]),
+                        AnyColumn::Utf8(s) => s.data()[ri].clone(),
                         AnyColumn::Date(s) => format!("Date({})", s.data()[ri]),
                         AnyColumn::DateTime(s) => format!("DateTime({})", s.data()[ri]),
                         AnyColumn::Duration(s) => format!("Duration({})", s.data()[ri]),

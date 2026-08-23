@@ -1,3 +1,4 @@
+//! Integration tests for mathverse-equations.
 use mathverse_equations::*;
 
 #[test]

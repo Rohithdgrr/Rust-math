@@ -157,9 +157,9 @@ mod tests {
     #[test]
     fn test_multiplication_derivative() {
         let expr = Expr::v("x").mul(Expr::v("x"));
-        let deriv = differentiate(&expr, "x");
+        let _deriv = differentiate(&expr, "x");
         // d/dx(x*x) = 1*x + x*1 = 2x
-        let expected = Expr::c(2.0).mul(Expr::v("x"));
+        let _expected = Expr::c(2.0).mul(Expr::v("x"));
         // Note: This won't match exactly due to expression structure, but should evaluate the same
     }
 

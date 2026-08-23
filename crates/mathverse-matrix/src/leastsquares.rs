@@ -6,9 +6,13 @@ use mathverse_core::error::{MathError, MathResult};
 /// Least squares result.
 #[derive(Debug, Clone)]
 pub struct LeastSquaresResult {
+    /// Minimizer of `||A x - b||₂`.
     pub solution: mathverse_vector::Vector,
+    /// Residual vector `b - A x` at the solution.
     pub residuals: mathverse_vector::Vector,
+    /// Euclidean norm of the residual vector.
     pub residual_norm: f64,
+    /// Effective rank of the design matrix used in the solve.
     pub rank: usize,
 }
 
@@ -413,7 +417,7 @@ mod tests {
         
         let result = LeastSquares::qr_solve(&m, &b).unwrap();
         
-        assert!(result.solution.len() == 2);
+        assert_eq!(result.solution.len(), 2);
         assert!(result.residual_norm >= 0.0);
     }
 
@@ -424,7 +428,7 @@ mod tests {
         
         let result = LeastSquares::normal_equations(&m, &b).unwrap();
         
-        assert!(result.solution.len() == 2);
+        assert_eq!(result.solution.len(), 2);
     }
 
     #[test]
@@ -434,7 +438,7 @@ mod tests {
         
         let result = LeastSquares::svd_solve(&m, &b, 1e-10).unwrap();
         
-        assert!(result.solution.len() == 2);
+        assert_eq!(result.solution.len(), 2);
     }
 
     #[test]
@@ -445,6 +449,6 @@ mod tests {
         
         let result = LeastSquares::weighted(&m, &b, &weights).unwrap();
         
-        assert!(result.solution.len() == 2);
+        assert_eq!(result.solution.len(), 2);
     }
 }

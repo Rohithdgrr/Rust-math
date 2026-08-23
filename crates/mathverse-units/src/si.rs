@@ -3,7 +3,9 @@
 
 /// SI base unit marker trait
 pub trait SiUnit: Copy + Default + std::fmt::Debug {
+    /// Full name of the unit (e.g. `"meter"`).
     const NAME: &'static str;
+    /// Unit symbol (e.g. `"m"`).
     const SYMBOL: &'static str;
 }
 
@@ -80,6 +82,7 @@ impl SiUnit for Newton {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Joule - derived unit of energy (kg·m²/s²)
 pub struct Joule; // Energy: kg·m²/s²
 
 impl SiUnit for Joule {
@@ -88,6 +91,7 @@ impl SiUnit for Joule {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Watt - derived unit of power (kg·m²/s³)
 pub struct Watt; // Power: kg·m²/s³
 
 impl SiUnit for Watt {
@@ -96,6 +100,7 @@ impl SiUnit for Watt {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Pascal - derived unit of pressure (kg/(m·s²))
 pub struct Pascal; // Pressure: kg/(m·s²)
 
 impl SiUnit for Pascal {
@@ -104,6 +109,7 @@ impl SiUnit for Pascal {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Hertz - derived unit of frequency (1/s)
 pub struct Hertz; // Frequency: 1/s
 
 impl SiUnit for Hertz {
@@ -112,6 +118,7 @@ impl SiUnit for Hertz {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Tesla - derived unit of magnetic flux density (kg/(A·s²))
 pub struct Tesla; // Magnetic flux density: kg/(A·s²) = Wb/m²
 
 impl SiUnit for Tesla {
@@ -120,6 +127,7 @@ impl SiUnit for Tesla {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Weber - derived unit of magnetic flux (kg·m²/(A·s²))
 pub struct Weber; // Magnetic flux: kg·m²/(A·s²)
 
 impl SiUnit for Weber {
@@ -128,6 +136,7 @@ impl SiUnit for Weber {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Henry - derived unit of inductance (kg·m²/(A²·s²))
 pub struct Henry; // Inductance: kg·m²/(A²·s²)
 
 impl SiUnit for Henry {
@@ -136,6 +145,7 @@ impl SiUnit for Henry {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Coulomb - derived unit of electric charge (A·s)
 pub struct Coulomb; // Electric charge: A·s
 
 impl SiUnit for Coulomb {
@@ -144,6 +154,7 @@ impl SiUnit for Coulomb {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Volt - derived unit of electric potential (kg·m²/(A·s³))
 pub struct Volt; // Electric potential: kg·m²/(A·s³)
 
 impl SiUnit for Volt {
@@ -152,6 +163,7 @@ impl SiUnit for Volt {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Ohm - derived unit of electric resistance (kg·m²/(A²·s³))
 pub struct Ohm; // Electric resistance: kg·m²/(A²·s³)
 
 impl SiUnit for Ohm {
@@ -160,6 +172,7 @@ impl SiUnit for Ohm {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Siemens - derived unit of electric conductance (A²·s³/(kg·m²))
 pub struct Siemens; // Electric conductance: A²·s³/(kg·m²)
 
 impl SiUnit for Siemens {
@@ -168,6 +181,7 @@ impl SiUnit for Siemens {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Farad - derived unit of capacitance (A²·s4/(kg·m²))
 pub struct Farad; // Capacitance: A²·s⁴/(kg·m²)
 
 impl SiUnit for Farad {
@@ -176,6 +190,7 @@ impl SiUnit for Farad {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Gray - derived unit of absorbed dose (m²/s²)
 pub struct Gray; // Absorbed dose: m²/s²
 
 impl SiUnit for Gray {
@@ -184,6 +199,7 @@ impl SiUnit for Gray {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Sievert - derived unit of equivalent dose (m²/s²)
 pub struct Sievert; // Equivalent dose: m²/s²
 
 impl SiUnit for Sievert {
@@ -192,6 +208,7 @@ impl SiUnit for Sievert {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Katal - derived unit of catalytic activity (mol/s)
 pub struct Katal; // Catalytic activity: mol/s
 
 impl SiUnit for Katal {
@@ -200,6 +217,7 @@ impl SiUnit for Katal {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Lux - derived unit of illuminance (cd·sr/m²)
 pub struct Lux; // Illuminance: cd·sr/m²
 
 impl SiUnit for Lux {
@@ -208,6 +226,7 @@ impl SiUnit for Lux {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
+/// Becquerel - derived unit of radioactivity (1/s)
 pub struct Becquerel; // Radioactivity: 1/s
 
 impl SiUnit for Becquerel {
@@ -233,25 +252,45 @@ impl SiUnit for Radian {
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Prefix {
+    /// 10^24
     Yotta,
+    /// 10^21
     Zetta,
+    /// 10^18
     Exa,
+    /// 10^15
     Peta,
+    /// 10^12
     Tera,
+    /// 10^9
     Giga,
+    /// 10^6
     Mega,
+    /// 10^3
     Kilo,
+    /// 10^2
     Hecto,
+    /// 10^1
     Deka,
+    /// 10^-1
     Deci,
+    /// 10^-2
     Centi,
+    /// 10^-3
     Milli,
+    /// 10^-6
     Micro,
+    /// 10^-9
     Nano,
+    /// 10^-12
     Pico,
+    /// 10^-15
     Femto,
+    /// 10^-18
     Atto,
+    /// 10^-21
     Zepto,
+    /// 10^-24
     Yocto,
 }
 
@@ -322,9 +361,8 @@ mod tests {
 
     #[test]
     fn test_si_units() {
-        let m = Meter;
-        assert_eq!(Meter::NAME, "meter");
-        assert_eq!(Meter::SYMBOL, "m");
+        assert_eq!(<Meter as SiUnit>::NAME, "meter");
+        assert_eq!(<Meter as SiUnit>::SYMBOL, "m");
     }
 
     #[test]

@@ -218,18 +218,20 @@ impl WeightedGraph {
     /// Adds a directed weighted edge from `u` to `v` with weight `w`.
     ///
     /// # Panics
-    /// Panics if `u` or `v` is out of bounds.
+    /// Panics if `u` or `v` is out of bounds, or if `w` is NaN.
     pub fn add_edge(&mut self, u: usize, v: usize, w: f64) {
         assert!(u < self.n && v < self.n, "vertex index out of bounds: u={}, v={}, n={}", u, v, self.n);
+        assert!(!w.is_nan(), "edge weight must not be NaN");
         self.adj[u].push((v, w));
     }
 
     /// Adds an undirected weighted edge between `u` and `v`.
     ///
     /// # Panics
-    /// Panics if `u` or `v` is out of bounds.
+    /// Panics if `u` or `v` is out of bounds, or if `w` is NaN.
     pub fn add_undirected_edge(&mut self, u: usize, v: usize, w: f64) {
         assert!(u < self.n && v < self.n, "vertex index out of bounds: u={}, v={}, n={}", u, v, self.n);
+        assert!(!w.is_nan(), "edge weight must not be NaN");
         self.adj[u].push((v, w)); self.adj[v].push((u, w));
     }
 
@@ -361,10 +363,24 @@ pub struct DirectedGraph {
     adj: Vec<Vec<usize>>,
 }
 
+/// Iterative post-order DFS computing Kosaraju's finish order without
+/// recursion, so deep graphs cannot overflow the call stack.
 fn dfs1(adj: &[Vec<usize>], u: usize, visited: &mut [bool], order: &mut Vec<usize>) {
     visited[u] = true;
-    for &v in &adj[u] { if !visited[v] { dfs1(adj, v, visited, order); } }
-    order.push(u);
+    let mut stack: Vec<(usize, usize)> = vec![(u, 0)];
+    while let Some(&mut (v, ref mut next)) = stack.last_mut() {
+        if *next < adj[v].len() {
+            let w = adj[v][*next];
+            *next += 1;
+            if !visited[w] {
+                visited[w] = true;
+                stack.push((w, 0));
+            }
+        } else {
+            order.push(v);
+            stack.pop();
+        }
+    }
 }
 
 impl DirectedGraph {
@@ -608,5 +624,30 @@ mod tests {
         assert!(g.dfs(5).is_empty());
         assert!(g.shortest_path(0, 5).is_none());
         assert!(g.shortest_path(5, 0).is_none());
+    }
+
+    #[test]
+    fn scc_deep_chain_does_not_overflow_stack() {
+        let n = 200_000;
+        let mut g = DirectedGraph::new(n);
+        for i in 0..n - 1 {
+            g.add_edge(i, i + 1);
+        }
+        let sccs = g.scc();
+        assert_eq!(sccs.len(), n);
+    }
+
+    #[test]
+    #[should_panic(expected = "edge weight must not be NaN")]
+    fn nan_weight_directed_panics() {
+        let mut g = WeightedGraph::new(2);
+        g.add_edge(0, 1, f64::NAN);
+    }
+
+    #[test]
+    #[should_panic(expected = "edge weight must not be NaN")]
+    fn nan_weight_undirected_panics() {
+        let mut g = WeightedGraph::new(2);
+        g.add_undirected_edge(0, 1, f64::NAN);
     }
 }

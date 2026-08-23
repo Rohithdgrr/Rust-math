@@ -55,10 +55,14 @@ pub fn dilate(img: &GrayImage) -> GrayImage {
     out
 }
 
+/// Morphological opening: erosion followed by dilation. Removes bright
+/// features smaller than the structuring element.
 pub fn open(img: &GrayImage) -> GrayImage {
     dilate(&erode(img))
 }
 
+/// Morphological closing: dilation followed by erosion. Fills dark holes
+/// smaller than the structuring element.
 pub fn close(img: &GrayImage) -> GrayImage {
     erode(&dilate(img))
 }

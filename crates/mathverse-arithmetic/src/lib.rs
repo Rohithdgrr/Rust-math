@@ -173,8 +173,8 @@ mod tests {
 
     #[test]
     fn percentages() {
-        assert_eq!(percentage(200.0, 10.0), 20.0);
-        assert_eq!(percent_of(25.0, 200.0), 12.5);
+        assert!((percentage(200.0, 10.0) - 20.0).abs() < 1e-12);
+        assert!((percent_of(25.0, 200.0) - 12.5).abs() < 1e-12);
         assert!((percent_change(100.0, 150.0) - 50.0).abs() < 1e-12);
     }
 
@@ -182,39 +182,39 @@ mod tests {
     fn powers_and_roots() {
         assert_eq!(square(5), 25);
         assert_eq!(cube(3), 27);
-        assert_eq!(square_root(81.0), 9.0);
+        assert!((square_root(81.0) - 9.0).abs() < 1e-12);
         assert!((cube_root(-8.0) + 2.0).abs() < 1e-12);
         // Generic: f32 path via Real::cbrt
         assert!((cube_root(-8.0f32) + 2.0).abs() < 1e-6);
         assert_eq!(pow(2u64, 10), 1024);
-        assert_eq!(pow(3.0f64, 0), 1.0);
+        assert!((pow(3.0f64, 0) - 1.0).abs() < 1e-12);
     }
 
     #[test]
     fn modulus_and_abs() {
         assert_eq!(modulus(17, 5).unwrap(), 2);
         assert_eq!(modulus(17, 0), Err(mathverse_core::error::MathError::DivisionByZero));
-        assert_eq!(absolute(-4.5), 4.5);
+        assert!((absolute(-4.5) - 4.5).abs() < 1e-12);
     }
 
     #[test]
     fn compensated_sum() {
         // Cancellation that a naive sum gets wrong.
         let xs = [1e16, 1.0, -1e16];
-        assert_eq!(fsum(&xs), 1.0);
+        assert!((fsum(&xs) - 1.0).abs() < 1e-12);
         // Sum of 10_000 copies of 0.1 must be exact-ish.
         let many = vec![0.1; 10_000];
         let s = fsum(&many);
         assert!((s - 1000.0).abs() < 1e-9);
-        assert_eq!(fsum(&[]), 0.0);
+        assert!((fsum(&[]) - 0.0).abs() < 1e-12);
         // Matches naive sum for simple cases.
-        assert_eq!(fsum(&[1.0, 2.0, 3.0]), 6.0);
+        assert!((fsum(&[1.0, 2.0, 3.0]) - 6.0).abs() < 1e-12);
     }
 
     #[test]
     fn copysign_test() {
-        assert_eq!(copysign(3.0f64, -1.0), -3.0);
-        assert_eq!(copysign(-3.0f64, 1.0), 3.0);
+        assert!((copysign(3.0f64, -1.0) - -3.0).abs() < 1e-12);
+        assert!((copysign(-3.0f64, 1.0) - 3.0).abs() < 1e-12);
         assert!(copysign(1.0f64, -0.0).is_sign_negative());
         assert!(copysign(-1.0f64, 0.0).is_sign_positive());
     }

@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_par_sum() {
-        let v = Vector::new((0..1000).map(|i| i as f64).collect());
+        let v = Vector::new((0..1000).map(f64::from).collect());
         assert!((par_sum(&v) - 499_500.0).abs() < 1e-10);
     }
 

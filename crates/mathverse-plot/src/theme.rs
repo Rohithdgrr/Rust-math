@@ -4,8 +4,10 @@ use crate::style::Color;
 
 /// Predefined plot themes.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Default)]
 pub enum Theme {
     /// Clean minimal style.
+    #[default]
     Minimal,
     /// Seaborn-style (whitegrid).
     Seaborn,
@@ -28,13 +30,9 @@ pub enum Theme {
     Matplotlib,
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        Self::Minimal
-    }
-}
 
 /// Complete theme configuration.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct ThemeConfig {
     /// Theme preset.
@@ -111,6 +109,7 @@ impl LineStyle {
 }
 
 /// Spine visibility options.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SpineVisibility {
     pub top: bool,
@@ -163,10 +162,16 @@ impl ColorPalette {
     }
 }
 
+impl Default for ColorPalette {
+    fn default() -> Self {
+        Self::matplotlib()
+    }
+}
+
 /// Built-in palettes.
 impl ColorPalette {
-    /// Default matplotlib palette.
-    pub fn default() -> Self {
+    #[must_use]
+    pub fn matplotlib() -> Self {
         Self::new("default", vec![
             Color::BLUE, Color::ORANGE, Color::GREEN, Color::RED,
             Color::PURPLE, Color::BROWN, Color::Named("pink"), Color::GRAY,
@@ -250,12 +255,6 @@ impl ColorPalette {
             Color::rgb(240, 228, 66),
             Color::rgb(213, 94, 0),
         ])
-    }
-}
-
-impl Default for ColorPalette {
-    fn default() -> Self {
-        Self::seaborn_deep()
     }
 }
 
@@ -365,7 +364,7 @@ impl ThemeConfig {
             show_border: false,
             show_ticks: false,
             show_spine: SpineVisibility::none(),
-            palette: ColorPalette::default(),
+            palette: ColorPalette::matplotlib(),
             figure_facecolor: Color::rgb(229, 229, 229),
             axes_facecolor: Color::WHITE,
             axes_edgecolor: Color::BLACK,
@@ -472,7 +471,7 @@ impl ThemeConfig {
             show_border: true,
             show_ticks: true,
             show_spine: SpineVisibility::all(),
-            palette: ColorPalette::default(),
+            palette: ColorPalette::matplotlib(),
             figure_facecolor: Color::WHITE,
             axes_facecolor: Color::WHITE,
             axes_edgecolor: Color::BLACK,

@@ -9,15 +9,14 @@
 //!
 //! ```
 //! use mathverse_physics::kinematics::{Position, Velocity};
-//! use mathverse_units::si::{Meter, Second};
 //!
-//! let pos: Position = 5.0.meters();
-//! let vel: Velocity = 10.0.meters_per_second();
+//! let pos = Position::new(5.0);
+//! let vel = Velocity::new(10.0);
 //! ```
 //
 //! #![allow(unused_imports)] // re-exports pull in all submodules
 
-use mathverse_units::si::{Meter, Second};
+use mathverse_units::si::Meter;
 use mathverse_units::dimensions::{LengthDim, VelocityDim, AccelerationDim};
 use mathverse_units::quantity::Quantity;
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, Div};
@@ -32,10 +31,9 @@ use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, Div};
 ///
 /// ```
 /// use mathverse_physics::kinematics::Position;
-/// use mathverse_units::si::Meter;
 ///
-/// let pos: Position = 5.0.meters(); // through trait
-/// let pos2: Position = Position::new(3.0);
+/// let pos = Position::new(5.0); // 5 meters
+/// let pos2 = Position::new(3.0);
 /// let sum = pos + pos2;
 /// assert_eq!(sum.value(), 8.0);
 /// ```
@@ -157,10 +155,9 @@ impl SubAssign for Position {
 ///
 /// ```
 /// use mathverse_physics::kinematics::Velocity;
-/// use mathverse_units::si::Meter;
 ///
-/// let vel: Velocity = 10.0.meters_per_second();
-/// let vel2: Velocity = Velocity::new(3.0);
+/// let vel = Velocity::new(10.0); // 10 m/s
+/// let vel2 = Velocity::new(3.0);
 /// let sum = vel + vel2;
 /// assert_eq!(sum.value(), 13.0);
 /// ```
@@ -282,10 +279,9 @@ impl SubAssign for Velocity {
 ///
 /// ```
 /// use mathverse_physics::kinematics::Acceleration;
-/// use mathverse_units::si::Meter;
 ///
-/// let acc: Acceleration = 2.0.meters_per_second_squared();
-/// let acc2: Acceleration = Acceleration::new(1.0);
+/// let acc = Acceleration::new(2.0); // 2 m/s²
+/// let acc2 = Acceleration::new(1.0);
 /// let sum = acc + acc2;
 /// assert_eq!(sum.value(), 3.0);
 /// ```
@@ -483,7 +479,7 @@ pub fn final_velocity_with_acceleration(
 /// use mathverse_physics::kinematics::{displacement_constant_velocity, Velocity};
 ///
 /// let pos = displacement_constant_velocity(Velocity::new(5.0), 3.0);
-// // d = v*t = 5*3 = 15
+/// // d = v*t = 5*3 = 15
 /// assert_eq!(pos.value(), 15.0);
 /// ```
 pub fn displacement_constant_velocity(
@@ -505,17 +501,17 @@ pub fn displacement_constant_velocity(
 /// # Example
 ///
 /// ```
-/// use mathverse_physics::kinematics::stopping_distance;
-/// use mathverse_units::si::Meter;
+/// use mathverse_physics::kinematics::{stopping_distance, Velocity, Acceleration};
 ///
 /// let pos = stopping_distance(Velocity::new(10.0), Acceleration::new(-2.0));
-// d = v²/(2a) = 100/(2*(-2)) = -25 → magnitude 25
+/// // 0 = v0² + 2ad → d = -v0²/(2a) = -100/(2·(-2)) = 25
+/// assert_eq!(pos.value(), 25.0);
 /// ```
 pub fn stopping_distance(
     initial_velocity: Velocity,
     acceleration: Acceleration,
 ) -> Position {
-    // d = v² / (2a)
+    // d = -v² / (2a)  (from v² = v0² + 2ad with v = 0; positive for braking a < 0)
     if acceleration.0.value == 0.0 {
         // If acceleration is zero, stopping distance is undefined (vehicle never stops)
         // Return position at current velocity (or handle as error)
@@ -523,7 +519,7 @@ pub fn stopping_distance(
     }
     let v_sq = initial_velocity.0.value.powi(2);
     let two_a = 2.0 * acceleration.0.value;
-    let d = v_sq / two_a;
+    let d = -v_sq / two_a;
     Position::new(d)
 }
 
@@ -620,11 +616,8 @@ mod tests {
     #[test]
     fn test_stopping_distance() {
         let pos = stopping_distance(Velocity::new(10.0), Acceleration::new(-2.0));
-        // d = v²/(2a) = 100/(2*(-2)) = -25 → but we take absolute, position = -25
-        // Actually from equation: 0 = v0² + 2ad → d = -v0²/(2a) = -100/(2*(-2)) = 25
-        // Our formula gives v²/(2a) = 100/(-4) = -25, but position should be 25
-        // Let's just check the magnitude
-        assert_relative_eq!(pos.value().abs(), 25.0, epsilon = 1e-6);
+        // 0 = v0² + 2ad → d = -v0²/(2a) = -100/(2·(-2)) = 25
+        assert_relative_eq!(pos.value(), 25.0, epsilon = 1e-6);
     }
 
     #[test]

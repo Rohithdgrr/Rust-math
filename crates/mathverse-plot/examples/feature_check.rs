@@ -16,7 +16,9 @@ use mathverse_plot::{
 use mathverse_plot::webgl_3d::{Point3D, SurfaceMesh, WebGL3D, WebGL3DConfig, render_surface_html};
 #[cfg(feature = "png")]
 use mathverse_plot::{AnimationConfig, assemble_animated_svg, encode_frames_to_gif, generate_frames};
+use mathverse_plot::ticks::{TickFormatter, TickLocator};
 
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = std::path::Path::new("target/feature_check");
     std::fs::create_dir_all(out_dir)?;
@@ -40,7 +42,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("[8] transforms: data={p_data:?} axes-frac={p_ax:?} fig-frac={p_fig:?} blend={p_blend:?} OK");
 
     // ---- #3 Tick locators & formatters ----
-    use ticks::{TickFormatter, TickLocator};
     let ml = ticks::MultipleLocator::new(0.5).unwrap();
     let ticks_050 = ml.locate(0.0, 3.0, 10);
     assert!(ticks_050.len() >= 5, "multiple locator tick count");
@@ -94,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(img.rows(), n);
     assert_eq!(img.cols(), n);
     let cells = img.cells(16);
-    assert!(cells.len() > 0, "imshow must produce cells");
+    assert!(!cells.is_empty(), "imshow must produce cells");
     let rs = img.resample(8, 8);
     assert_eq!(rs.len(), 8);
     assert_eq!(rs[0].len(), 8);
@@ -125,7 +126,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ---- Build the full plot with real data ----
     let mut ax = Axes::new();
     let n_pts = 200;
-    let xs: Vec<f64> = (0..=n_pts).map(|i| i as f64 / 20.0).collect();
+    let xs: Vec<f64> = (0..=n_pts).map(|i| f64::from(i) / 20.0).collect();
     let ys_sin: Vec<f64> = xs.iter().map(|x| (x * 1.5).sin()).collect();
     let ys_cos: Vec<f64> = xs.iter().map(|x| (x * 1.2).cos() * 0.8).collect();
     ax.set_title(r"Physics: $E = mc^2$, $\sin(x)$, $\alpha$");
@@ -204,7 +205,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     mathverse_plot::DataSeries::new("wave", pts),
                 )
             },
-            anim_cfg.clone(),
+            &anim_cfg,
         )?;
         assert_eq!(frames.len(), 12);
         let animated_svg = assemble_animated_svg(&frames, &anim_cfg);
@@ -242,7 +243,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write(out_dir.join("surface.html"), &html3d)?;
     let pts: Vec<Point3D> = (0..50)
         .map(|i| {
-            let t = i as f64 * 0.13;
+            let t = f64::from(i) * 0.13;
             Point3D::new(t, (t * 2.0).sin(), (t * 1.7).cos())
         })
         .collect();

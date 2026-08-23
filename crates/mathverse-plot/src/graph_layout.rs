@@ -25,6 +25,12 @@ pub struct GraphLayoutConfig {
     pub tree_color: crate::style::Color,
 }
 
+impl Default for GraphLayoutConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GraphLayoutConfig {
     /// Create a new graph layout config with sensible defaults.
     #[must_use]
@@ -121,7 +127,7 @@ pub fn render_graph_with_positions(
                 let (x1, y1) = positions[u];
                 let (x2, y2) = positions[v];
                 plot.add_series(crate::DataSeries::new(
-                    format!("edge_{}_{}", u, v),
+                    format!("edge_{u}_{v}"),
                     vec![
                         crate::DataPoint::new(x1, y1),
                         crate::DataPoint::new(x2, y2),
@@ -133,7 +139,7 @@ pub fn render_graph_with_positions(
 
     // Draw nodes
     for (i, &(x, y)) in positions.iter().enumerate() {
-        let label = format!("node_{}", i);
+        let label = format!("node_{i}");
         let series = crate::DataSeries::new(label, vec![crate::DataPoint::new(x, y)]);
         plot.add_series(series);
     }
@@ -161,7 +167,7 @@ pub fn render_weighted_graph_with_positions(
             if u < v {
                 let (x1, y1) = positions[u];
                 let (x2, y2) = positions[v];
-                let label = format!("edge_{}_{}_w={:.2}", u, v, w);
+                let label = format!("edge_{u}_{v}_w={w:.2}");
                 let series = crate::DataSeries::new(
                     label,
                     vec![
@@ -176,7 +182,7 @@ pub fn render_weighted_graph_with_positions(
 
     // Draw nodes
     for (i, &(x, y)) in positions.iter().enumerate() {
-        let label = format!("node_{}", i);
+        let label = format!("node_{i}");
         let series = crate::DataSeries::new(label, vec![crate::DataPoint::new(x, y)]);
         plot.add_series(series);
     }
@@ -234,7 +240,7 @@ pub fn render_bfs_tree(
 ) -> PlotResult<String> {
     let positions = circular_layout(graph.len());
     let tree_edges = bfs_tree_edges(graph, start);
-    render_tree_with_positions(graph, &positions, &tree_edges, config)
+    Ok(render_tree_with_positions(graph, &positions, &tree_edges, config))
 }
 
 /// Render a DFS tree from a start node.
@@ -245,7 +251,7 @@ pub fn render_dfs_tree(
 ) -> PlotResult<String> {
     let positions = circular_layout(graph.len());
     let tree_edges = dfs_tree_edges(graph, start);
-    render_tree_with_positions(graph, &positions, &tree_edges, config)
+    Ok(render_tree_with_positions(graph, &positions, &tree_edges, config))
 }
 
 fn render_tree_with_positions(
@@ -253,7 +259,7 @@ fn render_tree_with_positions(
     positions: &[(f64, f64)],
     tree_edges: &[(usize, usize)],
     config: GraphLayoutConfig,
-) -> PlotResult<String> {
+) -> String {
     let mut plot = SvgPlot::new(config.plot_config);
 
     // Draw all edges in gray
@@ -263,7 +269,7 @@ fn render_tree_with_positions(
                 let (x1, y1) = positions[u];
                 let (x2, y2) = positions[v];
                 let series = crate::DataSeries::new(
-                    format!("edge_{}_{}", u, v),
+                    format!("edge_{u}_{v}"),
                     vec![
                         crate::DataPoint::new(x1, y1),
                         crate::DataPoint::new(x2, y2),
@@ -279,7 +285,7 @@ fn render_tree_with_positions(
         let (x1, y1) = positions[u];
         let (x2, y2) = positions[v];
         let series = crate::DataSeries::new(
-            format!("tree_{}_{}", u, v),
+            format!("tree_{u}_{v}"),
             vec![
                 crate::DataPoint::new(x1, y1),
                 crate::DataPoint::new(x2, y2),
@@ -290,12 +296,12 @@ fn render_tree_with_positions(
 
     // Draw nodes
     for (i, &(x, y)) in positions.iter().enumerate() {
-        let label = format!("node_{}", i);
+        let label = format!("node_{i}");
         let series = crate::DataSeries::new(label, vec![crate::DataPoint::new(x, y)]);
         plot.add_series(series);
     }
 
-    Ok(plot.generate())
+    plot.generate()
 }
 
 #[cfg(test)]

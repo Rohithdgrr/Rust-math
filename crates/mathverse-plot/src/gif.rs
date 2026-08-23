@@ -54,7 +54,7 @@ pub fn encode_gif(width: u16, height: u16, frames: &[GifFrame]) -> Option<Vec<u8
         }
     }
     let mut ranked: Vec<((u8, u8, u8), u32)> = counts.into_iter().collect();
-    ranked.sort_by(|a, b| b.1.cmp(&a.1));
+    ranked.sort_by_key(|&(_, c)| std::cmp::Reverse(c));
     if ranked.len() > 256 {
         ranked.truncate(256);
     }
@@ -140,8 +140,7 @@ fn nearest_palette(palette: &[(u8, u8, u8)], c: (u8, u8, u8)) -> usize {
             let db = i32::from(p.2) - i32::from(c.2);
             dr * dr + dg * dg + db * db
         })
-        .map(|(i, _)| i)
-        .unwrap_or(0)
+        .map_or(0, |(i, _)| i)
 }
 
 /// Pack `code` (at `code_width` bits) into the LSB-first bit buffer.
@@ -169,7 +168,7 @@ fn lzw_compress(indices: &[u8], min_code_size: u8) -> Vec<u8> {
     let mut n_bits: u32 = 0;
 
     emit_code(clear, code_width, &mut bits, &mut n_bits, &mut out);
-    let mut prefix = indices[0] as u16;
+    let mut prefix = u16::from(indices[0]);
     for &c in &indices[1..] {
         let key = (prefix, c);
         if let Some(&code) = dict.get(&key) {
@@ -225,9 +224,9 @@ mod tests {
         assert_eq!(&gif[8..10], &2u16.to_le_bytes());
         assert_eq!(*gif.last().unwrap(), 0x3B);
         // Two frames -> two image separators.
-        assert_eq!(gif.iter().filter(|&&b| b == 0x2C).count(), 2);
+        assert_eq!(gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0x2C)), 2);
         // Two graphic control extensions.
-        assert_eq!(gif.iter().filter(|&&b| b == 0xF9).count(), 2);
+        assert_eq!(gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0xF9)), 2);
     }
 
     #[test]
@@ -259,11 +258,11 @@ mod tests {
             .map(|i| {
                 let mut buf = solid(i * 40, 200, 50, w, h);
                 buf[0] = 255;
-                GifFrame::new(buf, (i + 1) as u16 * 5)
+                GifFrame::new(buf, u16::from(i + 1) * 5)
             })
             .collect();
         let gif = encode_gif(w as u16, h as u16, &frames).unwrap();
         assert!(gif.len() > 50);
-        assert_eq!(gif.iter().filter(|&&b| b == 0x2C).count(), 3);
+        assert_eq!(gif.iter().fold(0usize, |n, &b| n + usize::from(b == 0x2C)), 3);
     }
 }

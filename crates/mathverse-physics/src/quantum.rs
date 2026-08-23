@@ -16,7 +16,7 @@ pub fn hydrogen_energy_level_j(n: u32) -> f64 {
     if n == 0 {
         return f64::NAN;
     }
-    -2.179_872_361_103_2e-18 / (n as f64).powi(2)
+    -2.179_872_361_103_2e-18 / f64::from(n).powi(2)
 }
 
 /// de Broglie wavelength: λ = h / p.

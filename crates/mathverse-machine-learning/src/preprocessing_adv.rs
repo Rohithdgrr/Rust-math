@@ -177,7 +177,7 @@ impl MinMaxScaler {
                         }
                         let span = self.maxs[j] - self.mins[j];
                         if span < 1e-12 {
-                            (lo + hi) / 2.0
+                            f64::midpoint(lo, hi)
                         } else {
                             lo + (v - self.mins[j]) / span * (hi - lo)
                         }
@@ -227,8 +227,7 @@ pub fn ordinal_encode(values: &[f64], order: &[f64]) -> Vec<f64> {
             order
                 .iter()
                 .position(|o| (*o - *v).abs() < 1e-10)
-                .map(|i| i as f64)
-                .unwrap_or(-1.0)
+                .map_or(-1.0, |i| i as f64)
         })
         .collect()
 }
@@ -248,7 +247,7 @@ pub fn impute_mean(x: &mut [Vec<f64>]) {
                 count += 1;
             }
         }
-        let mean = if count > 0 { sum / count as f64 } else { 0.0 };
+        let mean = if count > 0 { sum / f64::from(count) } else { 0.0 };
         for row in x.iter_mut() {
             let c = col.min(row.len() - 1);
             if row[c].is_nan() {
@@ -274,7 +273,7 @@ pub fn impute_median(x: &mut [Vec<f64>]) {
         let median = if vals.is_empty() {
             0.0
         } else if vals.len().is_multiple_of(2) {
-            (vals[vals.len() / 2 - 1] + vals[vals.len() / 2]) / 2.0
+            f64::midpoint(vals[vals.len() / 2 - 1], vals[vals.len() / 2])
         } else {
             vals[vals.len() / 2]
         };
@@ -399,7 +398,7 @@ pub fn robust_scale(x: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>, Vec<f64>) {
         vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         let median = if n.is_multiple_of(2) {
-            (vals[n / 2 - 1] + vals[n / 2]) / 2.0
+            f64::midpoint(vals[n / 2 - 1], vals[n / 2])
         } else {
             vals[n / 2]
         };

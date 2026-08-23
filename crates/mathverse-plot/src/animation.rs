@@ -30,8 +30,10 @@ pub fn encode_frames_to_gif(
     let h = height.max(1);
     let mut rgba_frames = Vec::with_capacity(frames.len());
     for svg in frames {
-        let mut opts = usvg::Options::default();
-        opts.resources_dir = std::env::current_dir().ok();
+        let opts = usvg::Options {
+            resources_dir: std::env::current_dir().ok(),
+            ..usvg::Options::default()
+        };
         let tree = usvg::Tree::from_data(svg.as_bytes(), &opts)
             .map_err(|e| crate::error::PlotError::InvalidData(format!("usvg parse: {e}")))?;
         let mut pixmap = tiny_skia::Pixmap::new(w, h)
@@ -53,9 +55,9 @@ pub fn encode_frames_to_gif(
                 rgba.extend_from_slice(&[r, g, b, a]);
             } else {
                 let inv = 255.0 / f32::from(a);
-                let rr = ((f32::from(r) * inv).round() as u8).min(255);
-                let gg = ((f32::from(g) * inv).round() as u8).min(255);
-                let bb = ((f32::from(b) * inv).round() as u8).min(255);
+                let rr = (f32::from(r) * inv).round() as u8;
+                let gg = (f32::from(g) * inv).round() as u8;
+                let bb = (f32::from(b) * inv).round() as u8;
                 rgba.extend_from_slice(&[rr, gg, bb, a]);
             }
         }
@@ -99,8 +101,10 @@ pub fn encode_frames_to_video(
     // Rasterize every frame to raw RGBA.
     let mut raw = Vec::with_capacity(frames.len() * w as usize * h as usize * 4);
     for svg in frames {
-        let mut opts = usvg::Options::default();
-        opts.resources_dir = std::env::current_dir().ok();
+        let opts = usvg::Options {
+            resources_dir: std::env::current_dir().ok(),
+            ..usvg::Options::default()
+        };
         let tree = usvg::Tree::from_data(svg.as_bytes(), &opts)
             .map_err(|e| crate::error::PlotError::InvalidData(format!("usvg parse: {e}")))?;
         let mut pixmap = tiny_skia::Pixmap::new(w, h)
@@ -172,8 +176,7 @@ pub fn ffmpeg_available() -> bool {
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+        .is_ok_and(|s| s.success())
 }
 
 /// Video codec target for [`encode_frames_to_video`].
@@ -197,7 +200,7 @@ impl VideoCodec {
 
     /// `ffmpeg` arguments selecting the codec.
     #[cfg(feature = "png")]
-    fn ffmpeg_args(&self) -> (&'static str, &'static str) {
+    fn ffmpeg_args(self) -> (&'static str, &'static str) {
         match self {
             VideoCodec::Mp4 => ("libx264", "mp4"),
             VideoCodec::WebM => ("libvpx-vp9", "webm"),
@@ -275,7 +278,7 @@ impl AnimationConfig {
 /// number of frames, and returns an SVG string for that frame.
 pub fn generate_frames<F>(
     frame_fn: F,
-    config: AnimationConfig,
+    config: &AnimationConfig,
 ) -> PlotResult<Vec<String>>
 where
     F: Fn(usize, usize) -> PlotResult<String>,
@@ -284,8 +287,7 @@ where
     for i in 0..config.num_frames {
         let svg = frame_fn(i, config.num_frames)?;
         frames.push(svg);
-    }
-    Ok(frames)
+    }    Ok(frames)
 }
 
 /// Generate an animated SVG from a sequence of frames.
@@ -300,16 +302,12 @@ pub fn assemble_animated_svg(
         return String::from("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>");
     }
 
-    let _total_duration = config.num_frames as u64 * config.frame_duration_ms;
-
     let mut output = String::new();
     output.push_str(&format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\">\n",
         config.width, config.height
     ));
-    output.push_str(&format!(
-        "  <rect width=\"100%\" height=\"100%\" fill=\"white\"/>\n"
-    ));
+    output.push_str("  <rect width=\"100%\" height=\"100%\" fill=\"white\"/>\n");
 
     for (i, frame) in frames.iter().enumerate() {
         let begin = i as u64 * config.frame_duration_ms;
@@ -321,8 +319,7 @@ pub fn assemble_animated_svg(
             .collect::<Vec<_>>()
             .join("\n");
         output.push_str(&format!(
-            "  <g begin=\"{}ms\" end=\"{}ms\" visibility=\"hidden\">\n{}\n  </g>\n",
-            begin, end, content
+            "  <g begin=\"{begin}ms\" end=\"{end}ms\" visibility=\"hidden\">\n{content}\n  </g>\n"
         ));
     }
 
@@ -348,7 +345,7 @@ pub fn render_frame(
 /// `parametric_fn` computes a `DataSeries` for a given time `t` in [0, 1].
 pub fn generate_parametric_animation<F>(
     parametric_fn: F,
-    config: AnimationConfig,
+    config: &AnimationConfig,
 ) -> PlotResult<Vec<String>>
 where
     F: Fn(f64) -> PlotResult<crate::DataSeries>,
@@ -374,12 +371,12 @@ mod tests {
         let frames = generate_frames(
             |i, total| {
                 let series = crate::DataSeries::new(
-                    format!("frame_{}", i),
+                    format!("frame_{i}"),
                     vec![crate::DataPoint::new(i as f64, i as f64 / total as f64)],
                 );
                 render_frame(PlotConfig::new(), series)
             },
-            config,
+            &config,
         )
         .unwrap();
         assert_eq!(frames.len(), 5);
@@ -391,12 +388,12 @@ mod tests {
         let frames = generate_frames(
             |i, _| {
                 let series = crate::DataSeries::new(
-                    format!("frame_{}", i),
+                    format!("frame_{i}"),
                     vec![crate::DataPoint::new(i as f64, i as f64)],
                 );
                 render_frame(PlotConfig::new(), series)
             },
-            config.clone(),
+            &config,
         )
         .unwrap();
         let svg = assemble_animated_svg(&frames, &config);
@@ -411,7 +408,7 @@ mod tests {
             |t| {
                 let points: Vec<crate::DataPoint> = (0..10)
                     .map(|i| {
-                        let x = i as f64 * 0.1;
+                        let x = f64::from(i) * 0.1;
                         let y = (x + t).sin();
                         crate::DataPoint::new(x, y)
                     })
@@ -419,7 +416,7 @@ mod tests {
                 let series = crate::DataSeries::new("wave".to_string(), points);
                 Ok(series)
             },
-            config,
+            &config,
         )
         .unwrap();
         assert_eq!(frames.len(), 4);
@@ -449,20 +446,20 @@ mod tests {
     #[cfg(feature = "png")]
     #[test]
     fn video_encoding_requires_ffmpeg() {
-        if !ffmpeg_available() {
-            // Without ffmpeg the call must fail gracefully, not panic.
-            let frames = vec![
-                "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'></svg>".to_string(),
-            ];
-            let err = encode_frames_to_video(64, 64, &frames, 30, VideoCodec::Mp4);
-            assert!(err.is_err());
-        } else {
+        if ffmpeg_available() {
             let frames = vec![
                 "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'></svg>".to_string(),
                 "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' fill='red'/></svg>".to_string(),
             ];
             let bytes = encode_frames_to_video(64, 64, &frames, 10, VideoCodec::Mp4).unwrap();
             assert!(!bytes.is_empty());
+        } else {
+            // Without ffmpeg the call must fail gracefully, not panic.
+            let frames = vec![
+                "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'></svg>".to_string(),
+            ];
+            let err = encode_frames_to_video(64, 64, &frames, 30, VideoCodec::Mp4);
+            assert!(err.is_err());
         }
     }
 }

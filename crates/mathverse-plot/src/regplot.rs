@@ -112,8 +112,8 @@ pub fn render_regplot(points: &[DataPoint], config: &RegPlotConfig) -> PlotResul
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     let x: Vec<f64> = points.iter().map(|p| p.x).collect();
     let y: Vec<f64> = points.iter().map(|p| p.y).collect();
@@ -142,7 +142,7 @@ pub fn render_regplot(points: &[DataPoint], config: &RegPlotConfig) -> PlotResul
     // Grid
     if config.show_grid {
         for i in 0..=5 {
-            let gy = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let gy = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");
@@ -168,7 +168,7 @@ pub fn render_regplot(points: &[DataPoint], config: &RegPlotConfig) -> PlotResul
         let mut ci_lower = Vec::new();
 
         for i in 0..=num_steps {
-            let xi = x_min + (x_max - x_min) * i as f64 / num_steps as f64;
+            let xi = x_min + (x_max - x_min) * f64::from(i) / f64::from(num_steps);
             let yi = reg.slope * xi + reg.intercept;
 
             // Confidence interval width
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn regplot_renders() {
         let points: Vec<DataPoint> = (0..20)
-            .map(|i| DataPoint::new(i as f64, i as f64 * 2.0 + 1.0))
+            .map(|i| DataPoint::new(f64::from(i), f64::from(i) * 2.0 + 1.0))
             .collect();
         let config = RegPlotConfig::new();
         let svg = render_regplot(&points, &config).unwrap();

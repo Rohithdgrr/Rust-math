@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn am_test() {
         let carrier = vec![1.0; 100];
-        let modulating: Vec<f64> = (0..100).map(|i| (2.0 * core::f64::consts::PI * i as f64 / 50.0).sin()).collect();
+        let modulating: Vec<f64> = (0..100).map(|i| (2.0 * core::f64::consts::PI * f64::from(i) / 50.0).sin()).collect();
         let am = amplitude_modulate(&carrier, &modulating, 0.5);
         assert_eq!(am.len(), 100);
     }

@@ -1,3 +1,6 @@
+/// Maximum absolute gradient magnitude applied per weight update.
+const GRAD_CLIP: f64 = 1.0e4;
+
 /// A single layer in a neural network.
 #[derive(Debug, Clone)]
 pub enum Layer {
@@ -65,7 +68,7 @@ impl NeuralNet {
                 Layer::Softmax => activations
                     .iter()
                     .map(|row| {
-                        let max_val = row.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+                        let max_val = row.iter().copied().fold(f64::NEG_INFINITY, f64::max);
                         let exps: Vec<f64> = row.iter().map(|&v| (v - max_val).exp()).collect();
                         let sum: f64 = exps.iter().sum();
                         exps.iter().map(|&e| e / sum).collect()
@@ -78,6 +81,11 @@ impl NeuralNet {
 
     /// Train the network with gradient descent for the given number of epochs.
     /// This implements proper backpropagation with the chain rule.
+    ///
+    /// Gradients are clipped to a per-component magnitude of [`GRAD_CLIP`] and
+    /// training stops early as soon as any non-finite value appears, so a
+    /// poorly conditioned learning rate degrades gracefully instead of
+    /// poisoning the weights with `NaN`/infinities.
     pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64], lr: f64, epochs: usize) {
         for _ in 0..epochs {
             for (sample_idx, xi) in x.iter().enumerate() {
@@ -110,7 +118,7 @@ impl NeuralNet {
                             activations.push(activated);
                         }
                         Layer::Softmax => {
-                            let max_val = current.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+                            let max_val = current.iter().copied().fold(f64::NEG_INFINITY, f64::max);
                             let exps: Vec<f64> = current.iter().map(|&v| (v - max_val).exp()).collect();
                             let sum: f64 = exps.iter().sum();
                             let activated: Vec<f64> = exps.iter().map(|&e| e / sum).collect();
@@ -123,8 +131,20 @@ impl NeuralNet {
                 let output = activations.last().expect("forward pass must have at least one activation");
                 let target = y[sample_idx];
                 
-                // Output error (MSE loss derivative: output - target)
-                let mut delta: Vec<f64> = output.iter().map(|&o| o - target).collect();
+                // Output error (MSE loss derivative: output - target),
+                // with divergence guards: stop on non-finite values and clip
+                // extreme gradients so one bad learning rate cannot destroy
+                // previously learned weights.
+                if output.iter().any(|&v| !v.is_finite()) {
+                    return;
+                }
+                let mut delta: Vec<f64> = output
+                    .iter()
+                    .map(|&o| (o - target).clamp(-GRAD_CLIP, GRAD_CLIP))
+                    .collect();
+                if delta.iter().any(|&d| !d.is_finite()) {
+                    return;
+                }
                 
                 // Backpropagate through layers in reverse
                 for layer_idx in (0..self.layers.len()).rev() {
@@ -214,8 +234,7 @@ impl NeuralNet {
                         .enumerate()
                         .filter(|(_, v)| !v.is_nan())
                         .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Less))
-                        .map(|(i, _)| i as f64)
-                        .unwrap_or(0.0)
+                        .map_or(0.0, |(i, _)| i as f64)
                 } else {
                     // Regression: return the single output
                     row[0]

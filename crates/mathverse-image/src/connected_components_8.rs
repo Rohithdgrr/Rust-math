@@ -38,7 +38,7 @@
 //! # Returns
 //!
 //! `(labeled_img, components)` where:
-//! - `labeled_img`: GrayImage whose pixel data holds each pixel's component number
+//! - `labeled_img`: `GrayImage` whose pixel data holds each pixel's component number
 //!   (1-indexed as raw `f64` label values; 0.0 = background). Labels are written
 //!   directly into the data buffer so values above 1 are preserved rather than
 //!   clamped by [`GrayImage::set`].
@@ -86,18 +86,18 @@ pub struct Component {
 /// assert_eq!(labeled.get(0, 0), 0.0); // background
 /// ```
 pub fn connected_components_8(img: &GrayImage) -> (GrayImage, Vec<Component>) {
-    let w = img.w;
-    let h = img.h;
-    let mut labeled = GrayImage::new(w, h).unwrap();
-    let mut visited = vec![false; w * h];
-    let mut components: Vec<Component> = Vec::new();
-
     // 8-connected neighborhood offsets.
     const NEIGHBORS: [(i64, i64); 8] = [
         (-1, -1), (0, -1), (1, -1),
         (-1, 0),           (1, 0),
         (-1, 1),  (0, 1),  (1, 1),
     ];
+
+    let w = img.w;
+    let h = img.h;
+    let mut labeled = GrayImage::new(w, h).unwrap();
+    let mut visited = vec![false; w * h];
+    let mut components: Vec<Component> = Vec::new();
 
     for sy in 0..h {
         for sx in 0..w {
@@ -126,7 +126,7 @@ pub fn connected_components_8(img: &GrayImage) -> (GrayImage, Vec<Component>) {
                 sum_x += x;
                 sum_y += y;
 
-                labeled.data[y * w + x] = label as f64;
+                labeled.data[y * w + x] = f64::from(label);
 
                 for &(dx, dy) in &NEIGHBORS {
                     let nx = x as i64 + dx;

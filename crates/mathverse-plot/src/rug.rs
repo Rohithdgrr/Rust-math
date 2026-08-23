@@ -60,8 +60,8 @@ pub fn render_rug_plot(values: &[f64], config: &RugConfig) -> PlotResult<String>
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     let min_val = values.iter().fold(f64::INFINITY, |a, &b| a.min(b));
     let max_val = values.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
@@ -87,7 +87,7 @@ pub fn render_rug_plot(values: &[f64], config: &RugConfig) -> PlotResult<String>
         let y_top = padding;
         let y_bottom = height - padding;
         for i in 0..=5 {
-            let x = padding + (i as f64 / 5.0) * chart_width;
+            let x = padding + (f64::from(i) / 5.0) * chart_width;
             svg.push_str("  <line x1=\"");
             svg.push_str(&x.to_string());
             svg.push_str("\" y1=\"");

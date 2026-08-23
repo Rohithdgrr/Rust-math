@@ -1,5 +1,6 @@
+//! Manual diagnostics for the ODE integrators; prints step traces to stderr.
+
 use mathverse_numerical::ode::*;
-use mathverse_core::error::MathResult;
 
 #[test]
 fn debug_rkf45() {
@@ -17,7 +18,7 @@ fn debug_rkf45() {
                 eprintln!("  Step {}: t={}, y={}", i, s.t, s.y[0]);
             }
         }
-        Err(e) => eprintln!("RKF45 Error: {:?}", e),
+        Err(e) => eprintln!("RKF45 Error: {e:?}"),
     }
 }
 
@@ -33,7 +34,7 @@ fn debug_dormand_prince() {
             eprintln!("DP Final y: {}", r.last().unwrap().y[0]);
             eprintln!("DP Expected e: {}", std::f64::consts::E);
         }
-        Err(e) => eprintln!("DP Error: {:?}", e),
+        Err(e) => eprintln!("DP Error: {e:?}"),
     }
 }
 
@@ -50,6 +51,6 @@ fn debug_backward_euler() {
             eprintln!("BE Final y: {}", r.last().unwrap().y[0]);
             eprintln!("BE Expected exp(-10): {}", (-10.0f64).exp());
         }
-        Err(e) => eprintln!("BE Error: {:?}", e),
+        Err(e) => eprintln!("BE Error: {e:?}"),
     }
 }

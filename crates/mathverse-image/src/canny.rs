@@ -177,6 +177,6 @@ mod tests {
         assert!(e.get(33, 16) > 0.0);
         assert!(e.get(10, 16) < 0.5 && e.get(50, 16) < 0.5);
         let count: usize = e.data.iter().filter(|v| **v > 0.5).count();
-        assert!(count < 200, "edge pixels: {}", count);
+        assert!(count < 200, "edge pixels: {count}");
     }
 }

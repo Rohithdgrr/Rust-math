@@ -151,7 +151,7 @@ impl NullBitmap {
 
     /// Computes the number of bytes needed for `n` bits.
     const fn byte_len(n: usize) -> usize {
-        (n + 7) / 8
+        n.div_ceil(8)
     }
 }
 

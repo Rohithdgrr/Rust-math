@@ -156,7 +156,7 @@ pub fn sin_power<T: Real + Trig>(n: u32, x: T) -> T {
         T::one()
     } else if n == 1 {
         x.sin()
-    } else if n % 2 == 0 {
+    } else if n.is_multiple_of(2) {
         // sin²ⁿ(x) = ((1 - cos(2x))/2)ⁿ
         let half = (T::one() - (T::from_f64(2.0) * x).cos()) / T::from_f64(2.0);
         half.powi((n / 2) as i32)
@@ -176,7 +176,7 @@ pub fn cos_power<T: Real + Trig>(n: u32, x: T) -> T {
         T::one()
     } else if n == 1 {
         x.cos()
-    } else if n % 2 == 0 {
+    } else if n.is_multiple_of(2) {
         let half = (T::one() + (T::from_f64(2.0) * x).cos()) / T::from_f64(2.0);
         half.powi((n / 2) as i32)
     } else {
@@ -241,7 +241,7 @@ mod tests {
         for n in 1..=5 {
             for theta in [0.1, 0.5, 1.0, 2.0] {
                 let x = theta.cos();
-                let expected = (n as f64 * theta).cos();
+                let expected = (f64::from(n) * theta).cos();
                 assert!((chebyshev_first(n, x) - expected).abs() < 1e-10, "T_{n}({theta})");
             }
         }

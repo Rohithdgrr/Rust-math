@@ -22,7 +22,6 @@ pub struct StreamingStats {
 
 impl StreamingStats {
     /// Create an empty accumulator.
-    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -118,7 +117,8 @@ impl StreamingStats {
             return f64::NAN;
         }
         let n = self.count as f64;
-        (n * n - n).sqrt() / (n - 2.0) * self.m3 / self.m2.powf(1.5)
+        // Adjusted Fisher-Pearson: G1 = n·√(n−1)/(n−2) · M₃/M₂^{3/2}.
+        n * (n - 1.0).sqrt() / (n - 2.0) * self.m3 / self.m2.powf(1.5)
     }
 
     /// Sample excess kurtosis. `NaN` with fewer than 4 samples or zero
@@ -130,9 +130,11 @@ impl StreamingStats {
         }
         let n = self.count as f64;
         let m2sq = self.m2 * self.m2;
-        (n - 1.0) / ((n - 2.0) * (n - 3.0))
-            * ((n + 1.0) * self.m4 / m2sq - 3.0 * (n - 1.0))
-            + 3.0
+        // Adjusted Fisher-Pearson (bias-corrected) excess kurtosis:
+        // G2 = (n²−1)/(n−3) · M₄/M₂² − 3(n−1)²/((n−2)(n−3)).
+        // Gaussian → ~0, uniform → ~−1.2, exponential → ~+6.
+        (n * n - 1.0) / (n - 3.0) * self.m4 / m2sq
+            - 3.0 * (n - 1.0) * (n - 1.0) / ((n - 2.0) * (n - 3.0))
     }
 
     /// Combine another accumulator into `self` (Chan et al. parallel merge).
@@ -183,7 +185,6 @@ impl StreamingStats {
     }
 
     /// Statistics of `samples` in one pass.
-    #[must_use]
     pub fn from_slice(samples: &[f64]) -> Self {
         let mut s = Self::new();
         s.extend(samples);
@@ -284,16 +285,22 @@ mod tests {
 
     #[test]
     fn skewness_sign_detects_asymmetry() {
+        // Right-skewed: squares of a uniform pile up near zero with a long
+        // right tail. (A plain uniform range is symmetric, so its sample
+        // skewness is ~0 and cannot test the sign.)
         let mut s = StreamingStats::new();
         for x in 0..10_000 {
-            s.update(x as f64);
+            let u = f64::from(x) / 9_999.0;
+            s.update(u * u);
         }
-        assert!(s.skewness() > 0.0);
+        assert!(s.skewness() > 0.5, "skew {}", s.skewness());
+        // Left-skewed mirror image.
         let mut s2 = StreamingStats::new();
         for x in 0..10_000 {
-            s2.update((9_999 - x) as f64);
+            let u = f64::from(x) / 9_999.0;
+            s2.update(-u * u);
         }
-        assert!(s2.skewness() < 0.0);
+        assert!(s2.skewness() < -0.5, "skew {}", s2.skewness());
     }
 
     #[test]

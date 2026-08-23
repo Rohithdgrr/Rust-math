@@ -9,8 +9,8 @@ fn main() -> mathverse_plot::PlotResult<()> {
     let mut y = Vec::new();
 
     for i in 0..60 {
-        let xi = i as f64 * 0.15;
-        let yi = xi * 0.8 + (i as f64 * 0.3).sin() * 1.5;
+        let xi = f64::from(i) * 0.15;
+        let yi = xi * 0.8 + (f64::from(i) * 0.3).sin() * 1.5;
         x.push(xi);
         y.push(yi);
     }

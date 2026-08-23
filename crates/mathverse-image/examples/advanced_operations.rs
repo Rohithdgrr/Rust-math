@@ -21,7 +21,7 @@ fn main() {
     // Apply simple thresholding
     let thresholded = img.threshold(0.5);
     let thresholded_count = thresholded.data.iter().filter(|v| **v > 0.5).count();
-    println!("Thresholded (0.5) pixels above threshold: {}", thresholded_count);
+    println!("Thresholded (0.5) pixels above threshold: {thresholded_count}");
     
     // Apply adaptive thresholding
     let adaptive = img.adaptive_threshold(8, 0.1);

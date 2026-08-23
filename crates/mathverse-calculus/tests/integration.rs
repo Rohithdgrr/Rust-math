@@ -62,7 +62,7 @@ mod integration_integration {
         // 5-point Gauss is exact for degree ≤ 9
         for deg in 0..=9 {
             let result = gaussian_quadrature(&|x| x.powi(deg), -1.0, 1.0, 5).unwrap();
-            let expected = if deg % 2 == 0 { 2.0 / (deg as f64 + 1.0) } else { 0.0 };
+            let expected = if deg % 2 == 0 { 2.0 / (f64::from(deg) + 1.0) } else { 0.0 };
             assert!((result - expected).abs() < 1e-12, "degree {deg}: {result} vs {expected}");
         }
     }

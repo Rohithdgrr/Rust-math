@@ -58,8 +58,8 @@ pub fn render_hist2d(
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     // Find bounds
     let x_min = x_data.iter().fold(f64::INFINITY, |a, &b| a.min(b));
@@ -99,7 +99,7 @@ pub fn render_hist2d(
         let r = (t * 255.0) as u8;
         let g = ((1.0 - (t - 0.5).abs() * 2.0) * 200.0) as u8;
         let b = ((1.0 - t) * 255.0) as u8;
-        format!("#{:02x}{:02x}{:02x}", r, g, b)
+        format!("#{r:02x}{g:02x}{b:02x}")
     };
 
     let mut svg = String::new();
@@ -153,8 +153,8 @@ pub fn render_hist2d(
 
         // Ticks
         for i in 0..=4 {
-            let y = cb_y + cb_height * (1.0 - i as f64 / 4.0);
-            let val = max_count * i as f64 / 4.0;
+            let y = cb_y + cb_height * (1.0 - f64::from(i) / 4.0);
+            let val = max_count * f64::from(i) / 4.0;
             svg.push_str(&format!(
                 r#"  <text x="{}" y="{y}" font-size="9" dominant-baseline="middle">{:.0}</text>"#,
                 cb_x + cb_width + 5.0, val
@@ -194,8 +194,8 @@ mod tests {
 
     #[test]
     fn hist2d_renders() {
-        let x: Vec<f64> = (0..100).map(|i| i as f64 * 0.1).collect();
-        let y: Vec<f64> = (0..100).map(|i| (i as f64 * 0.1).sin()).collect();
+        let x: Vec<f64> = (0..100).map(|i| f64::from(i) * 0.1).collect();
+        let y: Vec<f64> = (0..100).map(|i| (f64::from(i) * 0.1).sin()).collect();
         let config = Hist2DConfig::new();
         let svg = render_hist2d(&x, &y, &config).unwrap();
         assert!(svg.contains("<svg"));

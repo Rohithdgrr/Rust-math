@@ -60,6 +60,7 @@ impl Point3D {
 }
 
 /// Configuration for WebGL 3D rendering.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct WebGL3DConfig {
     /// Canvas width in pixels.
@@ -280,9 +281,9 @@ impl SurfaceMesh {
 pub fn render_surface_html(mesh: &SurfaceMesh, config: &WebGL3DConfig) -> String {
     let triangles = mesh.triangles();
     let (min_x, max_x, min_y, max_y, min_z, max_z) = mesh.bounds();
-    let cx = (min_x + max_x) / 2.0;
-    let cy = (min_y + max_y) / 2.0;
-    let cz = (min_z + max_z) / 2.0;
+    let cx = f64::midpoint(min_x, max_x);
+    let cy = f64::midpoint(min_y, max_y);
+    let cz = f64::midpoint(min_z, max_z);
     let rng = (max_x - min_x)
         .max(max_y - min_y)
         .max(max_z - min_z)
@@ -425,9 +426,9 @@ impl WebGL3D {
 
         // Compute data bounds and center
         let (min_x, max_x, min_y, max_y, min_z, max_z) = self.bounds();
-        let center_x = (min_x + max_x) / 2.0;
-        let center_y = (min_y + max_y) / 2.0;
-        let center_z = (min_z + max_z) / 2.0;
+        let center_x = f64::midpoint(min_x, max_x);
+        let center_y = f64::midpoint(min_y, max_y);
+        let center_z = f64::midpoint(min_z, max_z);
         let range_x = (max_x - min_x).abs().max(1.0);
         let range_y = (max_y - min_y).abs().max(1.0);
         let range_z = (max_z - min_z).abs().max(1.0);

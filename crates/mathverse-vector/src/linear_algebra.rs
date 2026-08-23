@@ -1,17 +1,19 @@
 /// Matrix-vector multiplication. `mat` is row-major `m×n`, `v` has length `n`.
+#[must_use]
 pub fn mat_vec_mul(mat: &[Vec<f64>], v: &[f64]) -> Vec<f64> {
     mat.iter().map(|row| row.iter().zip(v).map(|(a,b)| a*b).sum()).collect()
 }
 /// Determinant of a 2×2 matrix.
-pub fn det2x2(m: &[[f64; 2]; 2]) -> f64 { m[0][0]*m[1][1] - m[0][1]*m[1][0] }
+#[must_use]
+pub fn det2x2(m: &[[f64; 2]; 2]) -> f64 { m[0][1].mul_add(-m[1][0], m[0][0] * m[1][1]) }
 
 /// Determinant of a 3×3 matrix.
+#[must_use]
 pub fn det3x3(m: &[[f64; 3]; 3]) -> f64 {
-    m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])
-    - m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
-    + m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0])
+    m[0][2].mul_add(m[1][1].mul_add(-m[2][0], m[1][0] * m[2][1]), m[0][1].mul_add(-m[1][2].mul_add(-m[2][0], m[1][0] * m[2][2]), m[0][0] * m[1][2].mul_add(-m[2][1], m[1][1] * m[2][2])))
 }
 /// Rank of a matrix via Gaussian elimination with partial pivoting.
+#[must_use]
 pub fn rank(vectors: &[Vec<f64>]) -> usize {
     let mut mat: Vec<Vec<f64>> = vectors.to_vec();
     let mut rank = 0;
@@ -26,7 +28,7 @@ pub fn rank(vectors: &[Vec<f64>]) -> usize {
         if let Some(pr) = pivot_row {
             mat.swap(rank, pr);
             let pivot = mat[rank][col];
-            for val in mat[rank].iter_mut() {
+            for val in &mut mat[rank] {
                 *val /= pivot;
             }
             let pivot_row = mat[rank].clone();
@@ -34,7 +36,7 @@ pub fn rank(vectors: &[Vec<f64>]) -> usize {
                 if row_idx != rank && row[col].abs() > 1e-10 {
                     let factor = row[col];
                     for (j, val) in row.iter_mut().enumerate() {
-                        *val -= factor * pivot_row[j];
+                        *val = factor.mul_add(-pivot_row[j], *val);
                     }
                 }
             }
@@ -44,6 +46,7 @@ pub fn rank(vectors: &[Vec<f64>]) -> usize {
     rank
 }
 /// Tests whether a set of vectors is mutually orthogonal within tolerance `tol`.
+#[must_use]
 pub fn is_orthogonal(vectors: &[Vec<f64>], tol: f64) -> bool {
     for i in 0..vectors.len() {
         for j in i+1..vectors.len() {

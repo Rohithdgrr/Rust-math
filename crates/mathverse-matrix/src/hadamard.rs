@@ -268,6 +268,7 @@ pub struct MatrixOnes;
 
 impl MatrixOnes {
     /// Create matrix of ones.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(rows: usize, cols: usize) -> Matrix {
         Matrix {
             rows,

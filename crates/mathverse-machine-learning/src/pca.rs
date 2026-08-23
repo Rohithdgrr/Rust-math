@@ -60,7 +60,7 @@ impl PCA {
             .collect();
 
         // Compute covariance matrix (delegates to mathverse-statistics)
-        let centered_refs: Vec<&[f64]> = centered.iter().map(|r| r.as_slice()).collect();
+        let centered_refs: Vec<&[f64]> = centered.iter().map(std::vec::Vec::as_slice).collect();
         let cov = mathverse_statistics::covariance_matrix(&centered_refs).unwrap_or_else(|_| {
             // Fallback: compute covariance manually
             let mut c = vec![vec![0.0; p]; p];
@@ -310,7 +310,7 @@ mod tests {
     #[test]
     fn pca_test() {
         let x: Vec<Vec<f64>> = (0..50)
-            .map(|i| vec![i as f64 + 0.5, 2.0 * i as f64 + 1.0])
+            .map(|i| vec![f64::from(i) + 0.5, 2.0 * f64::from(i) + 1.0])
             .collect();
         let mut pca = PCA::new(1);
         let reduced = pca.fit_transform(&x);

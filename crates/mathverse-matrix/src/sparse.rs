@@ -16,6 +16,7 @@ pub struct SparseMatrix {
 }
 
 impl SparseMatrix {
+    /// Create an empty sparse matrix with room for `rows × cols` entries.
     pub fn new(rows: usize, cols: usize) -> SparseMatrix {
         SparseMatrix { rows, cols, entries: Vec::new() }
     }
@@ -30,9 +31,14 @@ impl SparseMatrix {
         Ok(())
     }
 
+    /// Number of rows.
+    #[must_use]
     pub fn rows(&self) -> usize {
         self.rows
     }
+
+    /// Number of columns.
+    #[must_use]
     pub fn cols(&self) -> usize {
         self.cols
     }
@@ -41,6 +47,8 @@ impl SparseMatrix {
         self.entries.len()
     }
 
+    /// Borrow the stored `(row, col, value)` triplets.
+    #[must_use]
     pub fn triplets(&self) -> &[(usize, usize, f64)] {
         &self.entries
     }
@@ -50,8 +58,7 @@ impl SparseMatrix {
         self.entries
             .iter()
             .find(|&&(rr, cc, _)| rr == r && cc == c)
-            .map(|&(_, _, v)| v)
-            .unwrap_or(0.0)
+            .map_or(0.0, |&(_, _, v)| v)
     }
 
     /// Sparse matvec; error on `cols != v.len()`.
@@ -66,6 +73,8 @@ impl SparseMatrix {
         Ok(Vector::new(out))
     }
 
+    /// Transpose: every triplet `(r, c, v)` becomes `(c, r, v)`.
+    #[must_use]
     pub fn transpose(&self) -> SparseMatrix {
         let mut t = SparseMatrix::new(self.cols, self.rows);
         for &(r, c, v) in &self.entries {
@@ -74,6 +83,8 @@ impl SparseMatrix {
         t
     }
 
+    /// Convert to a dense matrix, accumulating duplicate entries.
+    #[must_use]
     pub fn to_dense(&self) -> Matrix {
         let mut m = Matrix::zeros(self.rows, self.cols);
         for &(r, c, v) in &self.entries {

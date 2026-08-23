@@ -8,7 +8,7 @@ use mathverse_trigonometry::*;
 struct Lcg(u64);
 impl Lcg {
     fn next(&mut self) -> u64 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self.0.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
         self.0
     }
     fn in_unit(&mut self) -> f64 {
@@ -72,7 +72,7 @@ fn chebyshev_cos_relation_extended() {
     for n in 0..=20u32 {
         for _ in 0..50 {
             let theta = rng.range(0.0, core::f64::consts::PI);
-            let expected = (n as f64 * theta).cos();
+            let expected = (f64::from(n) * theta).cos();
             let actual = chebyshev_first(n, theta.cos());
             assert!((actual - expected).abs() < 1e-8, "n={n} theta={theta}");
         }

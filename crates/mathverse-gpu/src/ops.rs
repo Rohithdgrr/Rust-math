@@ -124,8 +124,8 @@ pub fn gpu_mat_mul(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matri
         pass.set_bind_group(0, &bind_group, &[]);
         let workgroup_size = 16;
         pass.dispatch_workgroups(
-            ((n + workgroup_size - 1) / workgroup_size) as u32,
-            ((m + workgroup_size - 1) / workgroup_size) as u32,
+            n.div_ceil(workgroup_size) as u32,
+            m.div_ceil(workgroup_size) as u32,
             1,
         );
     }
@@ -134,7 +134,7 @@ pub fn gpu_mat_mul(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matri
     // Read back
     let data = pollster::block_on(ctx.read_buffer(&buf_out, m * n))?;
 
-    Ok(Matrix::new(m, n, data)?)
+    Matrix::new(m, n, data)
 }
 
 /// GPU element-wise addition.
@@ -262,13 +262,13 @@ pub fn gpu_add(ctx: &GpuContext, a: &Matrix, b: &Matrix) -> MathResult<Matrix> {
         pass.set_bind_group(0, &bind_group, &[]);
         let workgroup_size = 256;
         let n = a.data().len();
-        pass.dispatch_workgroups(((n + workgroup_size - 1) / workgroup_size) as u32, 1, 1);
+        pass.dispatch_workgroups(n.div_ceil(workgroup_size) as u32, 1, 1);
     }
     ctx.queue.submit([encoder.finish()]);
 
     let data = pollster::block_on(ctx.read_buffer(&buf_out, a.data().len()))?;
 
-    Ok(Matrix::new(a.rows(), a.cols(), data)?)
+    Matrix::new(a.rows(), a.cols(), data)
 }
 
 /// GPU vector dot product.

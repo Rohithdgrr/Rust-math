@@ -14,9 +14,9 @@
 #[must_use]
 pub fn legendre(a: u64, p: u64) -> i64 {
     if p == 2 {
-        return if a % 2 == 0 { 0 } else { 1 };
+        return i64::from(!a.is_multiple_of(2));
     }
-    if a % p == 0 {
+    if a.is_multiple_of(p) {
         return 0;
     }
     let ls = crate::modular::mod_pow_unchecked(a % p, (p - 1) / 2, p);
@@ -39,7 +39,7 @@ pub fn legendre(a: u64, p: u64) -> i64 {
 /// assert_eq!(jacobi(3, 9), 0);
 /// ```
 #[must_use]
-pub fn jacobi(mut a: u64, mut n: u64) -> i64 {
+pub const fn jacobi(mut a: u64, mut n: u64) -> i64 {
     if n == 0 || n.is_multiple_of(2) {
         return 0;
     }
@@ -81,7 +81,7 @@ pub fn tonelli_shanks(n: u64, p: u64) -> Option<u64> {
     if p == 2 {
         return Some(n % 2);
     }
-    if p % 2 == 0 || !crate::primes::is_prime(p) {
+    if p.is_multiple_of(2) || !crate::primes::is_prime(p) {
         return None;
     }
     let n = n % p;
@@ -94,37 +94,37 @@ pub fn tonelli_shanks(n: u64, p: u64) -> Option<u64> {
     if p % 4 == 3 {
         return Some(crate::modular::mod_pow_unchecked(n, (p + 1) / 4, p));
     }
-    let mut q = p - 1;
-    let mut s = 0u32;
-    while q.is_multiple_of(2) {
-        q /= 2;
-        s += 1;
+    let mut odd_part = p - 1;
+    let mut two_adicity = 0u32;
+    while odd_part.is_multiple_of(2) {
+        odd_part /= 2;
+        two_adicity += 1;
     }
-    let mut z = 2;
-    while legendre(z, p) != -1 {
-        z += 1;
+    let mut nonresidue = 2;
+    while legendre(nonresidue, p) != -1 {
+        nonresidue += 1;
     }
-    let m = s;
-    let mut c = crate::modular::mod_pow_unchecked(z, q, p);
-    let mut t = crate::modular::mod_pow_unchecked(n, q, p);
-    let mut r = crate::modular::mod_pow_unchecked(n, (q + 1) / 2, p);
+    let mut cur_unity = crate::modular::mod_pow_unchecked(nonresidue, odd_part, p);
+    let mut cur_term = crate::modular::mod_pow_unchecked(n, odd_part, p);
+    let mut root = crate::modular::mod_pow_unchecked(n, (odd_part + 1).div_ceil(2), p);
     loop {
-        if t == 1 {
-            return Some(r);
+        if cur_term == 1 {
+            return Some(root);
         }
-        let mut i = 1u32;
-        let mut tt = t;
-        while tt != 1 {
-            tt = crate::modular::mod_mul(tt, tt, p);
-            i += 1;
-            if i > m {
+        let mut idx = 1u32;
+        let mut t_pow = cur_term;
+        while t_pow != 1 {
+            t_pow = crate::modular::mod_mul(t_pow, t_pow, p);
+            idx += 1;
+            if idx > two_adicity {
                 return None;
             }
         }
-        let b = crate::modular::mod_pow_unchecked(c, 1u64 << (m - i - 1), p);
-        c = crate::modular::mod_mul(b, b, p);
-        t = crate::modular::mod_mul(t, c, p);
-        r = crate::modular::mod_mul(r, b, p);
+        let step_mult =
+            crate::modular::mod_pow_unchecked(cur_unity, 1u64 << (two_adicity - idx - 1), p);
+        cur_unity = crate::modular::mod_mul(step_mult, step_mult, p);
+        cur_term = crate::modular::mod_mul(cur_term, cur_unity, p);
+        root = crate::modular::mod_mul(root, step_mult, p);
     }
 }
 

@@ -85,7 +85,7 @@ impl AxisBreak {
     /// Render break marks at a given x position and y range.
     pub fn render_svg(&self, x: f64, y_top: f64, y_bottom: f64) -> String {
         let mut svg = String::new();
-        let _mid_y = (y_top + y_bottom) / 2.0;
+        let _mid_y = f64::midpoint(y_top, y_bottom);
         let mark_height = (y_bottom - y_top) * 0.3;
 
         match self.style {
@@ -100,8 +100,7 @@ impl AxisBreak {
                     x - 6.0, y_top + mark_height,
                 );
                 svg.push_str(&format!(
-                    "  <polyline points=\"{}\" fill=\"none\" stroke=\"black\" stroke-width=\"1.5\"/>\n",
-                    points
+                    "  <polyline points=\"{points}\" fill=\"none\" stroke=\"black\" stroke-width=\"1.5\"/>\n"
                 ));
                 // Mirror at bottom
                 let points2 = format!(
@@ -113,8 +112,7 @@ impl AxisBreak {
                     x - 6.0, y_bottom - mark_height,
                 );
                 svg.push_str(&format!(
-                    "  <polyline points=\"{}\" fill=\"none\" stroke=\"black\" stroke-width=\"1.5\"/>\n",
-                    points2
+                    "  <polyline points=\"{points2}\" fill=\"none\" stroke=\"black\" stroke-width=\"1.5\"/>\n"
                 ));
             }
             BreakStyle::ParallelSlashes => {

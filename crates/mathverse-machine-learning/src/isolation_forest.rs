@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn isolation_forest_test() {
-        let normal: Vec<Vec<f64>> = (0..100).map(|i| vec![i as f64, i as f64 * 2.0]).collect();
+        let normal: Vec<Vec<f64>> = (0..100).map(|i| vec![f64::from(i), f64::from(i) * 2.0]).collect();
         let anomaly = vec![vec![1000.0, 2000.0]];
         let mut x = normal.clone();
         x.extend(anomaly.clone());

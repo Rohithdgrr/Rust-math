@@ -18,7 +18,6 @@ pub struct MeanFieldGaussian {
 
 impl MeanFieldGaussian {
     /// Standard normal init for all components.
-    #[must_use]
     pub fn new(dim: usize) -> Self {
         Self {
             mu: vec![0.0; dim],
@@ -116,7 +115,6 @@ pub struct BBVIResult {
 /// Black-box variational inference: maximize the ELBO of `log_joint` over
 /// the mean-field Gaussian family using reparameterization gradients and
 /// SGD with a decaying step size.
-#[must_use]
 pub fn bbvi(
     log_joint: &dyn Fn(&[f64]) -> f64,
     dim: usize,
@@ -230,9 +228,7 @@ mod tests {
         let expected = (2.0 * core::f64::consts::PI * core::f64::consts::E).ln() - 1.0;
         assert!(
             (elbo - expected).abs() < 0.05,
-            "elbo {} vs {}",
-            elbo,
-            expected
+            "elbo {elbo} vs {expected}",
         );
         assert!((q.entropy() - (2.0 * core::f64::consts::PI * core::f64::consts::E).ln()).abs() < 1e-9);
     }

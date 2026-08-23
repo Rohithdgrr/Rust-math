@@ -103,6 +103,7 @@ pub enum FacetLabelPos {
 }
 
 /// A facet grid configuration.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct FacetGrid {
     /// Column facet variable name.
@@ -280,12 +281,12 @@ impl FacetGrid {
         data.iter()
             .filter(|d| {
                 let col_match = match (col_var, col_val) {
-                    (Some(var), Some(val)) => d.columns.get(var).map(|v| v == val).unwrap_or(false),
+                    (Some(var), Some(val)) => d.columns.get(var).is_some_and(|v| v == val),
                     (None, None) => true,
                     _ => false,
                 };
                 let row_match = match (row_var, row_val) {
-                    (Some(var), Some(val)) => d.columns.get(var).map(|v| v == val).unwrap_or(false),
+                    (Some(var), Some(val)) => d.columns.get(var).is_some_and(|v| v == val),
                     (None, None) => true,
                     _ => false,
                 };
@@ -300,26 +301,24 @@ impl FacetGrid {
             let total_panels = self.total_panels(data);
             match wrap {
                 FacetWrap::Columns(cols) => {
-                    let rows = (total_panels + cols - 1) / cols;
+                    let rows = total_panels.div_ceil(*cols);
                     (rows, *cols)
                 }
                 FacetWrap::Rows(rows) => {
-                    let cols = (total_panels + rows - 1) / rows;
+                    let cols = total_panels.div_ceil(*rows);
                     (*rows, cols)
                 }
                 FacetWrap::Auto => {
                     let cols = (total_panels as f64).sqrt().ceil() as usize;
-                    let rows = (total_panels + cols - 1) / cols;
+                    let rows = total_panels.div_ceil(cols);
                     (rows, cols)
                 }
             }
         } else {
             let n_cols = self.col_var.as_ref()
-                .map(|v| Self::unique_values(data, v).len())
-                .unwrap_or(1);
+                .map_or(1, |v| Self::unique_values(data, v).len());
             let n_rows = self.row_var.as_ref()
-                .map(|v| Self::unique_values(data, v).len())
-                .unwrap_or(1);
+                .map_or(1, |v| Self::unique_values(data, v).len());
             (n_rows, n_cols)
         }
     }
@@ -355,8 +354,7 @@ impl FacetGrid {
 
         let mut svg = String::new();
         svg.push_str(&format!(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\">\n",
-            total_width, total_height, total_width, total_height
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{total_width}\" height=\"{total_height}\" viewBox=\"0 0 {total_width} {total_height}\">\n"
         ));
 
         // Title
@@ -378,8 +376,8 @@ impl FacetGrid {
 
                 // Strip label
                 let strip_label = match (&self.label_pos, col_val, row_val) {
-                    (FacetLabelPos::StripTop | FacetLabelPos::Top, Some(val), _) => Some(val.as_str()),
-                    (FacetLabelPos::StripLeft | FacetLabelPos::Left, _, Some(val)) => Some(val.as_str()),
+                    (FacetLabelPos::StripTop | FacetLabelPos::Top, Some(val), _)
+                    | (FacetLabelPos::StripLeft | FacetLabelPos::Left, _, Some(val)) => Some(val.as_str()),
                     _ => None,
                 };
 
@@ -408,8 +406,8 @@ impl FacetGrid {
                 // Get subset data
                 let subset = Self::subset(
                     data,
-                    self.col_var.as_deref(), col_val.map(|s| s.as_str()),
-                    self.row_var.as_deref(), row_val.map(|s| s.as_str()),
+                    self.col_var.as_deref(), col_val.map(std::string::String::as_str),
+                    self.row_var.as_deref(), row_val.map(std::string::String::as_str),
                 );
 
                 // Render data points as scatter

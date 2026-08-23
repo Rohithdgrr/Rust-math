@@ -1,7 +1,10 @@
+//! Scalar minimization: Fibonacci search, golden section, ternary search, Brent's method.
+
+/// Fibonacci search for a scalar minimum in `[a, b]` using `n` iterations.
 pub fn fibonacci_search(f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64 {
     // Fibonacci search needs at least 3 evaluations (k ≥ 2) to bracket.
     if n < 3 {
-        return (a + b) / 2.0;
+        return f64::midpoint(a, b);
     }
     let fibs: Vec<f64> = {
         let mut f = vec![1.0f64, 1.0];
@@ -29,23 +32,24 @@ pub fn fibonacci_search(f: impl Fn(f64) -> f64, a: f64, b: f64, n: usize) -> f64
             f2 = f(x2);
         }
     }
-    (l + r) / 2.0
+    f64::midpoint(l, r)
 }
 
 // Scalar minimizers: Fibonacci search, golden section, ternary search, Brent's method.
 
 /// Golden-section search for a scalar minimum in `[a, b]`.
 pub fn golden_section(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
-    let phi = (1.0 + 5.0_f64.sqrt()) / 2.0;
+    let phi = f64::midpoint(1.0, 5.0_f64.sqrt());
     let (mut l, mut r) = (a, b);
     while (r - l).abs() > tol {
         let x1 = r - (r - l) / phi;
         let x2 = l + (r - l) / phi;
         if f(x1) < f(x2) { r = x2; } else { l = x1; }
     }
-    (l + r) / 2.0
+    f64::midpoint(l, r)
 }
 
+/// Ternary search for a scalar minimum in `[a, b]`, halving by thirds each step.
 pub fn ternary_search(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
     let (mut l, mut r) = (a, b);
     while (r - l).abs() > tol {
@@ -53,21 +57,24 @@ pub fn ternary_search(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
         let m2 = r - (r - l) / 3.0;
         if f(m1) < f(m2) { r = m2; } else { l = m1; }
     }
-    (l + r) / 2.0
+    f64::midpoint(l, r)
 }
 
+/// Alias for [`golden_section`]; assumes unimodality on `[a, b]`.
 pub fn convex_search(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
     golden_section(f, a, b, tol)
 }
 
+/// Brent's method for a scalar minimum in `[a, b]`: inverse parabolic
+/// interpolation with golden-section fallback.
 pub fn brent_min(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
-    let mut x = (a + b) / 2.0;
+    let mut x = f64::midpoint(a, b);
     let mut fx = f(x);
     let (mut w, mut fw) = (x, fx);
     let (mut v, mut fv) = (x, fx);
     let (mut a0, mut b0) = (a, b);
     for _ in 0..1000 {
-        let xm = (a0 + b0) / 2.0;
+        let xm = f64::midpoint(a0, b0);
         let tol1 = (b0 - a0).abs() * 1e-15 + tol / 3.0;
         if (x - xm).abs() <= 2.0 * tol1 - (b0 - a0) / 2.0 { break; }
         if (fx - fw).abs() > 1e-30 && (fx - fv).abs() > 1e-30 {
@@ -84,7 +91,7 @@ pub fn brent_min(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64) -> f64 {
                 }
             }
         }
-        let u = if x < xm { x + 0.3819660112501051 * (b0 - x) } else { x - 0.3819660112501051 * (x - a0) };
+        let u = if x < xm { x + 0.381_966_011_250_105_1 * (b0 - x) } else { x - 0.381_966_011_250_105_1 * (x - a0) };
         let fu = f(u);
         if fu <= fx {
             if u < xm { b0 = u; } else { a0 = u; }

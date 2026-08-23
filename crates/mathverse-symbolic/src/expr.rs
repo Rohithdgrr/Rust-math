@@ -114,7 +114,7 @@ impl Expr {
             Expr::Variable(name) => vars
                 .get(name)
                 .copied()
-                .ok_or_else(|| format!("Variable '{}' not found", name)),
+                .ok_or_else(|| format!("Variable '{name}' not found")),
             Expr::Add(a, b) => Ok(a.evaluate(vars)? + b.evaluate(vars)?),
             Expr::Sub(a, b) => Ok(a.evaluate(vars)? - b.evaluate(vars)?),
             Expr::Mul(a, b) => Ok(a.evaluate(vars)? * b.evaluate(vars)?),
@@ -201,20 +201,20 @@ impl Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Constant(c) => write!(f, "{}", c),
-            Expr::Variable(name) => write!(f, "{}", name),
-            Expr::Add(a, b) => write!(f, "({} + {})", a, b),
-            Expr::Sub(a, b) => write!(f, "({} - {})", a, b),
-            Expr::Mul(a, b) => write!(f, "({} * {})", a, b),
-            Expr::Div(a, b) => write!(f, "({} / {})", a, b),
-            Expr::Pow(a, b) => write!(f, "({} ^ {})", a, b),
-            Expr::Neg(a) => write!(f, "(-{})", a),
-            Expr::Ln(a) => write!(f, "ln({})", a),
-            Expr::Exp(a) => write!(f, "exp({})", a),
-            Expr::Sin(a) => write!(f, "sin({})", a),
-            Expr::Cos(a) => write!(f, "cos({})", a),
-            Expr::Tan(a) => write!(f, "tan({})", a),
-            Expr::Sqrt(a) => write!(f, "sqrt({})", a),
+            Expr::Constant(c) => write!(f, "{c}"),
+            Expr::Variable(name) => write!(f, "{name}"),
+            Expr::Add(a, b) => write!(f, "({a} + {b})"),
+            Expr::Sub(a, b) => write!(f, "({a} - {b})"),
+            Expr::Mul(a, b) => write!(f, "({a} * {b})"),
+            Expr::Div(a, b) => write!(f, "({a} / {b})"),
+            Expr::Pow(a, b) => write!(f, "({a} ^ {b})"),
+            Expr::Neg(a) => write!(f, "(-{a})"),
+            Expr::Ln(a) => write!(f, "ln({a})"),
+            Expr::Exp(a) => write!(f, "exp({a})"),
+            Expr::Sin(a) => write!(f, "sin({a})"),
+            Expr::Cos(a) => write!(f, "cos({a})"),
+            Expr::Tan(a) => write!(f, "tan({a})"),
+            Expr::Sqrt(a) => write!(f, "sqrt({a})"),
         }
     }
 }

@@ -3,7 +3,6 @@
 //! Demonstrates how to create multi-panel conditioned visualizations.
 
 use mathverse_plot::facet::{FacetBuilder, FacetData, FacetGrid, FacetScale, FacetWrap};
-use mathverse_plot::style::Color;
 
 fn main() {
     // Create sample data with categorical variables
@@ -23,8 +22,8 @@ fn main() {
     // Get unique values
     let groups = FacetGrid::unique_values(&data, "group");
     let times = FacetGrid::unique_values(&data, "time");
-    println!("Groups: {:?}", groups);
-    println!("Times: {:?}", times);
+    println!("Groups: {groups:?}");
+    println!("Times: {times:?}");
 
     // Create a simple column facet grid
     let grid_col = FacetGrid::new()
@@ -33,7 +32,7 @@ fn main() {
 
     println!("\nColumn facet grid:");
     let (rows, cols) = grid_col.grid_dims(&data);
-    println!("  Grid dimensions: {} rows x {} cols", rows, cols);
+    println!("  Grid dimensions: {rows} rows x {cols} cols");
     println!("  Total panels: {}", grid_col.total_panels(&data));
 
     // Create a row facet grid
@@ -43,7 +42,7 @@ fn main() {
 
     println!("\nRow facet grid:");
     let (rows, cols) = grid_row.grid_dims(&data);
-    println!("  Grid dimensions: {} rows x {} cols", rows, cols);
+    println!("  Grid dimensions: {rows} rows x {cols} cols");
 
     // Create a 2D facet grid (row x col)
     let grid_2d = FacetGrid::new()
@@ -54,7 +53,7 @@ fn main() {
 
     println!("\n2D facet grid:");
     let (rows, cols) = grid_2d.grid_dims(&data);
-    println!("  Grid dimensions: {} rows x {} cols", rows, cols);
+    println!("  Grid dimensions: {rows} rows x {cols} cols");
 
     // Create a wrapped facet grid
     let grid_wrap = FacetGrid::new()
@@ -64,7 +63,7 @@ fn main() {
 
     println!("\nWrapped facet grid:");
     let (rows, cols) = grid_wrap.grid_dims(&data);
-    println!("  Grid dimensions: {} rows x {} cols", rows, cols);
+    println!("  Grid dimensions: {rows} rows x {cols} cols");
 
     // Create with free scales
     let grid_free = FacetGrid::new()

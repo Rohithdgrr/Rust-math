@@ -19,7 +19,7 @@ fn main() -> Result<(), String> {
         WIDTH,
         HEIGHT,
         WindowOptions::default(),
-    ).map_err(|e| format!("Window creation failed: {}", e))?;
+    ).map_err(|e| format!("Window creation failed: {e}"))?;
     
     // Set framerate limit (~30 FPS)
     window.set_target_fps(30);
@@ -47,25 +47,25 @@ fn main() -> Result<(), String> {
         // Display frame (like cv2.imshow())
         window
             .update_with_buffer(&buffer, WIDTH, HEIGHT)
-            .map_err(|e| format!("Display update failed: {}", e))?;
+            .map_err(|e| format!("Display update failed: {e}"))?;
         
         frame_count += 1;
         
         // Print status every 30 frames with FPS
         if frame_count % 30 == 0 {
             let elapsed = start_time.elapsed().as_secs_f64();
-            let fps = frame_count as f64 / elapsed;
-            println!("Frames: {} | FPS: {:.1}", frame_count, fps);
+            let fps = f64::from(frame_count) / elapsed;
+            println!("Frames: {frame_count} | FPS: {fps:.1}");
         }
     }
     
     let elapsed = start_time.elapsed().as_secs_f64();
-    let avg_fps = frame_count as f64 / elapsed;
+    let avg_fps = f64::from(frame_count) / elapsed;
     
     println!("\n=== Session Summary ===");
-    println!("Total frames captured: {}", frame_count);
-    println!("Duration: {:.2}s", elapsed);
-    println!("Average FPS: {:.1}", avg_fps);
+    println!("Total frames captured: {frame_count}");
+    println!("Duration: {elapsed:.2}s");
+    println!("Average FPS: {avg_fps:.1}");
     println!("Camera released successfully.");
     
     // Window and camera are automatically closed when dropped
@@ -81,7 +81,7 @@ fn image_to_buffer(img: &Image) -> Vec<u32> {
         let gray = (val.clamp(0.0, 1.0) * 255.0) as u8;
         
         // Pack as RGB (0x00RRGGBB format for minifb)
-        buffer[i] = ((gray as u32) << 16) | ((gray as u32) << 8) | (gray as u32);
+        buffer[i] = (u32::from(gray) << 16) | (u32::from(gray) << 8) | u32::from(gray);
     }
     
     buffer

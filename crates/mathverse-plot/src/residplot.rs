@@ -71,8 +71,8 @@ pub fn render_residplot(points: &[DataPoint], config: &ResidConfig) -> PlotResul
     }
 
     let padding = config.plot_config.padding;
-    let width = config.plot_config.width as f64;
-    let height = config.plot_config.height as f64;
+    let width = f64::from(config.plot_config.width);
+    let height = f64::from(config.plot_config.height);
 
     let x: Vec<f64> = points.iter().map(|p| p.x).collect();
     let y: Vec<f64> = points.iter().map(|p| p.y).collect();
@@ -111,7 +111,7 @@ pub fn render_residplot(points: &[DataPoint], config: &ResidConfig) -> PlotResul
     // Grid
     if config.show_grid {
         for i in 0..=5 {
-            let gy = padding + 30.0 + (i as f64 / 5.0) * chart_height;
+            let gy = padding + 30.0 + (f64::from(i) / 5.0) * chart_height;
             svg.push_str("  <line x1=\"");
             svg.push_str(&padding.to_string());
             svg.push_str("\" y1=\"");
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn residplot_renders() {
         let points: Vec<DataPoint> = (0..20)
-            .map(|i| DataPoint::new(i as f64, i as f64 * 2.0 + 1.0 + (i as f64 * 0.5).sin()))
+            .map(|i| DataPoint::new(f64::from(i), f64::from(i) * 2.0 + 1.0 + (f64::from(i) * 0.5).sin()))
             .collect();
         let config = ResidConfig::new();
         let svg = render_residplot(&points, &config).unwrap();

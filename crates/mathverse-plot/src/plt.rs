@@ -212,7 +212,7 @@ impl Axes {
         self
     }
 
-    fn zip_points(&self, xs: &[f64], ys: &[f64]) -> Vec<DataPoint> {
+    fn zip_points(xs: &[f64], ys: &[f64]) -> Vec<DataPoint> {
         xs.iter()
             .zip(ys.iter())
             .map(|(&x, &y)| DataPoint::new(x, y))
@@ -385,7 +385,7 @@ impl Axes {
             .with_marker_style(MarkerStyle::Circle)
             .with_marker_size(3.0);
         self.twin_series
-            .push(DataSeries::with_style(name.into(), self.zip_points(xs, ys), style));
+            .push(DataSeries::with_style(name.into(), Self::zip_points(xs, ys), style));
         self
     }
 
@@ -445,7 +445,7 @@ impl Axes {
         base_path: &str,
         formats: &crate::save::FormatSet,
     ) -> Vec<crate::save::ExportResult> {
-        crate::save::PlotSaver::new(&self.render())
+        crate::save::PlotSaver::new(self.render())
             .with_dimensions(self.config.width, self.config.height)
             .with_title(self.config.title.clone())
             .save(base_path, formats)
@@ -662,8 +662,8 @@ impl Figure {
         let hs = hspace.unwrap_or(0.2);
         // Use first axes dimensions as reference
         if let Some(first) = self.axes.first() {
-            let total_w = first.config.width as f64;
-            let total_h = first.config.height as f64;
+            let total_w = f64::from(first.config.width);
+            let total_h = f64::from(first.config.height);
             let plot_w = (r - l) * total_w;
             let plot_h = (t - b) * total_h;
             let cell_w = (plot_w - ws * (self.cols - 1) as f64 * total_w) / self.cols as f64;
@@ -700,13 +700,11 @@ impl Figure {
         let cell_w = self
             .axes
             .first()
-            .map(|a| a.config.width as f64)
-            .unwrap_or(800.0);
+            .map_or(800.0, |a| f64::from(a.config.width));
         let cell_h = self
             .axes
             .first()
-            .map(|a| a.config.height as f64)
-            .unwrap_or(600.0);
+            .map_or(600.0, |a| f64::from(a.config.height));
 
         let pad = 60.0;
         let wr: Vec<f64> = if self.width_ratios.is_empty() {
@@ -731,9 +729,7 @@ impl Figure {
 
         let mut out = String::with_capacity(8 * 1024);
         out.push_str(&format!(
-            r#"<svg width="{tw}" height="{th}" viewBox="0 0 {tw} {th}" xmlns="http://www.w3.org/2000/svg">"#,
-            tw = total_w,
-            th = total_h
+            r#"<svg width="{total_w}" height="{total_h}" viewBox="0 0 {total_w} {total_h}" xmlns="http://www.w3.org/2000/svg">"#
         ));
         out.push('\n');
 
@@ -744,12 +740,12 @@ impl Figure {
             let idx = row * self.cols + col;
             let (row_span, col_span) = span_of(idx);
             let ax_w = if let Some(a) = self.axes.get(idx) {
-                a.config.width as f64
+                f64::from(a.config.width)
             } else {
                 cell_w
             };
             let ax_h = if let Some(a) = self.axes.get(idx) {
-                a.config.height as f64
+                f64::from(a.config.height)
             } else {
                 cell_h
             };
@@ -817,7 +813,7 @@ impl Figure {
         base_path: &str,
         formats: &crate::save::FormatSet,
     ) -> Vec<crate::save::ExportResult> {
-        crate::save::PlotSaver::new(&self.render())
+        crate::save::PlotSaver::new(self.render())
             .with_title("Figure")
             .save(base_path, formats)
     }
@@ -837,7 +833,7 @@ impl Figure {
         let ext = path
             .extension()
             .and_then(|e| e.to_str())
-            .map(|e| e.to_ascii_lowercase())
+            .map(str::to_ascii_lowercase)
             .unwrap_or_default();
         let svg = self.render();
         match ext.as_str() {
@@ -906,13 +902,11 @@ impl Figure {
 
 /// Remove the outer `<svg ...></svg>` wrapper from a rendered cell.
 fn strip_svg_tag(svg: &str) -> String {
-    let start = match svg.find("<svg") {
-        Some(i) => i,
-        None => return svg.to_string(),
+    let Some(start) = svg.find("<svg") else {
+        return svg.to_string();
     };
-    let open_end = match svg[start..].find('>') {
-        Some(i) => start + i,
-        None => return svg.to_string(),
+    let Some(open_end) = svg[start..].find('>') else {
+        return svg.to_string();
     };
     let body_start = open_end + 1;
     match svg.rfind("</svg>") {
@@ -937,7 +931,7 @@ mod tests {
         assert_eq!(ax.artist(0).name, "renamed");
         let svg = ax.render();
         assert!(svg.contains("<svg"));
-        assert!(svg.contains("T"));
+        assert!(svg.contains('T'));
     }
 
     #[test]

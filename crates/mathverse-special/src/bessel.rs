@@ -197,7 +197,7 @@ pub fn bessel_y0(x: f64) -> f64 {
     let mut m = 1u64;
     loop {
         let t = harmonic(m) * term;
-        log_series += if m % 2 == 0 { -t } else { t };
+        log_series += if m.is_multiple_of(2) { -t } else { t };
         m += 1;
         if t.abs() < log_series.abs() * 1e-16 || m > 500 {
             break;
@@ -229,7 +229,7 @@ pub fn bessel_y1(x: f64) -> f64 {
     loop {
         term *= half2 / ((m * m) as f64);
         let t = harmonic(m) * (2.0 * m as f64 / x) * term;
-        d_series += if m % 2 == 0 { -t } else { t };
+        d_series += if m.is_multiple_of(2) { -t } else { t };
         if t.abs() < d_series.abs() * 1e-16 || m > 500 {
             break;
         }

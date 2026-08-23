@@ -2,14 +2,21 @@
 
 use mathverse_core::error::{MathError, MathResult};
 
+/// Jacobian of an ODE system: maps `(t, y)` to the n×n Jacobian matrix
+/// `J[i][j] = ∂fᵢ/∂yⱼ`.
+pub type JacobianFn<'a> = &'a dyn Fn(f64, &[f64]) -> Vec<Vec<f64>>;
+
 /// ODE state: (t, y) where y can be scalar or vector.
 #[derive(Debug, Clone)]
 pub struct ODEState {
+    /// Current time.
     pub t: f64,
+    /// State vector at time `t`.
     pub y: Vec<f64>,
 }
 
 impl ODEState {
+    /// Create a state at time `t` with state vector `y`.
     pub fn new(t: f64, y: Vec<f64>) -> Self {
         ODEState { t, y }
     }
@@ -17,13 +24,18 @@ impl ODEState {
 
 /// Adaptive Runge-Kutta-Fehlberg (RKF45) with error control.
 pub struct RKF45 {
+    /// Minimum allowed step size.
     pub min_step: f64,
+    /// Maximum allowed step size.
     pub max_step: f64,
+    /// Absolute error tolerance per step.
     pub abs_tol: f64,
+    /// Relative error tolerance per step.
     pub rel_tol: f64,
 }
 
 impl RKF45 {
+    /// Create an RKF45 integrator with the given step bounds and tolerances.
     pub fn new(min_step: f64, max_step: f64, abs_tol: f64, rel_tol: f64) -> Self {
         RKF45 {
             min_step,
@@ -55,7 +67,7 @@ impl RKF45 {
                 h = self.min_step;
             }
             
-            let (new_state, error, new_h) = self.step(f, &state, h)?;
+            let (new_state, error, new_h) = self.step(f, &state, h);
             
             if error <= 1.0 {
                 state = new_state;
@@ -73,12 +85,15 @@ impl RKF45 {
     }
 
     /// Single RKF45 step with error estimation.
+    ///
+    /// Returns the new state, the scaled error estimate, and the suggested
+    /// next step size.
     fn step(
         &self,
         f: &dyn Fn(f64, &[f64]) -> Vec<f64>,
         state: &ODEState,
         h: f64,
-    ) -> MathResult<(ODEState, f64, f64)> {
+    ) -> (ODEState, f64, f64) {
         let t = state.t;
         let y = &state.y;
         
@@ -167,19 +182,24 @@ impl RKF45 {
         let factor = factor.min(5.0);
         let new_h = h * safety * factor;
         
-        Ok((ODEState::new(t + h, y5th), error, new_h))
+        (ODEState::new(t + h, y5th), error, new_h)
     }
 }
 
 /// Dormand-Prince 4(5) adaptive RK method.
 pub struct DormandPrince {
+    /// Minimum allowed step size.
     pub min_step: f64,
+    /// Maximum allowed step size.
     pub max_step: f64,
+    /// Absolute error tolerance per step.
     pub abs_tol: f64,
+    /// Relative error tolerance per step.
     pub rel_tol: f64,
 }
 
 impl DormandPrince {
+    /// Create a Dormand-Prince integrator with the given step bounds and tolerances.
     pub fn new(min_step: f64, max_step: f64, abs_tol: f64, rel_tol: f64) -> Self {
         DormandPrince {
             min_step,
@@ -211,7 +231,7 @@ impl DormandPrince {
                 h = self.min_step;
             }
             
-            let (new_state, error, new_h) = self.step(f, &state, h)?;
+            let (new_state, error, new_h) = self.step(f, &state, h);
             
             if error <= 1.0 {
                 state = new_state;
@@ -224,12 +244,16 @@ impl DormandPrince {
         Ok(result)
     }
 
+    /// Single Dormand-Prince step with error estimation.
+    ///
+    /// Returns the new state, the scaled error estimate, and the suggested
+    /// next step size.
     fn step(
         &self,
         f: &dyn Fn(f64, &[f64]) -> Vec<f64>,
         state: &ODEState,
         h: f64,
-    ) -> MathResult<(ODEState, f64, f64)> {
+    ) -> (ODEState, f64, f64) {
         // Dormand-Prince coefficients (simplified)
         let t = state.t;
         let y = &state.y;
@@ -296,7 +320,7 @@ impl DormandPrince {
             .zip(&k5)
             .zip(&k6)
             .zip(&k7)
-            .map(|((((((&yi, &k1i), &k3i), &k4i), &k5i), &k6i), &k7i)| yi + h * (5179.0 * k1i / 57600.0 + 7571.0 * k3i / 16695.0 + 393.0 * k4i / 640.0 - 92097.0 * k5i / 339200.0 + 187.0 * k6i / 2100.0 + k7i / 40.0))
+            .map(|((((((&yi, &k1i), &k3i), &k4i), &k5i), &k6i), &k7i)| yi + h * (5179.0 * k1i / 57_600.0 + 7571.0 * k3i / 16_695.0 + 393.0 * k4i / 640.0 - 92_097.0 * k5i / 339_200.0 + 187.0 * k6i / 2100.0 + k7i / 40.0))
             .collect();
         
         // 4th order solution (for error estimation)
@@ -326,16 +350,18 @@ impl DormandPrince {
             h * 2.0
         };
         
-        Ok((ODEState::new(t + h, y5th), error, new_h))
+        (ODEState::new(t + h, y5th), error, new_h)
     }
 }
 
 /// Adams-Bashforth multistep method (explicit).
 pub struct AdamsBashforth {
+    /// Number of history steps used (order of the method).
     pub order: usize,
 }
 
 impl AdamsBashforth {
+    /// Create an Adams-Bashforth integrator of the given order.
     pub fn new(order: usize) -> Self {
         AdamsBashforth { order }
     }
@@ -437,11 +463,14 @@ impl AdamsBashforth {
 
 /// Backward Euler method (implicit, for stiff equations).
 pub struct BackwardEuler {
+    /// Maximum Newton iterations per step.
     pub max_iters: usize,
+    /// Newton convergence tolerance.
     pub tol: f64,
 }
 
 impl BackwardEuler {
+    /// Create a Backward Euler integrator with the given iteration cap and tolerance.
     pub fn new(max_iters: usize, tol: f64) -> Self {
         BackwardEuler { max_iters, tol }
     }
@@ -450,7 +479,7 @@ impl BackwardEuler {
     pub fn integrate(
         &self,
         f: &dyn Fn(f64, &[f64]) -> Vec<f64>,
-        jacobian: &dyn Fn(f64, &[f64]) -> Vec<Vec<f64>>,
+        jacobian: JacobianFn<'_>,
         t0: f64,
         y0: &[f64],
         t1: f64,
@@ -508,11 +537,14 @@ impl BackwardEuler {
 
 /// Crank-Nicolson method (implicit, second-order accurate).
 pub struct CrankNicolson {
+    /// Maximum Newton iterations per step.
     pub max_iters: usize,
+    /// Newton convergence tolerance.
     pub tol: f64,
 }
 
 impl CrankNicolson {
+    /// Create a Crank-Nicolson integrator with the given iteration cap and tolerance.
     pub fn new(max_iters: usize, tol: f64) -> Self {
         CrankNicolson { max_iters, tol }
     }
@@ -521,7 +553,7 @@ impl CrankNicolson {
     pub fn integrate(
         &self,
         f: &dyn Fn(f64, &[f64]) -> Vec<f64>,
-        jacobian: &dyn Fn(f64, &[f64]) -> Vec<Vec<f64>>,
+        jacobian: JacobianFn<'_>,
         t0: f64,
         y0: &[f64],
         t1: f64,

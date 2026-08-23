@@ -73,7 +73,7 @@ fn vector_cross3() {
     assert_vec_close(&i.cross3(&j).unwrap().data, &k.data, EPS);
     assert_vec_close(&j.cross3(&k).unwrap().data, &i.data, EPS);
     assert_vec_close(&k.cross3(&i).unwrap().data, &j.data, EPS);
-    assert_vec_close(&i.cross3(&k).unwrap().data, &vec![0.0, -1.0, 0.0], EPS);
+    assert_vec_close(&i.cross3(&k).unwrap().data, &[0.0, -1.0, 0.0], EPS);
     assert!(i.cross3(&j).unwrap().dot(&i) < 1e-12);
     assert!(i.cross3(&j).unwrap().dot(&j) < 1e-12);
     assert!(i.cross3(&Vector::new(vec![1.0])).is_err());
@@ -83,7 +83,7 @@ fn vector_cross3() {
 #[test]
 fn vector_out_of_bounds_panics_are_catchable() {
     let v = Vector::new(vec![1.0, 2.0]);
-    assert!(panics(|| { v.get(5); }));
+    assert!(panics(|| { let _ = v.get(5); }));
     assert!(panics(|| {
         let mut w = v.clone();
         w.set(9, 1.0);
@@ -259,7 +259,7 @@ fn geometry_gram_schmidt_handles_dependent_inputs() {
 fn linalg_mat_vec_mul() {
     let m = vec![vec![1.0, 2.0], vec![3.0, 4.0]];
     assert_eq!(mat_vec_mul(&m, &[5.0, 6.0]), vec![17.0, 39.0]);
-    assert_eq!(mat_vec_mul(&vec![vec![2.0, 0.0, 0.0], vec![0.0, 2.0, 0.0]], &[3.0, 4.0, 5.0]), vec![6.0, 8.0]);
+    assert_eq!(mat_vec_mul(&[vec![2.0, 0.0, 0.0], vec![0.0, 2.0, 0.0]], &[3.0, 4.0, 5.0]), vec![6.0, 8.0]);
 }
 
 #[test]
@@ -331,7 +331,7 @@ fn stats_mean_variance_std() {
     assert_close(variance(&[2.0, 2.0, 2.0]), 0.0, EPS);
     assert_close(variance(&[1.0, 2.0, 3.0]), 2.0 / 3.0, EPS); // population variance
     assert_close(std_dev(&[1.0, 2.0, 3.0]), (2.0f64 / 3.0).sqrt(), EPS);
-    assert_eq!(variance(&[] as &[f64]).is_nan(), true); // documented degenerate
+    assert!(variance(&[] as &[f64]).is_nan()); // documented degenerate
 }
 
 #[test]
@@ -428,8 +428,8 @@ fn utils_argmax_argmin() {
     assert_eq!(argmin(&[1.0, 5.0, 3.0]), 0);
     assert_eq!(argmax(&[3.0, 1.0, 3.0]), 2); // ties -> last (max_by semantics)
     assert_eq!(argmin(&[-1.0, -2.0, -0.5]), 1);
-    assert!(panics(|| { argmax(&[] as &[f64]); }));
-    assert!(panics(|| { argmin(&[] as &[f64]); }));
+    assert!(panics(|| { let _ = argmax(&[] as &[f64]); }));
+    assert!(panics(|| { let _ = argmin(&[] as &[f64]); }));
 }
 
 #[test]
@@ -508,15 +508,14 @@ fn adversarial_length_mismatch_no_panic() {
     let _ = correlation(&a, &b);
     let _ = lerp(&a, &b, 0.5);
     let _ = hadamard(&a, &b);
-    assert!(true);
 }
 
 #[test]
 fn adversarial_covariance_empty_pair_no_panic() {
     let e: &[f64] = &[];
-    assert!(mean(&e).is_nan());
-    assert!(correlation(&e, &e).is_nan());
-    let _ = covariance(&e, &e);
+    assert!(mean(e).is_nan());
+    assert!(correlation(e, e).is_nan());
+    let _ = covariance(e, e);
 }
 
 #[test]

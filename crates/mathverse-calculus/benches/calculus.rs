@@ -1,8 +1,10 @@
 //! Criterion benchmarks for mathverse-calculus.
 //!
 //! Run with: cargo bench -p mathverse-calculus
+#![allow(missing_docs)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use std::hint::black_box;
 use mathverse_calculus::prelude::*;
 
 fn bench_derivatives(c: &mut Criterion) {
@@ -16,7 +18,7 @@ fn bench_derivatives(c: &mut Criterion) {
         b.iter(|| partial_derivative(&g, black_box(&[1.0, 2.0]), black_box(0)));
     });
     group.bench_function("discrete_gradient_1000", |b| {
-        let y: Vec<f64> = (0..1000).map(|i| (i as f64).sin()).collect();
+        let y: Vec<f64> = (0..1000).map(|i| f64::from(i).sin()).collect();
         b.iter(|| discrete_gradient(black_box(&y), black_box(0.01)));
     });
     group.finish();

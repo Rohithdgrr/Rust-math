@@ -1,16 +1,20 @@
 /// L1 (Manhattan) norm: sum of absolute values.
+#[must_use]
 pub fn l1(v: &[f64]) -> f64 { crate::operations::sum_abs_fast(v) }
 
 /// L2 (Euclidean) norm: square root of sum of squares.
+#[must_use]
 pub fn l2(v: &[f64]) -> f64 { crate::operations::sum_sq_fast(v).sqrt() }
 
 /// Lp norm: `(sum(|x|^p))^(1/p)`.
+#[must_use]
 pub fn lp(v: &[f64], p: f64) -> f64 { v.iter().map(|x| x.abs().powf(p)).sum::<f64>().powf(1.0/p) }
 
 /// L∞ (Chebyshev) norm: maximum absolute value.
 pub fn linf(v: &[f64]) -> f64 { v.iter().map(|x| x.abs()).fold(0.0, f64::max) }
 
 /// L0 "norm": count of non-zero elements.
+#[must_use]
 pub fn l0(v: &[f64]) -> usize { v.iter().filter(|&&x| x != 0.0).count() }
 
 /// L-∞ (minimum) norm: minimum absolute value.
