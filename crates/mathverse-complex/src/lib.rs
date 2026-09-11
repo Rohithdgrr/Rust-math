@@ -78,44 +78,44 @@ impl<T: RealFull + fmt::Display> fmt::Display for Complex<T> {
 
 impl<T: RealFull> Complex<T> {
     /// Create a complex number from its real and imaginary parts.
-    pub fn new(re: T, im: T) -> Complex<T> {
-        Complex { re, im }
+    pub fn new(re: T, im: T) -> Self {
+        Self { re, im }
     }
     /// The real number `r` as a complex number.
-    pub fn real(r: T) -> Complex<T> {
-        Complex {
+    pub fn real(r: T) -> Self {
+        Self {
             re: r,
             im: T::zero(),
         }
     }
     /// The imaginary unit `i` (0 + 1i).
-    pub fn i() -> Complex<T> {
-        Complex {
+    pub fn i() -> Self {
+        Self {
             re: T::zero(),
             im: T::one(),
         }
     }
     /// Zero constant (0 + 0i).
-    pub fn zero() -> Complex<T> {
-        Complex {
+    pub fn zero() -> Self {
+        Self {
             re: T::zero(),
             im: T::zero(),
         }
     }
     /// One constant (1 + 0i).
-    pub fn one() -> Complex<T> {
-        Complex {
+    pub fn one() -> Self {
+        Self {
             re: T::one(),
             im: T::zero(),
         }
     }
     /// From polar form `r·e^(iθ)` (equiv. `cmath.rect(r, θ)`).
-    pub fn polar(r: T, theta: T) -> Complex<T> {
-        Complex::new(r * theta.cos(), r * theta.sin())
+    pub fn polar(r: T, theta: T) -> Self {
+        Self::new(r * theta.cos(), r * theta.sin())
     }
     /// Complex conjugate `re − im·i`.
-    pub fn conjugate(&self) -> Complex<T> {
-        Complex::new(self.re, -self.im)
+    pub fn conjugate(&self) -> Self {
+        Self::new(self.re, -self.im)
     }
     /// Squared modulus `re² + im²`.
     pub fn norm_sq(&self) -> T {
@@ -145,12 +145,12 @@ impl<T: RealFull> Complex<T> {
         self.arg()
     }
     /// Build from polar form, matching `cmath.rect(r, φ)`.
-    pub fn rect(r: T, phi: T) -> Complex<T> {
-        Complex::polar(r, phi)
+    pub fn rect(r: T, phi: T) -> Self {
+        Self::polar(r, phi)
     }
     /// `cmath.isclose` equivalent: true if `|a − b| ≤ abs_tol` or
     /// `|a − b| ≤ rel_tol · max(|a|, |b|)`.
-    pub fn is_close(&self, other: &Complex<T>, rel_tol: T, abs_tol: T) -> bool {
+    pub fn is_close(&self, other: &Self, rel_tol: T, abs_tol: T) -> bool {
         let diff = (*self - *other).norm();
         let scale = self.norm().max(other.norm());
         diff <= abs_tol || diff <= rel_tol * scale
@@ -172,14 +172,14 @@ impl<T: RealFull> Complex<T> {
     /// let s: Complex = Complex::new(-4.0, 0.0).sqrt();
     /// assert!((s.im - 2.0).abs() < 1e-12 && s.re.abs() < 1e-12);
     /// ```
-    pub fn sqrt(&self) -> Complex<T> {
+    pub fn sqrt(&self) -> Self {
         if self.is_zero() {
-            return Complex::<T>::zero();
+            return Self::zero();
         }
         let n = self.norm();
         if self.re >= T::zero() {
             let r = ((n + self.re) / T::from_f64(2.0)).sqrt();
-            Complex::<T>::new(r, self.im / (T::from_f64(2.0) * r))
+            Self::new(r, self.im / (T::from_f64(2.0) * r))
         } else {
             let i = self.im.signum() * ((n - self.re) / T::from_f64(2.0)).sqrt();
             let r = if i == T::zero() {
@@ -187,7 +187,7 @@ impl<T: RealFull> Complex<T> {
             } else {
                 self.im.abs() / (T::from_f64(2.0) * i.abs())
             };
-            Complex::<T>::new(r, i)
+            Self::new(r, i)
         }
     }
     /// `e^self`.
@@ -197,13 +197,13 @@ impl<T: RealFull> Complex<T> {
     /// let e = Complex::new(0.0, core::f64::consts::PI).exp();
     /// assert!((e.re + 1.0).abs() < 1e-12 && e.im.abs() < 1e-12);
     /// ```
-    pub fn exp(&self) -> Complex<T> {
+    pub fn exp(&self) -> Self {
         let e = self.re.exp();
-        Complex::<T>::new(e * self.im.cos(), e * self.im.sin())
+        Self::new(e * self.im.cos(), e * self.im.sin())
     }
     /// Principal natural logarithm.
-    pub fn ln(&self) -> Complex<T> {
-        Complex::<T>::new(self.norm().ln(), self.arg())
+    pub fn ln(&self) -> Self {
+        Self::new(self.norm().ln(), self.arg())
     }
     /// `self^p = e^(p·ln self)`, principal branch.
     ///
@@ -211,66 +211,66 @@ impl<T: RealFull> Complex<T> {
     /// `Re(p) > 0`, `+∞` when `Re(p) < 0`, `1` for `p = 0` (combinatorial
     /// convention), and `NaN` for purely imaginary exponents where the limit
     /// does not converge.
-    pub fn pow(&self, p: Complex<T>) -> Complex<T> {
+    pub fn pow(&self, p: Self) -> Self {
         if self.is_zero() {
             return if p.re > T::zero() {
-                Complex::<T>::zero()
+                Self::zero()
             } else if p.re < T::zero() {
-                Complex::<T>::new(T::from_f64(f64::INFINITY), T::zero())
+                Self::new(T::from_f64(f64::INFINITY), T::zero())
             } else if p.im == T::zero() {
                 // 0^0 = 1 (combinatorial convention)
-                Complex::<T>::one()
+                Self::one()
             } else {
                 // 0^(i·y) is undefined — limit does not converge
-                Complex::<T>::new(T::from_f64(f64::NAN), T::from_f64(f64::NAN))
+                Self::new(T::from_f64(f64::NAN), T::from_f64(f64::NAN))
             };
         }
         (p * self.ln()).exp()
     }
     /// `self^p` for a real exponent.
-    pub fn powf(&self, p: T) -> Complex<T> {
-        self.pow(Complex::<T>::real(p))
+    pub fn powf(&self, p: T) -> Self {
+        self.pow(Self::real(p))
     }
     /// Sine: `sin(re)·cosh(im) + i·cos(re)·sinh(im)`.
-    pub fn sin(&self) -> Complex<T> {
-        Complex::<T>::new(
+    pub fn sin(&self) -> Self {
+        Self::new(
             self.re.sin() * self.im.cosh(),
             self.re.cos() * self.im.sinh(),
         )
     }
     /// Cosine: `cos(re)·cosh(im) − i·sin(re)·sinh(im)`.
-    pub fn cos(&self) -> Complex<T> {
-        Complex::<T>::new(
+    pub fn cos(&self) -> Self {
+        Self::new(
             self.re.cos() * self.im.cosh(),
             -self.re.sin() * self.im.sinh(),
         )
     }
     /// Tangent: `sin(z) / cos(z)`.
-    pub fn tan(&self) -> Complex<T> {
+    pub fn tan(&self) -> Self {
         self.sin() / self.cos()
     }
     /// Hyperbolic sine.
-    pub fn sinh(&self) -> Complex<T> {
-        Complex::<T>::new(
+    pub fn sinh(&self) -> Self {
+        Self::new(
             self.re.sinh() * self.im.cos(),
             self.re.cosh() * self.im.sin(),
         )
     }
     /// Hyperbolic cosine.
-    pub fn cosh(&self) -> Complex<T> {
-        Complex::<T>::new(
+    pub fn cosh(&self) -> Self {
+        Self::new(
             self.re.cosh() * self.im.cos(),
             self.re.sinh() * self.im.sin(),
         )
     }
     /// Hyperbolic tangent.
-    pub fn tanh(&self) -> Complex<T> {
+    pub fn tanh(&self) -> Self {
         self.sinh() / self.cosh()
     }
     /// Inverse hyperbolic sine.
-    pub fn asinh(&self) -> Complex<T> {
+    pub fn asinh(&self) -> Self {
         let s = *self;
-        (s + (s * s + Complex::<T>::real(T::one())).sqrt()).ln()
+        (s + (s * s + Self::real(T::one())).sqrt()).ln()
     }
     /// Inverse hyperbolic cosine.
     ///
@@ -278,9 +278,9 @@ impl<T: RealFull> Complex<T> {
     /// The single-square-root form avoids the double `sqrt` round trip of the
     /// equivalent `sqrt(z+1)·sqrt(z-1)` formulation and matches `numpy`'s
     /// `np.arccosh`. Result satisfies `Re(acosh(z)) ≥ 0`.
-    pub fn acosh(&self) -> Complex<T> {
+    pub fn acosh(&self) -> Self {
         let s = *self;
-        (s + (s * s - Complex::<T>::one()).sqrt()).ln()
+        (s + (s * s - Self::one()).sqrt()).ln()
     }
     /// Inverse hyperbolic tangent.
     ///
@@ -289,9 +289,9 @@ impl<T: RealFull> Complex<T> {
     /// `Im = +π/2`; for `x < -1`, `Im = -π/2` (matches `cmath.atanh`).
     /// The sign follows the sign of the imaginary part of the input, so
     /// `atanh(x ± 0i)` sits on the matching side of the cut.
-    pub fn atanh(&self) -> Complex<T> {
+    pub fn atanh(&self) -> Self {
         let s = *self;
-        let one = Complex::<T>::one();
+        let one = Self::one();
         // On the real-axis branch cuts the intermediate division `(1+z)/(1−z)`
         // can contaminate the imaginary sign (e.g. produce −0.0), flipping the
         // principal value to the wrong side of the cut. Fix it explicitly:
@@ -306,49 +306,49 @@ impl<T: RealFull> Complex<T> {
             };
             let cut = if s.re > one.re { T::one() } else { -T::one() };
             let im = side * cut * T::from_f64(core::f64::consts::FRAC_PI_2);
-            return Complex::<T>::new(mag, im);
+            return Self::new(mag, im);
         }
-        ((one + s) / (one - s)).ln() / Complex::<T>::real(T::from_f64(2.0))
+        ((one + s) / (one - s)).ln() / Self::real(T::from_f64(2.0))
     }
     /// Inverse sine.
-    pub fn asin(&self) -> Complex<T> {
+    pub fn asin(&self) -> Self {
         let s = *self;
-        -Complex::<T>::i() * (Complex::<T>::i() * s + (Complex::<T>::one() - s * s).sqrt()).ln()
+        -Self::i() * (Self::i() * s + (Self::one() - s * s).sqrt()).ln()
     }
     /// Inverse cosine.
-    pub fn acos(&self) -> Complex<T> {
+    pub fn acos(&self) -> Self {
         let s = *self;
-        -Complex::<T>::i() * (s + Complex::<T>::i() * (Complex::<T>::one() - s * s).sqrt()).ln()
+        -Self::i() * (s + Self::i() * (Self::one() - s * s).sqrt()).ln()
     }
     /// Inverse tangent.
-    pub fn atan(&self) -> Complex<T> {
+    pub fn atan(&self) -> Self {
         let s = *self;
-        let i = Complex::<T>::i();
-        (i / Complex::<T>::real(T::from_f64(2.0)))
-            * ((Complex::<T>::one() - i * s) / (Complex::<T>::one() + i * s)).ln()
+        let i = Self::i();
+        (i / Self::real(T::from_f64(2.0)))
+            * ((Self::one() - i * s) / (Self::one() + i * s)).ln()
     }
     /// Base-10 logarithm.
-    pub fn log10(&self) -> Complex<T> {
-        self.ln() / Complex::<T>::real(T::from_f64(10.0_f64.ln()))
+    pub fn log10(&self) -> Self {
+        self.ln() / Self::real(T::from_f64(10.0_f64.ln()))
     }
     /// Base-2 logarithm.
-    pub fn log2(&self) -> Complex<T> {
-        self.ln() / Complex::<T>::real(T::from_f64(2.0_f64.ln()))
+    pub fn log2(&self) -> Self {
+        self.ln() / Self::real(T::from_f64(2.0_f64.ln()))
     }
     /// Reciprocal (1/self).
     ///
     /// Uses Smith's algorithm: scale by the larger component before the
     /// squaring, so `re² + im²` cannot overflow (e.g. `(1e200+0i).recip()`
     /// is `1e-200`, not `NaN`).
-    pub fn recip(&self) -> Complex<T> {
+    pub fn recip(&self) -> Self {
         if self.re.abs() >= self.im.abs() {
             let r = self.im / self.re;
             let d = self.re + self.im * r;
-            Complex::<T>::new(T::one() / d, -r / d)
+            Self::new(T::one() / d, -r / d)
         } else {
             let r = self.re / self.im;
             let d = self.re * r + self.im;
-            Complex::<T>::new(r / d, -T::one() / d)
+            Self::new(r / d, -T::one() / d)
         }
     }
     /// Returns true if either component is NaN.
@@ -365,83 +365,83 @@ impl<T: RealFull> Complex<T> {
     }
     /// Signum (sign) function: same direction, unit magnitude. Returns zero
     /// if `self` is zero.
-    pub fn signum(&self) -> Complex<T> {
+    pub fn signum(&self) -> Self {
         if self.is_zero() {
-            Complex::<T>::new(T::zero(), T::zero())
+            Self::new(T::zero(), T::zero())
         } else {
             let s = *self;
-            s / Complex::<T>::real(s.norm())
+            s / Self::real(s.norm())
         }
     }
     /// Cube root.
-    pub fn cbrt(&self) -> Complex<T> {
+    pub fn cbrt(&self) -> Self {
         self.powf(T::from_f64(1.0 / 3.0))
     }
     /// Nth root (principal branch).
-    pub fn root(&self, n: T) -> Complex<T> {
+    pub fn root(&self, n: T) -> Self {
         self.powf(T::one() / n)
     }
 }
 
 impl<T: RealFull> Add for Complex<T> {
-    type Output = Complex<T>;
-    fn add(self, o: Complex<T>) -> Complex<T> {
-        Complex::<T>::new(self.re + o.re, self.im + o.im)
+    type Output = Self;
+    fn add(self, o: Self) -> Self {
+        Self::new(self.re + o.re, self.im + o.im)
     }
 }
 impl<T: RealFull> Sub for Complex<T> {
-    type Output = Complex<T>;
-    fn sub(self, o: Complex<T>) -> Complex<T> {
-        Complex::<T>::new(self.re - o.re, self.im - o.im)
+    type Output = Self;
+    fn sub(self, o: Self) -> Self {
+        Self::new(self.re - o.re, self.im - o.im)
     }
 }
 impl<T: RealFull> Mul for Complex<T> {
-    type Output = Complex<T>;
-    fn mul(self, o: Complex<T>) -> Complex<T> {
-        Complex::<T>::new(
+    type Output = Self;
+    fn mul(self, o: Self) -> Self {
+        Self::new(
             self.re * o.re - self.im * o.im,
             self.re * o.im + self.im * o.re,
         )
     }
 }
 impl<T: RealFull> Div for Complex<T> {
-    type Output = Complex<T>;
+    type Output = Self;
     // self · (1/o) with an overflow-safe reciprocal (Smith's algorithm)
     #[allow(clippy::suspicious_arithmetic_impl)]
-    fn div(self, o: Complex<T>) -> Complex<T> {
+    fn div(self, o: Self) -> Self {
         self * o.recip()
     }
 }
 impl<T: RealFull> Neg for Complex<T> {
-    type Output = Complex<T>;
-    fn neg(self) -> Complex<T> {
-        Complex::<T>::new(-self.re, -self.im)
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self::new(-self.re, -self.im)
     }
 }
 
 // Scalar arithmetic (numpy-style broadcasting of a real onto a complex).
 impl<T: RealFull> Add<T> for Complex<T> {
-    type Output = Complex<T>;
-    fn add(self, o: T) -> Complex<T> {
-        Complex::<T>::new(self.re + o, self.im)
+    type Output = Self;
+    fn add(self, o: T) -> Self {
+        Self::new(self.re + o, self.im)
     }
 }
 impl<T: RealFull> Sub<T> for Complex<T> {
-    type Output = Complex<T>;
-    fn sub(self, o: T) -> Complex<T> {
-        Complex::<T>::new(self.re - o, self.im)
+    type Output = Self;
+    fn sub(self, o: T) -> Self {
+        Self::new(self.re - o, self.im)
     }
 }
 impl<T: RealFull> Mul<T> for Complex<T> {
-    type Output = Complex<T>;
-    fn mul(self, o: T) -> Complex<T> {
-        Complex::<T>::new(self.re * o, self.im * o)
+    type Output = Self;
+    fn mul(self, o: T) -> Self {
+        Self::new(self.re * o, self.im * o)
     }
 }
 impl<T: RealFull> Div<T> for Complex<T> {
-    type Output = Complex<T>;
-    fn div(self, o: T) -> Complex<T> {
-        Complex::<T>::new(self.re / o, self.im / o)
+    type Output = Self;
+    fn div(self, o: T) -> Self {
+        Self::new(self.re / o, self.im / o)
     }
 }
 
@@ -505,14 +505,14 @@ impl<T: RealFull> Div<T> for &Complex<T> {
 }
 
 impl<T: RealFull> From<T> for Complex<T> {
-    fn from(r: T) -> Complex<T> {
-        Complex::<T>::real(r)
+    fn from(r: T) -> Self {
+        Self::real(r)
     }
 }
 
 impl<T: RealFull> From<(T, T)> for Complex<T> {
-    fn from((re, im): (T, T)) -> Complex<T> {
-        Complex::<T>::new(re, im)
+    fn from((re, im): (T, T)) -> Self {
+        Self::new(re, im)
     }
 }
 

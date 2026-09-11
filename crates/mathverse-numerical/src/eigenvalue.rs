@@ -16,7 +16,7 @@ pub struct PowerMethod {
 impl PowerMethod {
     /// Create a power method solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        PowerMethod {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -86,7 +86,7 @@ pub struct InversePowerMethod {
 impl InversePowerMethod {
     /// Create an inverse power method solver with the given iteration cap, tolerance and shift.
     pub fn new(max_iterations: usize, tolerance: f64, shift: f64) -> Self {
-        InversePowerMethod {
+        Self {
             max_iterations,
             tolerance,
             shift,
@@ -196,7 +196,7 @@ pub struct RayleighQuotientIteration {
 impl RayleighQuotientIteration {
     /// Create a Rayleigh quotient iterator with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        RayleighQuotientIteration {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -272,7 +272,7 @@ pub struct QRAlgorithm {
 impl QRAlgorithm {
     /// Create a QR algorithm solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        QRAlgorithm {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -376,7 +376,7 @@ pub struct Lanczos {
 impl Lanczos {
     /// Create a Lanczos solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        Lanczos {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -493,7 +493,7 @@ pub struct SubspaceIteration {
 impl SubspaceIteration {
     /// Create a subspace iterator with the given caps and subspace size.
     pub fn new(max_iterations: usize, tolerance: f64, subspace_size: usize) -> Self {
-        SubspaceIteration {
+        Self {
             max_iterations,
             tolerance,
             subspace_size,
@@ -598,7 +598,7 @@ pub struct JacobiEigenvalue {
 impl JacobiEigenvalue {
     /// Create a Jacobi eigenvalue solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        JacobiEigenvalue {
+        Self {
             max_iterations,
             tolerance,
         }

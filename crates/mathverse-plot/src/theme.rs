@@ -98,10 +98,10 @@ impl LineStyle {
     /// Get SVG stroke-dasharray value.
     pub fn to_svg(&self) -> &str {
         match self {
-            LineStyle::Solid => "none",
-            LineStyle::Dashed => "6,4",
-            LineStyle::Dotted => "2,2",
-            LineStyle::DashDot => "6,2,2,2",
+            Self::Solid => "none",
+            Self::Dashed => "6,4",
+            Self::Dotted => "2,2",
+            Self::DashDot => "6,2,2,2",
         }
     }
 }

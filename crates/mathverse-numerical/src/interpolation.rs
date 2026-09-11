@@ -58,7 +58,7 @@ impl CubicSpline {
         let coeffs: Vec<(f64, f64, f64, f64)> =
             (0..n - 1).map(|i| (ys[i], b[i], c[i], d[i])).collect();
 
-        Ok(CubicSpline { xs, ys, coeffs })
+        Ok(Self { xs, ys, coeffs })
     }
 
     /// Evaluate spline at x.
@@ -115,7 +115,7 @@ impl HermiteInterpolation {
         if xs.len() != ys.len() || xs.len() != dys.len() || xs.len() < 2 {
             return Err(MathError::InvalidArgument("invalid data points"));
         }
-        Ok(HermiteInterpolation { xs, ys, dys })
+        Ok(Self { xs, ys, dys })
     }
 
     /// Evaluate Hermite polynomial at x.
@@ -186,7 +186,7 @@ impl BarycentricInterpolation {
             weights[j] = 1.0 / weights[j];
         }
 
-        Ok(BarycentricInterpolation { xs, ys, weights })
+        Ok(Self { xs, ys, weights })
     }
 
     /// Evaluate at x.
@@ -256,7 +256,7 @@ impl RBFInterpolation {
         // Solve linear system (simplified Gaussian elimination)
         let weights = Self::solve_linear(&a, &ys)?;
 
-        Ok(RBFInterpolation {
+        Ok(Self {
             xs: xs.clone(),
             ys,
             centers: xs,
@@ -354,7 +354,7 @@ impl MultilinearInterpolation {
             ));
         }
 
-        Ok(MultilinearInterpolation {
+        Ok(Self {
             grid_dims,
             grid_min,
             grid_max,
@@ -466,7 +466,7 @@ impl ChebyshevInterpolation {
             *coeff *= scale;
         }
 
-        ChebyshevInterpolation { coeffs, a, b }
+        Self { coeffs, a, b }
     }
 
     /// Evaluate at x.
@@ -498,7 +498,7 @@ impl NearestNeighbor {
         if xs.len() != ys.len() || xs.is_empty() {
             return Err(MathError::InvalidArgument("invalid data points"));
         }
-        Ok(NearestNeighbor { xs, ys })
+        Ok(Self { xs, ys })
     }
 
     /// Evaluate at x.

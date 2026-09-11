@@ -62,7 +62,7 @@ impl DateTime {
     }
 
     /// Auto-detect an appropriate format based on the time span.
-    pub fn auto_format(&self, other: DateTime) -> &'static str {
+    pub fn auto_format(&self, other: Self) -> &'static str {
         let span = (self.timestamp - other.timestamp).abs();
         if span < 60 {
             "%H:%M:%S" // seconds
@@ -205,7 +205,7 @@ impl DateLocator {
 
 impl crate::ticks::TickLocator for DateLocator {
     fn locate(&self, lo: f64, hi: f64, max_ticks: usize) -> Vec<f64> {
-        DateLocator::locate(self, lo, hi, max_ticks)
+        Self::locate(self, lo, hi, max_ticks)
     }
 }
 
@@ -245,7 +245,7 @@ impl DateFormatter {
 
 impl crate::ticks::TickFormatter for DateFormatter {
     fn format(&self, value: f64) -> String {
-        DateFormatter::format(self, value)
+        Self::format(self, value)
     }
 }
 

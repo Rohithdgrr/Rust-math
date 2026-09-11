@@ -15,7 +15,7 @@ impl GumbelEVD {
             return Err("Scale must be positive".to_string());
         }
 
-        Ok(GumbelEVD { location, scale })
+        Ok(Self { location, scale })
     }
 
     /// PDF of Gumbel distribution.
@@ -68,7 +68,7 @@ impl FrechetEVD {
             return Err("Scale and shape must be positive".to_string());
         }
 
-        Ok(FrechetEVD {
+        Ok(Self {
             location,
             scale,
             shape,
@@ -146,7 +146,7 @@ impl WeibullEVD {
             return Err("Scale and shape must be positive".to_string());
         }
 
-        Ok(WeibullEVD {
+        Ok(Self {
             location,
             scale,
             shape,
@@ -216,7 +216,7 @@ impl GEVDistribution {
             return Err("Scale must be positive".to_string());
         }
 
-        Ok(GEVDistribution {
+        Ok(Self {
             location,
             scale,
             shape,
@@ -390,7 +390,7 @@ impl PeakOverThreshold {
             .map(|x| x - threshold)
             .collect();
 
-        PeakOverThreshold {
+        Self {
             threshold,
             data: excesses,
         }
@@ -452,7 +452,7 @@ pub struct BlockMaxima {
 
 impl BlockMaxima {
     pub fn new(block_size: usize, data: Vec<f64>) -> Self {
-        BlockMaxima { block_size, data }
+        Self { block_size, data }
     }
 
     /// Compute block maxima.
@@ -509,7 +509,7 @@ pub struct ExtremeValueIndices {
 
 impl ExtremeValueIndices {
     pub fn new(data: Vec<f64>) -> Self {
-        ExtremeValueIndices { data }
+        Self { data }
     }
 
     /// r-largest order statistics.

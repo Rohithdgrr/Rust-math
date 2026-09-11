@@ -52,13 +52,13 @@ impl Matrix {
     /// # Errors
     ///
     /// Returns [`MathError::InvalidArgument`] if `data.len() != rows * cols`.
-    pub fn new(rows: usize, cols: usize, data: Vec<f64>) -> MathResult<Matrix> {
+    pub fn new(rows: usize, cols: usize, data: Vec<f64>) -> MathResult<Self> {
         if data.len() != rows * cols {
             return Err(MathError::InvalidArgument(
                 "data length must equal rows * cols",
             ));
         }
-        Ok(Matrix { rows, cols, data })
+        Ok(Self { rows, cols, data })
     }
 
     /// Number of rows.
@@ -128,8 +128,8 @@ impl Matrix {
     }
 
     /// Convert vector to column matrix.
-    pub fn from_vector(v: &mathverse_vector::Vector) -> Matrix {
-        Matrix {
+    pub fn from_vector(v: &mathverse_vector::Vector) -> Self {
+        Self {
             rows: v.data.len(),
             cols: 1,
             data: v.data.clone(),
@@ -137,8 +137,8 @@ impl Matrix {
     }
 
     /// Ones matrix.
-    pub fn ones(rows: usize, cols: usize) -> Matrix {
-        Matrix {
+    pub fn ones(rows: usize, cols: usize) -> Self {
+        Self {
             rows,
             cols,
             data: vec![1.0; rows * cols],
@@ -146,8 +146,8 @@ impl Matrix {
     }
 
     /// Zero matrix.
-    pub fn zeros(rows: usize, cols: usize) -> Matrix {
-        Matrix {
+    pub fn zeros(rows: usize, cols: usize) -> Self {
+        Self {
             rows,
             cols,
             data: vec![0.0; rows * cols],
@@ -155,8 +155,8 @@ impl Matrix {
     }
 
     /// Identity matrix.
-    pub fn identity(n: usize) -> Matrix {
-        let mut m = Matrix::zeros(n, n);
+    pub fn identity(n: usize) -> Self {
+        let mut m = Self::zeros(n, n);
         for i in 0..n {
             m.set(i, i, 1.0);
         }
@@ -164,9 +164,9 @@ impl Matrix {
     }
 
     /// Diagonal matrix.
-    pub fn diagonal(diag: &[f64]) -> Matrix {
+    pub fn diagonal(diag: &[f64]) -> Self {
         let n = diag.len();
-        let mut m = Matrix::zeros(n, n);
+        let mut m = Self::zeros(n, n);
         for (i, &v) in diag.iter().enumerate() {
             m.set(i, i, v);
         }
@@ -174,7 +174,7 @@ impl Matrix {
     }
 
     /// From rows; errors on empty input or ragged rows.
-    pub fn from_rows(rows: &[&[f64]]) -> MathResult<Matrix> {
+    pub fn from_rows(rows: &[&[f64]]) -> MathResult<Self> {
         if rows.is_empty() || rows[0].is_empty() {
             return Err(MathError::InvalidArgument(
                 "matrix must have at least one row and column",
@@ -190,7 +190,7 @@ impl Matrix {
             }
             data.extend_from_slice(r);
         }
-        Ok(Matrix {
+        Ok(Self {
             rows: rows.len(),
             cols,
             data,
@@ -255,20 +255,20 @@ impl Matrix {
     }
 
     /// Matrix addition.
-    pub fn add(&self, other: &Matrix) -> MathResult<Matrix> {
+    pub fn add(&self, other: &Self) -> MathResult<Self> {
         self.binary(other, |a, b| a + b)
     }
 
     /// Matrix subtraction.
-    pub fn sub(&self, other: &Matrix) -> MathResult<Matrix> {
+    pub fn sub(&self, other: &Self) -> MathResult<Self> {
         self.binary(other, |a, b| a - b)
     }
 
-    fn binary(&self, other: &Matrix, f: impl Fn(f64, f64) -> f64) -> MathResult<Matrix> {
+    fn binary(&self, other: &Self, f: impl Fn(f64, f64) -> f64) -> MathResult<Self> {
         if self.rows != other.rows || self.cols != other.cols {
             return Err(MathError::DimensionMismatch);
         }
-        Ok(Matrix {
+        Ok(Self {
             rows: self.rows,
             cols: self.cols,
             data: self
@@ -281,8 +281,8 @@ impl Matrix {
     }
 
     /// Scalar multiplication.
-    pub fn scale(&self, s: f64) -> Matrix {
-        Matrix {
+    pub fn scale(&self, s: f64) -> Self {
+        Self {
             rows: self.rows,
             cols: self.cols,
             data: self.data.iter().map(|v| v * s).collect(),
@@ -290,11 +290,11 @@ impl Matrix {
     }
 
     /// Matrix product; error on `self.cols != other.rows`.
-    pub fn mul(&self, other: &Matrix) -> MathResult<Matrix> {
+    pub fn mul(&self, other: &Self) -> MathResult<Self> {
         if self.cols != other.rows {
             return Err(MathError::DimensionMismatch);
         }
-        let mut out = Matrix::zeros(self.rows, other.cols);
+        let mut out = Self::zeros(self.rows, other.cols);
         for i in 0..self.rows {
             for k in 0..self.cols {
                 let a = self.get(i, k);
@@ -320,8 +320,8 @@ impl Matrix {
 
     /// Transpose: element `(i, j)` moves to `(j, i)`.
     #[must_use]
-    pub fn transpose(&self) -> Matrix {
-        let mut t = Matrix::zeros(self.cols, self.rows);
+    pub fn transpose(&self) -> Self {
+        let mut t = Self::zeros(self.cols, self.rows);
         for i in 0..self.rows {
             for j in 0..self.cols {
                 t.set(j, i, self.get(i, j));
@@ -382,11 +382,11 @@ impl Matrix {
     }
 
     /// Inverse via LU; error on singular matrices.
-    pub fn inverse(&self) -> MathResult<Matrix> {
+    pub fn inverse(&self) -> MathResult<Self> {
         if !self.is_square() {
             return Err(MathError::DimensionMismatch);
         }
-        let mut inv = Matrix::zeros(self.rows, self.cols);
+        let mut inv = Self::zeros(self.rows, self.cols);
         for k in 0..self.rows {
             let mut e = Vector::zeros(self.rows);
             e.set(k, 1.0);

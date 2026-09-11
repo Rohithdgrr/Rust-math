@@ -75,7 +75,7 @@ impl Polynomial {
         if c.is_empty() {
             c.push(0.0);
         }
-        Polynomial { coeffs: c }
+        Self { coeffs: c }
     }
 
     /// Constant polynomial `c`.
@@ -106,7 +106,7 @@ impl Polynomial {
     /// ```
     #[inline]
     pub fn x() -> Self {
-        Polynomial {
+        Self {
             coeffs: vec![0.0, 1.0],
         }
     }
@@ -166,7 +166,7 @@ impl Polynomial {
     /// assert_eq!(p.derivative().coeffs(), &[-2.0, 0.0, 3.0]);
     /// ```
     #[must_use]
-    pub fn derivative(&self) -> Polynomial {
+    pub fn derivative(&self) -> Self {
         let d: Vec<f64> = self
             .coeffs
             .iter()
@@ -174,7 +174,7 @@ impl Polynomial {
             .skip(1)
             .map(|(i, &c)| c * i as f64)
             .collect();
-        Polynomial::from_coeffs(&d)
+        Self::from_coeffs(&d)
     }
 
     /// Indefinite integral with zero constant term.
@@ -189,12 +189,12 @@ impl Polynomial {
     /// assert_eq!(i.coeffs(), &[0.0, -2.0, 1.0]);
     /// ```
     #[must_use]
-    pub fn integral(&self) -> Polynomial {
+    pub fn integral(&self) -> Self {
         let mut c: Vec<f64> = vec![0.0];
         for (i, &coef) in self.coeffs.iter().enumerate() {
             c.push(coef / (i + 1) as f64);
         }
-        Polynomial { coeffs: c }
+        Self { coeffs: c }
     }
 
     /// Real roots via closed-form solvers (degree ≤ 4).
@@ -238,7 +238,7 @@ impl Polynomial {
     /// assert!(a.approx_eq(&b, 1e-12));
     /// ```
     #[must_use]
-    pub fn approx_eq(&self, other: &Polynomial, tol: f64) -> bool {
+    pub fn approx_eq(&self, other: &Self, tol: f64) -> bool {
         if self.degree() != other.degree() {
             return false;
         }
@@ -304,9 +304,9 @@ impl From<f64> for Polynomial {
 }
 
 impl Neg for Polynomial {
-    type Output = Polynomial;
+    type Output = Self;
     #[inline]
-    fn neg(mut self) -> Polynomial {
+    fn neg(mut self) -> Self {
         for c in &mut self.coeffs {
             *c = -*c;
         }
@@ -315,8 +315,8 @@ impl Neg for Polynomial {
 }
 
 impl Add for Polynomial {
-    type Output = Polynomial;
-    fn add(self, other: Polynomial) -> Polynomial {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
         let (mut long, short) = if self.coeffs.len() >= other.coeffs.len() {
             (self.coeffs, &other.coeffs)
         } else {
@@ -325,40 +325,40 @@ impl Add for Polynomial {
         for (l, &s) in long.iter_mut().zip(short.iter()) {
             *l += s;
         }
-        Polynomial::from_coeffs(&long)
+        Self::from_coeffs(&long)
     }
 }
 
 impl AddAssign for Polynomial {
-    fn add_assign(&mut self, other: Polynomial) {
+    fn add_assign(&mut self, other: Self) {
         *self = self.clone() + other;
     }
 }
 
 impl Sub for Polynomial {
-    type Output = Polynomial;
+    type Output = Self;
     #[inline]
-    fn sub(self, other: Polynomial) -> Polynomial {
+    fn sub(self, other: Self) -> Self {
         self + (-other)
     }
 }
 
 impl SubAssign for Polynomial {
-    fn sub_assign(&mut self, other: Polynomial) {
+    fn sub_assign(&mut self, other: Self) {
         *self = self.clone() - other;
     }
 }
 
 impl Mul for Polynomial {
-    type Output = Polynomial;
-    fn mul(self, other: Polynomial) -> Polynomial {
+    type Output = Self;
+    fn mul(self, other: Self) -> Self {
         let mut c = vec![0.0; self.coeffs.len() + other.coeffs.len() - 1];
         for (i, &a) in self.coeffs.iter().enumerate() {
             for (j, &b) in other.coeffs.iter().enumerate() {
                 c[i + j] += a * b;
             }
         }
-        Polynomial::from_coeffs(&c)
+        Self::from_coeffs(&c)
     }
 }
 
@@ -371,10 +371,10 @@ impl MulAssign<f64> for Polynomial {
 }
 
 impl Mul<f64> for Polynomial {
-    type Output = Polynomial;
+    type Output = Self;
     #[inline]
-    fn mul(self, k: f64) -> Polynomial {
-        Polynomial::from_coeffs(&self.coeffs.iter().map(|&c| c * k).collect::<Vec<f64>>())
+    fn mul(self, k: f64) -> Self {
+        Self::from_coeffs(&self.coeffs.iter().map(|&c| c * k).collect::<Vec<f64>>())
     }
 }
 
@@ -387,9 +387,9 @@ impl Mul<Polynomial> for f64 {
 }
 
 impl Add<f64> for Polynomial {
-    type Output = Polynomial;
+    type Output = Self;
     #[inline]
-    fn add(self, c: f64) -> Polynomial {
+    fn add(self, c: f64) -> Self {
         let mut result = self;
         if result.coeffs.is_empty() {
             result.coeffs.push(c);
@@ -401,9 +401,9 @@ impl Add<f64> for Polynomial {
 }
 
 impl Sub<f64> for Polynomial {
-    type Output = Polynomial;
+    type Output = Self;
     #[inline]
-    fn sub(self, c: f64) -> Polynomial {
+    fn sub(self, c: f64) -> Self {
         self + (-c)
     }
 }

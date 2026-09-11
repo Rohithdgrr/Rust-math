@@ -48,7 +48,7 @@ impl SampleMoments {
     pub fn from_samples(data: &[f64]) -> Self {
         let n = data.len();
         if n == 0 {
-            return SampleMoments {
+            return Self {
                 count: 0,
                 mean: f64::NAN,
                 variance: f64::NAN,
@@ -76,7 +76,7 @@ impl SampleMoments {
             (0.0, 0.0)
         };
 
-        SampleMoments {
+        Self {
             count: n,
             mean,
             variance,
@@ -193,11 +193,11 @@ impl PercentileMethod {
 
         let n = sorted_data.len();
         match self {
-            PercentileMethod::Nearest => {
+            Self::Nearest => {
                 let index = (p * n as f64).round() as usize;
                 sorted_data[index.min(n - 1)]
             }
-            PercentileMethod::Linear => {
+            Self::Linear => {
                 let index = p * (n - 1) as f64;
                 let lower = index.floor() as usize;
                 let upper = (index.ceil() as usize).min(n - 1);
@@ -208,7 +208,7 @@ impl PercentileMethod {
                     sorted_data[lower] * (1.0 - fraction) + sorted_data[upper] * fraction
                 }
             }
-            PercentileMethod::Midpoint => {
+            Self::Midpoint => {
                 let index = p * (n - 1) as f64;
                 let lower = index.floor() as usize;
                 let upper = (index.ceil() as usize).min(n - 1);
@@ -218,11 +218,11 @@ impl PercentileMethod {
                     f64::midpoint(sorted_data[lower], sorted_data[upper])
                 }
             }
-            PercentileMethod::Lower => {
+            Self::Lower => {
                 let index = (p * n as f64).floor() as usize;
                 sorted_data[index.min(n - 1)]
             }
-            PercentileMethod::Higher => {
+            Self::Higher => {
                 let index = (p * n as f64).ceil() as usize;
                 sorted_data[index.min(n - 1)]
             }

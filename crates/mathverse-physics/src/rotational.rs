@@ -513,7 +513,7 @@ impl RotationalKineticEnergy {
     /// assert_eq!(av.value(), 3.0); // sqrt(2*9/2) = sqrt(9) = 3
     /// ```
     pub fn angular_velocity_from_energy(
-        energy: RotationalKineticEnergy,
+        energy: Self,
         moment_of_inertia: MomentOfInertia,
     ) -> AngularVelocity {
         // ω = sqrt(2 · E / I)

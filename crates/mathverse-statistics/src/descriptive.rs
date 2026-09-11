@@ -893,7 +893,7 @@ impl RunningStats {
     /// Merges another accumulator into this one (parallel/partitioned merge).
     ///
     /// Useful for combining statistics computed on separate chunks.
-    pub fn merge(&mut self, other: &RunningStats) {
+    pub fn merge(&mut self, other: &Self) {
         if other.n == 0 {
             return;
         }

@@ -45,30 +45,30 @@ impl StatTest {
     /// Get the p-value.
     pub fn p_value(&self) -> f64 {
         match self {
-            StatTest::TTest { p_value }
-            | StatTest::PairedTTest { p_value }
-            | StatTest::MannWhitney { p_value }
-            | StatTest::Wilcoxon { p_value }
-            | StatTest::Anova { p_value, .. }
-            | StatTest::KruskalWallis { p_value }
-            | StatTest::ChiSquared { p_value }
-            | StatTest::FisherExact { p_value }
-            | StatTest::Custom { p_value, .. } => *p_value,
+            Self::TTest { p_value }
+            | Self::PairedTTest { p_value }
+            | Self::MannWhitney { p_value }
+            | Self::Wilcoxon { p_value }
+            | Self::Anova { p_value, .. }
+            | Self::KruskalWallis { p_value }
+            | Self::ChiSquared { p_value }
+            | Self::FisherExact { p_value }
+            | Self::Custom { p_value, .. } => *p_value,
         }
     }
 
     /// Get the test name.
     pub fn name(&self) -> &str {
         match self {
-            StatTest::TTest { .. } => "t-test",
-            StatTest::PairedTTest { .. } => "paired t-test",
-            StatTest::MannWhitney { .. } => "Mann-Whitney",
-            StatTest::Wilcoxon { .. } => "Wilcoxon",
-            StatTest::Anova { .. } => "ANOVA",
-            StatTest::KruskalWallis { .. } => "Kruskal-Wallis",
-            StatTest::ChiSquared { .. } => "chi-squared",
-            StatTest::FisherExact { .. } => "Fisher exact",
-            StatTest::Custom { name, .. } => name,
+            Self::TTest { .. } => "t-test",
+            Self::PairedTTest { .. } => "paired t-test",
+            Self::MannWhitney { .. } => "Mann-Whitney",
+            Self::Wilcoxon { .. } => "Wilcoxon",
+            Self::Anova { .. } => "ANOVA",
+            Self::KruskalWallis { .. } => "Kruskal-Wallis",
+            Self::ChiSquared { .. } => "chi-squared",
+            Self::FisherExact { .. } => "Fisher exact",
+            Self::Custom { name, .. } => name,
         }
     }
 

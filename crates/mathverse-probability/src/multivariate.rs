@@ -33,7 +33,7 @@ impl CovarianceMatrix {
             }
         }
 
-        Ok(CovarianceMatrix {
+        Ok(Self {
             data,
             dimension: dim,
         })
@@ -160,7 +160,7 @@ impl CorrelationMatrix {
             }
         }
 
-        CorrelationMatrix {
+        Self {
             data: corr,
             dimension: n,
         }
@@ -301,7 +301,7 @@ impl MultivariateNormal {
         let cached_det = Self::determinant(&covariance.data);
         let cached_inv = Self::inverse(&covariance.data);
 
-        Ok(MultivariateNormal {
+        Ok(Self {
             mean,
             covariance,
             cached_inv,
@@ -485,7 +485,7 @@ impl GaussianCopula {
             }
         }
 
-        Ok(GaussianCopula { correlation })
+        Ok(Self { correlation })
     }
 
     /// Sample from the copula.

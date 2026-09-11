@@ -11,89 +11,89 @@ pub enum Expr {
     /// Variable with name
     Variable(String),
     /// Addition (a + b)
-    Add(Rc<Expr>, Rc<Expr>),
+    Add(Rc<Self>, Rc<Self>),
     /// Subtraction (a - b)
-    Sub(Rc<Expr>, Rc<Expr>),
+    Sub(Rc<Self>, Rc<Self>),
     /// Multiplication (a * b)
-    Mul(Rc<Expr>, Rc<Expr>),
+    Mul(Rc<Self>, Rc<Self>),
     /// Division (a / b)
-    Div(Rc<Expr>, Rc<Expr>),
+    Div(Rc<Self>, Rc<Self>),
     /// Power (a^b)
-    Pow(Rc<Expr>, Rc<Expr>),
+    Pow(Rc<Self>, Rc<Self>),
     /// Negation (-a)
-    Neg(Rc<Expr>),
+    Neg(Rc<Self>),
     /// Natural logarithm (ln(x))
-    Ln(Rc<Expr>),
+    Ln(Rc<Self>),
     /// Exponential (e^x)
-    Exp(Rc<Expr>),
+    Exp(Rc<Self>),
     /// Sine (sin(x))
-    Sin(Rc<Expr>),
+    Sin(Rc<Self>),
     /// Cosine (cos(x))
-    Cos(Rc<Expr>),
+    Cos(Rc<Self>),
     /// Tangent (tan(x))
-    Tan(Rc<Expr>),
+    Tan(Rc<Self>),
     /// Square root (sqrt(x))
-    Sqrt(Rc<Expr>),
+    Sqrt(Rc<Self>),
 }
 
 impl Expr {
     /// Create a constant expression
     pub fn c(value: f64) -> Self {
-        Expr::Constant(value)
+        Self::Constant(value)
     }
 
     /// Create a variable expression
     pub fn v(name: &str) -> Self {
-        Expr::Variable(name.to_string())
+        Self::Variable(name.to_string())
     }
 
     /// Power
-    pub fn pow(self, other: Expr) -> Self {
-        Expr::Pow(Rc::new(self), Rc::new(other))
+    pub fn pow(self, other: Self) -> Self {
+        Self::Pow(Rc::new(self), Rc::new(other))
     }
 
     /// Natural logarithm
     pub fn ln(self) -> Self {
-        Expr::Ln(Rc::new(self))
+        Self::Ln(Rc::new(self))
     }
 
     /// Exponential
     pub fn exp(self) -> Self {
-        Expr::Exp(Rc::new(self))
+        Self::Exp(Rc::new(self))
     }
 
     /// Sine
     pub fn sin(self) -> Self {
-        Expr::Sin(Rc::new(self))
+        Self::Sin(Rc::new(self))
     }
 
     /// Cosine
     pub fn cos(self) -> Self {
-        Expr::Cos(Rc::new(self))
+        Self::Cos(Rc::new(self))
     }
 
     /// Tangent
     pub fn tan(self) -> Self {
-        Expr::Tan(Rc::new(self))
+        Self::Tan(Rc::new(self))
     }
 
     /// Square root
     pub fn sqrt(self) -> Self {
-        Expr::Sqrt(Rc::new(self))
+        Self::Sqrt(Rc::new(self))
     }
 
     /// Evaluate the expression with given variable values
     pub fn evaluate(&self, vars: &std::collections::HashMap<String, f64>) -> Result<f64, String> {
         match self {
-            Expr::Constant(c) => Ok(*c),
-            Expr::Variable(name) => vars
+            Self::Constant(c) => Ok(*c),
+            Self::Variable(name) => vars
                 .get(name)
                 .copied()
                 .ok_or_else(|| format!("Variable '{name}' not found")),
-            Expr::Add(a, b) => Ok(a.evaluate(vars)? + b.evaluate(vars)?),
-            Expr::Sub(a, b) => Ok(a.evaluate(vars)? - b.evaluate(vars)?),
-            Expr::Mul(a, b) => Ok(a.evaluate(vars)? * b.evaluate(vars)?),
-            Expr::Div(a, b) => {
+            Self::Add(a, b) => Ok(a.evaluate(vars)? + b.evaluate(vars)?),
+            Self::Sub(a, b) => Ok(a.evaluate(vars)? - b.evaluate(vars)?),
+            Self::Mul(a, b) => Ok(a.evaluate(vars)? * b.evaluate(vars)?),
+            Self::Div(a, b) => {
                 let denom = b.evaluate(vars)?;
                 if denom == 0.0 {
                     Err("Division by zero".to_string())
@@ -101,9 +101,9 @@ impl Expr {
                     Ok(a.evaluate(vars)? / denom)
                 }
             }
-            Expr::Pow(a, b) => Ok(a.evaluate(vars)?.powf(b.evaluate(vars)?)),
-            Expr::Neg(a) => Ok(-a.evaluate(vars)?),
-            Expr::Ln(a) => {
+            Self::Pow(a, b) => Ok(a.evaluate(vars)?.powf(b.evaluate(vars)?)),
+            Self::Neg(a) => Ok(-a.evaluate(vars)?),
+            Self::Ln(a) => {
                 let val = a.evaluate(vars)?;
                 if val <= 0.0 {
                     Err("Logarithm of non-positive number".to_string())
@@ -111,11 +111,11 @@ impl Expr {
                     Ok(val.ln())
                 }
             }
-            Expr::Exp(a) => Ok(a.evaluate(vars)?.exp()),
-            Expr::Sin(a) => Ok(a.evaluate(vars)?.sin()),
-            Expr::Cos(a) => Ok(a.evaluate(vars)?.cos()),
-            Expr::Tan(a) => Ok(a.evaluate(vars)?.tan()),
-            Expr::Sqrt(a) => {
+            Self::Exp(a) => Ok(a.evaluate(vars)?.exp()),
+            Self::Sin(a) => Ok(a.evaluate(vars)?.sin()),
+            Self::Cos(a) => Ok(a.evaluate(vars)?.cos()),
+            Self::Tan(a) => Ok(a.evaluate(vars)?.tan()),
+            Self::Sqrt(a) => {
                 let val = a.evaluate(vars)?;
                 if val < 0.0 {
                     Err("Square root of negative number".to_string())
@@ -139,46 +139,46 @@ impl Expr {
     #[must_use]
     pub fn to_sympy_string(&self) -> String {
         match self {
-            Expr::Constant(c) => c.to_string(),
-            Expr::Variable(name) => name.clone(),
-            Expr::Add(a, b) => format!("({} + {})", a.to_sympy_string(), b.to_sympy_string()),
-            Expr::Sub(a, b) => format!("({} - {})", a.to_sympy_string(), b.to_sympy_string()),
-            Expr::Mul(a, b) => format!("({} * {})", a.to_sympy_string(), b.to_sympy_string()),
-            Expr::Div(a, b) => format!("({} / {})", a.to_sympy_string(), b.to_sympy_string()),
-            Expr::Pow(a, b) => format!("({} ** {})", a.to_sympy_string(), b.to_sympy_string()),
-            Expr::Neg(a) => format!("(-{})", a.to_sympy_string()),
-            Expr::Ln(a) => format!("ln({})", a.to_sympy_string()),
-            Expr::Exp(a) => format!("exp({})", a.to_sympy_string()),
-            Expr::Sin(a) => format!("sin({})", a.to_sympy_string()),
-            Expr::Cos(a) => format!("cos({})", a.to_sympy_string()),
-            Expr::Tan(a) => format!("tan({})", a.to_sympy_string()),
-            Expr::Sqrt(a) => format!("sqrt({})", a.to_sympy_string()),
+            Self::Constant(c) => c.to_string(),
+            Self::Variable(name) => name.clone(),
+            Self::Add(a, b) => format!("({} + {})", a.to_sympy_string(), b.to_sympy_string()),
+            Self::Sub(a, b) => format!("({} - {})", a.to_sympy_string(), b.to_sympy_string()),
+            Self::Mul(a, b) => format!("({} * {})", a.to_sympy_string(), b.to_sympy_string()),
+            Self::Div(a, b) => format!("({} / {})", a.to_sympy_string(), b.to_sympy_string()),
+            Self::Pow(a, b) => format!("({} ** {})", a.to_sympy_string(), b.to_sympy_string()),
+            Self::Neg(a) => format!("(-{})", a.to_sympy_string()),
+            Self::Ln(a) => format!("ln({})", a.to_sympy_string()),
+            Self::Exp(a) => format!("exp({})", a.to_sympy_string()),
+            Self::Sin(a) => format!("sin({})", a.to_sympy_string()),
+            Self::Cos(a) => format!("cos({})", a.to_sympy_string()),
+            Self::Tan(a) => format!("tan({})", a.to_sympy_string()),
+            Self::Sqrt(a) => format!("sqrt({})", a.to_sympy_string()),
         }
     }
 
     fn collect_variables(&self, vars: &mut std::collections::HashSet<String>) {
         match self {
-            Expr::Variable(name) => {
+            Self::Variable(name) => {
                 vars.insert(name.clone());
             }
-            Expr::Add(a, b)
-            | Expr::Sub(a, b)
-            | Expr::Mul(a, b)
-            | Expr::Div(a, b)
-            | Expr::Pow(a, b) => {
+            Self::Add(a, b)
+            | Self::Sub(a, b)
+            | Self::Mul(a, b)
+            | Self::Div(a, b)
+            | Self::Pow(a, b) => {
                 a.collect_variables(vars);
                 b.collect_variables(vars);
             }
-            Expr::Neg(a)
-            | Expr::Ln(a)
-            | Expr::Exp(a)
-            | Expr::Sin(a)
-            | Expr::Cos(a)
-            | Expr::Tan(a)
-            | Expr::Sqrt(a) => {
+            Self::Neg(a)
+            | Self::Ln(a)
+            | Self::Exp(a)
+            | Self::Sin(a)
+            | Self::Cos(a)
+            | Self::Tan(a)
+            | Self::Sqrt(a) => {
                 a.collect_variables(vars);
             }
-            Expr::Constant(_) => {}
+            Self::Constant(_) => {}
         }
     }
 }
@@ -186,61 +186,61 @@ impl Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Constant(c) => write!(f, "{c}"),
-            Expr::Variable(name) => write!(f, "{name}"),
-            Expr::Add(a, b) => write!(f, "({a} + {b})"),
-            Expr::Sub(a, b) => write!(f, "({a} - {b})"),
-            Expr::Mul(a, b) => write!(f, "({a} * {b})"),
-            Expr::Div(a, b) => write!(f, "({a} / {b})"),
-            Expr::Pow(a, b) => write!(f, "({a} ^ {b})"),
-            Expr::Neg(a) => write!(f, "(-{a})"),
-            Expr::Ln(a) => write!(f, "ln({a})"),
-            Expr::Exp(a) => write!(f, "exp({a})"),
-            Expr::Sin(a) => write!(f, "sin({a})"),
-            Expr::Cos(a) => write!(f, "cos({a})"),
-            Expr::Tan(a) => write!(f, "tan({a})"),
-            Expr::Sqrt(a) => write!(f, "sqrt({a})"),
+            Self::Constant(c) => write!(f, "{c}"),
+            Self::Variable(name) => write!(f, "{name}"),
+            Self::Add(a, b) => write!(f, "({a} + {b})"),
+            Self::Sub(a, b) => write!(f, "({a} - {b})"),
+            Self::Mul(a, b) => write!(f, "({a} * {b})"),
+            Self::Div(a, b) => write!(f, "({a} / {b})"),
+            Self::Pow(a, b) => write!(f, "({a} ^ {b})"),
+            Self::Neg(a) => write!(f, "(-{a})"),
+            Self::Ln(a) => write!(f, "ln({a})"),
+            Self::Exp(a) => write!(f, "exp({a})"),
+            Self::Sin(a) => write!(f, "sin({a})"),
+            Self::Cos(a) => write!(f, "cos({a})"),
+            Self::Tan(a) => write!(f, "tan({a})"),
+            Self::Sqrt(a) => write!(f, "sqrt({a})"),
         }
     }
 }
 
 impl std::ops::Add for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn add(self, rhs: Expr) -> Expr {
-        Expr::Add(Rc::new(self), Rc::new(rhs))
+    fn add(self, rhs: Self) -> Self {
+        Self::Add(Rc::new(self), Rc::new(rhs))
     }
 }
 
 impl std::ops::Sub for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn sub(self, rhs: Expr) -> Expr {
-        Expr::Sub(Rc::new(self), Rc::new(rhs))
+    fn sub(self, rhs: Self) -> Self {
+        Self::Sub(Rc::new(self), Rc::new(rhs))
     }
 }
 
 impl std::ops::Mul for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn mul(self, rhs: Expr) -> Expr {
-        Expr::Mul(Rc::new(self), Rc::new(rhs))
+    fn mul(self, rhs: Self) -> Self {
+        Self::Mul(Rc::new(self), Rc::new(rhs))
     }
 }
 
 impl std::ops::Div for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn div(self, rhs: Expr) -> Expr {
-        Expr::Div(Rc::new(self), Rc::new(rhs))
+    fn div(self, rhs: Self) -> Self {
+        Self::Div(Rc::new(self), Rc::new(rhs))
     }
 }
 
 impl std::ops::Neg for Expr {
-    type Output = Expr;
+    type Output = Self;
 
-    fn neg(self) -> Expr {
-        Expr::Neg(Rc::new(self))
+    fn neg(self) -> Self {
+        Self::Neg(Rc::new(self))
     }
 }
 

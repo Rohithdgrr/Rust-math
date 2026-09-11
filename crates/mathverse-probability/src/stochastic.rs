@@ -11,7 +11,7 @@ pub struct RandomWalk {
 
 impl RandomWalk {
     pub fn new(step_size: f64, initial: f64) -> Self {
-        RandomWalk {
+        Self {
             step_size,
             current: initial,
         }
@@ -44,7 +44,7 @@ pub struct BrownianMotion {
 
 impl BrownianMotion {
     pub fn new(dt: f64, initial: f64) -> Self {
-        BrownianMotion {
+        Self {
             dt,
             current: initial,
             time: 0.0,
@@ -98,7 +98,7 @@ pub struct PoissonProcess {
 
 impl PoissonProcess {
     pub fn new(rate: f64) -> Self {
-        PoissonProcess {
+        Self {
             rate,
             current_time: 0.0,
             event_count: 0,
@@ -152,7 +152,7 @@ impl GaussianProcess {
         F1: Fn(f64) -> f64 + 'static,
         F2: Fn(f64, f64) -> f64 + 'static,
     {
-        GaussianProcess {
+        Self {
             mean_fn: Box::new(mean_fn),
             kernel_fn: Box::new(kernel_fn),
         }
@@ -229,7 +229,7 @@ pub struct OrnsteinUhlenbeck {
 
 impl OrnsteinUhlenbeck {
     pub fn new(theta: f64, mu: f64, sigma: f64, initial: f64, dt: f64) -> Self {
-        OrnsteinUhlenbeck {
+        Self {
             theta,
             mu,
             sigma,
@@ -283,7 +283,7 @@ impl JumpDiffusion {
         initial: f64,
         dt: f64,
     ) -> Self {
-        JumpDiffusion {
+        Self {
             drift,
             volatility,
             jump_intensity,
@@ -337,7 +337,7 @@ pub struct LevyProcess {
 
 impl LevyProcess {
     pub fn new(alpha: f64, beta: f64, scale: f64, initial: f64, dt: f64) -> Self {
-        LevyProcess {
+        Self {
             alpha,
             beta,
             scale,

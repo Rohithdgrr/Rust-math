@@ -70,7 +70,7 @@ impl HiddenMarkovModel {
             }
         }
 
-        Ok(HiddenMarkovModel {
+        Ok(Self {
             n_states,
             n_observations,
             initial,
@@ -220,7 +220,7 @@ impl MetropolisHastings {
         F1: Fn(&[f64]) -> f64 + 'static,
         F2: Fn(&[f64], &mut Rng) -> Vec<f64> + 'static,
     {
-        MetropolisHastings {
+        Self {
             target_log_prob: Box::new(target_log_prob),
             proposal: Box::new(proposal),
             proposal_log_prob: None,
@@ -232,7 +232,7 @@ impl MetropolisHastings {
         F1: Fn(&[f64]) -> f64 + 'static,
         F2: Fn(&[f64], &mut Rng) -> Vec<f64> + 'static,
     {
-        MetropolisHastings {
+        Self {
             target_log_prob: Box::new(target_log_prob),
             proposal: Box::new(proposal),
             proposal_log_prob: None,
@@ -287,7 +287,7 @@ pub struct GibbsSampler {
 
 impl GibbsSampler {
     pub fn new(conditional_dists: Vec<Box<dyn Fn(usize, &[f64], &mut Rng) -> f64>>) -> Self {
-        GibbsSampler { conditional_dists }
+        Self { conditional_dists }
     }
 
     /// Run Gibbs sampling.
@@ -487,7 +487,7 @@ impl AbsorbingMarkovChain {
             return Err("Dimension mismatch".to_string());
         }
 
-        Ok(AbsorbingMarkovChain {
+        Ok(Self {
             transition,
             absorbing_states,
         })

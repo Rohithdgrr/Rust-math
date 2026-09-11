@@ -17,8 +17,8 @@ fn normal_sample(rng: &mut impl Rng, mean: f64, std_dev: f64) -> f64 {
 
 impl GrayImage {
     /// Apply simple thresholding: values >= threshold become 1.0, else 0.0.
-    pub fn threshold(&self, threshold: f64) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn threshold(&self, threshold: f64) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         for (i, &v) in self.data.iter().enumerate() {
             out.data[i] = if v >= threshold { 1.0 } else { 0.0 };
         }
@@ -26,8 +26,8 @@ impl GrayImage {
     }
 
     /// Apply adaptive thresholding using local mean.
-    pub fn adaptive_threshold(&self, block_size: usize, c: f64) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn adaptive_threshold(&self, block_size: usize, c: f64) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         let half = block_size / 2;
 
         for y in 0..self.h {
@@ -62,7 +62,7 @@ impl GrayImage {
     }
 
     /// Add Gaussian noise to the image.
-    pub fn add_gaussian_noise(&self, mean: f64, std_dev: f64) -> GrayImage {
+    pub fn add_gaussian_noise(&self, mean: f64, std_dev: f64) -> Self {
         let mut out = self.clone();
         let mut rng = rand::rng();
 
@@ -77,7 +77,7 @@ impl GrayImage {
     ///
     /// Uses a deterministic `StdRng` seeded with `seed`, so repeated calls
     /// with the same seed produce identical output.
-    pub fn add_gaussian_noise_seeded(&self, mean: f64, std_dev: f64, seed: u64) -> GrayImage {
+    pub fn add_gaussian_noise_seeded(&self, mean: f64, std_dev: f64, seed: u64) -> Self {
         use rand::{rngs::StdRng, SeedableRng};
         let mut rng = StdRng::seed_from_u64(seed);
         let mut out = self.clone();
@@ -89,7 +89,7 @@ impl GrayImage {
     }
 
     /// Add salt-and-pepper noise to the image.
-    pub fn add_salt_pepper_noise(&self, density: f64) -> GrayImage {
+    pub fn add_salt_pepper_noise(&self, density: f64) -> Self {
         let mut out = self.clone();
         let mut rng = rand::rng();
 
@@ -102,8 +102,8 @@ impl GrayImage {
     }
 
     /// Apply median filter with the given radius (kernel size = 2*radius + 1).
-    pub fn median_filter(&self, radius: usize) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn median_filter(&self, radius: usize) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         let size = 2 * radius + 1;
         let mut window: Vec<f64> = Vec::with_capacity(size * size);
         for y in 0..self.h {
@@ -127,11 +127,11 @@ impl GrayImage {
     }
 
     /// Add two images element-wise with clamping.
-    pub fn add(&self, other: &GrayImage) -> GrayImage {
+    pub fn add(&self, other: &Self) -> Self {
         assert_eq!(self.w, other.w);
         assert_eq!(self.h, other.h);
 
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+        let mut out = Self::new(self.w, self.h).unwrap();
         for i in 0..self.data.len() {
             out.data[i] = (self.data[i] + other.data[i]).clamp(0.0, 1.0);
         }
@@ -139,11 +139,11 @@ impl GrayImage {
     }
 
     /// Subtract two images element-wise with clamping.
-    pub fn subtract(&self, other: &GrayImage) -> GrayImage {
+    pub fn subtract(&self, other: &Self) -> Self {
         assert_eq!(self.w, other.w);
         assert_eq!(self.h, other.h);
 
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+        let mut out = Self::new(self.w, self.h).unwrap();
         for i in 0..self.data.len() {
             out.data[i] = (self.data[i] - other.data[i]).clamp(0.0, 1.0);
         }
@@ -151,11 +151,11 @@ impl GrayImage {
     }
 
     /// Multiply two images element-wise.
-    pub fn multiply(&self, other: &GrayImage) -> GrayImage {
+    pub fn multiply(&self, other: &Self) -> Self {
         assert_eq!(self.w, other.w);
         assert_eq!(self.h, other.h);
 
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+        let mut out = Self::new(self.w, self.h).unwrap();
         for i in 0..self.data.len() {
             out.data[i] = (self.data[i] * other.data[i]).clamp(0.0, 1.0);
         }
@@ -163,8 +163,8 @@ impl GrayImage {
     }
 
     /// Multiply all pixel values by a scalar.
-    pub fn scale(&self, factor: f64) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn scale(&self, factor: f64) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         for i in 0..self.data.len() {
             out.data[i] = (self.data[i] * factor).clamp(0.0, 1.0);
         }
@@ -172,8 +172,8 @@ impl GrayImage {
     }
 
     /// Add a constant to all pixel values.
-    pub fn offset(&self, value: f64) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn offset(&self, value: f64) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         for i in 0..self.data.len() {
             out.data[i] = (self.data[i] + value).clamp(0.0, 1.0);
         }
@@ -181,8 +181,8 @@ impl GrayImage {
     }
 
     /// Invert the image (1.0 - value).
-    pub fn invert(&self) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn invert(&self) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         for i in 0..self.data.len() {
             out.data[i] = 1.0 - self.data[i];
         }
@@ -190,9 +190,9 @@ impl GrayImage {
     }
 
     /// Apply gamma correction: output = input^(1/gamma).
-    pub fn gamma_correction(&self, gamma: f64) -> GrayImage {
+    pub fn gamma_correction(&self, gamma: f64) -> Self {
         let inv_gamma = 1.0 / gamma;
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+        let mut out = Self::new(self.w, self.h).unwrap();
         for i in 0..self.data.len() {
             out.data[i] = self.data[i].powf(inv_gamma);
         }
@@ -223,7 +223,7 @@ impl GrayImage {
     }
 
     /// Normalize the image to [0, 1] range based on min/max values.
-    pub fn normalize(&self) -> GrayImage {
+    pub fn normalize(&self) -> Self {
         let min = self.min_value();
         let max = self.max_value();
         let range = max - min;
@@ -233,7 +233,7 @@ impl GrayImage {
             return self.clone();
         }
 
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+        let mut out = Self::new(self.w, self.h).unwrap();
         for i in 0..self.data.len() {
             out.data[i] = (self.data[i] - min) / range;
         }
@@ -241,8 +241,8 @@ impl GrayImage {
     }
 
     /// Apply contrast stretching: map [low, high] to [0, 1].
-    pub fn contrast_stretch(&self, low: f64, high: f64) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn contrast_stretch(&self, low: f64, high: f64) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         let range = high - low;
 
         for i in 0..self.data.len() {

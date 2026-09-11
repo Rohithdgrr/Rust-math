@@ -152,7 +152,7 @@ impl GrayImage {
                 height: h,
             });
         }
-        Ok(GrayImage {
+        Ok(Self {
             w,
             h,
             data: vec![0.0; pixels],
@@ -201,7 +201,7 @@ impl GrayImage {
                 height: h,
             });
         }
-        Ok(GrayImage { w, h, data })
+        Ok(Self { w, h, data })
     }
 
     /// Gets the pixel value at the specified coordinates.
@@ -273,8 +273,8 @@ impl GrayImage {
     /// let kernel = [1.0 / 9.0; 9];
     /// let blurred = img.convolve3(&kernel);
     /// ```
-    pub fn convolve3(&self, kernel: &[f64; 9]) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn convolve3(&self, kernel: &[f64; 9]) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         let (kw, kh) = (3, 3);
         let (ox, oy) = (kw / 2, kh / 2);
         for y in 0..self.h {
@@ -318,7 +318,7 @@ impl GrayImage {
     /// let img = GrayImage::new(64, 64).unwrap();
     /// let blurred = img.gaussian_blur(3, 1.5);
     /// ```
-    pub fn gaussian_blur(&self, r: usize, sigma: f64) -> GrayImage {
+    pub fn gaussian_blur(&self, r: usize, sigma: f64) -> Self {
         let n = 2 * r + 1;
         let mut kernel = Vec::with_capacity(n);
         for i in 0..n {
@@ -336,7 +336,7 @@ impl GrayImage {
         let kernel = kernel; // freeze
 
         // horizontal pass
-        let mut tmp = GrayImage::new(self.w, self.h).unwrap();
+        let mut tmp = Self::new(self.w, self.h).unwrap();
         for y in 0..self.h {
             for x in 0..self.w {
                 let s: f64 = (0..n)
@@ -350,7 +350,7 @@ impl GrayImage {
             }
         }
         // vertical pass
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+        let mut out = Self::new(self.w, self.h).unwrap();
         for y in 0..self.h {
             for x in 0..self.w {
                 let s: f64 = (0..n)
@@ -386,12 +386,12 @@ impl GrayImage {
     /// let img = GrayImage::new(64, 64).unwrap();
     /// let (magnitude, direction) = img.sobel();
     /// ```
-    pub fn sobel(&self) -> (GrayImage, Vec<f64>) {
+    pub fn sobel(&self) -> (Self, Vec<f64>) {
         const GX: [f64; 9] = [-1.0, 0.0, 1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 1.0];
         const GY: [f64; 9] = [-1.0, -2.0, -1.0, 0.0, 0.0, 0.0, 1.0, 2.0, 1.0];
         let dx = self.convolve3(&GX);
         let dy = self.convolve3(&GY);
-        let mut mag = GrayImage::new(self.w, self.h).unwrap();
+        let mut mag = Self::new(self.w, self.h).unwrap();
         let mut dir = vec![0.0; self.w * self.h];
         for y in 0..self.h {
             for x in 0..self.w {
@@ -448,8 +448,8 @@ impl GrayImage {
     /// let img = GrayImage::new(64, 64).unwrap();
     /// let flipped = img.flip_h();
     /// ```
-    pub fn flip_h(&self) -> GrayImage {
-        let mut out = GrayImage::new(self.w, self.h).unwrap();
+    pub fn flip_h(&self) -> Self {
+        let mut out = Self::new(self.w, self.h).unwrap();
         for y in 0..self.h {
             for x in 0..self.w {
                 out.set(self.w - 1 - x, y, self.get(x, y));
@@ -476,8 +476,8 @@ impl GrayImage {
     /// assert_eq!(rotated.w, 32);
     /// assert_eq!(rotated.h, 64);
     /// ```
-    pub fn rotate90(&self) -> GrayImage {
-        let mut out = GrayImage::new(self.h, self.w).unwrap();
+    pub fn rotate90(&self) -> Self {
+        let mut out = Self::new(self.h, self.w).unwrap();
         for y in 0..self.h {
             for x in 0..self.w {
                 out.set(self.h - 1 - y, x, self.get(x, y));
@@ -508,8 +508,8 @@ impl GrayImage {
     /// let img = GrayImage::new(64, 64).unwrap();
     /// let resized = img.resize(128, 128);
     /// ```
-    pub fn resize(&self, nw: usize, nh: usize) -> GrayImage {
-        let mut out = GrayImage::new(nw, nh).unwrap();
+    pub fn resize(&self, nw: usize, nh: usize) -> Self {
+        let mut out = Self::new(nw, nh).unwrap();
         for y in 0..nh {
             for x in 0..nw {
                 let sx = (x * self.w / nw).min(self.w - 1);
@@ -533,8 +533,8 @@ impl GrayImage {
     /// # Returns
     ///
     /// A new resized image.
-    pub fn resize_bilinear(&self, nw: usize, nh: usize) -> GrayImage {
-        let mut out = GrayImage::new(nw, nh).unwrap();
+    pub fn resize_bilinear(&self, nw: usize, nh: usize) -> Self {
+        let mut out = Self::new(nw, nh).unwrap();
         let sx = self.w as f64 / nw as f64;
         let sy = self.h as f64 / nh as f64;
         for y in 0..nh {

@@ -35,20 +35,20 @@ impl CvdType {
     /// Severity factor (0.0 = full color, 1.0 = complete deficiency).
     pub fn severity(&self) -> f64 {
         match self {
-            CvdType::Protanopia | CvdType::Deuteranopia | CvdType::Tritanopia => 1.0,
-            CvdType::Protanomaly | CvdType::Deuteranomaly | CvdType::Tritanomaly => 0.6,
+            Self::Protanopia | Self::Deuteranopia | Self::Tritanopia => 1.0,
+            Self::Protanomaly | Self::Deuteranomaly | Self::Tritanomaly => 0.6,
         }
     }
 
     /// Human-readable name.
     pub fn name(&self) -> &str {
         match self {
-            CvdType::Protanopia => "Protanopia",
-            CvdType::Deuteranopia => "Deuteranopia",
-            CvdType::Tritanopia => "Tritanopia",
-            CvdType::Protanomaly => "Protanomaly",
-            CvdType::Deuteranomaly => "Deuteranomaly",
-            CvdType::Tritanomaly => "Tritanomaly",
+            Self::Protanopia => "Protanopia",
+            Self::Deuteranopia => "Deuteranopia",
+            Self::Tritanopia => "Tritanopia",
+            Self::Protanomaly => "Protanomaly",
+            Self::Deuteranomaly => "Deuteranomaly",
+            Self::Tritanomaly => "Tritanomaly",
         }
     }
 }

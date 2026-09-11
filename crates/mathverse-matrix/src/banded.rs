@@ -34,7 +34,7 @@ impl BandedMatrix {
             }
         }
 
-        BandedMatrix {
+        Self {
             rows,
             cols,
             lower_bandwidth: lower,
@@ -93,8 +93,8 @@ impl BandedMatrix {
     }
 
     /// Transpose of banded matrix.
-    pub fn transpose(&self) -> BandedMatrix {
-        let mut result = BandedMatrix {
+    pub fn transpose(&self) -> Self {
+        let mut result = Self {
             rows: self.cols,
             cols: self.rows,
             lower_bandwidth: self.upper_bandwidth,
@@ -129,7 +129,7 @@ impl TridiagonalMatrix {
     /// Create tridiagonal matrix from diagonals.
     pub fn new(main: &[f64], upper: &[f64], lower: &[f64]) -> Self {
         let n = main.len();
-        TridiagonalMatrix {
+        Self {
             n,
             main_diag: main.to_vec(),
             upper_diag: upper.to_vec(),
@@ -249,7 +249,7 @@ pub struct DiagonalMatrix {
 impl DiagonalMatrix {
     /// Create diagonal matrix.
     pub fn new(diag: &[f64]) -> Self {
-        DiagonalMatrix {
+        Self {
             n: diag.len(),
             diag: diag.to_vec(),
         }
@@ -297,7 +297,7 @@ impl DiagonalMatrix {
             return Err(MathError::InvalidArgument("zero diagonal element"));
         }
 
-        Ok(DiagonalMatrix {
+        Ok(Self {
             n: self.n,
             diag: inv_diag,
         })
@@ -397,7 +397,7 @@ impl ToeplitzMatrix {
     /// Create Toeplitz matrix from first row and column.
     pub fn new(first_row: &[f64], first_col: &[f64]) -> Self {
         let n = first_row.len();
-        ToeplitzMatrix {
+        Self {
             n,
             first_row: first_row.to_vec(),
             first_col: first_col.to_vec(),
@@ -445,7 +445,7 @@ pub struct CirculantMatrix {
 impl CirculantMatrix {
     /// Create circulant matrix from first row.
     pub fn new(first_row: &[f64]) -> Self {
-        CirculantMatrix {
+        Self {
             n: first_row.len(),
             first_row: first_row.to_vec(),
         }

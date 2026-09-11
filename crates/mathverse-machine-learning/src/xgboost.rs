@@ -18,8 +18,8 @@ use mathverse_core::error::{MathError, MathResult};
 struct TreeNode {
     feature: usize,
     threshold: f64,
-    left: Option<Box<TreeNode>>,
-    right: Option<Box<TreeNode>>,
+    left: Option<Box<Self>>,
+    right: Option<Box<Self>>,
     value: f64,
     is_leaf: bool,
 }

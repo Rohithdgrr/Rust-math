@@ -11,8 +11,8 @@ enum Node {
     Split {
         feature: usize,
         threshold: f64,
-        left: Box<Node>,
-        right: Box<Node>,
+        left: Box<Self>,
+        right: Box<Self>,
     },
 }
 

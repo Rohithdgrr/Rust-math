@@ -79,42 +79,42 @@ impl From<f64> for Position {
 impl Add for Position {
     type Output = Self;
     fn add(self, other: Self) -> Self::Output {
-        Position::new(self.0.value + other.0.value)
+        Self::new(self.0.value + other.0.value)
     }
 }
 
 impl Add<f64> for Position {
     type Output = Self;
     fn add(self, scalar: f64) -> Self::Output {
-        Position::new(self.0.value + scalar)
+        Self::new(self.0.value + scalar)
     }
 }
 
 impl Add<mathverse_units::quantity::Quantity<LengthDim, Meter>> for Position {
     type Output = Self;
     fn add(self, other: mathverse_units::quantity::Quantity<LengthDim, Meter>) -> Self::Output {
-        Position::new(self.0.value + other.value)
+        Self::new(self.0.value + other.value)
     }
 }
 
 impl Sub for Position {
     type Output = Self;
     fn sub(self, other: Self) -> Self::Output {
-        Position::new(self.0.value - other.0.value)
+        Self::new(self.0.value - other.0.value)
     }
 }
 
 impl Sub<f64> for Position {
     type Output = Self;
     fn sub(self, scalar: f64) -> Self::Output {
-        Position::new(self.0.value - scalar)
+        Self::new(self.0.value - scalar)
     }
 }
 
 impl Sub<mathverse_units::quantity::Quantity<LengthDim, Meter>> for Position {
     type Output = Self;
     fn sub(self, other: mathverse_units::quantity::Quantity<LengthDim, Meter>) -> Self::Output {
-        Position::new(self.0.value - other.value)
+        Self::new(self.0.value - other.value)
     }
 }
 
@@ -122,27 +122,27 @@ impl Sub<mathverse_units::quantity::Quantity<LengthDim, Meter>> for Position {
 impl Mul<f64> for Position {
     type Output = Self;
     fn mul(self, scalar: f64) -> Self::Output {
-        Position::new(self.0.value * scalar)
+        Self::new(self.0.value * scalar)
     }
 }
 
 impl Div<f64> for Position {
     type Output = Self;
     fn div(self, scalar: f64) -> Self::Output {
-        Position::new(self.0.value / scalar)
+        Self::new(self.0.value / scalar)
     }
 }
 
 // Compound operations
 impl AddAssign for Position {
     fn add_assign(&mut self, other: Self) {
-        self.0 = Position::new(self.0.value + other.0.value).0;
+        self.0 = Self::new(self.0.value + other.0.value).0;
     }
 }
 
 impl SubAssign for Position {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = Position::new(self.0.value - other.0.value).0;
+        self.0 = Self::new(self.0.value - other.0.value).0;
     }
 }
 
@@ -203,69 +203,69 @@ impl From<f64> for Velocity {
 impl Add for Velocity {
     type Output = Self;
     fn add(self, other: Self) -> Self::Output {
-        Velocity::new(self.0.value + other.0.value)
+        Self::new(self.0.value + other.0.value)
     }
 }
 
 impl Add<f64> for Velocity {
     type Output = Self;
     fn add(self, scalar: f64) -> Self::Output {
-        Velocity::new(self.0.value + scalar)
+        Self::new(self.0.value + scalar)
     }
 }
 
 impl Add<mathverse_units::quantity::Quantity<VelocityDim, Meter>> for Velocity {
     type Output = Self;
     fn add(self, other: mathverse_units::quantity::Quantity<VelocityDim, Meter>) -> Self::Output {
-        Velocity::new(self.0.value + other.value)
+        Self::new(self.0.value + other.value)
     }
 }
 
 impl Sub for Velocity {
     type Output = Self;
     fn sub(self, other: Self) -> Self::Output {
-        Velocity::new(self.0.value - other.0.value)
+        Self::new(self.0.value - other.0.value)
     }
 }
 
 impl Sub<f64> for Velocity {
     type Output = Self;
     fn sub(self, scalar: f64) -> Self::Output {
-        Velocity::new(self.0.value - scalar)
+        Self::new(self.0.value - scalar)
     }
 }
 
 impl Sub<mathverse_units::quantity::Quantity<VelocityDim, Meter>> for Velocity {
     type Output = Self;
     fn sub(self, other: mathverse_units::quantity::Quantity<VelocityDim, Meter>) -> Self::Output {
-        Velocity::new(self.0.value - other.value)
+        Self::new(self.0.value - other.value)
     }
 }
 
 impl Mul<f64> for Velocity {
     type Output = Self;
     fn mul(self, scalar: f64) -> Self::Output {
-        Velocity::new(self.0.value * scalar)
+        Self::new(self.0.value * scalar)
     }
 }
 
 impl Div<f64> for Velocity {
     type Output = Self;
     fn div(self, scalar: f64) -> Self::Output {
-        Velocity::new(self.0.value / scalar)
+        Self::new(self.0.value / scalar)
     }
 }
 
 // Scale velocity by a dimensionless factor
 impl AddAssign for Velocity {
     fn add_assign(&mut self, other: Self) {
-        self.0 = Velocity::new(self.0.value + other.0.value).0;
+        self.0 = Self::new(self.0.value + other.0.value).0;
     }
 }
 
 impl SubAssign for Velocity {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = Velocity::new(self.0.value - other.0.value).0;
+        self.0 = Self::new(self.0.value - other.0.value).0;
     }
 }
 
@@ -327,14 +327,14 @@ impl From<f64> for Acceleration {
 impl Add for Acceleration {
     type Output = Self;
     fn add(self, other: Self) -> Self::Output {
-        Acceleration::new(self.0.value + other.0.value)
+        Self::new(self.0.value + other.0.value)
     }
 }
 
 impl Add<f64> for Acceleration {
     type Output = Self;
     fn add(self, scalar: f64) -> Self::Output {
-        Acceleration::new(self.0.value + scalar)
+        Self::new(self.0.value + scalar)
     }
 }
 
@@ -344,21 +344,21 @@ impl Add<mathverse_units::quantity::Quantity<AccelerationDim, Meter>> for Accele
         self,
         other: mathverse_units::quantity::Quantity<AccelerationDim, Meter>,
     ) -> Self::Output {
-        Acceleration::new(self.0.value + other.value)
+        Self::new(self.0.value + other.value)
     }
 }
 
 impl Sub for Acceleration {
     type Output = Self;
     fn sub(self, other: Self) -> Self::Output {
-        Acceleration::new(self.0.value - other.0.value)
+        Self::new(self.0.value - other.0.value)
     }
 }
 
 impl Sub<f64> for Acceleration {
     type Output = Self;
     fn sub(self, scalar: f64) -> Self::Output {
-        Acceleration::new(self.0.value - scalar)
+        Self::new(self.0.value - scalar)
     }
 }
 
@@ -368,34 +368,34 @@ impl Sub<mathverse_units::quantity::Quantity<AccelerationDim, Meter>> for Accele
         self,
         other: mathverse_units::quantity::Quantity<AccelerationDim, Meter>,
     ) -> Self::Output {
-        Acceleration::new(self.0.value - other.value)
+        Self::new(self.0.value - other.value)
     }
 }
 
 impl Mul<f64> for Acceleration {
     type Output = Self;
     fn mul(self, scalar: f64) -> Self::Output {
-        Acceleration::new(self.0.value * scalar)
+        Self::new(self.0.value * scalar)
     }
 }
 
 impl Div<f64> for Acceleration {
     type Output = Self;
     fn div(self, scalar: f64) -> Self::Output {
-        Acceleration::new(self.0.value / scalar)
+        Self::new(self.0.value / scalar)
     }
 }
 
 // Scale acceleration by a dimensionless factor
 impl AddAssign for Acceleration {
     fn add_assign(&mut self, other: Self) {
-        self.0 = Acceleration::new(self.0.value + other.0.value).0;
+        self.0 = Self::new(self.0.value + other.0.value).0;
     }
 }
 
 impl SubAssign for Acceleration {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = Acceleration::new(self.0.value - other.0.value).0;
+        self.0 = Self::new(self.0.value - other.0.value).0;
     }
 }
 

@@ -21,21 +21,21 @@ impl Quat {
     /// Does not normalize; combine with [`Quat::normalized`] when a unit
     /// quaternion is required.
     #[must_use]
-    pub fn new(w: f64, x: f64, y: f64, z: f64) -> Quat {
-        Quat { w, x, y, z }
+    pub fn new(w: f64, x: f64, y: f64, z: f64) -> Self {
+        Self { w, x, y, z }
     }
 
     /// Returns the identity quaternion representing no rotation.
     #[must_use]
-    pub fn identity() -> Quat {
-        Quat::new(1.0, 0.0, 0.0, 0.0)
+    pub fn identity() -> Self {
+        Self::new(1.0, 0.0, 0.0, 0.0)
     }
 
     /// From axis-angle (radians), normalized axis.
-    pub fn from_axis_angle(axis: [f64; 3], a: f64) -> Quat {
+    pub fn from_axis_angle(axis: [f64; 3], a: f64) -> Self {
         let v = Vector::new(axis.to_vec()).normalized().unwrap();
         let (s, c) = (a / 2.0).sin_cos();
-        Quat::new(c, s * v.get(0), s * v.get(1), s * v.get(2))
+        Self::new(c, s * v.get(0), s * v.get(1), s * v.get(2))
     }
 
     /// Returns the Euclidean norm of the quaternion.
@@ -49,21 +49,21 @@ impl Quat {
     /// # Panics
     /// Panics if the quaternion is zero-length (division by zero).
     #[must_use]
-    pub fn normalized(&self) -> Quat {
+    pub fn normalized(&self) -> Self {
         let n = self.norm();
-        Quat::new(self.w / n, self.x / n, self.y / n, self.z / n)
+        Self::new(self.w / n, self.x / n, self.y / n, self.z / n)
     }
 
     /// Returns the conjugate `(w, -x, -y, -z)`, i.e. the inverse rotation for
     /// a unit quaternion.
     #[must_use]
-    pub fn conjugate(&self) -> Quat {
-        Quat::new(self.w, -self.x, -self.y, -self.z)
+    pub fn conjugate(&self) -> Self {
+        Self::new(self.w, -self.x, -self.y, -self.z)
     }
 
     /// Hamilton product (composition of rotations).
-    pub fn mul(&self, o: &Quat) -> Quat {
-        Quat::new(
+    pub fn mul(&self, o: &Self) -> Self {
+        Self::new(
             self.w * o.w - self.x * o.x - self.y * o.y - self.z * o.z,
             self.w * o.x + self.x * o.w + self.y * o.z - self.z * o.y,
             self.w * o.y - self.x * o.z + self.y * o.w + self.z * o.x,
@@ -81,23 +81,23 @@ impl Quat {
     /// ```
     pub fn rotate(&self, p: [f64; 3]) -> [f64; 3] {
         let q = self.normalized();
-        let pq = Quat::new(0.0, p[0], p[1], p[2]);
+        let pq = Self::new(0.0, p[0], p[1], p[2]);
         let r = q.mul(&pq).mul(&q.conjugate());
         [r.x, r.y, r.z]
     }
 
     /// Spherical linear interpolation, `t ∈ [0, 1]`.
-    pub fn slerp(&self, other: &Quat, t: f64) -> Quat {
+    pub fn slerp(&self, other: &Self, t: f64) -> Self {
         let a = self.normalized();
         let mut b = other.normalized();
         let mut dot = a.w * b.w + a.x * b.x + a.y * b.y + a.z * b.z;
         if dot < 0.0 {
-            b = Quat::new(-b.w, -b.x, -b.y, -b.z);
+            b = Self::new(-b.w, -b.x, -b.y, -b.z);
             dot = -dot;
         }
         if dot > 0.9995 {
             // linear fallback near identity
-            let r = Quat::new(
+            let r = Self::new(
                 a.w + t * (b.w - a.w),
                 a.x + t * (b.x - a.x),
                 a.y + t * (b.y - a.y),
@@ -108,7 +108,7 @@ impl Quat {
         let theta = dot.clamp(-1.0, 1.0).acos();
         let (s0, s1) = (((1.0 - t) * theta).sin(), (t * theta).sin());
         let sin = theta.sin();
-        Quat::new(
+        Self::new(
             (a.w * s0 + b.w * s1) / sin,
             (a.x * s0 + b.x * s1) / sin,
             (a.y * s0 + b.y * s1) / sin,

@@ -8,7 +8,7 @@ pub struct Rng {
 impl Rng {
     /// Create new RNG with seed.
     pub fn new(seed: u64) -> Self {
-        Rng {
+        Self {
             state: seed.wrapping_add(1),
         }
     }
