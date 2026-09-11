@@ -27,19 +27,19 @@ impl GpKernel {
         let dist: f64 = x1.iter().zip(x2.iter()).map(|(a, b)| (a - b).powi(2)).sum();
         let r = dist.sqrt();
         match self {
-            GpKernel::RBF { length } => (-dist / (2.0 * length * length)).exp(),
-            GpKernel::Matern52 { length } => {
+            Self::RBF { length } => (-dist / (2.0 * length * length)).exp(),
+            Self::Matern52 { length } => {
                 let s = (5.0_f64).sqrt() * r / length;
                 (1.0 + s + s * s / 3.0) * (-s).exp()
             }
-            GpKernel::RationalQuadratic { length, alpha } => {
+            Self::RationalQuadratic { length, alpha } => {
                 let ratio = dist / (2.0 * alpha * length * length);
                 (1.0 + ratio).powf(-alpha)
             }
         }
     }
 
-    fn compute_matrix(x1: &[Vec<f64>], x2: &[Vec<f64>], kernel: &GpKernel) -> Vec<Vec<f64>> {
+    fn compute_matrix(x1: &[Vec<f64>], x2: &[Vec<f64>], kernel: &Self) -> Vec<Vec<f64>> {
         x1.iter()
             .map(|xi| x2.iter().map(|xj| kernel.compute(xi, xj)).collect())
             .collect()

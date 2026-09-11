@@ -18,12 +18,12 @@ pub struct BetaPrior {
 
 impl BetaPrior {
     pub fn new(alpha: f64, beta: f64) -> Self {
-        BetaPrior { alpha, beta }
+        Self { alpha, beta }
     }
 
     /// Posterior after observing successes and failures.
-    pub fn posterior(&self, successes: u64, failures: u64) -> BetaPrior {
-        BetaPrior {
+    pub fn posterior(&self, successes: u64, failures: u64) -> Self {
+        Self {
             alpha: self.alpha + successes as f64,
             beta: self.beta + failures as f64,
         }
@@ -75,11 +75,11 @@ pub struct NormalPrior {
 
 impl NormalPrior {
     pub fn new(mu: f64, sigma: f64) -> Self {
-        NormalPrior { mu, sigma }
+        Self { mu, sigma }
     }
 
     /// Posterior after observing data with known variance.
-    pub fn posterior_known_variance(&self, data: &[f64], known_variance: f64) -> NormalPrior {
+    pub fn posterior_known_variance(&self, data: &[f64], known_variance: f64) -> Self {
         let n = data.len() as f64;
         let sample_mean = data.iter().sum::<f64>() / n;
 
@@ -90,7 +90,7 @@ impl NormalPrior {
         let posterior_mu =
             (prior_precision * self.mu + data_precision * sample_mean) / posterior_precision;
 
-        NormalPrior {
+        Self {
             mu: posterior_mu,
             sigma: posterior_sigma,
         }
@@ -124,12 +124,12 @@ pub struct GammaPrior {
 
 impl GammaPrior {
     pub fn new(shape: f64, rate: f64) -> Self {
-        GammaPrior { shape, rate }
+        Self { shape, rate }
     }
 
     /// Posterior after observing count data.
-    pub fn posterior(&self, total_count: u64, total_exposure: f64) -> GammaPrior {
-        GammaPrior {
+    pub fn posterior(&self, total_count: u64, total_exposure: f64) -> Self {
+        Self {
             shape: self.shape + total_count as f64,
             rate: self.rate + total_exposure,
         }
@@ -163,18 +163,18 @@ pub struct DirichletPrior {
 
 impl DirichletPrior {
     pub fn new(alpha: Vec<f64>) -> Self {
-        DirichletPrior { alpha }
+        Self { alpha }
     }
 
     /// Posterior after observing counts.
-    pub fn posterior(&self, counts: &[u64]) -> DirichletPrior {
+    pub fn posterior(&self, counts: &[u64]) -> Self {
         let new_alpha: Vec<f64> = self
             .alpha
             .iter()
             .zip(counts.iter())
             .map(|(&a, &c)| a + c as f64)
             .collect();
-        DirichletPrior { alpha: new_alpha }
+        Self { alpha: new_alpha }
     }
 
     /// Expected value of the Dirichlet distribution.
@@ -341,7 +341,7 @@ impl HierarchicalModel {
     where
         F: Fn(&[f64], &[f64]) -> f64 + 'static,
     {
-        HierarchicalModel {
+        Self {
             hyperprior,
             likelihood: Box::new(likelihood),
         }

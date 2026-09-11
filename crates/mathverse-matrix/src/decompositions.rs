@@ -89,8 +89,8 @@ impl Matrix {
                 }
             }
         }
-        let mut l = Matrix::zeros(n, n);
-        let mut u = Matrix::zeros(n, n);
+        let mut l = Self::zeros(n, n);
+        let mut u = Self::zeros(n, n);
         for i in 0..n {
             for j in 0..n {
                 let v = a[i * n + j];
@@ -110,12 +110,12 @@ impl Matrix {
 
 impl Matrix {
     /// Cholesky `L` with `A = L Lᵀ`; errors unless `A` is positive definite.
-    pub fn cholesky(&self) -> MathResult<Matrix> {
+    pub fn cholesky(&self) -> MathResult<Self> {
         if !self.is_square() {
             return Err(MathError::DimensionMismatch);
         }
         let n = self.rows;
-        let mut l = Matrix::zeros(n, n);
+        let mut l = Self::zeros(n, n);
         for i in 0..n {
             for j in 0..=i {
                 let mut s = self.get(i, j);
@@ -156,7 +156,7 @@ impl Matrix {
     pub fn qr(&self) -> MathResult<Qr> {
         let (m, n) = (self.rows, self.cols);
         let mut r = self.clone();
-        let mut q = Matrix::identity(m);
+        let mut q = Self::identity(m);
         for k in 0..n.min(m) {
             let mut x: Vec<f64> = (k..m).map(|i| r.get(i, k)).collect();
             let norm_x = x.iter().map(|v| v * v).sum::<f64>().sqrt();
@@ -228,7 +228,7 @@ impl Matrix {
     pub fn svd(&self) -> MathResult<Svd> {
         let (m, n) = (self.rows, self.cols);
         let mut b = self.clone();
-        let mut v = Matrix::identity(n);
+        let mut v = Self::identity(n);
         for _ in 0..MAX_SVD_SWEEPS {
             let mut off = 0.0;
             for p in 0..n {
@@ -284,7 +284,7 @@ impl Matrix {
         let s: Vec<f64> = (0..n)
             .map(|j| b.col(j).iter().map(|x| x * x).sum::<f64>().sqrt())
             .collect();
-        let mut u = Matrix::zeros(m, n);
+        let mut u = Self::zeros(m, n);
         for (j, &sj) in s.iter().enumerate() {
             if sj > 0.0 {
                 for (i, &val) in b.col(j).iter().enumerate() {
@@ -295,8 +295,8 @@ impl Matrix {
         // Sort by descending singular value; permute U columns and V rows.
         let mut order: Vec<usize> = (0..n).collect();
         order.sort_by(|&a, &b| s[b].total_cmp(&s[a]));
-        let mut us = Matrix::zeros(m, n);
-        let mut vt = Matrix::zeros(n, n);
+        let mut us = Self::zeros(m, n);
+        let mut vt = Self::zeros(n, n);
         let ss: Vec<f64> = order.iter().map(|&j| s[j]).collect();
         for (k, &j) in order.iter().enumerate() {
             for (i, &val) in u.col(j).iter().enumerate() {
@@ -318,7 +318,7 @@ impl Matrix {
     /// [`JACOBI_OFF_DIAGONAL_TOL`], capped at [`MAX_JACOBI_SWEEPS`] sweeps
     /// (see that constant's notes on convergence). Eigenpairs are returned
     /// sorted by descending eigenvalue.
-    pub fn eigen_symmetric(&self) -> MathResult<(Vec<f64>, Matrix)> {
+    pub fn eigen_symmetric(&self) -> MathResult<(Vec<f64>, Self)> {
         if !self.is_symmetric(1e-12) {
             return Err(MathError::InvalidArgument(
                 "eigen_symmetric requires a symmetric matrix",
@@ -326,7 +326,7 @@ impl Matrix {
         }
         let n = self.rows;
         let mut a = self.clone();
-        let mut v = Matrix::identity(n);
+        let mut v = Self::identity(n);
         for _ in 0..MAX_JACOBI_SWEEPS {
             let (mut p, mut q, mut mx) = (0usize, 1usize, 0.0f64);
             for i in 0..n {
@@ -371,7 +371,7 @@ impl Matrix {
         let mut vals: Vec<f64> = (0..n).map(|i| a.get(i, i)).collect();
         let mut order: Vec<usize> = (0..n).collect();
         order.sort_by(|&i, &j| vals[j].total_cmp(&vals[i]));
-        let mut vecs = Matrix::zeros(n, n);
+        let mut vecs = Self::zeros(n, n);
         for (k, &j) in order.iter().enumerate() {
             for (i, &val) in v.col(j).iter().enumerate() {
                 vecs.set(i, k, val);

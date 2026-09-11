@@ -50,7 +50,7 @@ impl RationalExpression {
     /// assert_eq!(r.eval(0.0), 2.0); // (2x+2)/(x+1) = 2
     /// ```
     pub fn new(num: &[f64], den: &[f64]) -> Self {
-        let mut r = RationalExpression {
+        let mut r = Self {
             num: Polynomial::from_coeffs(num),
             den: Polynomial::from_coeffs(den),
         };

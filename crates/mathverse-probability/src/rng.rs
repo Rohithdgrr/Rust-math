@@ -20,10 +20,10 @@ pub struct Rng {
 
 impl Rng {
     /// Seeds the 128-bit state via splitmix64 from `seed`.
-    pub fn new(seed: u64) -> Rng {
+    pub fn new(seed: u64) -> Self {
         let mut sm = seed;
         // A zero seed is allowed; splitmix64 expands it into 4 non-zero-ish words.
-        Rng {
+        Self {
             state: [0u64; 4].map(|_| splitmix64(&mut sm)),
         }
     }

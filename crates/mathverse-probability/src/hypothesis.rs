@@ -14,7 +14,7 @@ pub struct TestResult {
 
 impl TestResult {
     pub fn new(test_statistic: f64, p_value: f64, alpha: f64) -> Self {
-        TestResult {
+        Self {
             test_statistic,
             p_value,
             reject_null: p_value < alpha,

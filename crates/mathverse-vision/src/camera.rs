@@ -36,7 +36,7 @@ pub struct Camera {
 impl Camera {
     /// Creates a new camera model with given focal length `(fx, fy)` and principal point `(cx, cy)`.
     pub fn new(fx: f64, fy: f64, cx: f64, cy: f64) -> Self {
-        Camera { fx, fy, cx, cy }
+        Self { fx, fy, cx, cy }
     }
 
     /// Projects 3D camera coordinates `(x, y, z)` into 2D pixel coordinates `(u, v)`.
@@ -145,7 +145,7 @@ impl V4LCamera {
         if device_path.is_empty() {
             return Err("V4L2 device path cannot be empty".to_string());
         }
-        Ok(V4LCamera {
+        Ok(Self {
             width,
             height,
             fps,
@@ -404,10 +404,10 @@ impl CameraTrait for RealCamera {
 impl CameraTrait for SystemCameraEnum {
     fn capture_frame(&mut self) -> Result<Image, String> {
         match self {
-            SystemCameraEnum::Real(cam) => cam.capture_frame(),
-            SystemCameraEnum::Dummy(cam) => cam.capture_frame(),
+            Self::Real(cam) => cam.capture_frame(),
+            Self::Dummy(cam) => cam.capture_frame(),
             #[cfg(not(windows))]
-            SystemCameraEnum::V4L2(cam) => cam.capture_frame(),
+            Self::V4L2(cam) => cam.capture_frame(),
             #[cfg(windows)]
             SystemCameraEnum::Win32(cam) => cam.capture_frame(),
         }
@@ -415,10 +415,10 @@ impl CameraTrait for SystemCameraEnum {
 
     fn width(&self) -> usize {
         match self {
-            SystemCameraEnum::Real(cam) => cam.width(),
-            SystemCameraEnum::Dummy(cam) => cam.width(),
+            Self::Real(cam) => cam.width(),
+            Self::Dummy(cam) => cam.width(),
             #[cfg(not(windows))]
-            SystemCameraEnum::V4L2(cam) => cam.width(),
+            Self::V4L2(cam) => cam.width(),
             #[cfg(windows)]
             SystemCameraEnum::Win32(cam) => cam.width(),
         }
@@ -426,10 +426,10 @@ impl CameraTrait for SystemCameraEnum {
 
     fn height(&self) -> usize {
         match self {
-            SystemCameraEnum::Real(cam) => cam.height(),
-            SystemCameraEnum::Dummy(cam) => cam.height(),
+            Self::Real(cam) => cam.height(),
+            Self::Dummy(cam) => cam.height(),
             #[cfg(not(windows))]
-            SystemCameraEnum::V4L2(cam) => cam.height(),
+            Self::V4L2(cam) => cam.height(),
             #[cfg(windows)]
             SystemCameraEnum::Win32(cam) => cam.height(),
         }
@@ -437,10 +437,10 @@ impl CameraTrait for SystemCameraEnum {
 
     fn fps(&self) -> f64 {
         match self {
-            SystemCameraEnum::Real(cam) => cam.fps(),
-            SystemCameraEnum::Dummy(cam) => cam.fps(),
+            Self::Real(cam) => cam.fps(),
+            Self::Dummy(cam) => cam.fps(),
             #[cfg(not(windows))]
-            SystemCameraEnum::V4L2(cam) => cam.fps(),
+            Self::V4L2(cam) => cam.fps(),
             #[cfg(windows)]
             SystemCameraEnum::Win32(cam) => cam.fps(),
         }
@@ -467,7 +467,7 @@ impl SystemCamera {
         match Self::try_real_camera(index, width, height) {
             Ok(inner) => {
                 println!("✓ Real camera opened successfully!");
-                return Ok(SystemCamera {
+                return Ok(Self {
                     inner,
                     width,
                     height,
@@ -498,7 +498,7 @@ impl SystemCamera {
             }),
         };
 
-        Ok(SystemCamera {
+        Ok(Self {
             inner,
             width,
             height,

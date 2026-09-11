@@ -132,7 +132,7 @@ impl Default for EventDrivenSimulation {
 
 impl EventDrivenSimulation {
     pub fn new() -> Self {
-        EventDrivenSimulation {
+        Self {
             current_time: 0.0,
             event_queue: Vec::new(),
         }

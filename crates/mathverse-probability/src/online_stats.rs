@@ -141,7 +141,7 @@ impl StreamingStats {
     /// The two streams may have been updated independently; the result is
     /// identical (up to floating point) to updating `self` with all
     /// observations in order.
-    pub fn merge(&mut self, other: &StreamingStats) {
+    pub fn merge(&mut self, other: &Self) {
         if other.count == 0 {
             return;
         }

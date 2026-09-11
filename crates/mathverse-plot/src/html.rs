@@ -14,7 +14,7 @@ pub struct HtmlPlot {
 impl HtmlPlot {
     /// Create a new HTML plot
     pub fn new(config: PlotConfig) -> Self {
-        HtmlPlot {
+        Self {
             config,
             series: Vec::new(),
         }

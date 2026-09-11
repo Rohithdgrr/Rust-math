@@ -18,7 +18,7 @@ pub struct ODEState {
 impl ODEState {
     /// Create a state at time `t` with state vector `y`.
     pub fn new(t: f64, y: Vec<f64>) -> Self {
-        ODEState { t, y }
+        Self { t, y }
     }
 }
 
@@ -37,7 +37,7 @@ pub struct RKF45 {
 impl RKF45 {
     /// Create an RKF45 integrator with the given step bounds and tolerances.
     pub fn new(min_step: f64, max_step: f64, abs_tol: f64, rel_tol: f64) -> Self {
-        RKF45 {
+        Self {
             min_step,
             max_step,
             abs_tol,
@@ -226,7 +226,7 @@ pub struct DormandPrince {
 impl DormandPrince {
     /// Create a Dormand-Prince integrator with the given step bounds and tolerances.
     pub fn new(min_step: f64, max_step: f64, abs_tol: f64, rel_tol: f64) -> Self {
-        DormandPrince {
+        Self {
             min_step,
             max_step,
             abs_tol,
@@ -425,7 +425,7 @@ pub struct AdamsBashforth {
 impl AdamsBashforth {
     /// Create an Adams-Bashforth integrator of the given order.
     pub fn new(order: usize) -> Self {
-        AdamsBashforth { order }
+        Self { order }
     }
 
     /// Integrate using Adams-Bashforth method (requires startup with RK4).
@@ -542,7 +542,7 @@ pub struct BackwardEuler {
 impl BackwardEuler {
     /// Create a Backward Euler integrator with the given iteration cap and tolerance.
     pub fn new(max_iters: usize, tol: f64) -> Self {
-        BackwardEuler { max_iters, tol }
+        Self { max_iters, tol }
     }
 
     /// Integrate using Backward Euler with Newton iteration.
@@ -618,7 +618,7 @@ pub struct CrankNicolson {
 impl CrankNicolson {
     /// Create a Crank-Nicolson integrator with the given iteration cap and tolerance.
     pub fn new(max_iters: usize, tol: f64) -> Self {
-        CrankNicolson { max_iters, tol }
+        Self { max_iters, tol }
     }
 
     /// Integrate using Crank-Nicolson method.

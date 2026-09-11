@@ -15,7 +15,7 @@ pub struct TerminalPlot {
 impl TerminalPlot {
     /// Create a new terminal plot
     pub fn new(config: PlotConfig) -> Self {
-        TerminalPlot {
+        Self {
             config,
             series: Vec::new(),
             width: 80,
@@ -133,8 +133,7 @@ impl Default for TerminalPlot {
 
 impl crate::backend::Backend for TerminalPlot {
     fn generate(&self, data: &PlotData) -> PlotResult<PlotOutput> {
-        let mut tp =
-            TerminalPlot::new(data.config.clone()).with_dimensions(self.width, self.height);
+        let mut tp = Self::new(data.config.clone()).with_dimensions(self.width, self.height);
         for s in &data.series {
             tp.add_series(s.clone());
         }

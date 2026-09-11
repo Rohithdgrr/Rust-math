@@ -81,10 +81,10 @@ impl GridStyle {
     /// Get SVG stroke-dasharray.
     pub fn to_svg(&self) -> &str {
         match self {
-            GridStyle::None | GridStyle::Solid => "none",
-            GridStyle::Dashed => "6,4",
-            GridStyle::Dotted => "2,2",
-            GridStyle::DashDot => "6,2,2,2",
+            Self::None | Self::Solid => "none",
+            Self::Dashed => "6,4",
+            Self::Dotted => "2,2",
+            Self::DashDot => "6,2,2,2",
         }
     }
 }

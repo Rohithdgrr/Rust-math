@@ -154,69 +154,69 @@ impl From<f64> for Force {
 impl Add for Force {
     type Output = Self;
     fn add(self, other: Self) -> Self::Output {
-        Force::new(self.0.value + other.0.value)
+        Self::new(self.0.value + other.0.value)
     }
 }
 
 impl Add<f64> for Force {
     type Output = Self;
     fn add(self, scalar: f64) -> Self::Output {
-        Force::new(self.0.value + scalar)
+        Self::new(self.0.value + scalar)
     }
 }
 
 impl Add<Quantity<ForceDim, Newton>> for Force {
     type Output = Self;
     fn add(self, other: Quantity<ForceDim, Newton>) -> Self::Output {
-        Force::new(self.0.value + other.value)
+        Self::new(self.0.value + other.value)
     }
 }
 
 impl Sub for Force {
     type Output = Self;
     fn sub(self, other: Self) -> Self::Output {
-        Force::new(self.0.value - other.0.value)
+        Self::new(self.0.value - other.0.value)
     }
 }
 
 impl Sub<f64> for Force {
     type Output = Self;
     fn sub(self, scalar: f64) -> Self::Output {
-        Force::new(self.0.value - scalar)
+        Self::new(self.0.value - scalar)
     }
 }
 
 impl Sub<Quantity<ForceDim, Newton>> for Force {
     type Output = Self;
     fn sub(self, other: Quantity<ForceDim, Newton>) -> Self::Output {
-        Force::new(self.0.value - other.value)
+        Self::new(self.0.value - other.value)
     }
 }
 
 impl Mul<f64> for Force {
     type Output = Self;
     fn mul(self, scalar: f64) -> Self::Output {
-        Force::new(self.0.value * scalar)
+        Self::new(self.0.value * scalar)
     }
 }
 
 impl Div<f64> for Force {
     type Output = Self;
     fn div(self, scalar: f64) -> Self::Output {
-        Force::new(self.0.value / scalar)
+        Self::new(self.0.value / scalar)
     }
 }
 
 // Scale force by a dimensionless factor
 impl AddAssign for Force {
     fn add_assign(&mut self, other: Self) {
-        self.0 = Force::new(self.0.value + other.0.value).0;
+        self.0 = Self::new(self.0.value + other.0.value).0;
     }
 }
 
 impl SubAssign for Force {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = Force::new(self.0.value - other.0.value).0;
+        self.0 = Self::new(self.0.value - other.0.value).0;
     }
 }
 
@@ -320,7 +320,7 @@ impl Work {
     /// let final_ke = Work::from_kinetic_energy_change(initial, net);
     /// assert_eq!(final_ke.value(), 50.0);
     /// ```
-    pub fn from_kinetic_energy_change(initial_kinetic_energy: Work, net_work: Work) -> Self {
+    pub fn from_kinetic_energy_change(initial_kinetic_energy: Self, net_work: Self) -> Self {
         // W_net = ΔKE = KE_final - KE_initial
         // KE_final = KE_initial + W_net
         let final_val = initial_kinetic_energy.0.value + net_work.0.value;
@@ -398,10 +398,10 @@ impl Work {
     /// let energy = Power::energy_from_time(power, 10.0.s());
     /// assert_eq!(energy.value(), 100.0);
     /// ```
-    pub fn energy_from_time(power: Power, time: Time) -> Work {
+    pub fn energy_from_time(power: Power, time: Time) -> Self {
         // E = P · t (energy has same dimension as work)
         let e = power.0.value * time.value;
-        Work::new(e)
+        Self::new(e)
     }
 }
 
@@ -422,69 +422,69 @@ impl From<f64> for Work {
 impl Add for Work {
     type Output = Self;
     fn add(self, other: Self) -> Self::Output {
-        Work::new(self.0.value + other.0.value)
+        Self::new(self.0.value + other.0.value)
     }
 }
 
 impl Add<f64> for Work {
     type Output = Self;
     fn add(self, scalar: f64) -> Self::Output {
-        Work::new(self.0.value + scalar)
+        Self::new(self.0.value + scalar)
     }
 }
 
 impl Add<Quantity<EnergyDim, Joule>> for Work {
     type Output = Self;
     fn add(self, other: Quantity<EnergyDim, Joule>) -> Self::Output {
-        Work::new(self.0.value + other.value)
+        Self::new(self.0.value + other.value)
     }
 }
 
 impl Sub for Work {
     type Output = Self;
     fn sub(self, other: Self) -> Self::Output {
-        Work::new(self.0.value - other.0.value)
+        Self::new(self.0.value - other.0.value)
     }
 }
 
 impl Sub<f64> for Work {
     type Output = Self;
     fn sub(self, scalar: f64) -> Self::Output {
-        Work::new(self.0.value - scalar)
+        Self::new(self.0.value - scalar)
     }
 }
 
 impl Sub<Quantity<EnergyDim, Joule>> for Work {
     type Output = Self;
     fn sub(self, other: Quantity<EnergyDim, Joule>) -> Self::Output {
-        Work::new(self.0.value - other.value)
+        Self::new(self.0.value - other.value)
     }
 }
 
 impl Mul<f64> for Work {
     type Output = Self;
     fn mul(self, scalar: f64) -> Self::Output {
-        Work::new(self.0.value * scalar)
+        Self::new(self.0.value * scalar)
     }
 }
 
 impl Div<f64> for Work {
     type Output = Self;
     fn div(self, scalar: f64) -> Self::Output {
-        Work::new(self.0.value / scalar)
+        Self::new(self.0.value / scalar)
     }
 }
 
 // Scale work by a dimensionless factor
 impl AddAssign for Work {
     fn add_assign(&mut self, other: Self) {
-        self.0 = Work::new(self.0.value + other.0.value).0;
+        self.0 = Self::new(self.0.value + other.0.value).0;
     }
 }
 
 impl SubAssign for Work {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = Work::new(self.0.value - other.0.value).0;
+        self.0 = Self::new(self.0.value - other.0.value).0;
     }
 }
 
@@ -562,7 +562,7 @@ impl Power {
     /// let work = Power::work_from_time(power, time);
     /// assert_eq!(work.value(), 100.0);
     /// ```
-    pub fn work_from_time(power: Power, time: Time) -> Self {
+    pub fn work_from_time(power: Self, time: Time) -> Self {
         // W = P · t
         let w = power.0.value * time.value;
         Self::new(w)
@@ -588,7 +588,7 @@ impl Power {
     /// let energy = Power::energy_from_time(power, time);
     /// assert_eq!(energy.value(), 100.0);
     /// ```
-    pub fn energy_from_time(power: Power, time: Time) -> Work {
+    pub fn energy_from_time(power: Self, time: Time) -> Work {
         // E = P · t (energy has same dimension as work)
         let e = power.0.value * time.value;
         Work::new(e)
@@ -612,69 +612,69 @@ impl From<f64> for Power {
 impl Add for Power {
     type Output = Self;
     fn add(self, other: Self) -> Self::Output {
-        Power::new(self.0.value + other.0.value)
+        Self::new(self.0.value + other.0.value)
     }
 }
 
 impl Add<f64> for Power {
     type Output = Self;
     fn add(self, scalar: f64) -> Self::Output {
-        Power::new(self.0.value + scalar)
+        Self::new(self.0.value + scalar)
     }
 }
 
 impl Add<Quantity<PowerDim, Watt>> for Power {
     type Output = Self;
     fn add(self, other: Quantity<PowerDim, Watt>) -> Self::Output {
-        Power::new(self.0.value + other.value)
+        Self::new(self.0.value + other.value)
     }
 }
 
 impl Sub for Power {
     type Output = Self;
     fn sub(self, other: Self) -> Self::Output {
-        Power::new(self.0.value - other.0.value)
+        Self::new(self.0.value - other.0.value)
     }
 }
 
 impl Sub<f64> for Power {
     type Output = Self;
     fn sub(self, scalar: f64) -> Self::Output {
-        Power::new(self.0.value - scalar)
+        Self::new(self.0.value - scalar)
     }
 }
 
 impl Sub<Quantity<PowerDim, Watt>> for Power {
     type Output = Self;
     fn sub(self, other: Quantity<PowerDim, Watt>) -> Self::Output {
-        Power::new(self.0.value - other.value)
+        Self::new(self.0.value - other.value)
     }
 }
 
 impl Mul<f64> for Power {
     type Output = Self;
     fn mul(self, scalar: f64) -> Self::Output {
-        Power::new(self.0.value * scalar)
+        Self::new(self.0.value * scalar)
     }
 }
 
 impl Div<f64> for Power {
     type Output = Self;
     fn div(self, scalar: f64) -> Self::Output {
-        Power::new(self.0.value / scalar)
+        Self::new(self.0.value / scalar)
     }
 }
 
 // Scale power by a dimensionless factor
 impl AddAssign for Power {
     fn add_assign(&mut self, other: Self) {
-        self.0 = Power::new(self.0.value + other.0.value).0;
+        self.0 = Self::new(self.0.value + other.0.value).0;
     }
 }
 
 impl SubAssign for Power {
     fn sub_assign(&mut self, other: Self) {
-        self.0 = Power::new(self.0.value - other.0.value).0;
+        self.0 = Self::new(self.0.value - other.0.value).0;
     }
 }
 

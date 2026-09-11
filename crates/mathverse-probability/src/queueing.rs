@@ -24,7 +24,7 @@ impl MM1Queue {
             return Err("System unstable: arrival rate >= service rate".to_string());
         }
 
-        Ok(MM1Queue {
+        Ok(Self {
             arrival_rate,
             service_rate,
         })
@@ -100,7 +100,7 @@ impl MMCQueue {
             return Err("System unstable".to_string());
         }
 
-        Ok(MMCQueue {
+        Ok(Self {
             arrival_rate,
             service_rate,
             n_servers,
@@ -194,7 +194,7 @@ impl MG1Queue {
             return Err("System unstable".to_string());
         }
 
-        Ok(MG1Queue {
+        Ok(Self {
             arrival_rate,
             mean_service_time,
             variance_service_time,
@@ -261,7 +261,7 @@ impl GG1Queue {
             return Err("System unstable".to_string());
         }
 
-        Ok(GG1Queue {
+        Ok(Self {
             arrival_rate,
             mean_arrival_time,
             variance_arrival_time,
@@ -294,7 +294,7 @@ impl BirthDeathQueue {
             return Err("Birth and death rate vectors must have same length".to_string());
         }
 
-        Ok(BirthDeathQueue {
+        Ok(Self {
             birth_rates,
             death_rates,
         })
@@ -455,8 +455,8 @@ impl QueueDiscipline {
     pub fn waiting_time_factor(&self) -> f64 {
         match self {
             // All have the same average; only the waiting-time distribution differs.
-            QueueDiscipline::FIFO | QueueDiscipline::LIFO | QueueDiscipline::SIRO => 1.0,
-            QueueDiscipline::Priority => 0.5, // Approximate for high priority
+            Self::FIFO | Self::LIFO | Self::SIRO => 1.0,
+            Self::Priority => 0.5, // Approximate for high priority
         }
     }
 }

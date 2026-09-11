@@ -19,7 +19,7 @@ pub struct ComplexMatrix {
 impl ComplexMatrix {
     /// Create a new complex matrix filled with zeros.
     pub fn new(rows: usize, cols: usize) -> Self {
-        ComplexMatrix {
+        Self {
             data: vec![Complex::zero(); rows * cols],
             rows,
             cols,
@@ -36,7 +36,7 @@ impl ComplexMatrix {
             rows * cols,
             "data length must equal rows * cols"
         );
-        ComplexMatrix { data, rows, cols }
+        Self { data, rows, cols }
     }
 
     /// Get element at (row, col).
@@ -78,12 +78,12 @@ impl ComplexMatrix {
 
     /// Create zero matrix.
     pub fn zeros(rows: usize, cols: usize) -> Self {
-        ComplexMatrix::new(rows, cols)
+        Self::new(rows, cols)
     }
 
     /// Create identity matrix.
     pub fn identity(n: usize) -> Self {
-        let mut matrix = ComplexMatrix::new(n, n);
+        let mut matrix = Self::new(n, n);
         for i in 0..n {
             matrix.set(i, i, Complex::one());
         }
@@ -94,11 +94,11 @@ impl ComplexMatrix {
     ///
     /// # Errors
     /// [`MathError::DimensionMismatch`] if the shapes differ.
-    pub fn add(&self, other: &ComplexMatrix) -> MathResult<ComplexMatrix> {
+    pub fn add(&self, other: &Self) -> MathResult<Self> {
         if self.rows != other.rows || self.cols != other.cols {
             return Err(MathError::DimensionMismatch);
         }
-        let mut result = ComplexMatrix::new(self.rows, self.cols);
+        let mut result = Self::new(self.rows, self.cols);
         for i in 0..self.data.len() {
             result.data[i] = self.data[i] + other.data[i];
         }
@@ -109,11 +109,11 @@ impl ComplexMatrix {
     ///
     /// # Errors
     /// [`MathError::DimensionMismatch`] if the shapes differ.
-    pub fn sub(&self, other: &ComplexMatrix) -> MathResult<ComplexMatrix> {
+    pub fn sub(&self, other: &Self) -> MathResult<Self> {
         if self.rows != other.rows || self.cols != other.cols {
             return Err(MathError::DimensionMismatch);
         }
-        let mut result = ComplexMatrix::new(self.rows, self.cols);
+        let mut result = Self::new(self.rows, self.cols);
         for i in 0..self.data.len() {
             result.data[i] = self.data[i] - other.data[i];
         }
@@ -122,8 +122,8 @@ impl ComplexMatrix {
 
     /// Scalar multiplication.
     #[must_use]
-    pub fn scale(&self, scalar: Complex) -> ComplexMatrix {
-        let mut result = ComplexMatrix::new(self.rows, self.cols);
+    pub fn scale(&self, scalar: Complex) -> Self {
+        let mut result = Self::new(self.rows, self.cols);
         for i in 0..self.data.len() {
             result.data[i] = self.data[i] * scalar;
         }
@@ -137,7 +137,7 @@ impl ComplexMatrix {
     ///
     /// # Errors
     /// [`MathError::DimensionMismatch`] if `self.cols != other.rows`.
-    pub fn mul(&self, other: &ComplexMatrix) -> MathResult<ComplexMatrix> {
+    pub fn mul(&self, other: &Self) -> MathResult<Self> {
         // block size — 64 Complex<f64> = 1024 bytes ≈ L1 line
         const B: usize = 64;
         if self.cols != other.rows {
@@ -147,7 +147,7 @@ impl ComplexMatrix {
         let k = self.cols;
         let n = other.cols;
 
-        let mut result = ComplexMatrix::new(m, n);
+        let mut result = Self::new(m, n);
 
         for ii in (0..m).step_by(B) {
             let ii_end = (ii + B).min(m);
@@ -246,8 +246,8 @@ impl ComplexMatrix {
 
     /// Matrix transpose.
     #[must_use]
-    pub fn transpose(&self) -> ComplexMatrix {
-        let mut result = ComplexMatrix::new(self.cols, self.rows);
+    pub fn transpose(&self) -> Self {
+        let mut result = Self::new(self.cols, self.rows);
         for i in 0..self.rows {
             for j in 0..self.cols {
                 result.set(j, i, self.get(i, j));
@@ -258,8 +258,8 @@ impl ComplexMatrix {
 
     /// Conjugate transpose (Hermitian transpose).
     #[must_use]
-    pub fn hermitian(&self) -> ComplexMatrix {
-        let mut result = ComplexMatrix::new(self.cols, self.rows);
+    pub fn hermitian(&self) -> Self {
+        let mut result = Self::new(self.cols, self.rows);
         for i in 0..self.rows {
             for j in 0..self.cols {
                 result.set(j, i, self.get(i, j).conjugate());
@@ -342,12 +342,12 @@ impl ComplexMatrix {
     /// considered zero only when it is below `1e-15` relative to the largest
     /// entry of the matrix, so matrices whose entries are all tiny (e.g.
     /// `1e-20`-scaled physics data) are not falsely rejected.
-    pub fn lu_decomposition(&self) -> Option<(ComplexMatrix, ComplexMatrix, Vec<usize>)> {
+    pub fn lu_decomposition(&self) -> Option<(Self, Self, Vec<usize>)> {
         if self.rows != self.cols {
             return None;
         }
         let n = self.rows;
-        let mut l = ComplexMatrix::identity(n);
+        let mut l = Self::identity(n);
         let mut u = self.clone();
         let mut pivot = (0..n).collect::<Vec<_>>();
 
@@ -435,12 +435,12 @@ impl ComplexMatrix {
     }
 
     /// Matrix inverse.
-    pub fn inverse(&self) -> Option<ComplexMatrix> {
+    pub fn inverse(&self) -> Option<Self> {
         if self.rows != self.cols {
             return None;
         }
         let n = self.rows;
-        let mut result = ComplexMatrix::new(n, n);
+        let mut result = Self::new(n, n);
         for j in 0..n {
             let mut b = vec![Complex::zero(); n];
             b[j] = Complex::one();
@@ -473,12 +473,12 @@ impl ComplexMatrix {
     /// [`MathError::DimensionMismatch`] for non-square input;
     /// [`MathError::NotConverged`] when the matrix is not Hermitian
     /// positive-definite (a non-positive diagonal pivot is encountered).
-    pub fn cholesky(&self) -> MathResult<ComplexMatrix> {
+    pub fn cholesky(&self) -> MathResult<Self> {
         if self.rows != self.cols {
             return Err(MathError::DimensionMismatch);
         }
         let n = self.rows;
-        let mut l = ComplexMatrix::new(n, n);
+        let mut l = Self::new(n, n);
         for i in 0..n {
             for j in 0..=i {
                 // sum = A[i][j] − Σ_{k<j} L[i][k]·conj(L[j][k])
@@ -527,7 +527,7 @@ impl ComplexMatrix {
         let Ok(product) = self.mul(&self.hermitian()) else {
             return false;
         };
-        let identity = ComplexMatrix::identity(self.rows);
+        let identity = Self::identity(self.rows);
         for i in 0..self.rows {
             for j in 0..self.cols {
                 let diff = (product.get(i, j) - identity.get(i, j)).norm();
@@ -558,12 +558,12 @@ impl ComplexMatrix {
     /// # Panics
     /// If the matrix is not square.
     #[must_use]
-    pub fn power(&self, n: usize) -> ComplexMatrix {
+    pub fn power(&self, n: usize) -> Self {
         assert_eq!(self.rows, self.cols, "power requires a square matrix");
         if n == 0 {
-            return ComplexMatrix::identity(self.rows);
+            return Self::identity(self.rows);
         }
-        let mut result = ComplexMatrix::identity(self.rows);
+        let mut result = Self::identity(self.rows);
         let mut base = self.clone();
         let mut exp = n;
         while exp > 0 {
@@ -586,7 +586,7 @@ impl ComplexMatrix {
     /// # Panics
     /// If the matrix is not square.
     #[must_use]
-    pub fn exp(&self, iterations: usize) -> ComplexMatrix {
+    pub fn exp(&self, iterations: usize) -> Self {
         assert_eq!(self.rows, self.cols, "exp requires a square matrix");
         let norm = self.frobenius_norm();
         let mut scale_pow = 0;
@@ -595,8 +595,8 @@ impl ComplexMatrix {
         }
         let scaled = self.scale(Complex::real(1.0 / 2.0_f64.powi(scale_pow as i32)));
 
-        let mut result = ComplexMatrix::identity(self.rows);
-        let mut term = ComplexMatrix::identity(self.rows);
+        let mut result = Self::identity(self.rows);
+        let mut term = Self::identity(self.rows);
 
         for n in 1..=iterations {
             term = term
@@ -634,9 +634,9 @@ impl ComplexMatrix {
     ///
     /// # Panics
     /// If the matrix is not square.
-    pub fn ln(&self, iterations: usize) -> Option<ComplexMatrix> {
+    pub fn ln(&self, iterations: usize) -> Option<Self> {
         assert_eq!(self.rows, self.cols, "ln requires a square matrix");
-        let identity = ComplexMatrix::identity(self.rows);
+        let identity = Self::identity(self.rows);
         let a_minus_i = self
             .sub(&identity)
             .expect("internal: square matrix dimensions");
@@ -646,7 +646,7 @@ impl ComplexMatrix {
             return None;
         }
 
-        let mut result = ComplexMatrix::zeros(self.rows, self.cols);
+        let mut result = Self::zeros(self.rows, self.cols);
         let mut term = a_minus_i.clone();
         for n in 1..=iterations {
             let sign = if n % 2 == 0 {
@@ -672,16 +672,16 @@ impl ComplexMatrix {
     ///
     /// # Errors
     /// [`MathError::DimensionMismatch`] for non-square input.
-    pub fn qr_decomposition(&self) -> MathResult<(ComplexMatrix, ComplexMatrix)> {
+    pub fn qr_decomposition(&self) -> MathResult<(Self, Self)> {
         if self.rows != self.cols {
             return Err(MathError::DimensionMismatch);
         }
         let n = self.rows;
         if n == 0 {
-            return Ok((ComplexMatrix::new(0, 0), ComplexMatrix::new(0, 0)));
+            return Ok((Self::new(0, 0), Self::new(0, 0)));
         }
-        let mut q = ComplexMatrix::new(n, n);
-        let mut r = ComplexMatrix::new(n, n);
+        let mut q = Self::new(n, n);
+        let mut r = Self::new(n, n);
         for j in 0..n {
             let mut v: Vec<Complex> = (0..n).map(|i| self.get(i, j)).collect();
             for k in 0..j {
@@ -801,9 +801,9 @@ impl ComplexMatrix {
                 a.get(0, 0)
             };
             // Shift, QR decompose (O(n²) on Hessenberg), and recover.
-            let shifted = a.sub(&ComplexMatrix::identity(n).scale(shift))?;
+            let shifted = a.sub(&Self::identity(n).scale(shift))?;
             let (q, r) = shifted.qr_hessenberg();
-            a = r.mul(&q)?.add(&ComplexMatrix::identity(n).scale(shift))?;
+            a = r.mul(&q)?.add(&Self::identity(n).scale(shift))?;
         }
         Err(MathError::NotConverged("eigenvalues: QR iteration"))
     }
@@ -833,7 +833,7 @@ impl ComplexMatrix {
     /// # Panics
     /// If the matrix is not square.
     #[must_use]
-    pub fn hessenberg_reduction(&self) -> ComplexMatrix {
+    pub fn hessenberg_reduction(&self) -> Self {
         assert_eq!(self.rows, self.cols, "hessenberg requires a square matrix");
         let n = self.rows;
         if n <= 2 {
@@ -898,10 +898,10 @@ impl ComplexMatrix {
     ///
     /// This is O(n²) instead of the general O(n³) QR, because a Hessenberg
     /// matrix only needs n-1 Givens rotations to reduce to upper triangular.
-    fn qr_hessenberg(&self) -> (ComplexMatrix, ComplexMatrix) {
+    fn qr_hessenberg(&self) -> (Self, Self) {
         let n = self.rows;
         let mut r = self.clone();
-        let mut q = ComplexMatrix::identity(n);
+        let mut q = Self::identity(n);
 
         for j in 0..n - 1 {
             let a = r.get(j, j);
@@ -935,23 +935,22 @@ impl ComplexMatrix {
 
     /// Eigenvectors of the matrix via inverse iteration.
     /// Returns a matrix whose columns are the (right) eigenvectors.
-    pub fn eigenvectors(&self, max_iterations: usize, tolerance: f64) -> MathResult<ComplexMatrix> {
+    pub fn eigenvectors(&self, max_iterations: usize, tolerance: f64) -> MathResult<Self> {
         let n = self.rows;
         if n == 0 {
-            return Ok(ComplexMatrix::new(0, 0));
+            return Ok(Self::new(0, 0));
         }
         let eigenvals = self.eigenvalues(max_iterations, tolerance)?;
-        let mut result = ComplexMatrix::new(n, n);
+        let mut result = Self::new(n, n);
 
         for (k, &lambda) in eigenvals.iter().enumerate() {
             // Shift away from exact eigenvalue so the matrix is non-singular
-            let shifted =
-                self.sub(&ComplexMatrix::identity(n).scale(lambda + Complex::real(1e-8)))?;
-            let mut x = ComplexMatrix::new(n, 1);
+            let shifted = self.sub(&Self::identity(n).scale(lambda + Complex::real(1e-8)))?;
+            let mut x = Self::new(n, 1);
             x.set(0, 0, Complex::one());
             for _ in 0..30 {
                 // Create augmented matrix [shifted | x]
-                let mut aug = ComplexMatrix::new(n, n + 1);
+                let mut aug = Self::new(n, n + 1);
                 for r in 0..n {
                     for c in 0..n {
                         aug.set(r, c, shifted.get(r, c));
@@ -1008,19 +1007,11 @@ impl ComplexMatrix {
     }
 
     /// Singular Value Decomposition. Returns (U, S, Vh) where A = U diag(S) Vh.
-    pub fn svd(
-        &self,
-        max_iterations: usize,
-        tolerance: f64,
-    ) -> MathResult<(ComplexMatrix, Vec<f64>, ComplexMatrix)> {
+    pub fn svd(&self, max_iterations: usize, tolerance: f64) -> MathResult<(Self, Vec<f64>, Self)> {
         let m = self.rows;
         let n = self.cols;
         if m == 0 || n == 0 {
-            return Ok((
-                ComplexMatrix::new(m, m),
-                Vec::new(),
-                ComplexMatrix::new(n, n),
-            ));
+            return Ok((Self::new(m, m), Vec::new(), Self::new(n, n)));
         }
         let (u, b, vh) = self.householder_bidiagonalize();
         let mut d: Vec<f64> = (0..n).map(|i| b.get(i, i).re.abs()).collect();
@@ -1067,7 +1058,7 @@ impl ComplexMatrix {
         let mut indices: Vec<usize> = (0..n).collect();
         indices.sort_by(|&a, &b| d[b].partial_cmp(&d[a]).unwrap_or(std::cmp::Ordering::Equal));
         let sorted_s: Vec<f64> = indices.iter().map(|&i| d[i]).collect();
-        let mut sorted_vh = ComplexMatrix::new(n, n);
+        let mut sorted_vh = Self::new(n, n);
         for (new_col, &old_col) in indices.iter().enumerate() {
             for row in 0..n {
                 sorted_vh.set(row, new_col, vh.get(row, old_col));
@@ -1076,11 +1067,11 @@ impl ComplexMatrix {
         Ok((u, sorted_s, sorted_vh))
     }
 
-    fn householder_bidiagonalize(&self) -> (ComplexMatrix, ComplexMatrix, ComplexMatrix) {
+    fn householder_bidiagonalize(&self) -> (Self, Self, Self) {
         let m = self.rows;
         let n = self.cols;
-        let mut u = ComplexMatrix::identity(m);
-        let mut v = ComplexMatrix::identity(n);
+        let mut u = Self::identity(m);
+        let mut v = Self::identity(n);
         let mut b = self.clone();
 
         let k = if m < n { m } else { n };

@@ -37,7 +37,7 @@ impl CsrMatrix {
             row_ptr[i + 1] = values.len();
         }
 
-        CsrMatrix {
+        Self {
             rows,
             cols,
             values,
@@ -171,7 +171,7 @@ impl CscMatrix {
             col_ptr[j + 1] = values.len();
         }
 
-        CscMatrix {
+        Self {
             rows,
             cols,
             values,
@@ -279,7 +279,7 @@ impl CooMatrix {
             }
         }
 
-        CooMatrix {
+        Self {
             rows: m.rows,
             cols: m.cols,
             entries,
@@ -383,7 +383,7 @@ impl DiagonalSparse {
             diag.push(m.get(i, i));
         }
 
-        DiagonalSparse { n, diag }
+        Self { n, diag }
     }
 
     /// Get value at (i, j).

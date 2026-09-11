@@ -13,7 +13,7 @@ pub struct Jacobi {
 impl Jacobi {
     /// Create a Jacobi solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        Jacobi {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -77,7 +77,7 @@ pub struct GaussSeidel {
 impl GaussSeidel {
     /// Create a Gauss-Seidel solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        GaussSeidel {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -141,7 +141,7 @@ pub struct SOR {
 impl SOR {
     /// Create an SOR solver with the given iteration cap, tolerance and relaxation factor.
     pub fn new(max_iterations: usize, tolerance: f64, omega: f64) -> Self {
-        SOR {
+        Self {
             max_iterations,
             tolerance,
             omega,
@@ -206,7 +206,7 @@ pub struct ConjugateGradient {
 impl ConjugateGradient {
     /// Create a CG solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        ConjugateGradient {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -291,7 +291,7 @@ pub struct PreconditionedCG {
 impl PreconditionedCG {
     /// Create a PCG solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        PreconditionedCG {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -396,7 +396,7 @@ pub struct GMRES {
 impl GMRES {
     /// Create a restarted GMRES solver.
     pub fn new(max_iterations: usize, tolerance: f64, restart: usize) -> Self {
-        GMRES {
+        Self {
             max_iterations,
             tolerance,
             restart,
@@ -546,7 +546,7 @@ pub struct BiCGSTAB {
 impl BiCGSTAB {
     /// Create a BiCGSTAB solver with the given iteration cap and tolerance.
     pub fn new(max_iterations: usize, tolerance: f64) -> Self {
-        BiCGSTAB {
+        Self {
             max_iterations,
             tolerance,
         }
@@ -694,7 +694,7 @@ impl ILUPreconditioner {
             }
         }
 
-        Ok(ILUPreconditioner { l, u })
+        Ok(Self { l, u })
     }
 
     /// Apply preconditioner: solve Mz = r where M = LU.

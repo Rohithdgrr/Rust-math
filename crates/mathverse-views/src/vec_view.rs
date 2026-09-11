@@ -19,21 +19,21 @@ impl<'a> VecView<'a> {
     }
 
     /// View over a subvector: `data[start..end]`.
-    pub fn slice(&self, range: Range<usize>) -> VecView<'a> {
+    pub fn slice(&self, range: Range<usize>) -> Self {
         VecView {
             data: &self.data[range],
         }
     }
 
     /// View over `data[start..]`.
-    pub fn slice_from(&self, start: usize) -> VecView<'a> {
+    pub fn slice_from(&self, start: usize) -> Self {
         VecView {
             data: &self.data[start..],
         }
     }
 
     /// View over `data[..=end]`.
-    pub fn slice_to(&self, end: usize) -> VecView<'a> {
+    pub fn slice_to(&self, end: usize) -> Self {
         VecView {
             data: &self.data[..=end],
         }
@@ -85,7 +85,7 @@ impl<'a> VecView<'a> {
     }
 
     /// Dot product with another view.
-    pub fn dot(&self, other: &VecView<'a>) -> f64 {
+    pub fn dot(&self, other: &Self) -> f64 {
         self.data
             .iter()
             .zip(other.data.iter())

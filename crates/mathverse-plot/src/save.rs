@@ -43,24 +43,24 @@ impl OutputFormat {
     /// File extension for this format.
     pub fn extension(&self) -> &str {
         match self {
-            OutputFormat::Svg | OutputFormat::AnimatedSvg => "svg",
-            OutputFormat::Png => "png",
-            OutputFormat::Jpeg => "jpg",
-            OutputFormat::Pdf => "pdf",
-            OutputFormat::Html => "html",
-            OutputFormat::Terminal => "txt",
+            Self::Svg | Self::AnimatedSvg => "svg",
+            Self::Png => "png",
+            Self::Jpeg => "jpg",
+            Self::Pdf => "pdf",
+            Self::Html => "html",
+            Self::Terminal => "txt",
         }
     }
 
     /// MIME type for this format.
     pub fn mime_type(&self) -> &str {
         match self {
-            OutputFormat::Svg | OutputFormat::AnimatedSvg => "image/svg+xml",
-            OutputFormat::Png => "image/png",
-            OutputFormat::Jpeg => "image/jpeg",
-            OutputFormat::Pdf => "application/pdf",
-            OutputFormat::Html => "text/html",
-            OutputFormat::Terminal => "text/plain",
+            Self::Svg | Self::AnimatedSvg => "image/svg+xml",
+            Self::Png => "image/png",
+            Self::Jpeg => "image/jpeg",
+            Self::Pdf => "application/pdf",
+            Self::Html => "text/html",
+            Self::Terminal => "text/plain",
         }
     }
 }

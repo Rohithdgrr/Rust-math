@@ -14,20 +14,20 @@ pub enum Color {
 impl Color {
     /// Create a new RGB color
     pub fn rgb(r: u8, g: u8, b: u8) -> Self {
-        Color::Rgb(r, g, b)
+        Self::Rgb(r, g, b)
     }
 
     /// Create a new RGBA color
     pub fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Color::Rgba(r, g, b, a)
+        Self::Rgba(r, g, b, a)
     }
 
     /// Get the hex string representation
     pub fn to_hex(&self) -> String {
         match self {
-            Color::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
-            Color::Rgba(r, g, b, a) => format!("#{r:02x}{g:02x}{b:02x}{a:02x}"),
-            Color::Named(_name) => {
+            Self::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
+            Self::Rgba(r, g, b, a) => format!("#{r:02x}{g:02x}{b:02x}{a:02x}"),
+            Self::Named(_name) => {
                 let (r, g, b) = self.to_rgb();
                 format!("#{r:02x}{g:02x}{b:02x}")
             }
@@ -40,8 +40,8 @@ impl Color {
     #[must_use]
     pub fn to_rgb(&self) -> (u8, u8, u8) {
         match self {
-            Color::Rgb(r, g, b) | Color::Rgba(r, g, b, _) => (*r, *g, *b),
-            Color::Named(name) => match *name {
+            Self::Rgb(r, g, b) | Self::Rgba(r, g, b, _) => (*r, *g, *b),
+            Self::Named(name) => match *name {
                 "black" => (0, 0, 0),
                 "white" => (255, 255, 255),
                 "red" => (255, 0, 0),
@@ -74,18 +74,18 @@ impl Color {
 
 /// Common colors
 impl Color {
-    pub const BLACK: Color = Color::Named("black");
-    pub const WHITE: Color = Color::Named("white");
-    pub const RED: Color = Color::Named("red");
-    pub const GREEN: Color = Color::Named("green");
-    pub const BLUE: Color = Color::Named("blue");
-    pub const YELLOW: Color = Color::Named("yellow");
-    pub const CYAN: Color = Color::Named("cyan");
-    pub const MAGENTA: Color = Color::Named("magenta");
-    pub const GRAY: Color = Color::Named("gray");
-    pub const ORANGE: Color = Color::Named("orange");
-    pub const PURPLE: Color = Color::Named("purple");
-    pub const BROWN: Color = Color::Named("brown");
+    pub const BLACK: Self = Self::Named("black");
+    pub const WHITE: Self = Self::Named("white");
+    pub const RED: Self = Self::Named("red");
+    pub const GREEN: Self = Self::Named("green");
+    pub const BLUE: Self = Self::Named("blue");
+    pub const YELLOW: Self = Self::Named("yellow");
+    pub const CYAN: Self = Self::Named("cyan");
+    pub const MAGENTA: Self = Self::Named("magenta");
+    pub const GRAY: Self = Self::Named("gray");
+    pub const ORANGE: Self = Self::Named("orange");
+    pub const PURPLE: Self = Self::Named("purple");
+    pub const BROWN: Self = Self::Named("brown");
 }
 
 /// Line style
@@ -147,7 +147,7 @@ pub struct PlotStyle {
 
 impl Default for PlotStyle {
     fn default() -> Self {
-        PlotStyle {
+        Self {
             line_color: Color::BLUE,
             line_width: 2.0,
             line_style: LineStyle::Solid,

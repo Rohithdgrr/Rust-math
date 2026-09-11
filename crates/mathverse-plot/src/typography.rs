@@ -94,9 +94,9 @@ impl TextAlign {
     #[must_use]
     pub fn anchor(&self) -> &'static str {
         match self {
-            TextAlign::Left => "start",
-            TextAlign::Center => "middle",
-            TextAlign::Right => "end",
+            Self::Left => "start",
+            Self::Center => "middle",
+            Self::Right => "end",
         }
     }
 }

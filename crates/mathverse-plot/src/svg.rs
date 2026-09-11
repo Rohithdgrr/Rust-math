@@ -90,7 +90,7 @@ pub struct ColorbarConfig {
 impl SvgPlot {
     /// Create a new SVG plot
     pub fn new(config: PlotConfig) -> Self {
-        SvgPlot {
+        Self {
             config,
             series: Vec::new(),
             bars: Vec::new(),
@@ -1548,7 +1548,7 @@ impl SvgPlot {
 
 impl crate::backend::Backend for SvgPlot {
     fn generate(&self, data: &PlotData) -> PlotResult<PlotOutput> {
-        let mut svg = SvgPlot::new(data.config.clone());
+        let mut svg = Self::new(data.config.clone());
         for s in &data.series {
             svg.add_series(s.clone());
         }

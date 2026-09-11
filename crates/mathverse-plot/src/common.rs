@@ -31,7 +31,7 @@ pub struct DataPoint {
 impl DataPoint {
     /// Create a new data point
     pub fn new(x: f64, y: f64) -> Self {
-        DataPoint { x, y }
+        Self { x, y }
     }
 }
 
@@ -46,7 +46,7 @@ pub struct DataSeries {
 impl DataSeries {
     /// Create a new data series
     pub fn new(name: impl Into<String>, points: Vec<DataPoint>) -> Self {
-        DataSeries {
+        Self {
             name: name.into(),
             points,
             style: PlotStyle::default(),
@@ -55,7 +55,7 @@ impl DataSeries {
 
     /// Create a new data series with custom style
     pub fn with_style(name: impl Into<String>, points: Vec<DataPoint>, style: PlotStyle) -> Self {
-        DataSeries {
+        Self {
             name: name.into(),
             points,
             style,
@@ -125,7 +125,7 @@ pub struct PlotConfig {
 
 impl Default for PlotConfig {
     fn default() -> Self {
-        PlotConfig {
+        Self {
             title: String::new(),
             x_label: String::new(),
             y_label: String::new(),

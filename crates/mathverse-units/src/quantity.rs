@@ -54,21 +54,21 @@ impl<D: Dimension, U: SiUnit> Quantity<D, U> {
 
     /// Return the quantity's absolute value.
     pub fn abs(self) -> Self {
-        Quantity::new(self.value.abs())
+        Self::new(self.value.abs())
     }
 }
 
 impl<D: Dimension, U: SiUnit> Add for Quantity<D, U> {
     type Output = Self;
     fn add(self, other: Self) -> Self::Output {
-        Quantity::new(self.value + other.value)
+        Self::new(self.value + other.value)
     }
 }
 
 impl<D: Dimension, U: SiUnit> Sub for Quantity<D, U> {
     type Output = Self;
     fn sub(self, other: Self) -> Self::Output {
-        Quantity::new(self.value - other.value)
+        Self::new(self.value - other.value)
     }
 }
 
@@ -76,7 +76,7 @@ impl<D: Dimension, U: SiUnit> Sub for Quantity<D, U> {
 impl<D: Dimension, U: SiUnit> Mul<f64> for Quantity<D, U> {
     type Output = Self;
     fn mul(self, scalar: f64) -> Self::Output {
-        Quantity::new(self.value * scalar)
+        Self::new(self.value * scalar)
     }
 }
 
@@ -84,7 +84,7 @@ impl<D: Dimension, U: SiUnit> Mul<f64> for Quantity<D, U> {
 impl<D: Dimension, U: SiUnit> Div<f64> for Quantity<D, U> {
     type Output = Self;
     fn div(self, scalar: f64) -> Self::Output {
-        Quantity::new(self.value / scalar)
+        Self::new(self.value / scalar)
     }
 }
 

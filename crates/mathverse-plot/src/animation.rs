@@ -198,8 +198,8 @@ impl VideoCodec {
     #[must_use]
     pub fn extension(&self) -> &str {
         match self {
-            VideoCodec::Mp4 => "mp4",
-            VideoCodec::WebM => "webm",
+            Self::Mp4 => "mp4",
+            Self::WebM => "webm",
         }
     }
 
@@ -207,8 +207,8 @@ impl VideoCodec {
     #[cfg(feature = "png")]
     fn ffmpeg_args(self) -> (&'static str, &'static str) {
         match self {
-            VideoCodec::Mp4 => ("libx264", "mp4"),
-            VideoCodec::WebM => ("libvpx-vp9", "webm"),
+            Self::Mp4 => ("libx264", "mp4"),
+            Self::WebM => ("libvpx-vp9", "webm"),
         }
     }
 }

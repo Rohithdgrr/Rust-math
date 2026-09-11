@@ -17,8 +17,8 @@ pub struct SparseMatrix {
 
 impl SparseMatrix {
     /// Create an empty sparse matrix with room for `rows × cols` entries.
-    pub fn new(rows: usize, cols: usize) -> SparseMatrix {
-        SparseMatrix {
+    pub fn new(rows: usize, cols: usize) -> Self {
+        Self {
             rows,
             cols,
             entries: Vec::new(),
@@ -79,8 +79,8 @@ impl SparseMatrix {
 
     /// Transpose: every triplet `(r, c, v)` becomes `(c, r, v)`.
     #[must_use]
-    pub fn transpose(&self) -> SparseMatrix {
-        let mut t = SparseMatrix::new(self.cols, self.rows);
+    pub fn transpose(&self) -> Self {
+        let mut t = Self::new(self.cols, self.rows);
         for &(r, c, v) in &self.entries {
             t.entries.push((c, r, v));
         }

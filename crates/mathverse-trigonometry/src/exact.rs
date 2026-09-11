@@ -34,9 +34,9 @@ impl ExactValue {
     #[must_use]
     pub fn to_f64(self) -> f64 {
         match self {
-            ExactValue::Integer(n) => f64::from(n),
-            ExactValue::Half(n) => f64::from(n) / 2.0,
-            ExactValue::Root {
+            Self::Integer(n) => f64::from(n),
+            Self::Half(n) => f64::from(n) / 2.0,
+            Self::Root {
                 coeff,
                 radicand,
                 denom,
@@ -48,13 +48,13 @@ impl ExactValue {
     #[must_use]
     pub fn negate(self) -> Self {
         match self {
-            ExactValue::Integer(n) => ExactValue::Integer(-n),
-            ExactValue::Half(n) => ExactValue::Half(-n),
-            ExactValue::Root {
+            Self::Integer(n) => Self::Integer(-n),
+            Self::Half(n) => Self::Half(-n),
+            Self::Root {
                 coeff,
                 radicand,
                 denom,
-            } => ExactValue::Root {
+            } => Self::Root {
                 coeff: -coeff,
                 radicand,
                 denom,
@@ -66,9 +66,9 @@ impl ExactValue {
 impl Display for ExactValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            ExactValue::Integer(n) => write!(f, "{n}"),
-            ExactValue::Half(n) => write!(f, "{n}/2"),
-            ExactValue::Root {
+            Self::Integer(n) => write!(f, "{n}"),
+            Self::Half(n) => write!(f, "{n}/2"),
+            Self::Root {
                 coeff,
                 radicand,
                 denom,

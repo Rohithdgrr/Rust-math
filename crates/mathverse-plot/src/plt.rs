@@ -456,7 +456,7 @@ impl Axes {
     pub fn animate(
         &mut self,
         steps: usize,
-        mut frame: impl FnMut(&mut Axes, usize),
+        mut frame: impl FnMut(&mut Self, usize),
         store: &mut Vec<String>,
     ) {
         for i in 0..steps {

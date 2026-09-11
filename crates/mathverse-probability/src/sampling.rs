@@ -397,7 +397,7 @@ pub struct ParticleFilter<T> {
 impl<T: Clone> ParticleFilter<T> {
     pub fn new(initial_particles: Vec<T>) -> Self {
         let n = initial_particles.len();
-        ParticleFilter {
+        Self {
             particles: initial_particles,
             weights: vec![1.0 / n as f64; n],
         }

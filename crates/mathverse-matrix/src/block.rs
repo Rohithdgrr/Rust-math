@@ -58,7 +58,7 @@ impl BlockMatrix {
         let total_rows: usize = row_sizes.iter().sum();
         let total_cols: usize = col_sizes.iter().sum();
 
-        Ok(BlockMatrix {
+        Ok(Self {
             rows: total_rows,
             cols: total_cols,
             block_rows,
@@ -135,7 +135,7 @@ impl BlockMatrix {
     }
 
     /// Block matrix addition.
-    pub fn add(&self, other: &BlockMatrix) -> MathResult<BlockMatrix> {
+    pub fn add(&self, other: &Self) -> MathResult<Self> {
         if self.block_rows != other.block_rows || self.block_cols != other.block_cols {
             return Err(MathError::DimensionMismatch);
         }
@@ -153,7 +153,7 @@ impl BlockMatrix {
     }
 
     /// Block matrix multiplication.
-    pub fn mul(&self, other: &BlockMatrix) -> MathResult<BlockMatrix> {
+    pub fn mul(&self, other: &Self) -> MathResult<Self> {
         if self.block_cols != other.block_rows {
             return Err(MathError::DimensionMismatch);
         }
@@ -177,7 +177,7 @@ impl BlockMatrix {
     }
 
     /// Block matrix transpose.
-    pub fn transpose(&self) -> BlockMatrix {
+    pub fn transpose(&self) -> Self {
         let mut new_blocks = Vec::new();
 
         for j in 0..self.block_cols {
@@ -186,7 +186,7 @@ impl BlockMatrix {
             }
         }
 
-        BlockMatrix {
+        Self {
             rows: self.cols,
             cols: self.rows,
             block_rows: self.block_cols,
@@ -272,7 +272,7 @@ impl BlockOperations {
     pub fn block_lu(m: &BlockMatrix) -> MathResult<(BlockMatrix, BlockMatrix)> {
         let n = m.block_rows;
 
-        let mut l = BlockOperations::diagonal(&vec![Matrix::identity(m.get_block(0, 0).rows); n])?;
+        let mut l = Self::diagonal(&vec![Matrix::identity(m.get_block(0, 0).rows); n])?;
         let mut u = m.clone();
 
         for k in 0..n {
@@ -300,7 +300,7 @@ impl BlockOperations {
     /// Block Cholesky decomposition.
     pub fn block_cholesky(m: &BlockMatrix) -> MathResult<BlockMatrix> {
         let n = m.block_rows;
-        let mut l = BlockOperations::diagonal(&vec![
+        let mut l = Self::diagonal(&vec![
             Matrix::zeros(
                 m.get_block(0, 0).rows,
                 m.get_block(0, 0).cols

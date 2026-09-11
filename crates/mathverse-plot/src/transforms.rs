@@ -44,7 +44,7 @@ impl Position {
     #[must_use]
     pub fn data_xy(&self) -> Option<(f64, f64)> {
         match self {
-            Position::Data(x, y) => Some((*x, *y)),
+            Self::Data(x, y) => Some((*x, *y)),
             _ => None,
         }
     }
