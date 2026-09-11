@@ -324,8 +324,7 @@ impl<T: RealFull> Complex<T> {
     pub fn atan(&self) -> Self {
         let s = *self;
         let i = Self::i();
-        (i / Self::real(T::from_f64(2.0)))
-            * ((Self::one() - i * s) / (Self::one() + i * s)).ln()
+        (i / Self::real(T::from_f64(2.0))) * ((Self::one() - i * s) / (Self::one() + i * s)).ln()
     }
     /// Base-10 logarithm.
     pub fn log10(&self) -> Self {

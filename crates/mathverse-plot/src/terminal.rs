@@ -133,8 +133,7 @@ impl Default for TerminalPlot {
 
 impl crate::backend::Backend for TerminalPlot {
     fn generate(&self, data: &PlotData) -> PlotResult<PlotOutput> {
-        let mut tp =
-            Self::new(data.config.clone()).with_dimensions(self.width, self.height);
+        let mut tp = Self::new(data.config.clone()).with_dimensions(self.width, self.height);
         for s in &data.series {
             tp.add_series(s.clone());
         }

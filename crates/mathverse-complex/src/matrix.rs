@@ -945,8 +945,7 @@ impl ComplexMatrix {
 
         for (k, &lambda) in eigenvals.iter().enumerate() {
             // Shift away from exact eigenvalue so the matrix is non-singular
-            let shifted =
-                self.sub(&Self::identity(n).scale(lambda + Complex::real(1e-8)))?;
+            let shifted = self.sub(&Self::identity(n).scale(lambda + Complex::real(1e-8)))?;
             let mut x = Self::new(n, 1);
             x.set(0, 0, Complex::one());
             for _ in 0..30 {
@@ -1008,19 +1007,11 @@ impl ComplexMatrix {
     }
 
     /// Singular Value Decomposition. Returns (U, S, Vh) where A = U diag(S) Vh.
-    pub fn svd(
-        &self,
-        max_iterations: usize,
-        tolerance: f64,
-    ) -> MathResult<(Self, Vec<f64>, Self)> {
+    pub fn svd(&self, max_iterations: usize, tolerance: f64) -> MathResult<(Self, Vec<f64>, Self)> {
         let m = self.rows;
         let n = self.cols;
         if m == 0 || n == 0 {
-            return Ok((
-                Self::new(m, m),
-                Vec::new(),
-                Self::new(n, n),
-            ));
+            return Ok((Self::new(m, m), Vec::new(), Self::new(n, n)));
         }
         let (u, b, vh) = self.householder_bidiagonalize();
         let mut d: Vec<f64> = (0..n).map(|i| b.get(i, i).re.abs()).collect();
